@@ -297,7 +297,7 @@ test("diff-cover: a branch never taken on an executed added line is reported as 
 test("fact-lines: a fact whose symbol slid is moved to the nearest non-import occurrence", async () => {
   const { relinkText } = await import("../fact-lines.mjs");
   const file = ["import Toolbar from './t';", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "const x = 1;", "", "  <Toolbar a={1} />"].join("\n");
-  const plan = "- `src/page.tsx:3-4` — `Toolbar` — toolbar is wired here";
+  const plan = "- `src/page.tsx:15-16` — `Toolbar` — toolbar is wired here";
   const { text, changes } = relinkText(plan, () => file);
   assert.equal(changes[0].new, "21-22");
   assert.ok(text.includes("`src/page.tsx:21-22`"));
