@@ -20,6 +20,7 @@ import { join, dirname, basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractAcceptance } from "./spec-ac.mjs";
 import { buildPack, idsOfStory } from "./standards-pack.mjs";
+import { extractDesign } from "./design-extract.mjs";
 
 const norm = (p) => String(p).replace(/\\/g, "/").replace(/^api:/, "").trim();
 
@@ -88,6 +89,16 @@ export const fillBriefs = (json, templates) => {
   const standardsIds = [...new Set([...(json.standards || []), ...idsOfStory(readFileSync(tasksPath, "utf8"), us)])];
   const pack = json.noStandardsPack ? null : buildPack({ root: standardsRoot, ref: json.standardsRef || null, ids: standardsIds, prodPaths: json.prod || [] });
   const packPath = pack && !pack.error ? join(json.briefsDir || join(dir, "briefs"), `${us}-standards.md`) : null;
+  // Design : ancres `Design: design.md#C<n>` des taches de l US -> extrait design-<US>.md ecrit par
+  // l outil (sections + §3 + §5, sans reformulation), sauf si le parent a deja donne designPath.
+  const anchorsOfTasks = [...new Set(tasks.flatMap((l) => [...l.matchAll(/Design:\s*`?design\.md#(C\d+(?:\s*,\s*#?C\d+)*)/g)].flatMap((m) => m[1].match(/C\d+/g))))];
+  const designFile = join(dir, "design.md");
+  let designExtract = null;
+  if (!json.designPath && anchorsOfTasks.length && existsSync(designFile)) {
+    designExtract = extractDesign(readFileSync(designFile, "utf8"), anchorsOfTasks);
+    json.designPath = join(json.briefsDir || join(dir, "briefs"), `design-${us}.md`);
+    json.anchors = json.anchors || anchorsOfTasks.map((a) => "#" + a);
+  }
   const common = [
     ["<SLOT_CWD>", json.slot],
     ["<US_ID>", us],
@@ -130,14 +141,27 @@ export const fillBriefs = (json, templates) => {
   if (!acceptance) problems.push(`aucun scenario d acceptation pour ${us} dans ${specPath}`);
   if (!(json.prod || []).length) problems.push("prod[] vide");
   if (pack && pack.error) problems.push(`standards : ${pack.error}`);
+  if (designExtract) for (const m of designExtract.missing) problems.push(`design : ${m} absent de design.md`);
+  if (anchorsOfTasks.length && !json.designPath) problems.push("design : taches ancrees Design: mais design.md absent");
   if (pack && !pack.error) for (const u of pack.unknown) problems.push(`standard inconnu de l index de ${standardsRoot} : ${u}`);
   problems.push(...checkStory(tasks, us, json));
+  // Fichier de prod nomme par une tache (Creer / Etendre `x`) absent de prod[] : le worker le cree
+  // quand meme et le declare en ecart (banc L, US3 : un enum oublie par le parent).
+  const prodSet = new Set((json.prod || []).map(norm));
+  for (const line of tasks) {
+    const body = line.replace(/(?:Code|Eviter|Avoid|Test):\s*[^—]*/g, " ");
+    for (const m of body.matchAll(/`([\w./@-]+\.(?:tsx?|jsx?|cs|json|ya?ml|s?css))`/g)) {
+      const p = norm(m[1]);
+      if (!p.includes("/") || /(^|\/)(?:__tests__|specs|contracts)\//.test(p) || /\.(test|spec)\./.test(p)) continue;
+      if (!prodSet.has(p) && !existsSync(join(json.slot, p))) problems.push(`fichier cree par une tache absent de prod[] : ${p}`);
+    }
+  }
   // A placeholder left behind (`<PROD_PATHS>`) is a hole the agent fills by searching.
   for (const [name, text] of [["worker", worker], ["review", review], ["fix", fix]]) {
     const left = [...new Set((text.match(/<(?:[A-Z][A-Z_]{2,}|fichier:lignes)[^>\n]*>/g) || []).filter((p) => !/^<(?:US_BASE|DONE|Tnnn|re\d)/.test(p)))];
     if (left.length) problems.push(`${name} : placeholder non rempli ${left.join(", ")}`);
   }
-  return { worker, review, fix, tasks: tasks.length, acceptance: Boolean(acceptance), problems, pack: pack && !pack.error ? { path: packPath, text: pack.text, ids: pack.ids } : null };
+  return { worker, review, fix, tasks: tasks.length, acceptance: Boolean(acceptance), problems, pack: pack && !pack.error ? { path: packPath, text: pack.text, ids: pack.ids } : null, design: designExtract ? { path: json.designPath, text: designExtract.text } : null };
 };
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -160,6 +184,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const r = fillBriefs(json, templates);
   mkdirSync(out, { recursive: true });
   for (const kind of ["worker", "review", "fix"]) writeFileSync(join(out, `${json.us}-${kind}.md`), r[kind]);
+  if (r.design) {
+    writeFileSync(r.design.path, r.design.text);
+    console.log(`${json.us} : extrait design -> ${r.design.path}`);
+  }
   if (r.pack) {
     const p = join(out, `${json.us}-standards.md`);
     // Ecarts acceptes par l humain en clarify (plan.md) : portes par le pack, non opposables.

@@ -194,6 +194,9 @@ export const checkMounts = ({ root, files, tasksText = null }) => {
     const abs = key(join(root, rel));
     const kind = mountKind(rel) || "module";
     const text = readText(join(root, rel));
+    // Hors JS/TS (C#, SQL...) : le montage passe par la DI et la decouverte des controllers, et se
+    // prouve par un test d integration, pas par un import (banc L : 4 faux UNMOUNTED sur du .cs).
+    if (!SOURCE.test(rel)) return { file: rel, kind: "other", status: "SKIP", reason: "hors JS/TS : montage prouve par le test d integration de l US" };
     if (text === null) return { file: rel, kind, status: "UNMOUNTED", reason: "fichier absent" };
     // Un fichier qui n exporte que des types (props, DTO) n a rien a monter : les workers le
     // passaient en argument et recevaient un UNMOUNTED a justifier (banc, 3 workers sur 4).
