@@ -103,6 +103,23 @@ Le flux a été testé de bout en bout avec un faux projet. DesignSync n'est uti
 
 Voie front complète « commentaires » : US3 (data) puis US4 (UI design), 2 workers et 1 revue, environ 9 minutes.
 
+## Phase 2 : chemins non testés, recommandations mises à l'épreuve
+
+| Test | Résultat | Suite donnée |
+|---|---|---|
+| Vrai Workflow `speckit-us-loop.js` (US1, US2) | US1 : ESCALATE correct, chaîne arrêtée. US2 : FIXED, le reviewer a renforcé un test d'AC trop lâche, preuve rouge→vert | Rien à changer |
+| ESCALATE → arbitrage → fix → review 2 | PASS | Rien à changer |
+| `sk-pool.ps1` (claim, reprise, release) | Marche | 2 bugs corrigés : session perdue à la reprise, cmdlet Windows seule |
+| Pannes injectées A1, A2, A10 | Tenues (A10 a révélé un trou) | Trou corrigé |
+| Agents Explore (haiku) | 14/15 fiables | Gardés pour la recon |
+| Legacy sans index, « déjà fait » (code-search) | Tenus | Règles précisées |
+| Contrôles mécaniques sur vrais diffs | 0 faux positif | +10 règles |
+| Bruit de mesure (même US jouée 2×) | Prep S : 2,03 $ / 2,10 $ ; prep M : 2,01 $ / 1,83 $ | Écart < 10 % : les gains mesurés sont réels |
+| WIP/budget (plafond forcé à 1 min) | Arrêt propre à 44 s : 2 tâches vertes commitées en `WIP(US6) 2/4`, rien laissé à moitié | Voir reprise |
+| C1 : contrat modifié en cours de run | Dérive vue au hash près (ligne 107) | Le reviewer rendait FAIL, et le fix aurait écrasé le contrat. Désormais ESCALATE si la modif ne vient pas de l'US |
+| C2 : tâche qui écrit le contrat | Le worker a laissé le contrat intact mais a livré un champ hors contrat | brief-fill refuse la tâche en amont ; le worker s'arrête (STOP prouvé, 19 s) sur un champ absent du contrat |
+| Répétitions (3 preps) | 0 HIGH | 7 ambiguïtés levées : pack lu via fichier (38 Ko tronqués sinon), ligne « Dépôt prime », enum dans la tâche consommatrice, HIGH de taille exempté, etc. |
+
 ## À faire de ton côté
 1. **Copier `agents/sk-worker.md` et `agents/sk-reviewer.md`** dans `~/.claude/agents/` (et `~/.cursor/agents/`). Les workflows les appellent désormais.
 2. **Index front** : 4 standards existaient sans être indexés, donc n'étaient jamais appliqués : `api/multipart-upload`, `api/request-timeouts`, `react/grid-filters`, `react/paginated-grids`. Ils sont ajoutés dans `agent-os/front/standards/index.yml` du dépôt : à reporter dans MySepteoWeb.
@@ -115,4 +132,4 @@ Voie front complète « commentaires » : US3 (data) puis US4 (UI design), 2 wor
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 16 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 18 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
