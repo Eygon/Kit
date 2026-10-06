@@ -39,6 +39,9 @@ personne ne repondra.
 - Fichiers de test : <TEST_FILES>
 - Gate ciblee : node node_modules/vitest/vitest.mjs run --coverage=false <fichier>
 - Typecheck (stack TypeScript) : node node_modules/typescript/bin/tsc --noEmit --incremental --tsBuildInfoFile "$(git rev-parse --git-dir)/sk-tsc.tsbuildinfo" -p tsconfig.json
+  Erreur restante sur un fichier que l US n a pas touche, apres ta correction :
+  relance UNE fois sans cache (`rm "$(git rev-parse --git-dir)/sk-tsc.tsbuildinfo"`)
+  avant de conclure ; le cache peut rejouer un ancien diagnostic.
 - Standards AgentOS (MUST) : <STANDARDS_PACK>
   Le CORPS des standards de cette US (alwaysInject du depot + ancres de
   l US), lus dans le depot de l US. Chaque fichier que tu ecris les
