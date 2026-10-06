@@ -381,7 +381,11 @@ Reprise = les [ ] restants.
 ## Commit — DONE une fois en fin d US, WIP si budget
 
 DONE (`sk-impl DONE(<US_ID>)`) seulement quand
-TOUTES les taches de <US_ID> sont [X] :
+TOUTES les taches de <US_ID> sont [X] ET que les gates de fin sont vertes.
+Gate rouge a cause d un fichier hors de tes chemins (un consommateur que
+ton changement casse) : pas de DONE, STOP reason preuve avec le fichier et
+l erreur ; le parent elargit le perimetre ou corrige la prep (banc jeu :
+DONE commite avec tsc rouge dans hud.ts) :
 git add -A
 git commit --no-verify -m "sk-impl DONE(<US_ID>)"
 (--no-verify : le hook du depot refait eslint et prettier, deja
