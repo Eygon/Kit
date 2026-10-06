@@ -331,6 +331,8 @@ si aucune tache ne la demande. NOCOV informe seulement (fichier
 exclu de la couverture, ex. point d entree). Back .NET : meme
 outil sur un lcov coverlet (`dotnet test --collect:"XPlat Code
 Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`).
+Projet de test sans `coverlet.collector` : diff-cover non applicable, dis-le
+dans ta sortie (n ajoute pas le paquet : hors de tes chemins).
 Classe CHAQUE erreur contre tasks.md du slot AVANT de
 conclure :
 - fichier cite par une US ULTERIEURE -> « pas encore

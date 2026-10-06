@@ -236,3 +236,9 @@ test("diff-cover: added lines never executed are reported as GAP, tests and NOCO
   ]);
   assert.equal(ranges([7, 3, 4, 5, 9]), "3-5,7,9");
 });
+
+test("diff-cover: C# auto-properties are not executable lines", async () => {
+  const { addedLines } = await import("../diff-cover.mjs");
+  const diff = ["+++ b/Api/X.cs", "@@ -0,0 +1,3 @@", "+public int Id { get; set; }", "+public string N { get; private set; }", "+return Id;"].join("\n");
+  assert.deepEqual([...addedLines(diff).get("Api/X.cs")], [3]);
+});

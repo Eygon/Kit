@@ -17,6 +17,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const TEST = /(^|\/)(__tests__|tests?)\/|\.(?:test|spec)\.[jt]sx?$|Tests?\.cs$/;
+const AUTO_PROPERTY = /\{\s*get;\s*(?:(?:private\s+|protected\s+|internal\s+)?(?:set|init);\s*)?\}/;
 const SOURCE = /\.(?:[cm]?[jt]sx?|cs)$/;
 
 const slash = (p) => p.replace(/\\/g, "/");
@@ -53,7 +54,9 @@ export function addedLines(diffText) {
       const m = /\+(\d+)/.exec(line);
       next = m ? Number(m[1]) : 0;
     } else if (file && line.startsWith("+")) {
-      out.get(file).add(next++);
+      // Propriete auto C# (`{ get; set; }`) : rien a executer, coverlet la compte quand meme.
+      if (!AUTO_PROPERTY.test(line)) out.get(file).add(next);
+      next++;
     } else if (file && !line.startsWith("-") && !line.startsWith("\\")) {
       next++;
     }
