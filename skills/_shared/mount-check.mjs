@@ -10,7 +10,7 @@
 //
 // Usage :
 //   node mount-check.mjs [--root <depot>] [--tasks <tasks.md>] [--range <a>..<b>] [<fichier>...]
-// Sortie : une ligne par fichier, MOUNTED / PLANNED / UNMOUNTED ; code 1 si un UNMOUNTED.
+// Sortie : une ligne par fichier, MOUNTED / PLANNED / SKIP (types seuls) / UNMOUNTED ; code 1 si un UNMOUNTED.
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, dirname, resolve, relative, basename } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -195,6 +195,10 @@ export const checkMounts = ({ root, files, tasksText = null }) => {
     const kind = mountKind(rel) || "module";
     const text = readText(join(root, rel));
     if (text === null) return { file: rel, kind, status: "UNMOUNTED", reason: "fichier absent" };
+    // Un fichier qui n exporte que des types (props, DTO) n a rien a monter : les workers le
+    // passaient en argument et recevaient un UNMOUNTED a justifier (banc, 3 workers sur 4).
+    if (!mountKind(rel) && exportedNames(text).length === 0 && /\bexport\s+(?:type|interface)\b/.test(text))
+      return { file: rel, kind: "type", status: "SKIP", reason: "types seulement, rien a monter" };
     const consumers = consumersOf(abs, kind === "hook");
     if (consumers.length) return { file: rel, kind, status: "MOUNTED", consumers };
     const line = taskLines.find((l) => l.includes(rel)) || taskLines.find((l) => l.includes(basename(rel)));
@@ -250,6 +254,7 @@ if (isMain) {
     for (const r of results) {
       if (r.status === "MOUNTED") console.log(`MOUNTED ${r.file} <- ${r.consumers.map((c) => `${c.file} (${c.via})`).join(" ; ")}`);
       else if (r.status === "PLANNED") console.log(`PLANNED ${r.file} -> ${r.target} (${r.owner})`);
+      else if (r.status === "SKIP") console.log(`SKIP ${r.file} : ${r.reason}`);
       else console.log(`UNMOUNTED ${r.file} : ${r.reason}`);
     }
   process.exit(results.some((r) => r.status === "UNMOUNTED") ? 1 : 0);
