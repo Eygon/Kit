@@ -124,6 +124,15 @@ seul commit DONE.
    Une branche de prod que rien n execute (un 204/409 jamais
    atteint, un catch jamais leve) n est pas couverte, meme si le
    harnais du depot ne sait pas encore l atteindre.
+   Mecanique, sans lecture : lance la gate du check 4 avec
+   `--coverage.enabled --coverage.reporter=lcov
+   --coverage.reportsDirectory="$(git rev-parse --git-dir)/sk-cov"`
+   (pas un second run), puis
+   `node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov/lcov.info" --range <US_BASE>..HEAD`.
+   Chaque GAP est un ecart : ajoute le test qui execute ET asserte
+   la ligne (FIXED), ou FAIL si la branche demande un choix de
+   spec. Seule exception : garde defensive explicitement
+   inatteignable, a nommer dans ta sortie.
 6ter. Depot front : si le commit touche un fichier de
    langue, il touche TOUS ceux de la ligne LOCALES de
    recon.md, avec une vraie traduction (une valeur recopiee

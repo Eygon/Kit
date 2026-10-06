@@ -211,3 +211,28 @@ test("lanes plans waves: shared prod file keeps order, disjoint stories run toge
   assert.deepEqual(planWaves(tasks).waves, [["US1"], ["US2", "US3"]]);
   assert.deepEqual(planWaves(tasks, { shared: ["src/config/shared.ts"] }).waves, [["US1", "US2"], ["US3"]]);
 });
+
+test("diff-cover: added lines never executed are reported as GAP, tests and NOCOV are not blocking", async () => {
+  const { addedLines, parseLcov, diffCover, ranges } = await import("../diff-cover.mjs");
+  const diff = [
+    "+++ b/src/a.ts",
+    "@@ -0,0 +1,4 @@",
+    "+const x = 1;",
+    "+export const f = () => {",
+    "+  return x;",
+    "+};",
+    "+++ b/src/__tests__/a.test.ts",
+    "@@ -0,0 +1 @@",
+    "+it('x', () => {});",
+    "+++ b/src/main.ts",
+    "@@ -3,0 +4 @@",
+    "+start();",
+  ].join("\n");
+  const lcov = ["SF:src/a.ts", "DA:1,1", "DA:2,1", "DA:3,0", "end_of_record"].join("\n");
+  const report = diffCover(addedLines(diff), parseLcov(lcov, "."));
+  assert.deepEqual(report.map((r) => [r.file, r.status, r.missed]), [
+    ["src/a.ts", "GAP", [3]],
+    ["src/main.ts", "NOCOV", []],
+  ]);
+  assert.equal(ranges([7, 3, 4, 5, 9]), "3-5,7,9");
+});

@@ -322,8 +322,16 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
   ajoute-leur la liste `grep -rlE "<chemins de tes modules modifies,
   sans extension, alias @/ compris>" src/__tests__` (banc jeu : un
   toEqual de forme casse dans playerMotion.test.ts, invisible a related).
-Les trois partent dans UN appel en fin d US :
-  node node_modules/eslint/bin/eslint.js <tes fichiers> && node node_modules/vitest/vitest.mjs related --run --coverage=false --testTimeout=20000 <tes fichiers prod> <tes fichiers de test> && <commande typecheck du Contexte>
+Les trois partent dans UN appel en fin d US, suivis de la couverture du diff :
+  node node_modules/eslint/bin/eslint.js <tes fichiers> && node node_modules/vitest/vitest.mjs related --run --coverage.enabled --coverage.reporter=lcov --coverage.reportsDirectory="$(git rev-parse --git-dir)/sk-cov" --testTimeout=20000 <tes fichiers prod> <tes fichiers de test> && <commande typecheck du Contexte>
+  node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov/lcov.info" --range HEAD   (avant ton commit DONE : arbre de travail + fichiers non suivis)
+Chaque GAP est une ligne de prod que tu ajoutes et qu aucun test
+n execute (banc A/B : cylindre jamais construit, livre « vert ») :
+ajoute le test qui l execute et l asserte, ou supprime la branche
+si aucune tache ne la demande. NOCOV informe seulement (fichier
+exclu de la couverture, ex. point d entree). Back .NET : meme
+outil sur un lcov coverlet (`dotnet test --collect:"XPlat Code
+Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`).
 Classe CHAQUE erreur contre tasks.md du slot AVANT de
 conclure :
 - fichier cite par une US ULTERIEURE -> « pas encore
