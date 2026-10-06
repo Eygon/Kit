@@ -103,8 +103,10 @@ cherche plus, c est deja etabli. Le doc rejoint les
 Faits verifies de plan.md par citation de son chemin,
 jamais par recopie de son contenu.
 Avec un doc /sk-code-search (0ter) frais : cette recon
-est REMPLACEE par le controle git de 0ter.1. Ne relis
-que les fichiers rendus par le git diff. N ouvre un
+est REMPLACEE par le controle git de 0ter.1. Le doc
+remplace la RECHERCHE, pas la lecture : lis les fichiers
+que tes taches vont modifier (signatures, tests voisins),
+rien d autre ; les fichiers rendus par le git diff en plus. N ouvre un
 agent que si le besoin sort du perimetre du doc.
 Les deux docs peuvent coexister : le legacy dit ce que
 faisait l ancien systeme, le code-search ce qui existe

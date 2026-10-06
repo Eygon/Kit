@@ -127,6 +127,12 @@ const unindexed = (top, indexText) => {
   return out;
 };
 
+const featureDirFound = (top) => {
+  const f = readJson(join(top, ".specify", "feature.json"));
+  const d = f && (f.FEATURE_DIR || f.featureDir || f.dir);
+  return d ? resolve(top, d) : null;
+};
+
 const supervisorOf = () => {
   if (process.env.SK_NO_SUPERVISOR === "1") return { state: "disabled" };
   const dir = process.env.SK_SUPERVISOR_DIR || (platform() === "win32" ? "C:\\tmp\\mon-developpeur" : join(homedir(), ".cache", "mon-developpeur"));
@@ -136,7 +142,31 @@ const supervisorOf = () => {
   return { state: age < 30 ? "alive" : "stale", ageMinutes: age, name: s.name || s.agent || "none" };
 };
 
-export const probe = (root, skill) => {
+// Etat du trio de FEATURE_DIR : fichiers obligatoires presents, design.md cite par plan.md mais
+// absent, taches restantes. /sk-impl le lisait par un ls a part (banc, faute A1).
+export const trioOf = (dir, repo) => {
+  if (!dir || !existsSync(dir)) return { trio: "none" };
+  const has = (f) => existsSync(join(dir, f));
+  const missing = ["spec.md", "plan.md", "tasks.md"].filter((f) => !has(f));
+  const plan = readText(join(dir, "plan.md")) || "";
+  const tasks = readText(join(dir, "tasks.md")) || "";
+  return {
+    trio: missing.length ? `INCOMPLET (manque ${missing.join(", ")})` : "ok",
+    designMd: has("design.md") ? "present" : /design\.md/.test(plan + tasks) ? "CITE-MAIS-ABSENT" : "none",
+    reconMd: has("recon.md") ? "present" : "absent",
+    parallelYml: has("parallel.yml") ? "present" : "absent",
+    tasksOpen: (tasks.match(/^\s*-\s*\[ \]/gm) || []).length,
+    tasksDone: (tasks.match(/^\s*-\s*\[[xX]\]/gm) || []).length,
+    // [X] dont le fichier de prod (premier chemin de la ligne hors Test:/Code:) n existe pas : un
+    // tasks.md coche a tort passait pour « deja implemente » (banc, faute A10).
+    checkedWithoutFile: repo ? tasks.split(/\r?\n/).filter((l) => /^\s*-\s*\[[xX]\]/.test(l)).filter((l) => {
+      const m = l.replace(/(?:Code|Eviter|Test):\s*[^—]*/g, " ").match(/`([\w./@-]+\.(?:tsx?|jsx?|cs|json))`/);
+      return m && m[1].includes("/") && !existsSync(join(repo, m[1]));
+    }).map((l) => (l.match(/T\d+[a-z]?/) || ["?"])[0]).join(",") || "none" : "none",
+  };
+};
+
+export const probe = (root, skill, featureArg) => {
   const top = git(root, "rev-parse", "--show-toplevel") || root;
   const common = git(root, "rev-parse", "--path-format=absolute", "--git-common-dir");
   const mainRoot = common ? dirname(common) : top;
@@ -186,6 +216,7 @@ export const probe = (root, skill) => {
     vitest: existsSync(join(top, "node_modules", "vitest", "vitest.mjs")) ? "node node_modules/vitest/vitest.mjs" : "none",
     tsc: existsSync(join(top, "node_modules", "typescript", "bin", "tsc")) ? "node node_modules/typescript/bin/tsc" : "none",
     eslint: existsSync(join(top, "node_modules", "eslint", "bin", "eslint.js")) ? "node node_modules/eslint/bin/eslint.js" : "none",
+    ...(skill === "sk-impl" ? trioOf(featureArg ? resolve(top, featureArg) : featureDirFound(top), top) : {}),
   };
 };
 
@@ -195,7 +226,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const i = args.indexOf(`--${n}`);
     return i >= 0 ? args[i + 1] : null;
   };
-  const r = probe(resolve(opt("root") || "."), opt("skill"));
+  const r = probe(resolve(opt("root") || "."), opt("skill"), opt("feature"));
   if (args.includes("--json")) console.log(JSON.stringify(r, null, 2));
   else for (const [k, v] of Object.entries(r)) console.log(`${k}=${v}`);
 }

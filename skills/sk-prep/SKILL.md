@@ -150,7 +150,7 @@ de /sk-xs §-1, a l identique :
 
 | Signal | Route |
 |---|---|
-| TOUS reunis : <= 2 fichiers de prod (LOCALES comptees pour un), ~10-30 lignes, 1 comportement, pas d ecran (ni ecran ni composant visuel CREE ; changer un format ou un libelle d un ecran existant n en est pas un), 0 decision d archi, 1 seul git root, aucun doc design / legacy / code-search fourni, papier non demande explicitement | XS -> AskUserQuestion ci-dessous |
+| TOUS reunis : <= 2 fichiers de prod (LOCALES comptees pour un), ~10-30 lignes, 1 comportement, pas d ecran (ni ecran ni composant visuel CREE ; changer un format ou un libelle d un ecran existant n en est pas un), 0 decision d archi, 1 seul git root, aucun doc design / legacy fourni (un doc code-search ne compte pas : il reduit le risque), papier non demande explicitement | XS -> AskUserQuestion ci-dessous |
 | un seul signal manquant | continue en A.2 : c est du papier |
 
 AskUserQuestion, dans cet ordre :
@@ -188,7 +188,8 @@ en silence — c est une question. Garde les 1-3 questions dont la reponse CHANG
 (au moins une, sauf spec deja entiere), chacune avec 2-4 options et ta
 recommandation en premier. Derniere question : le filet — les hypotheses
 que tu as prises (portee, cas limites, regles), a valider ou corriger —
-et, sans 0quater, les US retenues pour CE run (toutes par defaut).
+et, sans 0quater, les US retenues pour CE run (toutes par defaut ; deja
+tranchees en 0quater : ne les repose pas).
 AVANT de la poser, esquisse le decoupage (US -> fichiers de prod, LOCALES
 pour un, types purs pour zero) et confronte-le au cap (~5 fichiers, ~6
 taches, au plus 2 composants crees par US) : le
