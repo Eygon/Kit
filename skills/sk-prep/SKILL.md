@@ -194,7 +194,7 @@ pour un, types purs et compagnons « and its » pour zero ; ecris la triade
 model/dto/mapper et le fichier de props tels qu ils seront dans tasks.md,
 c est la que le compte se joue ; le lint ne compte PAS les types purs :
 `Interfaces/I*.cs`, `*Dto.cs`, `*Enum.cs`, `*Configuration.cs`, `Entities/`,
-`Enums/`, `types|dtos|models/*.ts`, `*Props.ts`, ni les fichiers de langue)
+`Enums/`, `types|dtos|models/*.ts`, `*Props.ts` ; les fichiers de langue comptent pour un)
 et confronte-le au cap (~6 fichiers dont
 chaque fichier existant ETENDU, config comprise ; 8 au plus compagnons
 compris ; ~6 taches ; au plus 2 composants crees par US) : le
