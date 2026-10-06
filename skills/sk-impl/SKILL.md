@@ -147,8 +147,12 @@ d un autre slot) -> STOP avec la liste, jamais « deja implemente ».
 Defaut : celle que l utilisateur a citee, ou TOUTES les restantes s il a
 dit « enchaine ». Plusieurs restantes sans indication : le choix part dans
 la question du GO (§3). n = nombre d US retenues. US d une meme racine git :
-jamais en parallele (collision `git add -A`). parallel.yml + n >= 2 :
-`<REF>/parallel.md` decide du moteur.
+jamais en parallele DANS LE MEME SLOT (collision `git add -A`). parallel.yml +
+n >= 2 : `<REF>/parallel.md` decide du moteur. Sans parallel.yml et n >= 3 :
+`node "<SK_SHARED>/lanes.mjs" "<FEATURE_DIR>"` ; s il rend moins de vagues que
+d US, propose-les au GO (une vague = un slot par US, fusion apres la vague,
+`<REF>/parallel.md` §Voies dans un seul depot), sequentiel par defaut si
+l humain ne choisit pas.
 
 ## 3. GO humain AVANT tout Agent/Workflow
 
@@ -293,7 +297,8 @@ Puis `<REF>/publish.md` : verdict Publier / Corriger / Abandonner.
   verdict = 1 relance puis erreur, jamais un FAIL. review2 FAIL, fix STOP,
   STOP budget ou ESCALATE = pas d US suivante.
 - Verrou DLL / crash Vitest : 3 retries worker, pas un FAIL revue.
-- parallel.yml = seule source de parallelisme ; meme racine = sequentiel.
+- Parallelisme : parallel.yml, ou les vagues de lanes.mjs acceptees au GO ;
+  un slot par US d une vague, jamais deux US dans le meme slot.
 - Publication : jamais de merge dans le principal, jamais de push sur la
   branche par defaut, jamais --force, PR draft par GUID.
 - Routage : `<SK_SHARED>/sk-routing.md`. Papier : /sk-prep puis /sk-impl.
