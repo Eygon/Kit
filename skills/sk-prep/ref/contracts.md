@@ -19,7 +19,7 @@ autre chose — c est la situation normale, pas la
 malchance. Avant d ecrire le moindre chemin backend,
 deux lectures OBLIGATOIRES :
   git -C <repo> show origin/<branche>:<sln> \
-    | grep -oE '"[A-Za-z.]+\.csproj"'
+    | grep -oE '[A-Za-z0-9._\\/-]+\.csproj'   (un .sln Windows ecrit `Api\Api.csproj`)
   git -C <repo> ls-tree --name-only origin/<branche> <dossier>/
 Trace le resultat dans les Faits verifies de plan.md,
 avec le sha de la branche. Verifier DEUX FICHIERS ne

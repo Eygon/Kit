@@ -819,9 +819,13 @@ export const lintSpec = (dir, opts = {}) => {
       const symbol = line.match(CODE_SPAN)?.[1];
       for (const raw of paths) {
         const rel = raw.replace(/\\/g, "/").replace(/^@/, "");
-        if (isDocPath(rel) || toCreate.has(rel)) continue;
-        facts.cited += 1;
+        if (isDocPath(rel)) continue;
         const abs = [join(repoRoot, rel), backRoot ? join(backRoot, rel) : null].filter(Boolean).find((c) => existsSync(c));
+        // Un fichier a creer n existe pas encore : pas un fait. Mais un fichier EXISTANT cite par
+        // une tache « Creer » (son `Code:`, un fichier etendu) reste verifie : avant, toute la
+        // tache etait ecartee et 15 faits sur 25 echappaient au controle (banc Miro F2).
+        if (!abs && toCreate.has(rel)) continue;
+        facts.cited += 1;
         if (!abs) {
           facts.missing += 1;
           add("high", "verified-fact-path-missing", "Faits verifies : `" + rel + "` n existe ni dans le depot ni dans le backend lie", "plan.md");
@@ -831,8 +835,13 @@ export const lintSpec = (dir, opts = {}) => {
         // 10 lines above: a fact that cites a line INSIDE a function names the function, declared above.
         const fromLine = Math.max(1, Number(lineRef[1]) - 10);
         const toLine = Number(lineRef[2] || lineRef[1]) + 3;
-        const slice = (read(abs) || "").split(LF).slice(fromLine - 1, toLine).join(LF);
-        if (!slice.includes(symbol)) {
+        const all = (read(abs) || "").split(LF);
+        const slice = all.slice(fromLine - 1, toLine).join(LF);
+        // Ligne citee DANS le corps d un composant ou d une classe declare plus haut (le JSX d un
+        // header 60 lignes sous `export default function BoardPage`) : le symbole englobant compte.
+        const esc = symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const declared = new RegExp(`(?:function|const|let|class|interface|type|enum|record|struct)\\s+${esc}\\b`).test(all.slice(0, toLine).join(LF));
+        if (!slice.includes(symbol) && !declared) {
           facts.lineMismatch += 1;
           add("medium", "verified-fact-line-mismatch", "Faits verifies : `" + symbol + "` absent de " + rel + " lignes " + lineRef[1] + (lineRef[2] ? "-" + lineRef[2] : "") + " (-10/+3)", "plan.md");
         }

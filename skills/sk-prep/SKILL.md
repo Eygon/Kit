@@ -192,7 +192,10 @@ tranchees en 0quater : ne les repose pas).
 AVANT de la poser, esquisse le decoupage (US -> fichiers de prod, LOCALES
 pour un, types purs et compagnons « and its » pour zero ; ecris la triade
 model/dto/mapper et le fichier de props tels qu ils seront dans tasks.md,
-c est la que le compte se joue) et confronte-le au cap (~6 fichiers dont
+c est la que le compte se joue ; le lint ne compte PAS les types purs :
+`Interfaces/I*.cs`, `*Dto.cs`, `*Enum.cs`, `*Configuration.cs`, `Entities/`,
+`Enums/`, `types|dtos|models/*.ts`, `*Props.ts`, ni les fichiers de langue)
+et confronte-le au cap (~6 fichiers dont
 chaque fichier existant ETENDU, config comprise ; 8 au plus compagnons
 compris ; ~6 taches ; au plus 2 composants crees par US) : le
 decoupage propose fait partie de la question. Decouvrir le depassement au
@@ -265,8 +268,9 @@ extrait et testable (`src/engine/gameApp.ts`). Une tache CSS prend en
 `Test:` le test du module qui pose les classes. Parent d une autre
 US ou pas encore cree : `Monté dans: <fichier> (US<n>)` ET, dans US<n>, une
 tache « Monter <Nom> dans `<fichier>` » avec son test, qui rend <fichier>.
-Rien a monter (utils, mapper, DTO, type, colonnes, route) : pas
-d annotation. Une US qui ajoute une VARIANTE a un type deja consomme
+Rien a monter (utils, mapper, DTO, type, colonnes, route, query keys et
+query functions, controleur ASP.NET decouvert par MapControllers, service
+ou repository .NET auto-enregistre) : pas d annotation. Une US qui ajoute une VARIANTE a un type deja consomme
 (union d invites, d evenements, d etats) touche aussi le consommateur qui
 l affiche ou la traite (HUD, director audio, switch), dans ses chemins ou
 par une tache ; sinon la variante sort avec le texte d une autre (banc
