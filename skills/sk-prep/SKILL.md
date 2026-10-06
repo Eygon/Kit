@@ -181,6 +181,11 @@ en silence — c est une question. Garde les 1-3 questions dont la reponse CHANG
 recommandation en premier. Derniere question : le filet — les hypotheses
 que tu as prises (portee, cas limites, regles), a valider ou corriger —
 et, sans 0quater, les US retenues pour CE run (toutes par defaut).
+AVANT de la poser, esquisse le decoupage (US -> fichiers de prod, LOCALES
+pour un) et confronte-le au cap (~5 fichiers, ~6 taches par US) : le
+decoupage propose fait partie de la question. Decouvrir le depassement au
+lint, apres clarify, forcait a re-decouper contre la reponse de l humain
+(banc, cycle 2 : 2 preps sur 5).
 Reponses -> elles faconnent la spec que tu ecris ensuite, et s y tracent
 sous `## Clarifications` (`### Session <date>`, une ligne `- Q: ... → A:
 ...` par question). Une US ecartee n est pas ecrite.
@@ -280,7 +285,9 @@ Script absent : les memes cinq titres a la main, meme regles.
 D abord le linter, qui fait la partie mecanique :
   node "<SK_SHARED>/audit-lint.mjs" "<FEATURE_DIR>" --ref origin/<defaut>
 (chemins en barres obliques, entre guillemets).
-Bloquant : tout HIGH mount-*, wire-*, task-needs-search. A corriger avant
+Bloquant : tout HIGH mount-*, wire-*, task-needs-search. story-too-many-*
+est bloquant SAUF si l humain a retenu ce decoupage en clarify en voyant la
+taille : alors signale-le en A.6, ne re-decoupe pas. A corriger avant
 la validation 6 : les MEDIUM recon-*, design-*, task-without-prod-path,
 test-without-subject. Les autres HIGH se confrontent au critere ci-dessous.
 contract-field-without-source (MEDIUM) : ne regarde que les champs que la

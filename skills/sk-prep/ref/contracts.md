@@ -2,6 +2,15 @@
 
 Lu seulement si : (a) .sk/repos.json porte un `backend` (chaine) ET le besoin touche l API, OU (b) tu t appretes a ecrire un fichier dans contracts/ (ou un AC) avec un champ qui vient d un doc legacy, d un mockup ou d un DTO d un autre systeme.
 
+## Endpoint dicte par l humain (pas de backend accessible)
+
+backend = null et l endpoint vient du besoin ou d une reponse : la source
+est l humain, citee dans les Faits verifies (« endpoint donne par l humain,
+clarify Q2 »). Confronte-le aux url-builders du depot (apiURL) : prefixe,
+casse, segments. Divergence = question de clarify (« ton endpoint ou celui du
+modele du depot ? »), jamais un choix silencieux. La verification en base
+(plus bas) ne s applique que si une base ou un backend est joignable.
+
 ## Second depot (BACK_ROOT)
 SECOND DEPOT (BACK_ROOT) : sa STRUCTURE se lit sur la
 BRANCHE D INTEGRATION, jamais sur le working tree. Un
