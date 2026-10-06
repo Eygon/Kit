@@ -216,8 +216,8 @@ les US front codent contre lui et ne l inventent pas (`<REF>/contracts.md`).
 Puis checklists/requirements.md (gabarit `<TPL>/requirements.md`) : coche
 ce que la spec tient, laisse [ ] ce qu elle ne tient pas.
 
-Ordre d ecriture : spec.md -> plan.md -> pack de standards (A.3) -> plan.md
-`## Standards` -> recon.md (A.4bis) -> tasks.md.
+Ordre d ecriture : spec.md -> pack de standards (A.3, il ne depend que des
+ids choisis) -> plan.md (avec `## Standards`) -> recon.md (A.4bis) -> tasks.md.
 
 **plan.md** (gabarit `<TPL>/plan.md`) — la synthese recon sous
 `## Verified facts` (`chemin:lignes` + symbole + fait, recopies des

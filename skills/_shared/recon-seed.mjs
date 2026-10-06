@@ -71,7 +71,15 @@ export const seed = (root, ref, dirs) => {
   // `<table`, tokens Septeo et alias MySepteoWeb poses sur un depot sans JSX ni lib Septeo).
   const hasJsx = files.some((f) => /\.(tsx|jsx)$/.test(f));
   const hasSepteo = /"@septeo\//.test(git(root, "show", `${ref}:package.json`) || "");
-  const modules = hasJsx ? [] : [...new Set(files.filter((f) => /^src\/[^/]+\/[^/]+\.[jt]s$/.test(f) && !f.includes("__tests__")).map((f) => f.split("/")[1]))].sort().map((d) => `- src/${d}/ : ${files.filter((f) => f.startsWith(`src/${d}/`) && !f.includes("__tests__")).map((f) => f.slice(d.length + 5)).join(", ")} — source: git ls-tree ${ref}`);
+  const modules = hasJsx ? [] : [...new Set(files.filter((f) => /^src\/[^/]+\/[^/]+\.[jt]s$/.test(f) && !f.includes("__tests__")).map((f) => f.split("/")[1]))].sort().map((d) => {
+    // Une ligne par dossier, <= 200 caracteres (recon-line-too-long du lint) : les noms en trop sont comptes.
+    const names = files.filter((f) => f.startsWith(`src/${d}/`) && !f.includes("__tests__")).map((f) => f.slice(d.length + 5));
+    const head = `- src/${d}/ : `, tail = ` — source: git ls-tree ${ref}`;
+    const shown = [];
+    for (const n of names) if ((head + [...shown, n].join(", ") + ` +${names.length} autres` + tail).length <= 200) shown.push(n);
+    const rest = names.length - shown.length;
+    return head + shown.join(", ") + (rest ? ` +${rest} autres` : "") + tail;
+  });
   const lines = [
     "# Recon de feature",
     "",
