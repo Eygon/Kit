@@ -31,7 +31,7 @@ modifie (il ajoute des regles a specify, plan, tasks et sanity).
 | URL `claude.ai/design/p/...` ou lien Figma | `<REF>/design.md` (remplace la section 0) |
 | chemin `docs/legacy-search/*.md` | `<REF>/legacy.md` (0bis) |
 | chemin `docs/code-search/*.md` | `<REF>/code-search.md` (0ter) |
-| `backend` renseigne ET besoin qui touche l API, OU un champ de contrat a ecrire (contracts/ ou AC) qui vient d un legacy, d un mockup ou d un autre systeme | `<REF>/contracts.md` |
+| un contrat a ecrire dans contracts/ (endpoint appele, nouveau ou dicte par l humain), OU `backend` renseigne ET besoin qui touche l API, OU un champ d AC qui vient d un legacy, d un mockup ou d un autre systeme | `<REF>/contracts.md` |
 
 ## 0. Sonde (UN appel Bash, avant toute autre action)
 

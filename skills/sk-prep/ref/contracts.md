@@ -1,6 +1,6 @@
 # /sk-prep — Contrat d interface, second depot, parallel.yml
 
-Lu seulement si : (a) .sk/repos.json porte un `backend` (chaine) ET le besoin touche l API, OU (b) tu t appretes a ecrire un fichier dans contracts/ (ou un AC) avec un champ qui vient d un doc legacy, d un mockup ou d un DTO d un autre systeme.
+Lu seulement si : (a) tu t appretes a ecrire un fichier dans contracts/, OU (b) .sk/repos.json porte un `backend` (chaine) ET le besoin touche l API, OU (c) un AC porte un champ qui vient d un doc legacy, d un mockup ou d un DTO d un autre systeme. Partout ci-dessous, « question de 0quater » = la question de clarify quand 0quater n a pas eu lieu.
 
 ## Endpoint dicte par l humain (pas de backend accessible)
 
