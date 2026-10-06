@@ -175,7 +175,7 @@ export const fillBriefs = (json, templates) => {
   // quand meme et le declare en ecart (banc L, US3 : un enum oublie par le parent).
   const prodSet = new Set((json.prod || []).map(norm));
   for (const line of tasks) {
-    const body = line.replace(/(?:Code|Eviter|Avoid|Test):\s*[^—]*/g, " ");
+    const body = line.replace(/(?:Code|Eviter|Avoid|Test):\s*[^—]*/g, " ").replace(MOUNT_REF, " ");
     for (const m of body.matchAll(/`([\w./@-]+\.(?:tsx?|jsx?|cs|json|ya?ml|s?css))`/g)) {
       const p = norm(m[1]);
       if (!p.includes("/") || /(^|\/)(?:__tests__|specs|contracts)\//.test(p) || /\.(test|spec)\./.test(p)) continue;
