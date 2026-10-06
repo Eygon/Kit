@@ -162,3 +162,10 @@ test("derivePaths keeps the test of a companion cited in the task body", async (
   assert.deepEqual(r.tests.sort(), ["src/__tests__/r/b.test.ts", "src/__tests__/r/t/s.test.ts"]);
   assert.ok(r.prod.includes("src/r/t/s.ts"));
 });
+
+test("derivePaths opens the recon.md PARTAGE files to every story", async () => {
+  const { derivePaths } = await import("../brief-fill.mjs");
+  const r = derivePaths(["- [ ] T005 [US2] Create `src/e/t.ts` — Test: `src/__tests__/e/t.test.ts`"], "## Pieges verifies\n\n- PARTAGE : `src/config/visualConfig.ts`, `src/ui/texts.ts` — ajout seulement\n");
+  assert.deepEqual(r.shared, ["src/config/visualConfig.ts", "src/ui/texts.ts"]);
+  assert.ok(r.prod.includes("src/config/visualConfig.ts"));
+});

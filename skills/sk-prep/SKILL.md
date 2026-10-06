@@ -335,6 +335,11 @@ ligne avec sa source. Toi, ensuite (Edit) :
   d une donnee transverse, format des nombres et son piege en test,
   comment les tests voisins mockent un service), une ligne par fait,
   `chemin:ligne` en source, 200 caracteres au plus ;
+- sous « Pieges verifies », une ligne `- PARTAGE : \`a.ts\`, \`b.ts\` — ajout
+  seulement` pour les fichiers EXISTANTS ou les standards rangent des
+  entrees de toute US (config visuelle, registre d evenements, textes) :
+  brief-fill les ouvre a chaque US en ajout seul. Sans elle, chaque US qui
+  y range une valeur sort de ses chemins et la revue escalade (banc jeu) ;
 - sous « Interdits grep-ables » : UNE regex par ligne, globale, rien
   d autre. Un piege qu on ne peut pas grep va dans « Pieges verifies ». Un
   interdit limite a un dossier (three.js dans src/logic) est deja porte par

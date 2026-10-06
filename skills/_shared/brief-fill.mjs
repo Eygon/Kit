@@ -100,7 +100,11 @@ export const derivePaths = (tasks, reconText) => {
     const loc = reconText.match(/LOCALES\s*:\s*([\w./-]+)\/\{([^}]+)\}\.json/);
     if (loc) for (const l of loc[2].split(",")) prod.add(`${loc[1]}/${l.trim()}.json`);
   }
-  return { prod: [...prod], tests: [...tests] };
+  // Fichiers partages (registre de config, textes) ou les standards rangent des entrees : toute US
+  // peut y AJOUTER (recon.md `- PARTAGE : \`a.ts\`, \`b.ts\``). Banc jeu : 2 ESCALATE pour visualConfig.
+  const shared = reconText ? [...(reconText.match(/^- PARTAGE\s*:.*$/m)?.[0] || "").matchAll(/`([\w./@-]+)`/g)].map((m) => norm(m[1])) : [];
+  for (const p of shared) prod.add(p);
+  return { prod: [...prod], tests: [...tests], shared };
 };
 
 export const fillBriefs = (json, templates) => {
@@ -114,6 +118,7 @@ export const fillBriefs = (json, templates) => {
   const derived = derivePaths(tasks, reconPath !== "aucun" && existsSync(reconPath) ? readFileSync(reconPath, "utf8") : "");
   json.prod = [...new Set([...(json.prod || []).map(norm), ...derived.prod])];
   json.tests = [...new Set([...(json.tests || []).map(norm), ...derived.tests])];
+  const sharedNote = derived.shared.length ? `\n\n## Fichiers partages (ajout seulement)\n\n${derived.shared.map((p) => `- \`${p}\``).join("\n")} : tu peux y AJOUTER les entrees que les standards y rangent (config visuelle, textes...) ; ne modifie ni ne retire une entree existante.\n` : "";
   const acceptance = extractAcceptance(readFileSync(specPath, "utf8"), us);
   const list = (a) => (a && a.length ? a.join("\n") : "aucune");
   const facts = json.facts && json.facts.length ? json.facts.map((f) => "- " + f).join("\n") : "Aucun fait transmis : recon.md fait foi.";
@@ -167,9 +172,9 @@ export const fillBriefs = (json, templates) => {
     ["<FACTS>", facts],
     ["<TASK_LIST>", tasks.join("\n")],
     ["<ACCEPTANCE>", acceptance || "(aucun scenario dans spec.md pour cette US)"],
-  ]) + (json.workerNotes ? `\n\n## Precisions du parent\n\n${json.workerNotes}\n` : "");
-  const review = replaceAll(templates.review, common) + (json.reviewNotes ? `\n\n## Precisions du parent\n\n${json.reviewNotes}\n` : "");
-  const fix = replaceAll(templates.fix, common) + (json.workerNotes ? `\n\n## Precisions du parent\n\n${json.workerNotes}\n` : "");
+  ]) + sharedNote + (json.workerNotes ? `\n\n## Precisions du parent\n\n${json.workerNotes}\n` : "");
+  const review = replaceAll(templates.review, common) + sharedNote + (json.reviewNotes ? `\n\n## Precisions du parent\n\n${json.reviewNotes}\n` : "");
+  const fix = replaceAll(templates.fix, common) + sharedNote + (json.workerNotes ? `\n\n## Precisions du parent\n\n${json.workerNotes}\n` : "");
 
   const problems = [];
   if (!tasks.length) problems.push(`aucune tache sous ## [${us}] dans ${tasksPath}`);
