@@ -1,0 +1,18 @@
+export type ZombieSpeedMode = "walk" | "run" | "sprint";
+
+export const ZOMBIE_CONFIG = {
+  ZOMBIE_MAX_ALIVE: 24,
+  ZOMBIE_SPAWN_QUEUE_MAX: 64,
+  ZOMBIE_RADIUS_M: 0.35,
+  ZOMBIE_HEIGHT_M: 1.8,
+  ZOMBIE_SPEEDS_MPS: { walk: 1.1, run: 2.2, sprint: 3.4 } satisfies Record<ZombieSpeedMode, number>,
+  ZOMBIE_SPAWN_S: 1.4,
+  ZOMBIE_SPAWN_CLIMB_M: 2.2,
+  ZOMBIE_STOP_DISTANCE_M: 0.85,
+  ZOMBIE_ATTACK_RANGE_M: 1.2,
+  ZOMBIE_ATTACK_WINDUP_S: 0.45,
+  ZOMBIE_ATTACK_DURATION_S: 0.8,
+  ZOMBIE_ATTACK_COOLDOWN_S: 1.1,
+  ZOMBIE_ATTACK_DAMAGE: 35,
+  ZOMBIE_DEATH_S: 1.6,
+} as const;

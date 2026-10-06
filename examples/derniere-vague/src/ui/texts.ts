@@ -1,0 +1,37 @@
+import type { PowerUpKind } from "@/config/powerUpConfig";
+import type { WeaponId } from "@/config/weaponConfig";
+
+export const TEXTS = {
+  title: "Dernière Vague",
+  play: "Jouer",
+  replay: "Rejouer",
+  round: (n: number): string => `Manche ${n}`,
+  points: (n: number): string => `${n} pts`,
+  pointsGain: (n: number): string => `+${n}`,
+  ammo: (mag: number, reserve: number): string => `${mag} / ${reserve}`,
+  weaponNames: { pistol: "Pistolet", smg: "Pistolet-mitrailleur", carbine: "Carabine", shotgun: "Fusil à pompe", lmg: "Mitrailleuse", rayGun: "Rayon à énergie" } satisfies Record<WeaponId, string>,
+  buyWeapon: (name: string, cost: number): string => `Acheter ${name} — ${cost}`,
+  buyAmmo: (name: string, cost: number): string => `Munitions ${name} — ${cost}`,
+  openBox: (cost: number): string => `Boîte mystère — ${cost}`,
+  takeWeapon: (name: string): string => `Prendre ${name}`,
+  repair: "Réparer la barricade — maintenir",
+  openDoor: (cost: number): string => `Ouvrir — ${cost}`,
+  slotAmmo: (name: string, mag: number, reserve: number): string => `${name}  ${mag} / ${reserve}`,
+  powerUpNames: { maxAmmo: "Munitions max", instaKill: "Mort instantanée", doublePoints: "Double points", nuke: "Bombe" } satisfies Record<PowerUpKind, string>,
+  powerUpCountdown: (s: number): string => `${s}`,
+  gameOver: (round: number): string => `Vous avez survécu jusqu'à la manche ${round}`,
+  gameOverTitle: "Fin de partie",
+  statsKills: (n: number): string => `Zombies abattus : ${n}`,
+  statsHeadshots: (n: number): string => `Tirs à la tête : ${n}`,
+  statsPoints: (n: number): string => `Points gagnés : ${n}`,
+  debugCounter: (fps: number, drawCalls: number): string => `${fps} i/s · ${drawCalls} appels`,
+  rotateDevice: "Tournez votre appareil en mode paysage",
+  buttonLabels: {
+    labelFire: "Tir",
+    labelAim: "Viser",
+    labelReload: "Charger",
+    labelKnife: "Couteau",
+    labelInteract: "Agir",
+    labelSwap: "Arme",
+  },
+} as const;

@@ -137,7 +137,8 @@ Un domaine neuf pour le kit : un FPS de survie par vagues, en TypeScript avec th
 
 | Impl feature 2 (économie) | 7 US livrées, 609 tests, 95 % de couverture. 2 ESCALATE justifiés : tirs bloqués par une porte ouverte (dette de la feature 1), invite de porte affichée comme un achat d'arme |
 | Prep + impl feature 3 (bonus, finition) | 7 US, 859 tests. **3 US en voies parallèles** dans des slots séparés : 2 fusions propres (aucun fichier commun) et 1 fusion à 3 conflits (`main.ts` commun), résolus par union |
-| Total features 1 à 3 | 71 $ · 57 agents · 3 preps · 21 US, soit ~3,40 $ par US, corrections comprises |
+| Prep + impl feature 4 (rendu premium) | 8 US, 1032 tests. 2 paires de voies parallèles (US1 ∥ US6 → US5, US2 ∥ US8), 3 fusions sans conflit. `window.__qa()` mesure : 101 appels de dessin (budget 150), qualité adaptative de 3 à 10 images/s sur rendu logiciel |
+| Total features 1 à 4 | 91 $ · 76 agents · 4 preps · 29 US, soit ~3,10 $ par US, corrections comprises. Code et trios dans `examples/derniere-vague/` |
 
 Ce que le domaine a révélé, et ce qui a été corrigé dans le kit :
 - **Écart déclaré jamais jugé** : une copie figée de la carte, déclarée par le worker en feature 1, a cassé les tirs à travers les portes en feature 2. Le reviewer rend maintenant un verdict explicite sur chaque écart déclaré. Effet immédiat : il a trouvé l'invite de porte erronée à l'US suivante.
@@ -145,6 +146,8 @@ Ce que le domaine a révélé, et ce qui a été corrigé dans le kit :
 - **DONE commité avec un typecheck rouge** : interdit. Un consommateur cassé hors des chemins de l'US donne un STOP prouvé.
 - **`vitest related` aveugle aux imports paresseux** : la gate de fin ajoute les tests trouvés par recherche du chemin du module (un test cassé était passé inaperçu).
 - **Parallélisme dans un seul dépôt** : le lint signale une US sans fichier commun (`story-parallel-candidate`), et sk-impl documente les voies par slot, la fusion et `tasks-merge`. Condition : aucun fichier commun, point d'entrée compris.
+- **`mount-check` muet hors React** : il ne classait que composants, hooks et services, et répondait « NONE » à chaque US du jeu. Il contrôle maintenant tout module ajouté, sans faux positif sur les runs MySepteoWeb.
+- **Voies parallèles par paires** : le lint liste aussi les paires d'US sans fichier commun (`story-parallel-pairs`), ce qui a donné 2 voies en feature 4.
 - **Entrée partagée rendue morte par l'US** : elle se retire, au lieu de rester sans lecteur.
 - **Index de standards à plat** (`game/x:`) : la sonde le déclarait « non indexé » et le pack refusait ses identifiants, donc aucun standard en sous-dossier n'aurait été appliqué. Corrigé, avec test.
 - **Fichiers `ui/` en `.ts`** non reconnus comme interface : le standard HUD était écarté. Corrigé.

@@ -1,0 +1,67 @@
+# Injected standards are must. Select at most _meta.maxPerGroup per group via tags.
+# _meta.alwaysInject is exempt from the cap: injected on every run.
+
+_meta:
+  maxPerGroup: 5
+  injectedAreMust: true
+  alwaysInject:
+    - no-comments
+    - naming-language
+    - game/logic-render-split
+    - game/tuning-config
+
+no-comments:
+  description: Production code carries no explanatory comments; names, types and small functions say it
+  tags: [naming]
+
+naming-language:
+  description: English identifiers and file names (camelCase files, PascalCase types); player-facing text is French and lives in src/ui/texts.ts
+  tags: [naming]
+
+game/logic-render-split:
+  description: Rules of the game (rounds, points, damage, AI decisions, economy) live in src/logic as pure TypeScript with no three.js, DOM or audio import, and are unit tested; render/audio/ui read logic state, never own it
+  tags: [architecture]
+
+game/tuning-config:
+  description: Every gameplay number (damage, costs, speeds, timings, spawn counts) is a named entry in src/config/*.ts with a unit suffix; no literal tuning value inside logic or render code
+  tags: [architecture]
+
+game/frame-independence:
+  description: Simulation advances only in the fixed-step update (stepS seconds); speeds are per second; render interpolates; only src/engine touches requestAnimationFrame
+  tags: [engine]
+
+game/no-alloc-hot-path:
+  description: Per-frame code (update, render, AI, collision) reuses scratch vectors, pooled meshes and pooled particles; no new Vector3/Object3D/arrays/closures per frame
+  tags: [engine, performance]
+
+game/seeded-random:
+  description: Logic draws randomness from an injected createRandom(seed) instance, never Math.random, so rounds, drops and the box are reproducible in tests
+  tags: [architecture, testing]
+
+game/mobile-performance:
+  description: Mobile budget — pixel ratio capped, under ~150 draw calls, instanced or merged static geometry, at most 4 dynamic lights, no real-time shadow beyond one, textures generated at <=512px
+  tags: [performance, render]
+
+game/procedural-assets:
+  description: No external asset file; models are built from three.js primitives, textures from canvas, sounds synthesized with WebAudio — the build stays one self-contained HTML
+  tags: [render, audio]
+
+game/touch-input:
+  description: Mobile first controls — left virtual stick moves, right half drags to look, on-screen buttons for fire/aim/reload/interact/swap with 48px+ hit areas; keyboard/mouse is a desktop fallback mapped to the same actions
+  tags: [input, ui]
+
+game/procedural-audio:
+  description: One AudioContext unlocked on the first user gesture; sounds are short synthesized voices from src/audio with a master gain and a voice cap; spatial sounds use a panner per source
+  tags: [audio]
+
+game/dom-hud:
+  description: HUD and menus are DOM over the canvas, updated only when the shown value changes; French texts from src/ui/texts.ts; safe-area insets respected
+  tags: [ui]
+
+testing/logic-tests:
+  description: Every src/logic module has a mirror test in src/__tests__/logic using a seeded random and explicit steps; tests assert outcomes (points, state, positions), not calls
+  tags: [testing]
+
+typing/strict-types:
+  description: No any, no non-null assertion on lookups (noUncheckedIndexedAccess is on), discriminated unions for states, readonly config objects
+  tags: [typing]
