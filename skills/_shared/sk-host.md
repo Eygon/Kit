@@ -55,7 +55,7 @@ Opus pour la revue » se transpose sans perte. Seul Haiku n a pas d equivalent.
 |---|---|---|
 | Orchestrateur (parent) | Opus | `claude-opus-5-medium` |
 | Revue (`us-reviewer.md`) | Opus medium | `claude-opus-5-medium` |
-| Dev TDD (`us-sonnet.md`, `tdd-dev`) | Sonnet | `claude-sonnet-5-high` |
+| Dev TDD (`us-sonnet.md`, `sk-worker`) | Sonnet | `claude-sonnet-5-high` |
 | Recon read-only (`Explore` de `/sk-prep` A.1) | Haiku | `gemini-3.8-flash-low` |
 | Sessions d audit (`/sk-audit`) | slug du plan | meme slug, colonne Cursor |
 
@@ -76,12 +76,12 @@ Claude Code : `description`, `prompt`, `subagent_type`, `model`, `name`.
 
 | Agent du kit | Claude Code | Cursor |
 |---|---|---|
-| `tdd-dev` | `Agent(subagent_type: "tdd-dev")` | subagent **custom** `tdd-dev`, depuis `~/.cursor/agents/tdd-dev.md` |
-| `tdd-reviewer` | `Agent(subagent_type: "tdd-reviewer")` | subagent **custom** `tdd-reviewer` |
+| `sk-worker` | `Agent(subagent_type: "sk-worker")` | subagent **custom** `sk-worker`, depuis `~/.cursor/agents/sk-worker.md` |
+| `sk-reviewer` | `Agent(subagent_type: "sk-reviewer")` | subagent **custom** `sk-reviewer` |
 | recon read-only | `Agent(subagent_type: "Explore")` | subagent natif `explore` |
 | tache generique | `Agent(subagent_type: "general-purpose")` | subagent generique (defaut) |
 
-Les definitions `agents/tdd-dev.md` et `agents/tdd-reviewer.md` du depot sont
+Les definitions `agents/sk-worker.md` et `agents/sk-reviewer.md` du depot sont
 installees a l identique dans `~/.cursor/agents/` : meme frontmatter
 (`name`, `description`), meme corps. Il n y a rien a reecrire.
 
@@ -98,9 +98,9 @@ le meme enchainement :
 
 ```
 pour chaque US de tasks.md, dans l ordre :
-  Task(tdd-dev,      claude-sonnet-5-high,  brief = us-sonnet.md)
-  Task(tdd-reviewer, claude-opus-5-medium,  brief = us-reviewer.md)
-  si FAIL : Task(tdd-dev, claude-sonnet-5-high, brief = fix des bloqueurs)
+  Task(sk-worker,    claude-sonnet-5-high,  brief = us-sonnet.md)
+  Task(sk-reviewer,  claude-opus-5-medium,  brief = us-reviewer.md)
+  si FAIL : Task(sk-worker, claude-sonnet-5-high, brief = fix des bloqueurs)
 ```
 
 `speckit-us-loop.js` et `speckit-us-after-parallel.js` se LISENT alors comme
