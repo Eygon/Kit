@@ -132,7 +132,8 @@ seul commit DONE.
    Mecanique, sans lecture : lance la gate du check 4 avec
    `--coverage.enabled --coverage.reporter=lcov
    --coverage.reportsDirectory="$(git rev-parse --git-dir)/sk-cov"`
-   (pas un second run), puis
+   (pas un second run ; back .NET : `--collect:"XPlat Code Coverage"
+   --results-directory` vers ce meme dossier, Format=lcov), puis
    `node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov" --range <US_BASE>..HEAD`.
    Chaque GAP est un ecart : ajoute le test qui execute ET asserte
    la ligne (FIXED), ou FAIL si la branche demande un choix de
