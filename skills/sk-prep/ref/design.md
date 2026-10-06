@@ -98,8 +98,10 @@ le mockup (point d entree, bouton d ouverture) recoit sa section
 `## C<n>`. Agent indisponible (Cursor sans sous-agent) : ecris-le
 toi-meme, memes regles.
 
-Ecris FEATURE_DIR/design.md AVANT specify (la spec le
-cite dans ses AC : "conforme a design.md §X"). Structure :
+Ecris FEATURE_DIR/design.md AVANT spec.md (la spec le
+cite dans ses AC : "conforme a design.md §X") : FEATURE_DIR
+nait en A.2, donc le Sonnet ecrit `<slot>/.sk/design.draft.md`
+et tu le deplaces dans FEATURE_DIR des sa creation. Structure :
 
 1. Source : URL, projectId, fichier, variante, date,
    fichiers importes (liste), reference.png si present.
@@ -109,9 +111,10 @@ cite dans ses AC : "conforme a design.md §X"). Structure :
    controle. Source unique de la table de base :
    ~/.claude/skills/_shared/design-tokens.md (SK_HOME)
    Copie-la dans design.md §3 (le Sonnet et le reviewer
-   ne lisent que design.md), puis verifie le hash du _ds
-   importe contre celui note dans design-tokens.md : s il
-   differe, relis colors_and_type.css et corrige la table
+   ne lisent que design.md), puis compare l identifiant du
+   _ds importe (nom de son dossier, ex. a730067f : ce n est
+   pas un hash a recalculer) a celui note dans
+   design-tokens.md : s il differe, relis colors_and_type.css et corrige la table
    ICI (design.md) — et mets a jour design-tokens.md si
    la difference est durable.
    Variable non couverte : resous via le css du _ds et
@@ -219,6 +222,7 @@ Le Sonnet ne tranche JAMAIS un ecart seul.
 ### tasks
   Si design.md existe : chaque tache qui cree ou
   modifie un composant visuel porte `Design: design.md#C<n>`
+  (plusieurs zones : `Design: design.md#C2, #C3`)
   (l ancre exacte). Une tache UI sans ancre = sanity
   KO (etape 5). Pas de tache "verifier le design" :
   c est le check 8 du reviewer.

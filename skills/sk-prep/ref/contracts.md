@@ -51,7 +51,10 @@ Une colonne qui existe mais dont la table est vide, ou
 ne contient qu une ligne de test, n est pas une source
 exploitable : le dire.
 Ecris dans les Faits verifies, par champ : base, table,
-colonne, volumetrie constatee.
+colonne, volumetrie constatee. Table CREEE par la feature
+(migration d une tache de ce run) : la source est
+« cree par T<nnn> (migration) », sans volumetrie ; seuls les
+champs lus dans une table existante exigent la preuve en base.
 Source introuvable -> le champ NE RENTRE PAS au contrat.
 Il devient une question de 0quater (retirer du perimetre,
 chercher la source ailleurs, livrer sans). Ne l ecris pas
@@ -116,7 +119,8 @@ verifiee se traite comme une source absente.
 
 ## Sanity 5 (contrat, parallel)
 - contracts/ : CHAQUE champ a sa source dans les Faits
-  verifies de plan.md (base, table, colonne, volumetrie). Un
+  verifies de plan.md (base, table, colonne, volumetrie ; ou
+  « cree par T<nnn> » pour une table de la feature). Un
   champ sans source constatee est bloquant, surtout s il vient
   d un doc legacy ou d un mockup ;
 - parallel.yml : les ids (after + parallel) collent aux labels

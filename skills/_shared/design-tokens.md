@@ -1,7 +1,7 @@
 # Tokens Claude Design -> projet (source unique)
 
 Cote DESIGN : verifie le 2026-08-27 dans colors_and_type.css du _ds
-a730067f. Un autre _ds peut differer : /sk-prep relit le css importe
+a730067f (identifiant du dossier _ds, pas un hash). Un autre _ds peut differer : /sk-prep relit le css importe
 et corrige la table dans design.md ; il met a jour CE fichier si la
 difference est durable.
 

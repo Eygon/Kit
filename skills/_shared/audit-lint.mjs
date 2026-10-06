@@ -91,6 +91,8 @@ const RECON_MAX_LINE = 200;
 // son dossier). Spec 916 US16 : recon.md decrivait un composant supprime par un
 // commit deja merge dans dev ; le worker l a constate et a du s arreter.
 const RECON_PATH = /(?<![\w./-])((?:src|api|app|lib|tests?|public|scripts)\/[\w./@{},-]*[\w}])/g;
+// Section Back : chemins .NET (`Tableau.Api/Controllers/X.cs`), tout fichier a extension cite entre backticks.
+const RECON_BACK_PATH = /`([\w.@-]+\/[\w./@{},-]*\.\w+)`/g;
 
 // Lib UI du projet : ses d.ts et son css disent quels props et quels tokens
 // existent vraiment. Spec 916 : design.md prescrivait `--font-display` (la lib
@@ -959,11 +961,14 @@ export const lintSpec = (dir, opts = {}) => {
         }
         // Regex d interdits, faits barres (~~), faits d US (branche de feature).
         if (/interdits/i.test(section) || line.includes("~~") || /\(US\d+\)\s*$/.test(line.trim())) return;
-        for (const m of matchAll(line, RECON_PATH)) {
+        // Section « ## Back ... » : recettes du backend lie (.sk/repos.json), verifiees dans son arbre.
+        const inBack = /^back\b/i.test(section);
+        const backRoot = inBack && repoRoot ? linkedBackendRoot(repoRoot) : null;
+        for (const m of matchAll(line, inBack ? RECON_BACK_PATH : RECON_PATH)) {
           for (const p of expandBraces(m[1]).map(normPath)) {
             if (p.includes("*") || isDocPath(p)) continue;
             recon.paths += 1;
-            if (citedSet.has(p) || exists(p)) continue;
+            if (inBack ? !backRoot || existsSync(join(backRoot, p)) : citedSet.has(p) || exists(p)) continue;
             stale.push({ p, line: i + 1 });
           }
         }
@@ -1012,6 +1017,8 @@ export const lintSpec = (dir, opts = {}) => {
           for (const m of matchAll(left, /(-{0,2}[A-Za-z][\w*-]*)/g))
             leftPatterns.push(new RegExp(`^--?${m[1].replace(/^-+/, "").replace(/XX|\*/g, "[\\w-]+")}$`));
           for (const m of matchAll(target, tokenRx)) {
+            // « (pas --error-60) », « au lieu de --x » : un token cite en note n est pas une cible.
+            if (/(?:\bpas|\bnon|\bni|absent|au lieu de|plutot que|≠|!=|\bnot)\s*`?$/i.test(target.slice(Math.max(0, m.index - 14), m.index))) continue;
             design.tokensChecked += 1;
             if (!defs.has(m[0])) report("design-token-unknown", m[0], "§3, cible", s.start + row.pos);
           }

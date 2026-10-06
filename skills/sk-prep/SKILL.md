@@ -190,7 +190,9 @@ que tu as prises (portee, cas limites, regles), a valider ou corriger —
 et, sans 0quater, les US retenues pour CE run (toutes par defaut ; deja
 tranchees en 0quater : ne les repose pas).
 AVANT de la poser, esquisse le decoupage (US -> fichiers de prod, LOCALES
-pour un, types purs et compagnons « and its » pour zero) et confronte-le au cap (~6 fichiers dont
+pour un, types purs et compagnons « and its » pour zero ; ecris la triade
+model/dto/mapper et le fichier de props tels qu ils seront dans tasks.md,
+c est la que le compte se joue) et confronte-le au cap (~6 fichiers dont
 chaque fichier existant ETENDU, config comprise ; 8 au plus compagnons
 compris ; ~6 taches ; au plus 2 composants crees par US) : le
 decoupage propose fait partie de la question. Decouvrir le depassement au
@@ -350,6 +352,10 @@ ligne avec sa source. Toi, ensuite (Edit) :
   interdit limite a un dossier (three.js dans src/logic) est deja porte par
   les controles mecaniques des standards (`metadata.checks`) : ne le
   recopie pas.
+Feature a deux depots (`backend` dans .sk/repos.json) : les recettes back
+(controleur modele, configuration EF, test d integration voisin) vont sous
+un titre `## Back (<nom>)`, chemins relatifs a la racine du backend ; le
+lint les verifie dans son arbre. Sans elle, les workers back repartent de zero.
 Chaque chemin cite existe sur origin/<defaut> : un module absent se dit
 sans chemin (« aucun module audio »), sinon le lint le prend pour un
 chemin perime (le working tree est
