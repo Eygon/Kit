@@ -23,7 +23,8 @@ const TASK_LINE = /^\s*-\s*\[([ Xx])\]\s*(.+)$/;
 const TASK_ID = /\bT(\d{2,4})[a-z]?\b/;
 const STORY_LABEL = /\[(US\d+)\]/;
 const PATH_TOKEN = /[\w./\\@-]+\.(?:tsx?|jsx?|cs|csproj|json|ya?ml|s?css|md|sql)\b/g;
-const DESIGN_ANCHOR = /Design:\s*design\.md#(C\d+)/g;
+// `Design: design.md#C1` ou `Design: design.md#C1, #C2, C3` (plusieurs ancres sur une ligne).
+const DESIGN_ANCHOR = /Design:\s*`?design\.md#(C\d+(?:\s*,\s*#?C\d+)*)/g;
 // Pas de backtick dans les refs : `Legacy: doc.md#F15,R13` entre backticks capturait
 // « R13` » et sortait legacy-ref-unknown sur une regle presente (916 : 13 faux HIGH).
 // Un backtick optionnel apres les deux-points : la 913 ecrit `Legacy: \`docs/x.md#F3\``.
@@ -641,7 +642,7 @@ export const lintSpec = (dir, opts = {}) => {
     const anchors = new Set(matchAll(designText, DESIGN_SECTION).map((m) => m[1]));
     const used = new Set();
     for (const t of tasks) {
-      const refs = matchAll(t.body, DESIGN_ANCHOR).map((m) => m[1]);
+      const refs = matchAll(t.body, DESIGN_ANCHOR).flatMap((m) => matchAll(m[1], /C\d+/g).map((x) => x[0]));
       refs.forEach((r) => used.add(r));
       for (const r of refs) {
         if (!anchors.has(r))
@@ -740,7 +741,12 @@ export const lintSpec = (dir, opts = {}) => {
     ...matchAll(tasksText, STANDARDS_REF).map((m) => m[0]),
   ]);
   const always = alwaysInjected(dir);
-  const capped = [...standards].filter((s) => !always.has(s.replace(/\.md$/, "")));
+  // Avec des lignes `Standards:` par US (un depot par US), le cap vaut PAR US : une feature back +
+  // front ancre legitimement deux jeux (banc L : 11 front + 8 back sortaient over-cap).
+  const perStory = [...tasksText.matchAll(/^##\s+\[(US\d+)\][^\n]*\n+(?:[^\n]*\n)*?\s*Standards\s*:\s*([^\n]+)/gm)].map((m) => matchAll(m[2], STANDARDS_REF).map((x) => x[0]));
+  const capped = perStory.length
+    ? perStory.reduce((a, l) => (l.filter((s) => !always.has(s.replace(/\.md$/, ""))).length > a.length ? l.filter((s) => !always.has(s.replace(/\.md$/, ""))) : a), [])
+    : [...standards].filter((s) => !always.has(s.replace(/\.md$/, "")));
   if (standards.size === 0)
     add("high", "standards-not-anchored", "aucun @agent-os/standards/ ancre dans plan.md ou tasks.md", "plan.md");
   else if (capped.length > STANDARDS_CAP.max)

@@ -190,7 +190,8 @@ recommandation en premier. Derniere question : le filet — les hypotheses
 que tu as prises (portee, cas limites, regles), a valider ou corriger —
 et, sans 0quater, les US retenues pour CE run (toutes par defaut).
 AVANT de la poser, esquisse le decoupage (US -> fichiers de prod, LOCALES
-pour un) et confronte-le au cap (~5 fichiers, ~6 taches par US) : le
+pour un, types purs pour zero) et confronte-le au cap (~5 fichiers, ~6
+taches, au plus 2 composants crees par US) : le
 decoupage propose fait partie de la question. Decouvrir le depassement au
 lint, apres clarify, forcait a re-decouper contre la reponse de l humain
 (banc, cycle 2 : 2 preps sur 5).
