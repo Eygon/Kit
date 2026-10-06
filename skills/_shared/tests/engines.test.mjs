@@ -104,3 +104,23 @@ test("after-parallel: a story that fails stops its own lane only", async () => {
   assert.ok(!calls.includes("us:US2"));
   assert.ok(calls.includes("us:US4"));
 });
+
+test("loop: reviewTier auto gives the first review of a small undeclared US to Sonnet, never review2", async () => {
+  const models = {};
+  const body = load("speckit-us-loop.js");
+  const fn = new AsyncFunction("agent", "log", "args", "parallel", body);
+  const small = { stopped: false, commit: "abc1234", filesTouched: ["src/a.ts", "src/__tests__/a.test.ts"], summary: "ok" };
+  const declared = { ...small, summary: "layout duplique au niveau module, faute de spec" };
+  const agent = async (prompt, opts) => {
+    models[opts.label] = opts.model;
+    if (opts.label === "us:US1") return small;
+    if (opts.label === "us:US2") return declared;
+    if (opts.label.startsWith("fix:")) return small;
+    if (opts.label === "review:US1") return { verdict: "FAIL", issues: [{ text: "x" }] };
+    return { verdict: "PASS", issues: [] };
+  };
+  await fn(agent, () => {}, { reviewTier: "auto", groups: [g("US1"), g("US2")] }, (fns) => Promise.all(fns.map((f) => f())));
+  assert.equal(models["review:US1"], "sonnet");
+  assert.equal(models["review2:US1"], "opus");
+  assert.equal(models["review:US2"], "opus");
+});

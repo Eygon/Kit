@@ -141,11 +141,27 @@ function reviewHandoffOf(out) {
   return '\n\n## Declare par le worker — a verifier, pas a croire\n' + parts.join('\n')
 }
 
-async function reviewOnce(g, id, label, handoff) {
+// Reviewer tier. Opus by default. `args.reviewTier: 'auto'` (experimental) gives the FIRST review
+// to Sonnet when the worker output is small and declares nothing to judge: A/B bench of 2026-10-06,
+// Sonnet with the mechanical checks (diff-cover, related + lazy-import grep) caught 3 of the 4
+// mechanical defects, but missed a declared module-level layout. Retries and review2 stay Opus.
+const DEVIATION_WORDS = /ecart|écart|declar|déclar|faute de spec|module-level|duplique|dupliqué|deviation|contournement/i
+const TEST_PATH = /(^|\/)(__tests__|tests?)\/|\.(test|spec)\.[jt]sx?$|Tests?\.cs$/
+function reviewModelOf(label, handoff, usOut) {
+  if (!cfg || cfg.reviewTier !== 'auto' || label !== 'review') return 'opus'
+  if (!usOut || typeof usOut !== 'object') return 'opus'
+  const prod = (usOut.filesTouched || []).filter(function (f) { return !TEST_PATH.test(String(f)) })
+  if (!prod.length || prod.length > 4) return 'opus'
+  if (DEVIATION_WORDS.test(String(usOut.summary || '') + ' ' + String(usOut.reason || ''))) return 'opus'
+  const gaps = (usOut.designConformance || []).filter(function (d) { return d && d.status && d.status !== 'OK' })
+  return gaps.length ? 'opus' : 'sonnet'
+}
+
+async function reviewOnce(g, id, label, handoff, usOut) {
   return agent(g.reviewPrompt + (handoff || ''), {
     label: label + ':' + id,
     phase: 'Review',
-    model: 'opus',
+    model: reviewModelOf(label, handoff, usOut),
     effort: 'medium',
     agentType: 'sk-reviewer',
     schema: REVIEW_SCHEMA,
@@ -163,8 +179,8 @@ function reviewVerdict(out) {
   return verdict
 }
 
-async function reviewWithRetry(g, id, label, handoff) {
-  let out = await reviewOnce(g, id, label, handoff)
+async function reviewWithRetry(g, id, label, handoff, usOut) {
+  let out = await reviewOnce(g, id, label, handoff, usOut)
   let verdict = reviewVerdict(out)
   if (verdict === 'ERROR') {
     log('US ' + id + ' ' + label + ' sans verdict — nouvel essai')
@@ -276,7 +292,7 @@ async function runUs(g) {
   }
 
   log('US ' + id + ' review start')
-  const first = await reviewWithRetry(g, id, 'review', reviewHandoffOf(usOut))
+  const first = await reviewWithRetry(g, id, 'review', reviewHandoffOf(usOut), usOut)
   log('US ' + id + ' review ' + first.verdict)
   if (first.verdict === 'ERROR') {
     row.review = 'ERROR'

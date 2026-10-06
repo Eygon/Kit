@@ -262,7 +262,12 @@ Checklist : le brief -review (`<SK_SHARED>/us-reviewer.md` rempli). Le
 reviewer recoit recon.md, les tests et le MEME extrait design que le
 worker. n==1 : toi. n>=2 : sk-reviewer Opus medium dans le Workflow, qui
 doit pouvoir editer, committer et rendre le schema (ne restreins pas ses
-tools). Pas de `yarn typecheck` ni de suite complete en revue : la
+tools). Experimental : `reviewTier: "auto"` dans les args du Workflow
+donne la PREMIERE revue a Sonnet quand le worker touche au plus 4
+fichiers de prod et ne declare aucun ecart (retry et review2 restent
+Opus). Banc A/B : Sonnet + diff-cover + grep des imports paresseux a
+rattrape 3 defauts mecaniques sur 4, mais rate un ecart de conception
+non declare. A n activer que sur un run S/M sans fichier PARTAGE. Pas de `yarn typecheck` ni de suite complete en revue : la
 cloture le fait.
 
 ## Cloture du run (une fois, apres toutes les US retenues)
