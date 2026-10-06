@@ -139,5 +139,21 @@
       "skip": "(Tests?/|\\.Tests?\\.|Tests?\\.cs$)",
       "msg": "etat de requete en Singleton"
     }
+  ],
+  "enums": [
+    {
+      "re": "\\bRecord<\\s*\\w+Enum\\s*,",
+      "files": "^src/.*\\.tsx?$",
+      "skip": "(__tests__/|\\.(test|spec)\\.|Enum\\.ts$|/enums/)",
+      "msg": "Record<Enum, X> hors du fichier de l enum"
+    }
+  ],
+  "react/file-decomposition": [
+    {
+      "re": "^\\s*(?:export\\s+)?(?:interface\\s+\\w+|type\\s+\\w+\\s*(?:<[^>]*>)?\\s*=)",
+      "files": "^src/.*/(?:hooks|components|pages)/.*\\.tsx?$",
+      "skip": "(__tests__/|\\.(test|spec)\\.|/types/)",
+      "msg": "type ou interface declare hors de types/"
+    }
   ]
 }
