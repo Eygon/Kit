@@ -135,7 +135,17 @@ Un domaine neuf pour le kit : un FPS de survie par vagues, en TypeScript avec th
 | Impl feature 1 | 7 US livrées, 297 tests, 93 % de couverture, build d'une seule page de 588 Ko. ~3 à 4 $ par US (worker + revue). 3 allers-retours de correction (~1 $ chacun) |
 | Prep feature 2 (7 US, 29 tâches) | 2,94 $ · 9 min · 0 HIGH. Ligne `PARTAGE` posée d'elle-même |
 
+| Impl feature 2 (économie) | 7 US livrées, 609 tests, 95 % de couverture. 2 ESCALATE justifiés : tirs bloqués par une porte ouverte (dette de la feature 1), invite de porte affichée comme un achat d'arme |
+| Prep + impl feature 3 (bonus, finition) | 7 US, 859 tests. **3 US en voies parallèles** dans des slots séparés : 2 fusions propres (aucun fichier commun) et 1 fusion à 3 conflits (`main.ts` commun), résolus par union |
+| Total features 1 à 3 | 71 $ · 57 agents · 3 preps · 21 US, soit ~3,40 $ par US, corrections comprises |
+
 Ce que le domaine a révélé, et ce qui a été corrigé dans le kit :
+- **Écart déclaré jamais jugé** : une copie figée de la carte, déclarée par le worker en feature 1, a cassé les tirs à travers les portes en feature 2. Le reviewer rend maintenant un verdict explicite sur chaque écart déclaré. Effet immédiat : il a trouvé l'invite de porte erronée à l'US suivante.
+- **Variante ajoutée sans son consommateur** (invite, état de zombie) : la prep embarque maintenant le consommateur (HUD, pose, son) dans la même US.
+- **DONE commité avec un typecheck rouge** : interdit. Un consommateur cassé hors des chemins de l'US donne un STOP prouvé.
+- **`vitest related` aveugle aux imports paresseux** : la gate de fin ajoute les tests trouvés par recherche du chemin du module (un test cassé était passé inaperçu).
+- **Parallélisme dans un seul dépôt** : le lint signale une US sans fichier commun (`story-parallel-candidate`), et sk-impl documente les voies par slot, la fusion et `tasks-merge`. Condition : aucun fichier commun, point d'entrée compris.
+- **Entrée partagée rendue morte par l'US** : elle se retire, au lieu de rester sans lecteur.
 - **Index de standards à plat** (`game/x:`) : la sonde le déclarait « non indexé » et le pack refusait ses identifiants, donc aucun standard en sous-dossier n'aurait été appliqué. Corrigé, avec test.
 - **Fichiers `ui/` en `.ts`** non reconnus comme interface : le standard HUD était écarté. Corrigé.
 - **recon-seed** posait des interdits propres à MySepteoWeb (`<table`, tokens Septeo) sur un dépôt qui n'en a pas. Ils sont maintenant conditionnels, et la liste des modules les remplace.
