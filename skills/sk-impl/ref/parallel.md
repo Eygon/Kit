@@ -66,3 +66,14 @@ Un item `- [US1, US2]` de parallel.yml = une CHAINE : dans args.parallel,
 dans l ordre de la chaine. Les voies tournent en parallele, les US d une voie
 en sequence (meme slot). Une US ko arrete sa voie seulement ; ok=false au
 global. Un item simple `- US3` reste `{id, prompt, ..., root}`.
+
+## Voies dans un seul depot (banc jeu)
+
+Deux voies du MEME depot tournent chacune dans son slot (worktree du pool,
+trio copie), puis la voie secondaire est fusionnee dans la principale
+(`git merge --no-ff`) et ses cases reportees par `tasks-merge.mjs`.
+Condition : AUCUN fichier de prod commun entre les voies, fichiers PARTAGE et
+point d entree (main.ts) compris : ce que signale le lint
+`story-parallel-candidate`. Mesure : 2 fusions sans fichier commun propres ;
+1 fusion avec main.ts + visualConfig.ts communs = 3 conflits et un agent de
+resolution. Un fichier commun = meme voie, en sequence.
