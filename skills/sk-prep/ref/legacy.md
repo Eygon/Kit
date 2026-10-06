@@ -61,6 +61,15 @@ relancer /sk-legacy-search avec une question plus
 precise. Re-grepper le monolithe annule le benefice de
 la recherche prealable — c est la raison d etre du doc.
 
+## Doc sans index (sans R<n>)
+
+Ce que les regles ci-dessous disent de `- R<n> — ...` vaut pour la PUCE du
+doc : recopie-la entiere (texte + sa citation fichier:ligne), suivie de
+`(source : <chemin>#<titre exact de section>)`. Ancre de tache :
+`Legacy: <chemin>#<titre exact>`. La regle recopiee garde SA langue, entre
+guillemets, meme dans un trio en anglais (audit) : la traduire, c est la
+paraphraser.
+
 ## Regles ajoutees aux etapes du trio (legacy)
 
 ### specify

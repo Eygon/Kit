@@ -31,7 +31,7 @@ modifie (il ajoute des regles a specify, plan, tasks et sanity).
 | URL `claude.ai/design/p/...` ou lien Figma | `<REF>/design.md` (remplace la section 0) |
 | chemin `docs/legacy-search/*.md` | `<REF>/legacy.md` (0bis) |
 | chemin `docs/code-search/*.md` | `<REF>/code-search.md` (0ter) |
-| un contrat a ecrire dans contracts/ (endpoint appele, nouveau ou dicte par l humain), OU `backend` renseigne ET besoin qui touche l API, OU un champ d AC qui vient d un legacy, d un mockup ou d un autre systeme | `<REF>/contracts.md` |
+| un contrat a ecrire dans contracts/ (endpoint appele, nouveau ou dicte par l humain), OU `backend` renseigne ET besoin qui touche l API, OU un champ d AC qui doit etre SERVI par une API ou une base et qui vient d un legacy, d un mockup ou d un autre systeme (un champ derive cote front d une donnee existante ne le declenche pas) | `<REF>/contracts.md` |
 
 ## 0. Sonde (UN appel Bash, avant toute autre action)
 
@@ -296,7 +296,9 @@ AskUserQuestion : completer maintenant ou livrer en l etat.
 
 ### A.4bis recon.md
 
-Pars du squelette genere, jamais d une page blanche :
+A ecrire juste APRES plan.md et AVANT tasks.md : les taches (`New:`, sources
+des donnees) et la sanity s appuient dessus. Pars du squelette genere,
+jamais d une page blanche :
 
   node "<SK_SHARED>/recon-seed.mjs" --root . --ref origin/<defaut> --out "<FEATURE_DIR>/recon.md"
 

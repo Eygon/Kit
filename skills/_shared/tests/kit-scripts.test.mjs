@@ -1,4 +1,5 @@
 // node --test skills/_shared/tests/*.test.mjs — tests of the deterministic helpers of the kit.
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { tasksOfStory, applyConditions } from "../brief-fill.mjs";
@@ -97,4 +98,26 @@ test("extractDesign keeps the anchored sections, the tokens table and the arbitr
   assert.match(r.text, /G1 x/);
   assert.doesNotMatch(r.text, /C2 Header/);
   assert.deepEqual(extractDesign(d, ["C9"]).missing, ["#C9"]);
+});
+
+import { runChecks } from "../standards-pack.mjs";
+import { mkdtempSync, writeFileSync as wf, mkdirSync as md } from "node:fs";
+import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
+import { join as pj } from "node:path";
+
+test("standards-pack check catches the banned patterns on added lines only", () => {
+  const dir = mkdtempSync(pj(tmpdir(), "skchk-"));
+  const g = (...a) => execFileSync("git", a, { cwd: dir, stdio: "ignore" });
+  g("init", "-q"); md(pj(dir, "src/api"), { recursive: true }); md(pj(dir, "Api/Controllers"), { recursive: true });
+  wf(pj(dir, "src/a.tsx"), "export const A = () => null;\n");
+  g("add", "-A"); g("-c", "user.email=a@b", "-c", "user.name=t", "commit", "-qm", "base");
+  wf(pj(dir, "src/a.tsx"), "export const A = () => null;\n// explain\nconst x: any = 1;\nif (r.status === 404) {}\n<button>x</button>\n");
+  wf(pj(dir, "src/api/s.ts"), "const d = new Date().toISOString();\n");
+  wf(pj(dir, "Api/Controllers/X.cs"), "public class X : ControllerBase { }\n[Table(\"t\")]\n");
+  const pack = "## Controles mecaniques\n\n```json\n" + JSON.stringify(Object.entries(JSON.parse(readFileSync(new URL("../standards-checks.json", import.meta.url), "utf8"))).filter(([k]) => k !== "_doc").flatMap(([id, rs]) => rs.map((r) => ({ id, ...r })))) + "\n```\n";
+  const ids = runChecks(dir, pack, {}).map((h) => h.split(" ")[1]);
+  for (const id of ["no-comments", "typing/generic-unknown-slots", "http-status", "septeo-library-first", "api/service-structure", "global/sealed-by-default", "controllers/controller-patterns", "data-access/ef-entity-type-configuration"])
+    assert.ok(ids.includes(id), `missing ${id}`);
+  assert.ok(!runChecks(dir, pack, {}).some((h) => h.includes("export const A")));
 });
