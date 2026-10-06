@@ -248,6 +248,9 @@ function Resolve-Session([string]$Given, [string]$MainRoot) {
 function Stop-SlotServers([string]$SlotPath) {
     $rt = Join-Path $PSScriptRoot 'sk-runtime.ps1'
     if (-not (Test-Path $rt)) { return }
+    # sk-runtime arrete les serveurs par Get-NetTCPConnection, qui n existe que sous Windows : ailleurs
+    # il imprimait une erreur a chaque claim / release.
+    if (-not $IsWindows) { return }
     try { & pwsh -NoProfile -File $rt -Action stop -Slot $SlotPath 2>&1 | Where-Object { $_ -notmatch '^aucun serveur' } | ForEach-Object { Write-Output "  runtime: $_" } } catch {}
 }
 
@@ -325,6 +328,10 @@ switch ($Action) {
 
         if ($g.branch -eq $Branch) {
             # Reprise : rien de destructif, on ne fait que reecrire le relevé.
+            # Une reprise sans session resolue garde celle du releve : la reecrire a vide faisait
+            # perdre a Claude Fleet la session a rouvrir (banc, claim de reprise sans -Session).
+            if (-not $sessionId -and $st) { $sessionId = $st.session }
+            if (-not $terminalId -and $st) { $terminalId = $st.terminal }
             $e = @{ slot = $name; busy = $true; task = $Branch; agent = $Agent; session = $sessionId; terminal = $terminalId
                     base = $(if ($st -and $st.base) { $st.base } else { $null }); updated = (Now-Iso); note = $(if ($Note) { $Note } elseif ($st) { $st.note } else { $null }) }
             Write-StatusLine $ctx.statusFile $e
