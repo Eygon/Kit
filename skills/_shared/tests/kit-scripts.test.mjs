@@ -242,3 +242,13 @@ test("diff-cover: C# auto-properties are not executable lines", async () => {
   const diff = ["+++ b/Api/X.cs", "@@ -0,0 +1,3 @@", "+public int Id { get; set; }", "+public string N { get; private set; }", "+return Id;"].join("\n");
   assert.deepEqual([...addedLines(diff).get("Api/X.cs")], [3]);
 });
+
+test("facts: us and repo survive a round trip, and a repo only sees its own facts", async () => {
+  const { mergeFacts, factsForRepo } = await import("../facts-add.mjs");
+  const a = mergeFacts([], [{ fact: "back trick", source: "x.cs" }], "US1", "/r/back");
+  const b = mergeFacts(a, [{ fact: "front trick", source: "y.ts" }], "US4", "/r/front");
+  const all = mergeFacts(b, [{ fact: "global" }]);
+  assert.deepEqual(factsForRepo(all, "/r/front").map((f) => f.fact), ["front trick", "global"]);
+  assert.equal(all[0].us, "US1");
+  assert.equal(all[0].repo, "/r/back");
+});

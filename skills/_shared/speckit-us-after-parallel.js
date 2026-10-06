@@ -178,7 +178,7 @@ function reviewModelOf(label, handoff, usOut) {
   const prod = (usOut.filesTouched || []).filter(function (f) { return !TEST_PATH.test(String(f)) })
   if (!prod.length || prod.length > 4) return 'opus'
   if (DEVIATION_WORDS.test(String(usOut.summary || '') + ' ' + String(usOut.reason || ''))) return 'opus'
-  const gaps = (usOut.designConformance || []).filter(function (d) { return d && d.status && d.status !== 'OK' })
+  const gaps = (usOut.designConformance || []).filter(function (d) { return d && ((Array.isArray(d.gaps) && d.gaps.length) || !/^(ok|conforme|conform)$/i.test(String(d.status || ''))) })
   return gaps.length ? 'opus' : 'sonnet'
 }
 

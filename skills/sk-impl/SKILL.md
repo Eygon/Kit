@@ -247,7 +247,7 @@ Commit DONE en fin d US quand tout [X] ; WIP au plafond dur ~40 min.
 Le worker (et le fix) rendent `facts: [{fact, source}]` (0-5) : results[]
 en Workflow, sortie structuree en n==1. Apres CHAQUE worker ou fix, UNE
 commande, sans relire ni recopier :
-  node "<SK_SHARED>/facts-add.mjs" "<FEATURE_DIR>" <sortie du worker .json | -> --us <US_ID>
+  node "<SK_SHARED>/facts-add.mjs" "<FEATURE_DIR>" <sortie du worker .json | -> --us <US_ID> --slot <SLOT_CWD de l US>
 Elle verse les faits dans FEATURE_DIR/facts.json (dedup par texte, 40 au
 plus, les plus recents gardes) ; brief-fill les injecte dans tous les briefs
 suivants. Ne les recopie plus dans le JSON du brief. Seule exception : un
