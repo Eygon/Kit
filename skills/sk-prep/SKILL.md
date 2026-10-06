@@ -106,10 +106,11 @@ Fan-out SEULEMENT si :
   - la recon inline touche >= 2 pages (src/pages/<a> ET src/pages/<b>) ;
     une page plus un composant partage qu elle consomme reste UN
     sous-systeme ;
-  - les 2-3 greps montrent >= 2 livrables independants (ex. data layer ET
-    ecran) sans doc code-search frais. Le nombre d US n est fixe qu en
-    specify : on juge ici sur les livrables, pas sur des US qui n existent
-    pas encore.
+  - une question de recon reste ouverte apres les 2-3 greps (point
+    d insertion, source d une donnee) et touche un dossier que tu n as pas
+    encore lu. Un besoin a plusieurs livrables dont les 2-3 greps ont
+    trouve les points d entree ne fan-out PAS (cycles 1-2 du banc : 0 agent
+    sur 13 preps, recon inline suffisante).
 
 Avant de repartir, ECRIS la liste des QUESTIONS de recon (point
 d insertion, montage du composant, source de la donnee, construction de la
@@ -142,7 +143,7 @@ de /sk-xs §-1, a l identique :
 
 | Signal | Route |
 |---|---|
-| TOUS reunis : <= 2 fichiers de prod, ~10-30 lignes, 1 comportement, pas d ecran, 0 decision d archi, 1 seul git root, aucun doc design / legacy / code-search fourni, papier non demande explicitement | XS -> AskUserQuestion ci-dessous |
+| TOUS reunis : <= 2 fichiers de prod (LOCALES comptees pour un), ~10-30 lignes, 1 comportement, pas d ecran (ni ecran ni composant visuel CREE ; changer un format ou un libelle d un ecran existant n en est pas un), 0 decision d archi, 1 seul git root, aucun doc design / legacy / code-search fourni, papier non demande explicitement | XS -> AskUserQuestion ci-dessous |
 | un seul signal manquant | continue en A.2 : c est du papier |
 
 AskUserQuestion, dans cet ordre :
@@ -167,7 +168,24 @@ regle 2). Il cree FEATURE_DIR et .specify/feature.json ; rends-toi au
 dossier qu il rend, VERIFIE qu il existe. Jamais de mkdir a la main.
 Hook after_specify : SKIPPED (il reecrit AGENTS.md hors specs/).
 
-**spec.md** (gabarit `<TPL>/spec.md`, une seule ecriture) — le QUOI, sans
+**clarify + filet + US retenues : UNE AskUserQuestion, AVANT d ecrire
+spec.md** (jusqu a 4 questions dans le meme appel). La recon et le besoin
+suffisent a la poser : ecrire d abord la spec forcait a rediger des US et
+des AC qu une reponse retirait ensuite (PDF, TVA). Passe le besoin au crible : perimetre exclu,
+donnees et leur source, parcours et etats (vide, erreur, chargement),
+regles et cas limites, contraintes non fonctionnelles, termes ambigus.
+Une valeur, une option ou une donnee que le besoin nomme et que le depot
+n a pas (enum sans la valeur, DTO sans le champ) : ni inventee, ni retiree
+en silence — c est une question. Garde les 1-3 questions dont la reponse CHANGE une US, une AC ou une tache
+(au moins une, sauf spec deja entiere), chacune avec 2-4 options et ta
+recommandation en premier. Derniere question : le filet — les hypotheses
+que tu as prises (portee, cas limites, regles), a valider ou corriger —
+et, sans 0quater, les US retenues pour CE run (toutes par defaut).
+Reponses -> elles faconnent la spec que tu ecris ensuite, et s y tracent
+sous `## Clarifications` (`### Session <date>`, une ligne `- Q: ... → A:
+...` par question). Une US ecartee n est pas ecrite.
+
+**spec.md** (gabarit `<TPL>/spec.md`, ecrit UNE fois, apres clarify) — le QUOI, sans
 implementation. Une US = un livrable dont l Independent Test se joue SANS
 les US suivantes, ~3-5 fichiers de prod (~20-40 min worker), ~3-6 taches.
 Pas 1 fichier par US, pas toute la feature dans une US ; une petite US qui
@@ -177,24 +195,8 @@ reviewer juge dessus. INTERDIT : chemins API/backend ET pages/components
 dans le meme [USn]. Front sans backend modifiable qui appelle un endpoint :
 le contrat (yaml/json dans contracts/) s ecrit TOI, en prep, avant les US ;
 les US front codent contre lui et ne l inventent pas (`<REF>/contracts.md`).
-Une valeur, une option ou une donnee que le besoin nomme et que le depot
-n a pas (enum sans la valeur, DTO sans le champ) : ni inventee, ni retiree
-en silence — c est une question de clarify.
 Puis checklists/requirements.md (gabarit `<TPL>/requirements.md`) : coche
 ce que la spec tient, laisse [ ] ce qu elle ne tient pas.
-
-**clarify + filet + US retenues : UNE AskUserQuestion** (jusqu a 4
-questions dans le meme appel). Passe la spec au crible : perimetre exclu,
-donnees et leur source, parcours et etats (vide, erreur, chargement),
-regles et cas limites, contraintes non fonctionnelles, termes ambigus.
-Garde les 1-3 questions dont la reponse CHANGE une US, une AC ou une tache
-(au moins une, sauf spec deja entiere), chacune avec 2-4 options et ta
-recommandation en premier. Derniere question : le filet — les hypotheses
-que tu as prises (portee, cas limites, regles), a valider ou corriger —
-et, sans 0quater, les US retenues pour CE run (toutes par defaut).
-Reponses -> spec.md (`## Clarifications`, `### Session <date>`, une ligne
-`- Q: ... → A: ...` par question ; l AC ou l hypothese corrigee a sa
-place) ; une US ecartee sort de spec.md.
 
 **plan.md** (gabarit `<TPL>/plan.md`) — la synthese recon sous
 `## Faits verifies` (`chemin:lignes` + symbole + fait, recopies des
@@ -211,7 +213,7 @@ brief-fill.mjs, audit-lint.mjs et mount-check.mjs lisent :
   ## [US1] <titre de l US>
   - [ ] T001 [US1] Creer `src/x/y.tsx` — <ce que fait la tache> — Test: `src/__tests__/x/y.test.tsx` — Monté dans: `src/pages/p/p.tsx`
   - [ ] T002 [US1] Etendre `src/api/a/aService.ts` (`createB`, POST /b de contracts/b.yaml) — Code: `src/api/a/aService.ts#getAll` — Test: `src/__tests__/api/a/aService.test.ts`
-  - [ ] T003 [US1] Ajouter les cles `pages.x.*` dans `src/i18n/locales/fr.json`, `en.json`, `es.json` — <cle = fr / en / es> — Test: `<test de parite de recon.md>`
+  - [ ] T003 [US1] Ajouter les cles `pages.x.*` dans `src/i18n/locales/fr.json`, `src/i18n/locales/en.json`, `src/i18n/locales/es.json` — <cle = fr / en / es> — Test: `<test de parite de recon.md>`
 
 Une tache = une ligne = une action = UN fichier de prod + son `Test:`,
 sauf les fichiers LOCALES : UNE tache pour toutes les langues (le lint les
@@ -219,10 +221,11 @@ compte pour un fichier). Les tests ne sont PAS des taches separees (RED
 puis GREEN dans la meme tache). Pas de phase Setup/Foundational sans
 nouvelle API publique ; pas de tache pour lire les standards, baseline,
 rituel RED, revue de diff, validation manuelle, verifier le design.
-Une ligne dit QUOI, OU et AVEC QUOI (fichier, symbole, endpoint, source de
-la donnee) ; elle ne recopie pas le code a ecrire.
+Une ligne dit QUOI, OU et AVEC QUOI (fichier, signature, endpoint, source
+de la donnee, valeurs exigees) ; elle ne recopie pas le corps du code.
 `Code:` = ce que la tache reutilise sans le modifier (hors cap de
-fichiers). MONTAGE (bloquant au sanity) : une tache qui CREE un composant,
+fichiers). `Eviter: <symbole> (<raison>)` = un voisin qui ressemble mais ne
+convient pas (ex. le formateur d affichage pour un export). MONTAGE (bloquant au sanity) : une tache qui CREE un composant,
 un hook ou un service porte `Monté dans: <fichier>` (qui l importe et le
 rend ; un service : qui l appelle), touche par CETTE US. Parent d une autre
 US ou pas encore cree : `Monté dans: <fichier> (US<n>)` ET, dans US<n>, une
@@ -299,7 +302,9 @@ Elle nomme donc :
   code une liste de demonstration en dur (917 US5, 3 workers sur 3) ;
 - pour un changement de surface publique (hook, type partage, export) :
   chaque consommateur (`grep -rl "<nom du module>" src`) dans CETTE US, ou
-  un alias transitoire NOMME qui couvre tout membre retire ;
+  un alias transitoire NOMME qui couvre tout membre retire ; un
+  consommateur que le changement ne force pas a modifier (prop optionnelle)
+  se cite en `Code:` (relu, pas touche, hors cap de fichiers) ;
 - pour « sur le modele de <jumeau> » : ce que le jumeau porte (etats,
   props, effets) et que la tache reprend ou ecarte, et ce qu un composant
   reutilise active par defaut (918 T032 : epinglage livre inerte).

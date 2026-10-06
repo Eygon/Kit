@@ -613,7 +613,7 @@ export const lintSpec = (dir, opts = {}) => {
     const prod = new Set();
     // The LOCALES files of a front repo are mandatory for any UI story (sk-prep recon.md): they
     // count as one file, not three, or every UI story with a label goes over the cap.
-    for (const t of list) for (const p of t.paths) if (isProdPath(p) && !t.reusedOnly.has(p)) prod.add(LOCALE_FILE.test(p) ? "<locales>" : p);
+    for (const t of list) for (const p of t.paths) if (isProdPath(p) && p.includes("/") && !t.reusedOnly.has(p)) prod.add(LOCALE_FILE.test(p) ? "<locales>" : p);
 
     if (list.length > MAX_TASKS_PER_STORY)
       add("high", "story-too-many-tasks", `${story} a ${list.length} taches (max ~${MAX_TASKS_PER_STORY}): recouper`, `tasks.md`);

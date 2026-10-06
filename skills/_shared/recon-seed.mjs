@@ -52,8 +52,9 @@ export const componentsOn = (root, ref, dirs, files) => {
       const src = git(root, "show", `${ref}:${main}`) || "";
       const name = exportName(src) || folder;
       const line = src.split("\n").findIndex((l) => /\bexport\b/.test(l) && l.includes(name)) + 1;
-      const props = propsOf(src, name).slice(0, 8);
-      out.push(`- ${name} — ${main} — props: ${props.length ? props.join(", ") : "aucune lue"} — source: ${main}:${line || 1}`);
+      const props = propsOf(src, name).slice(0, 6);
+      const row = `- ${name} — ${main} — props: ${props.length ? props.join(", ") : "aucune lue"} — source: ${main}:${line || 1}`;
+      out.push(row.length > 200 ? `- ${name} — props: ${props.join(", ")} — source: ${main}:${line || 1}` : row);
     }
   }
   return out;
@@ -81,8 +82,7 @@ export const seed = (root, ref, dirs) => {
     "",
   ];
   if (loc) {
-    const files = loc.langs.map((l) => `${loc.dir}/${l}.json`).join(", ");
-    lines.push(`- LOCALES : ${loc.langs.join(", ")} (${files}) — toute cle ajoutee va dans CHAQUE fichier ; test de parite : ${parity || "aucun"} — source: git ls-tree ${ref} ${loc.dir}`);
+    lines.push(`- LOCALES : ${loc.dir}/{${loc.langs.join(",")}}.json — chaque cle dans CHAQUE fichier ; parite : ${parity || "aucun test"} — source: git ls-tree ${ref}`);
   }
   if (aliases.length) lines.push(`- ALIAS tsconfig : ${aliases.join(" ; ")} — aucun autre alias n existe — source: tsconfig.json:${tsLine || 1}`);
   lines.push("", "## Recettes de test", "", "## Interdits grep-ables", "");
