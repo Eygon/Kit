@@ -209,7 +209,14 @@ export const checkMounts = ({ root, files, tasksText = null }) => {
       return { file: rel, kind: "type", status: "SKIP", reason: "types seulement, rien a monter" };
     const consumers = consumersOf(abs, kind === "hook");
     if (consumers.length) return { file: rel, kind, status: "MOUNTED", consumers };
-    const line = taskLines.find((l) => l.includes(rel)) || taskLines.find((l) => l.includes(basename(rel)));
+    // La tache du fichier le cite AVANT toute note « Monte dans » : une autre tache qui le nomme
+    // comme cible de montage (T016 « Monte dans: commentsPanel.tsx ») n est pas la sienne (banc Miro).
+    const owns = (l, needle) => {
+      const at = l.indexOf(needle);
+      const note = l.search(/Mont[ée]e?s?\s+dans|Mounted\s+in/i);
+      return at >= 0 && (note < 0 || at < note);
+    };
+    const line = taskLines.find((l) => owns(l, rel)) || taskLines.find((l) => owns(l, basename(rel)));
     const note = line ? line.match(MOUNT_NOTE) : null;
     if (note && note[2]) return { file: rel, kind, status: "PLANNED", target: note[1], owner: note[2] };
     const names = exportedNames(text);

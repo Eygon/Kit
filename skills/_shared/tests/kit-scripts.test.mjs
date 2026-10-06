@@ -252,3 +252,20 @@ test("facts: us and repo survive a round trip, and a repo only sees its own fact
   assert.equal(all[0].us, "US1");
   assert.equal(all[0].repo, "/r/back");
 });
+
+test("mount-check: a task naming the file as its mount target does not shadow the file's own task", async () => {
+  const { mkdtempSync, mkdirSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { checkMounts } = await import("../mount-check.mjs");
+  const root = mkdtempSync(join(tmpdir(), "mc-"));
+  mkdirSync(join(root, "src/panel"), { recursive: true });
+  writeFileSync(join(root, "src/panel/panel.tsx"), "export const Panel = () => null;\n");
+  const tasks = [
+    "- [X] T016 [US5] Create `src/useX.ts` — Monté dans: `src/panel/panel.tsx`",
+    "- [X] T018 [US5] Create `src/panel/panel.tsx` — Monté dans: `src/board.tsx` (US6)",
+  ].join("\n");
+  const [r] = checkMounts({ root, files: ["src/panel/panel.tsx"], tasksText: tasks });
+  assert.equal(r.status, "PLANNED");
+  assert.equal(r.owner, "US6");
+});
