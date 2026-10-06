@@ -59,3 +59,16 @@ BACK_ROOT est pose :
   wt-N front.
 Le pool front se selectionne comme aujourd hui
 (auto-reuse matching FEATURE_SLUG).
+
+## Trio dans le slot backend, et retour des cases
+
+Le worker back travaille dans SON slot : copie le trio (FEATURE_DIR) dans
+`<slot back>/specs/<NNN>-<nom>/` exactement comme pour le slot front (neuf :
+copie ; reprise : seulement l absent). Ses briefs ont `featureDir` = cette
+copie, `slot` = le slot back, `standardsRoot` = le slot back (standards du
+back). Chaque voie coche SA copie de tasks.md : deux workers paralleles qui
+editeraient le meme fichier par `sed -i` peuvent perdre une case.
+Apres chaque US back (et a la fin du Workflow) :
+  node "<SK_SHARED>/tasks-merge.mjs" <slot front>/specs/<NNN>-<nom>/tasks.md <slot back>/specs/<NNN>-<nom>/tasks.md
+(union des [X] par id, jamais de decoche), puis recon.md : les facts de l US
+back vont dans le recon.md du slot front, qui fait foi.

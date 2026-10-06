@@ -62,3 +62,13 @@ test("standards-pack takes the file-level Standards line for every story", () =>
   assert.deepEqual(idsOfStory(tasks, "US1").sort(), ["api/service-structure", "http-status"]);
   assert.deepEqual(idsOfStory(tasks, "US2").sort(), ["api/service-structure", "http-status", "react/forms"]);
 });
+
+import { mergeTasks } from "../tasks-merge.mjs";
+
+test("tasks-merge unions the [X] of each slot copy by task id, never unticks", () => {
+  const front = "## [US1] a\n- [ ] T001 [US1] back\n- [X] T010 [US3] front\n- [ ] T011 [US3] front\n";
+  const back = "## [US1] a\n- [X] T001 [US1] back\n- [ ] T010 [US3] front\n- [ ] T011 [US3] front\n";
+  const r = mergeTasks(front, [back]);
+  assert.deepEqual(r.added, ["T001"]);
+  assert.equal(r.text, "## [US1] a\n- [X] T001 [US1] back\n- [X] T010 [US3] front\n- [ ] T011 [US3] front\n");
+});
