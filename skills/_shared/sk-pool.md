@@ -26,7 +26,7 @@ pwsh -File ~/.claude/skills/_shared/sk-pool.ps1 -Action <action> ...
 | `status -Repo <depot ou slot>` | voir un pool, les deux verites cote a cote | table ; `-Json` pour une machine |
 | `find -Repo <depot> -Feature <NNN ou slug>` | **reprise** : la feature a-t-elle deja un slot ? | `REPRISE <slot> \| branche … \| verdict …` ; exit 2 aucun ; exit 3 plusieurs (trancher, ne pas deviner) |
 | `free -Repo <depot>` | slot neuf | `LIBRE <slot>` ; `LIBRE-SALE <slot>` (question avant) ; exit 2 aucun |
-| `claim -Slot <slot> -Branch <b> [-Base <ref>] [-Note <txt>] [-Session <id>] [-Force]` | prendre le slot | `CLAIM …` (neuf : checkout -B, reset --hard, clean -fd) ou `REPRISE …` (deja sur `-Branch` : rien touche) ; exit 3 `REFUS …` |
+| `claim -Slot <slot> -Branch <b> [-Base <ref>] [-Note <txt>] [-Session <id>] [-Force]` | prendre le slot | `CLAIM …` (neuf : checkout -B, reset --hard, clean -fd) ou `REPRISE …` (deja sur `-Branch` : rien touche) ; exit 3 `REFUS …` (slot pris entre free et claim ; ou deja tenu par une AUTRE session active < 45 min : meme feature lancee deux fois). claim et toute ecriture de status.md passent sous le verrou `<pool>/.claim.lock` |
 | `touch -Slot <slot> [-Note <txt>]` | heartbeat apres chaque US | reecrit `updated` et la note |
 | `release -Slot <slot> [-Force] [-KeepBranch]` | rendre le slot | `RELEASE …` : serveurs arretes, sale -> stash nomme, `checkout --detach origin/<defaut>`, branches supprimees si sur origin, ligne `idle` nue, `worktree prune` |
 | `repair -Repo <depot> [-Apply]` | releve incoherent | dry-run par defaut : `A FAIRE …` ; `-Apply` ecrit |

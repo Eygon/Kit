@@ -39,6 +39,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$script:PoolLockDepth = 0
+$script:PoolLockHandle = $null
 $SlotNamePattern = '^wt-(?:(audit|test)-)?(\d+)$'
 # Une branche qui dit « ce slot travaille ». Tout le reste (defaut, detache) = libre pour git.
 $WorkBranchPattern = '^(sk-impl-|sk-xs-|sk-audit-|review-|feature/|fix/|work/)'
@@ -149,6 +151,9 @@ function Format-Line([hashtable]$E) {
 function Write-StatusLine([string]$File, [hashtable]$E) {
     $dir = Split-Path -Parent $File
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force $dir | Out-Null }
+    # Sous verrou, relu au dernier moment : deux touch simultanes perdaient une ligne (banc).
+    $h = Enter-PoolLock $dir
+    try {
     $existing = @()
     if (Test-Path $File) { $existing = @(Get-Content $File) }
     $done = $false
@@ -159,12 +164,17 @@ function Write-StatusLine([string]$File, [hashtable]$E) {
     }
     if (-not $done) { $out += (Format-Line $E) }
     Set-Content -Path $File -Value ($out -join "`n") -Encoding utf8 -NoNewline
+    } finally { Exit-PoolLock $h $dir }
 }
 
 function Remove-StatusLine([string]$File, [string]$SlotName) {
     if (-not (Test-Path $File)) { return }
+    $dir = Split-Path -Parent $File
+    $h = Enter-PoolLock $dir
+    try {
     $out = @(Get-Content $File | Where-Object { ((($_ -split '\|')[0]).Trim().ToLower()) -ne $SlotName.ToLower() })
     Set-Content -Path $File -Value ($out -join "`n") -Encoding utf8 -NoNewline
+    } finally { Exit-PoolLock $h $dir }
 }
 
 function Now-Iso { return (Get-Date).ToString('yyyy-MM-ddTHH:mm:sszzz') }
@@ -267,10 +277,16 @@ function Resolve-SlotPath([string]$S) {
 # ensemble prenaient le meme slot (banc : 3 courses sur 3, deux CLAIM wt-1, la 2e ecrasait la
 # branche de la 1re). Sous le verrou, claim relit git : le second recoit REFUS et relance free.
 function Enter-PoolLock([string]$PoolRoot) {
+    # Reentrant : claim tient le verrou et ecrit status.md, qui le reprend.
+    if ($script:PoolLockDepth -gt 0) { $script:PoolLockDepth++; return $script:PoolLockHandle }
     New-Item -ItemType Directory -Force $PoolRoot | Out-Null
     $lock = Join-Path $PoolRoot '.claim.lock'
     for ($i = 0; $i -lt 100; $i++) {
-        try { return [System.IO.File]::Open($lock, 'CreateNew', 'Write', 'None') } catch {}
+        try {
+            $script:PoolLockHandle = [System.IO.File]::Open($lock, 'CreateNew', 'Write', 'None')
+            $script:PoolLockDepth = 1
+            return $script:PoolLockHandle
+        } catch {}
         # Verrou orphelin (session tuee pendant un claim) : un claim dure < 30 s.
         try { if (((Get-Date) - (Get-Item $lock).LastWriteTime).TotalSeconds -gt 60) { Remove-Item $lock -Force } } catch {}
         Start-Sleep -Milliseconds 200
@@ -278,6 +294,8 @@ function Enter-PoolLock([string]$PoolRoot) {
     Write-Output "REFUS verrou du pool tenu depuis 20 s ($lock) : une autre session reserve un slot ; relancer."; exit 3
 }
 function Exit-PoolLock($Handle, [string]$PoolRoot) {
+    if ($script:PoolLockDepth -gt 1) { $script:PoolLockDepth--; return }
+    $script:PoolLockDepth = 0
     try { $Handle.Close() } catch {}
     Remove-Item (Join-Path $PoolRoot '.claim.lock') -Force -ErrorAction SilentlyContinue
 }
@@ -348,6 +366,16 @@ switch ($Action) {
         $terminalId = $env:FLEETVIEW_TERMINAL_ID
 
         if ($g.branch -eq $Branch) {
+            # Meme feature lancee deux fois : la 2e session recevait REPRISE et travaillait dans le
+            # meme worktree que la 1re (banc). Slot tenu par une AUTRE session active (heartbeat
+            # recent : touch apres chaque US, une US < ~40 min) = refus, sauf -Force.
+            if ($st -and $st.busy -and $st.session -and $sessionId -and $st.session -ne $sessionId -and -not $Force) {
+                $age = $null
+                try { $age = ((Get-Date) - [datetime]::Parse($st.updated)).TotalMinutes } catch {}
+                if ($null -ne $age -and $age -lt 45) {
+                    Write-Output ("REFUS {0} : deja tenu par la session {1} (active il y a {2} min). Meme feature lancee deux fois ? -Force pour prendre la main si elle est morte." -f $slot, $st.session, [int]$age); exit 3
+                }
+            }
             # Reprise : rien de destructif, on ne fait que reecrire le relevé.
             # Une reprise sans session resolue garde celle du releve : la reecrire a vide faisait
             # perdre a Claude Fleet la session a rouvrir (banc, claim de reprise sans -Session).
