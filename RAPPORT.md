@@ -125,6 +125,29 @@ Voie front complète « commentaires » : US3 (data) puis US4 (UI design), 2 wor
 | Même feature lancée deux fois ; mises à jour simultanées de status.md | La 2e session recevait REPRISE et travaillait dans le même worktree ; 1 ligne d'état perdue sur 4 | REFUS si une autre session active (signe de vie < 45 min) tient le slot ; toutes les écritures sous verrou. Rejoué : refus, reprise par la même session OK, session morte reprise OK, 0 ligne perdue sur 3 essais |
 | Répétitions (3 preps) | 0 HIGH | 7 ambiguïtés levées : pack lu via fichier (38 Ko tronqués sinon), ligne « Dépôt prime », enum dans la tâche consommatrice, HIGH de taille exempté, etc. |
 
+## Banc 3 : un jeu mobile three.js (« Dernière Vague »)
+
+Un domaine neuf pour le kit : un FPS de survie par vagues, en TypeScript avec three.js, sans React ni .NET, et avec ses propres standards agent-os (séparation logique/rendu, pas d'allocation dans la boucle, réglages centralisés, perf mobile). Le besoin a été découpé en 3 features : cœur jouable, économie, finition premium.
+
+| Étape | Mesure |
+|---|---|
+| Prep feature 1 (7 US, 30 tâches) | 2,32 $ · 7 min 24 · 0 HIGH |
+| Impl feature 1 | 7 US livrées, 297 tests, 93 % de couverture, build d'une seule page de 588 Ko. ~3 à 4 $ par US (worker + revue). 3 allers-retours de correction (~1 $ chacun) |
+| Prep feature 2 (7 US, 29 tâches) | 2,94 $ · 9 min · 0 HIGH. Ligne `PARTAGE` posée d'elle-même |
+
+Ce que le domaine a révélé, et ce qui a été corrigé dans le kit :
+- **Index de standards à plat** (`game/x:`) : la sonde le déclarait « non indexé » et le pack refusait ses identifiants, donc aucun standard en sous-dossier n'aurait été appliqué. Corrigé, avec test.
+- **Fichiers `ui/` en `.ts`** non reconnus comme interface : le standard HUD était écarté. Corrigé.
+- **recon-seed** posait des interdits propres à MySepteoWeb (`<table`, tokens Septeo) sur un dépôt qui n'en a pas. Ils sont maintenant conditionnels, et la liste des modules les remplace.
+- **Regex d'alias fantômes en `(?:`**, que `grep -E` rejette : ce contrôle ne marchait pas, MySepteoWeb compris. Corrigé.
+- **Recette du RED par import paresseux** : un test sans `import` devient un script global, d'où des collisions TS2451 qui apparaissent ou non selon le cache `tsc`. Désormais : `export {};` en tête.
+- **Config partagée hors des chemins de l'US** (`visualConfig.ts`) : 2 ESCALATE de suite. Ajout d'une ligne `PARTAGE` dans recon.md : ces fichiers sont ouverts en ajout seul à toutes les US, et le reviewer le sait.
+- **Partie de fichier qu'un standard range ailleurs** (textures) : la prep la déclare maintenant en compagnon, et le test de ce compagnon rejoint la liste des tests du brief.
+- **`main.ts` signalé « non monté »** à chaque US : un point d'entrée est maintenant la racine du montage.
+- Clarifications de prep : ordre d'écriture, `Monté dans:` pour la logique appelée, point d'entrée non rendable, interdits limités à un dossier.
+
+Le kit a aussi bien fonctionné là où on l'attendait. Les 2 ESCALATE étaient de vrais défauts de prep, et le reviewer a refusé de les trancher seul. Les contre-tests rouge→vert ont été faits, la reprise des faits d'une US à l'autre a évité des recherches répétées, et 0 standard a été violé en fin de chaîne.
+
 ## À faire de ton côté
 1. **Copier `agents/sk-worker.md` et `agents/sk-reviewer.md`** dans `~/.claude/agents/` (et `~/.cursor/agents/`). Les workflows les appellent désormais.
 2. **Index front** : 4 standards existaient sans être indexés, donc n'étaient jamais appliqués : `api/multipart-upload`, `api/request-timeouts`, `react/grid-filters`, `react/paginated-grids`. Ils sont ajoutés dans `agent-os/front/standards/index.yml` du dépôt : à reporter dans MySepteoWeb.
