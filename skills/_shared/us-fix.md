@@ -16,6 +16,9 @@ seul arret legitime est un STOP appuye sur une preuve.
 - Chemins prod autorises : <PROD_PATHS>
 - Fichiers de test : <TEST_FILES>
 - Outils du kit : <SK_SHARED>
+- Standards de l US (MUST) : <STANDARDS_PACK> — une issue « check 11 » cite
+  le standard ; ta correction le respecte, puis
+  `node <SK_SHARED>/standards-pack.mjs check --root . --pack <STANDARDS_PACK>` est vert
 <!-- if:design -->
 - Design (extrait de l US) : <DESIGN_PATH ou aucun>
 <!-- /if:design -->

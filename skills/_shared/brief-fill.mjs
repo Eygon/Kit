@@ -19,6 +19,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname, basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractAcceptance } from "./spec-ac.mjs";
+import { buildPack, idsOfStory } from "./standards-pack.mjs";
 
 const norm = (p) => String(p).replace(/\\/g, "/").replace(/^api:/, "").trim();
 
@@ -81,6 +82,12 @@ export const fillBriefs = (json, templates) => {
   const acceptance = extractAcceptance(readFileSync(specPath, "utf8"), us);
   const list = (a) => (a && a.length ? a.join("\n") : "aucune");
   const facts = json.facts && json.facts.length ? json.facts.map((f) => "- " + f).join("\n") : "Aucun fait transmis : recon.md fait foi.";
+  // Standards : corps des standards de l US (alwaysInject + ancres de tasks.md + json.standards),
+  // lus dans le depot de l US (standardsRoot : le slot front, ou le slot back pour une US back).
+  const standardsRoot = json.standardsRoot || json.slot;
+  const standardsIds = [...new Set([...(json.standards || []), ...idsOfStory(readFileSync(tasksPath, "utf8"), us)])];
+  const pack = json.noStandardsPack ? null : buildPack({ root: standardsRoot, ref: json.standardsRef || null, ids: standardsIds });
+  const packPath = pack && !pack.error ? join(json.briefsDir || join(dir, "briefs"), `${us}-standards.md`) : null;
   const common = [
     ["<SLOT_CWD>", json.slot],
     ["<US_ID>", us],
@@ -96,6 +103,8 @@ export const fillBriefs = (json, templates) => {
     ["<#C<n>, #C<m>... ou aucune>", list(json.anchors)],
     ["<TASKS_PATH>", tasksPath],
     ["<SPEC_PATH>", specPath],
+    ["<STANDARDS_PACK>", packPath || "aucun (agent-os/standards absent du depot de l US)"],
+    ["<STANDARDS_ROOT>", standardsRoot],
   ];
   const conds = { design: Boolean(json.designPath), contract: Boolean(json.contractPath) };
   templates = {
@@ -119,13 +128,15 @@ export const fillBriefs = (json, templates) => {
   if (!tasks.length) problems.push(`aucune tache sous ## [${us}] dans ${tasksPath}`);
   if (!acceptance) problems.push(`aucun scenario d acceptation pour ${us} dans ${specPath}`);
   if (!(json.prod || []).length) problems.push("prod[] vide");
+  if (pack && pack.error) problems.push(`standards : ${pack.error}`);
+  if (pack && !pack.error) for (const u of pack.unknown) problems.push(`standard inconnu de l index de ${standardsRoot} : ${u}`);
   problems.push(...checkStory(tasks, us, json));
   // A placeholder left behind (`<PROD_PATHS>`) is a hole the agent fills by searching.
   for (const [name, text] of [["worker", worker], ["review", review], ["fix", fix]]) {
     const left = [...new Set((text.match(/<(?:[A-Z][A-Z_]{2,}|fichier:lignes)[^>\n]*>/g) || []).filter((p) => !/^<(?:US_BASE|DONE|Tnnn|re\d)/.test(p)))];
     if (left.length) problems.push(`${name} : placeholder non rempli ${left.join(", ")}`);
   }
-  return { worker, review, fix, tasks: tasks.length, acceptance: Boolean(acceptance), problems };
+  return { worker, review, fix, tasks: tasks.length, acceptance: Boolean(acceptance), problems, pack: pack && !pack.error ? { path: packPath, text: pack.text, ids: pack.ids } : null };
 };
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -144,9 +155,15 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     review: readFileSync(join(here, "us-reviewer.md"), "utf8"),
     fix: readFileSync(join(here, "us-fix.md"), "utf8"),
   };
+  json.briefsDir = json.briefsDir || out;
   const r = fillBriefs(json, templates);
   mkdirSync(out, { recursive: true });
   for (const kind of ["worker", "review", "fix"]) writeFileSync(join(out, `${json.us}-${kind}.md`), r[kind]);
+  if (r.pack) {
+    const p = join(out, `${json.us}-standards.md`);
+    writeFileSync(p, r.pack.text.split("<SK_SHARED>").join(json.skShared));
+    console.log(`${json.us} : standards ${r.pack.ids.join(", ")} -> ${p}`);
+  }
   console.log(`${json.us} : ${r.tasks} taches, AC ${r.acceptance ? "ok" : "ABSENTS"}, briefs dans ${out}`);
   for (const p of r.problems) console.log(`KO ${p}`);
   process.exit(r.problems.length ? 1 : 0);

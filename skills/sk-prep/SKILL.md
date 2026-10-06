@@ -43,6 +43,9 @@ de .sk/repos.json, presence de agent-os/standards/index.yml, variante
 des scripts spec-kit (ps1 / sh) et leur chemin, dossier i18n et test de
 parite, alias tsconfig. Ce qu elle etablit ne se re-cherche pas.
 Sonde absente ou en erreur : fais ces lectures a la main, une fois.
+`standardsUnindexed` != none : ces standards existent mais aucune prep ne
+peut les retenir ; dis-le en une ligne dans la question de clarify (a
+ajouter a index.yml), sans les ancrer.
 
 Superviseur (contrat `<SK_SHARED>/sk-supervisor.md`) : heartbeat < 30 min
 ET ListAgents montre ce nom ET SK_NO_SUPERVISOR != 1 ET AUDIT_MODE != 1 ->
@@ -89,7 +92,11 @@ question, qui recapitule dans cet ordre (omets les blocs non declenches) :
 Seule autre question permise avant : le choix du fichier design sans
 ?file= (module design §0.1.3). Pas d US inventee ; le trio est cape a
 cette tranche. Sans reponse : pas de design.md, pas de specify.
-AUCUN module design / legacy / code-search declenche : pas de 0quater.
+AUCUN module design / legacy / code-search declenche : pas de 0quater,
+SAUF besoin vague (ameliorer, optimiser, simplifier, « c est penible »,
+sans comportement nomme) : alors 0quater = UNE question de perimetre apres
+2-3 greps, avec 3-4 pistes concretes tirees du code, AVANT A.1bis (qui
+ne peut pas juger la taille d un perimetre inconnu).
 La question n aurait qu un bloc (« US retenues ») pose avant la recon,
 la ou A.1bis peut encore tout arreter ; le choix des US part dans la
 question de clarify (A.2), quand les US existent.
@@ -164,7 +171,8 @@ Le trio reste lisible par /speckit-analyze et par les outils du kit.
 
 **Dossier** — UN appel : le script create-new-feature de la sonde,
 `--json --short-name "<slug>" "<besoin>"` (en audit : `<REF>/audit.md`
-regle 2). Il cree FEATURE_DIR et .specify/feature.json ; rends-toi au
+regle 2). Il cree FEATURE_DIR, .specify/feature.json et un spec.md de
+gabarit spec-kit (tu l ecrases) ; rends-toi au
 dossier qu il rend, VERIFIE qu il existe. Jamais de mkdir a la main.
 Hook after_specify : SKIPPED (il reecrit AGENTS.md hors specs/).
 
@@ -197,7 +205,10 @@ Pas 1 fichier par US, pas toute la feature dans une US ; une petite US qui
 reste un livrable a part (contrat, mapper, flag) se garde. Chaque US porte
 des **Acceptance Scenarios** Given/When/Then : recopies au worker, le
 reviewer juge dessus. INTERDIT : chemins API/backend ET pages/components
-dans le meme [USn]. Front sans backend modifiable qui appelle un endpoint :
+dans le meme [USn] (backend = code serveur : autre git root, Controllers,
+Repositories, .cs ; dans un depot front, `src/api/` est la couche HTTP du
+front, pas du backend : service + hook + ecran partagent une US si la
+taille tient). Front sans backend modifiable qui appelle un endpoint :
 le contrat (yaml/json dans contracts/) s ecrit TOI, en prep, avant les US ;
 les US front codent contre lui et ne l inventent pas (`<REF>/contracts.md`).
 Puis checklists/requirements.md (gabarit `<TPL>/requirements.md`) : coche
@@ -216,6 +227,7 @@ brief-fill.mjs, audit-lint.mjs et mount-check.mjs lisent :
 
   # Tasks: <titre>
   ## [US1] <titre de l US>
+  Standards: @agent-os/standards/react/hooks, @agent-os/standards/api/service-structure
   - [ ] T001 [US1] Creer `src/x/y.tsx` — <ce que fait la tache> — Test: `src/__tests__/x/y.test.tsx` — Monté dans: `src/pages/p/p.tsx`
   - [ ] T002 [US1] Etendre `src/api/a/aService.ts` (`createB`, POST /b de contracts/b.yaml) — Code: `src/api/a/aService.ts#getAll` — Test: `src/__tests__/api/a/aService.test.ts`
   - [ ] T003 [US1] Ajouter les cles `pages.x.*` dans `src/i18n/locales/fr.json`, `src/i18n/locales/en.json`, `src/i18n/locales/es.json` — <cle = fr / en / es> — Test: `<test de parite de recon.md>`
@@ -239,16 +251,28 @@ Rien a monter (utils, mapper, DTO, type, colonnes, route) : pas
 d annotation. « Brancher / Cabler / Monter » cite le fichier cible.
 `Slot : wt-N` nomme par l humain -> en-tete de plan.md.
 
-### A.3 Standards AgentOS — autant que le besoin l exige, must
+### A.3 Standards AgentOS — appliques strictement, par depot, par US
 
-agent-os/standards/index.yml (sonde). Ancre les `@agent-os/standards/...`
-dans plan.md et tasks.md : ceux que les fichiers cibles vont reellement
-exercer, typiquement 3-5 par US, jusqu a ~10 si les US traversent
-plusieurs groupes. `_meta.maxPerGroup` fait foi ; `_meta.alwaysInject` ne
-compte pas dans le cap. Pas de standard « au cas ou » : chaque ancre est
-du contexte injecte au Sonnet. Aucun corps recopie. Absent = trio non
-livrable.
-
+Chaque git root a SES standards : `agent-os/standards/index.yml` du front
+(sonde) et, pour une US back, celui de BACK_ROOT lu sur sa branche
+d integration. Une US = un depot (API et UI jamais dans le meme [USn]), donc
+UN jeu de standards par US.
+1. Choisis, par US, les standards que ses fichiers vont reellement exercer
+   (typiquement 3-5, ~10 au plus pour la feature, `_meta.maxPerGroup` fait
+   foi), sans les `_meta.alwaysInject` : ils s appliquent d office et hors
+   cap. Pas de standard « au cas ou » : chaque ancre est du contexte injecte
+   au Sonnet et au reviewer.
+2. UN appel, AVANT d ecrire tasks.md (les chemins et les noms des taches les
+   appliquent : placement, nommage, enums, structure des services) :
+     node "<SK_SHARED>/standards-pack.mjs" pack --root <depot> [--ref origin/<branche>] --ids <a,b,c>
+   Il rend le corps des alwaysInject + des standards choisis, et sort en 1
+   sur un id inconnu de l index de CE depot. Lis-le une fois ; ne recopie
+   aucun corps dans le trio.
+3. Ancres : sous chaque `## [USn]` de tasks.md, une ligne
+   `Standards: @agent-os/standards/<a>, @agent-os/standards/<b>` (ids de
+   l index du depot de l US), et la liste de la feature dans plan.md
+   (`## Standards`). /sk-impl en tire le pack du worker et du reviewer.
+Index absent du depot d une US = trio non livrable pour cette US.
 ### A.4 Gate checklists
 
 Compte [ ] vs [X] dans FEATURE_DIR/checklists. Incomplete ->
@@ -317,7 +341,8 @@ Elle nomme donc :
   reutilise active par defaut (918 T032 : epinglage livre inerte).
 Une tache pas prete est bloquante : corrige tasks.md, pas de validation 6.
 Chaque US reste finissable en ~40 min : ~3-5 fichiers de prod, ~6 taches,
-au plus 2 composants crees (un composant compte pour 2 fichiers).
+au plus 2 composants crees. Le lint fait le compte : un chemin cite hors
+`Code:` compte, un modele a imiter se cite donc en `Code:`.
 Signale ce que tu corriges, ne corrige pas en silence.
 Modules declenches : leur section « sanity 5 » s ajoute ici.
 

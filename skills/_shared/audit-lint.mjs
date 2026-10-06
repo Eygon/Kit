@@ -429,8 +429,8 @@ const parseTasks = (text) => {
     const paths = [...new Set(matchAll(own, PATH_TOKEN).map((x) => normPath(x[0])))];
     // Files cited ONLY in a `Code:` segment are reused, not edited: they do not count in the
     // prod-file cap of the story (a utility the task calls is not a file the US touches).
-    const codeSeg = matchAll(own, /Code:\s*([^—]*)/g).map((x) => x[1]).join(" ");
-    const rest = own.replace(/Code:\s*[^—]*/g, " ");
+    const codeSeg = matchAll(own, /(?:Code|Eviter|Avoid):\s*([^—]*)/g).map((x) => x[1]).join(" ");
+    const rest = own.replace(/(?:Code|Eviter|Avoid):\s*[^—]*/g, " ");
     const reusedOnly = new Set(matchAll(codeSeg, PATH_TOKEN).map((x) => normPath(x[0])).filter((p) => !matchAll(rest, PATH_TOKEN).some((y) => normPath(y[0]) === p)));
     const lead = leadOf(body);
     const created = new Set(matchAll(body, CREATE_IN).map((x) => normPath(x[1])));
@@ -863,7 +863,9 @@ export const lintSpec = (dir, opts = {}) => {
   const SEARCH_VERB = /\b(localiser|localise[rz]?|chercher|rechercher|trouver|identifier|reperer|repérer|grep|locate|find|search for|look up|non r[ée]solue?s?|[àa] confirmer|[àa] d[ée]terminer|TBD)\b/i;
   for (const t of tasks) {
     if (t.checked) continue;
-    const prose = t.body.replace(/`[^`]*`/g, " ");
+    // Les valeurs citees (backticks, guillemets droits ou francais) sont des donnees, pas des consignes :
+    // un libelle « Rechercher un contact » sortait un faux HIGH.
+    const prose = t.body.replace(/`[^`]*`/g, " ").replace(/"[^"]*"/g, " ").replace(/«[^»]*»/g, " ").replace(/“[^”]*”/g, " ");
     const hit = prose.match(SEARCH_VERB);
     if (hit) add("high", "task-needs-search", `${tid(t)} demande au worker de chercher (« ${hit[0]} ») : la prep tranche et ecrit le chemin, le symbole ou la valeur`, at(t));
   }

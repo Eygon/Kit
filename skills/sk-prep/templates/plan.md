@@ -17,12 +17,12 @@
 
 - @agent-os/standards/<groupe>/<nom> — <pourquoi CE standard s exerce ici, 6 mots>
 
-## Faits verifies
+## Verified facts
 
 - `<chemin relatif>:<lignes>` — `<symbole>` — <fait> (source : recon inline | agent <question>)
 - Controle de fraicheur / sha de branche / source de donnee : ici, une ligne par constat.
 
-## Project Structure (fichiers touches)
+## Project Structure (files touched)
 
 | Fichier | Action | US |
 |---|---|---|
@@ -32,6 +32,6 @@
 
 - <decision> — <alternative ecartee et pourquoi> (research.md seulement si une decision demande plus de 3 lignes)
 
-## Artefacts
+## Artifacts
 
 <liste des fichiers de FEATURE_DIR reellement ecrits ; un artefact sans contenu n existe pas>

@@ -5,6 +5,10 @@ Lu juste apres la sonde (qui rend AUDIT_MODE : pas d echo de plus).
 1. Aucune AskUserQuestion. Lis AUDIT_INTENT_FILE. Consigne
 dans AUDIT_OUT_DIR/answers.jsonl
 {"question":"...","answer":"...","grounded":true|false}
+Intent muet sur une question : prends l option que tu recommandes (la
+premiere), grounded=false, et continue. Compteurs du result : LOCALES = un
+fichier par langue reel (prodFilesModified compte les vrais fichiers) ;
+testFiles = fichiers de test cites par les taches, existants ou non.
 
 2. FEATURE_DIR = specs/<NNN>-<slug>-<AUDIT_SESSION> : passe `<slug>-<AUDIT_SESSION>` en --short-name au script create-new-feature. Le suffixe
    est OBLIGATOIRE et se pose a la CREATION du dossier, pas
@@ -19,8 +23,8 @@ dans AUDIT_OUT_DIR/answers.jsonl
    une marque « specify », « clarify », « plan », « sanity »
    ou « relais » est ignoree et la phase disparait du calcul
    Ce que chaque phase RECOUVRE (pas des noms de marques) :
-   bootstrap = recon jusqu a l entree dans specify ;
-   cycles = specify, clarify, plan, tasks, strip, standards (A.3),
+   bootstrap = sonde, recon, A.1bis — ferme AVANT create-new-feature ;
+   cycles = create-new-feature, clarify, spec, plan, tasks, standards (A.3),
             recon.md (A.4bis) ;
    closing = gate checklists (A.4), sanity (A.5), validation (A.6), relais.
    Donc 6 echos par run complet (un STOP avant cycles en emet 4,
@@ -31,7 +35,7 @@ dans AUDIT_OUT_DIR/answers.jsonl
 4. Trio en ANGLAIS : spec.md, plan.md, tasks.md, checklists.
    Sans exception.
 5. Ecris AUDIT_OUT_DIR/result.sk-prep.json (Write) avant la
-   synthese, au schema EXACT de sk-audit.md §result — memes
+   synthese, au schema EXACT de `<SK_SHARED>/sk-audit.md` §result — memes
    cles, memes types, rien de plus. Jamais result.json nu : les
    deux skills s ecraseraient. Un objet libre n est comparable
    a rien : 4 sessions ont produit 4 formes incompatibles.

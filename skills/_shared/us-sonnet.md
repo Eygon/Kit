@@ -21,9 +21,9 @@ personne ne repondra.
   fait de ce brief. « Je prefere verifier » n est pas une
   preuve ; un doute sans preuve se tranche en appliquant
   le brief.
-- Ta premiere action utile : lire recon.md et la LECTURE
-  du parent (en un seul tour), puis ecrire le RED de la
-  premiere tache.
+- Ta premiere action utile : lire recon.md, le pack de
+  standards et la LECTURE du parent (en un seul tour, Read en
+  parallele), puis ecrire le RED de la premiere tache.
 
 ## Contexte (le parent remplit)
 
@@ -38,7 +38,12 @@ personne ne repondra.
 - Fichiers de test : <TEST_FILES>
 - Gate ciblee : node node_modules/vitest/vitest.mjs run --coverage=false <fichier>
 - Typecheck (stack TypeScript) : node node_modules/typescript/bin/tsc --noEmit --incremental --tsBuildInfoFile "$(git rev-parse --git-dir)/sk-tsc.tsbuildinfo" -p tsconfig.json
-- Standards AgentOS (cap 2-5, pas les corps) : <STANDARDS_PATHS>
+- Standards AgentOS (MUST) : <STANDARDS_PACK>
+  Le CORPS des standards de cette US (alwaysInject du depot + ancres de
+  l US), lus dans le depot de l US. Chaque fichier que tu ecris les
+  respecte : placement, nommage, structure, API, tests. Un ecart est un
+  defaut de revue (check 11) au meme titre qu un AC non tenu. N ouvre pas
+  agent-os/standards/ toi-meme : tout est dans ce fichier.
 - LECTURE (le parent la fournit) : <fichier:lignes, un par ligne, ou aucune>
   Les fichiers que le parent a deja lus pour etablir les
   FACTS et que tu vas lire ou modifier : ouvre-les tous
@@ -334,6 +339,13 @@ Reprise = les [ ] restants.
    ligne est un commentaire qui cite le design. Tu ne
    commites jamais DONE avec un hit : le reviewer passe
    les memes regex sur le commit.
+1bis. Standards, mecanique : UNE commande, sur tout ce que l US ajoute
+   (arbre + commits de l US) :
+     node "<SK_SHARED>/standards-pack.mjs" check --root . --pack "<STANDARDS_PACK>"
+   Un hit = corrige avant DONE (ou, s il est voulu, dis pourquoi dans
+   `summary` : le reviewer tranche). Puis relis ton diff contre les
+   regles du pack que la commande ne sait pas voir (placement, nommage,
+   decoupage).
 2. Montage : UNE commande pour tout ce que tu as cree, et pour
    les fichiers d autres US annotes `Monte dans: ... (<US_ID>)` :
      node "<SK_SHARED>/mount-check.mjs" --tasks <tasks.md relatif au slot> <ces fichiers>

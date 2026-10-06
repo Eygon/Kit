@@ -44,3 +44,15 @@ test("propsOf reads the destructured props of a component", () => {
   assert.deepEqual(propsOf(src, "PaginatedGrid"), ["columns", "data", "pageSize", "onRowClick"]);
   assert.deepEqual(propsOf("export function Badge({ tone, children }: Props) {}", "Badge"), ["tone", "children"]);
 });
+
+import { indexIds, alwaysOf, idsOfStory, normId } from "../standards-pack.mjs";
+
+test("standards-pack reads index ids, alwaysInject and story anchors", () => {
+  const yml = "_meta:\n  maxPerGroup: 5\n  alwaysInject:\n    - no-comments\n    - css/tailwind-tokens\n\nno-comments:\n  description: x\n  tags: [naming]\n\ncss:\n  tailwind-tokens:\n    description: y\n  rem-units:\n    description: z\n";
+  assert.deepEqual([...indexIds(yml)].sort(), ["css/rem-units", "css/tailwind-tokens", "no-comments"]);
+  assert.deepEqual(alwaysOf(yml), ["no-comments", "css/tailwind-tokens"]);
+  const tasks = "## [US1] A\nStandards: @agent-os/standards/react/hooks, @agent-os/standards/api/service-structure.md\n- [ ] T001 [US1] x\n## [US2] B\nStandards: @agent-os/standards/react/forms\n- [ ] T002 [US2] y @agent-os/standards/react/i18n\n";
+  assert.deepEqual(idsOfStory(tasks, "US1").sort(), ["api/service-structure", "react/hooks"]);
+  assert.deepEqual(idsOfStory(tasks, "US2").sort(), ["react/forms", "react/i18n"]);
+  assert.equal(normId("`@agent-os/standards/react/hooks.md`,"), "react/hooks");
+});

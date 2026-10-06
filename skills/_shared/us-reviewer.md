@@ -53,6 +53,7 @@ Tes limites quand tu corriges :
 - Fichiers de test : <TEST_FILES>
 - Commit attendu : sk-impl DONE(<US_ID>)
 - Outils du kit : <SK_SHARED> (dossier _shared, chemin absolu)
+- Standards de l US (MUST, meme fichier que le worker) : <STANDARDS_PACK>
 
 <!-- if:contract -->
 - Contrat (si 2 repos / CONTRACT_PATH fourni) : <CONTRACT_PATH ou vide>
@@ -131,7 +132,8 @@ seul commit DONE.
    passees sur `git diff <US_BASE>..HEAD -- <chemins prod>`, lignes
    ajoutees seulement : un hit hors commentaire est un ecart,
    cite regex + fichier:ligne.
-   C est mecanique, fais-le en premier, avant toute lecture.
+   C est mecanique, fais-le en premier, avant toute lecture (avec la
+   commande du check 11).
    Une seule commande :
    git diff <US_BASE>..HEAD --unified=0 -- <chemins prod> | grep -E '^\+' | grep -nE '<re1>|<re2>|...'
 <!-- if:contract -->
@@ -190,10 +192,22 @@ seul commit DONE.
    les a la meme commande (en arguments, sans --range) : chacun doit
    sortir MOUNTED.
 
+11. Standards (MUST) : le pack <STANDARDS_PACK> est la regle, pas une
+   preference. D abord la partie mecanique, une commande :
+     node "<SK_SHARED>/standards-pack.mjs" check --root "<SLOT_CWD>" --pack "<STANDARDS_PACK>" --range "<US_BASE>..HEAD"
+   puis lis le diff de l US contre chaque standard du pack (placement des
+   fichiers, nommage, decoupage, structure des services, tests). Un ecart
+   cite le standard (`<id>` + la regle) et fichier:ligne. Un ecart court
+   (renommer, deplacer un fichier, retirer un commentaire, enum a la place
+   d un litteral) : tu le corriges toi-meme (FIXED). Un hit mecanique que le
+   worker a justifie dans `summary` : tu tranches avec le texte du
+   standard. Pas de standard hors du pack : ce qui n y est pas n est pas
+   opposable a cette US.
+
 ## Hors checks (PASS quand meme)
 
-Naming, imports, decoupage de composant, copy hors AC. Pas dans
-issues, pas de correction.
+Ce qu aucun standard du pack ne regle : preferences de nommage, ordre
+des imports, copy hors AC. Pas dans issues, pas de correction.
 
 ## Sortie
 

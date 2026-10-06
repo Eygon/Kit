@@ -99,6 +99,34 @@ export const aliasesOf = (root) => {
   return paths ? Object.entries(paths).map(([k, v]) => `${k}->${[].concat(v).join("|")}`) : [];
 };
 
+// Standards present on disk but absent from index.yml: no prep can pick them, so they are never
+// applied (front of the bench: 4 out of 53, among them react/grid-filters).
+const unindexed = (top, indexText) => {
+  const dir = join(top, "agent-os", "standards");
+  const ids = new Set();
+  let group = null;
+  for (const l of indexText.split(/\r?\n/)) {
+    const g = l.match(/^([\w.-]+):\s*$/);
+    const c = l.match(/^ {2}([\w.-]+):\s*$/);
+    const d = l.match(/^ {2}description:/);
+    if (g) group = g[1];
+    else if (c && group) ids.add(group + "/" + c[1]);
+    else if (d && group) ids.add(group);
+  }
+  const out = [];
+  const walk = (d, rel) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.isDirectory()) walk(join(d, e.name), rel + e.name + "/");
+      else if (e.name.endsWith(".md")) {
+        const id = rel + e.name.replace(/\.md$/, "");
+        if (!ids.has(id)) out.push(id);
+      }
+    }
+  };
+  try { walk(dir, ""); } catch { return []; }
+  return out;
+};
+
 const supervisorOf = () => {
   if (process.env.SK_NO_SUPERVISOR === "1") return { state: "disabled" };
   const dir = process.env.SK_SUPERVISOR_DIR || (platform() === "win32" ? "C:\\tmp\\mon-developpeur" : join(homedir(), ".cache", "mon-developpeur"));
@@ -145,6 +173,7 @@ export const probe = (root, skill) => {
     legacyFrontend: repos && typeof repos.legacyFrontend === "string" ? repos.legacyFrontend : "null",
     standardsIndex: indexText ? "agent-os/standards/index.yml" : "none",
     standardsAlways: always ? always.map((s) => s.replace(/^-\s+/, "")).join(",") : "none",
+    standardsUnindexed: indexText ? unindexed(top, indexText).join(",") || "none" : "none",
     speckitScripts: variant,
     createFeature: scriptDir ? join(scriptDir, `create-new-feature.${variant}`).replace(/\\/g, "/") : "none",
     setupTasks: scriptDir ? join(scriptDir, `setup-tasks.${variant}`).replace(/\\/g, "/") : "none",

@@ -22,7 +22,7 @@ Si AUDIT_MODE=1 (echo une fois). Absent = ignore.
    ni moins : bootstrap s/e, cycles s/e, closing s/e.
    Un STOP avant cycles emet quand meme bootstrap end.
 4. Ecris AUDIT_OUT_DIR/result.sk-impl.json avant la synthese,
-   au schema EXACT de sk-audit.md §result. Jamais result.json
+   au schema EXACT de `<SK_SHARED>/sk-audit.md` §result. Jamais result.json
    nu (collision avec /sk-prep dans la meme session).
 5. Pas d interaction differee. GO implicite. Pas de merge
    squash en audit (le runner compare le slot).

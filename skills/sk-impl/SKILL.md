@@ -113,11 +113,16 @@ STOP.
 
 EnterWorktree { path: "<slot>" }. Jonction node_modules seulement si
 manquante. Sanity : `node node_modules/vitest/vitest.mjs list --filesOnly`,
-STOP seulement si 0 fichier (jamais `list --json=` repo-wide). Puis CHAUFFE
-le cache, une fois par run, AVANT le premier spawn :
+STOP seulement si 0 fichier (jamais `list --json=` repo-wide).
+
+## 0ter. Chauffe du cache (TOUJOURS, audit compris)
+
+Une fois par run, AVANT le premier spawn, en arriere-plan pendant que tu
+ecris les briefs (Bash run_in_background) :
   node node_modules/vitest/vitest.mjs run --coverage=false <un test existant de la feature, sinon le plus petit de src/__tests__>
 Resultat ignore (le cache chaud rend 1-2 min a chaque worker). Backend :
-un `dotnet build` du projet de tests (le verrou DLL se paye ici).
+un `dotnet build` du projet de tests (le verrou DLL se paye ici). Etait
+dans 0bis, que l audit saute : le worker d audit partait a froid.
 
 ## 1. Parse tasks.md du SLOT
 
@@ -153,8 +158,8 @@ n aies verifie pour CETTE US. Ton jugement va dans un JSON par US, la
 recopie a l outil :
 
   FEATURE_DIR/briefs/<US_ID>.json = { featureDir, slot, us, skShared,
-    prod, tests, standards, lecture, facts, designPath?, anchors?,
-    contractPath?, contractHash?, workerNotes?, reviewNotes? }
+    prod, tests, standards, standardsRoot?, lecture, facts, designPath?,
+    anchors?, contractPath?, contractHash?, workerNotes?, reviewNotes? }
   node "<SK_SHARED>/brief-fill.mjs" <ce json> --out FEATURE_DIR/briefs
 
 Il recopie taches et scenarios d acceptation de l US, met les memes chemins
@@ -169,7 +174,15 @@ JSON, jamais le brief.
   de la ligne LOCALES de recon.md (le test de parite est une gate de fin).
 - lecture : les fichiers que tu as lus pour etablir les facts et que le
   worker va ouvrir, `chemin:lignes`, un par ligne.
-- facts : un constat par ligne AVEC SA SOURCE (fichier + branche, ou
+- standards : les ids de la ligne `Standards:` de l US dans tasks.md
+  (brief-fill les lit aussi tout seul) ; standardsRoot = le slot de l US
+  (slot BACK pour une US backend : ses standards a lui). brief-fill ecrit
+  `<US>-standards.md` (corps des alwaysInject + ancres, controles
+  mecaniques) que worker et reviewer lisent au premier tour, et sort en 1
+  sur un id inconnu de l index de ce depot : corrige tasks.md ou le JSON.
+- facts : seulement ce que recon.md et la ligne de tache NE disent PAS deja
+  (ils sont lus en entier par le worker : ne recopie pas, ne re-verifie pas
+  ce que la prep a source sur la meme base). Un constat par ligne AVEC SA SOURCE (fichier + branche, ou
   table + colonne + resultat). Une action serveur porte l endpoint du
   contrat (methode + chemin + ligne) et la fonction du service front
   (chemin:ligne, ou « a creer dans <chemin> sur le modele de
@@ -253,6 +266,9 @@ Puis `<REF>/publish.md` : verdict Publier / Corriger / Abandonner.
   via sk-pool.ps1 (find / free / claim / touch / release).
 - Reprise : tasks.md / recon.md / STATE.md du slot ne s ecrasent jamais.
 - Sonnet pour le code (sk-worker), Opus pour la revue. Zero Haiku.
+- Standards : le pack de l US (depot de l US, front ou back) est MUST pour
+  le worker, le fix et le reviewer (check 11) ; controles mecaniques par
+  standards-pack.mjs check, jamais de grep a la main.
 - [X] seulement si gate verte ET fichiers existants ; RED prouve avant la
   prod, test inchange ensuite (empreinte cmp), puis GREEN.
 - FACTS sources ; un worker qui contredit un fait avec preuve a raison par

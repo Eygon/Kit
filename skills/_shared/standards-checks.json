@@ -1,0 +1,25 @@
+{
+  "_doc": "Controles mecaniques derives des standards agent-os. Cle = id du standard (chemin sous agent-os/standards, sans .md). Chaque regle : re (regex JS sur une ligne AJOUTEE), files (regex sur le chemin), skip (regex sur le chemin, optionnel), msg. Un standard peut en declarer d autres dans son frontmatter : metadata.checks: [{re, files, msg}]. Un hit = ecart du standard, corrige avant DONE (worker) ou par le reviewer (check 11).",
+  "no-comments": [
+    { "re": "^\\s*//(?!\\s*(?:eslint-|@ts-|prettier-|@vitest-|#region|#endregion))", "files": "^src/.*\\.[jt]sx?$", "skip": "(__tests__/|\\.(test|spec)\\.)", "msg": "commentaire explicatif dans du code de prod" },
+    { "re": "^\\s*/\\*(?!\\*)(?!\\s*(?:eslint-|@ts-|prettier-))", "files": "^src/.*\\.[jt]sx?$", "skip": "(__tests__/|\\.(test|spec)\\.)", "msg": "bloc de commentaire dans du code de prod" }
+  ],
+  "http-status": [
+    { "re": "\\bstatus(?:Code)?\\s*[!=]==?\\s*[1-5]\\d\\d\\b|\\b[1-5]\\d\\d\\s*[!=]==?\\s*\\w*\\.?status\\b", "files": "^src/.*\\.[jt]sx?$", "skip": "(__tests__/|\\.(test|spec)\\.)", "msg": "code HTTP numerique au lieu de HttpStatusCode" }
+  ],
+  "septeo-library-first": [
+    { "re": "<(?:button|input|select|textarea|table|dialog)\\b", "files": "^src/.*\\.tsx$", "skip": "(__tests__/|\\.(test|spec)\\.)", "msg": "controle natif la ou la lib Septeo en fournit un (justifier ou utiliser la lib)" }
+  ],
+  "css/rem-units": [
+    { "re": "\\[[^\\]\\s]*\\d+(?:\\.\\d+)?px[^\\]\\s]*\\]", "files": "^src/.*\\.(tsx|ts|scss|css)$", "skip": "(__tests__/|\\.(test|spec)\\.)", "msg": "valeur arbitraire en px (rem ou token)" }
+  ],
+  "css/tailwind-tokens": [
+    { "re": "#[0-9A-Fa-f]{3,8}\\b", "files": "^src/.*\\.tsx$", "skip": "(__tests__/|\\.(test|spec)\\.)", "msg": "couleur hex en dur (token Septeo)" }
+  ],
+  "global/sealed-by-default": [
+    { "re": "^\\s*(?:public|internal)\\s+(?!sealed\\b|static\\b|abstract\\b|partial\\s+interface\\b)(?:partial\\s+)?(?:class|record)\\s+\\w", "files": "\\.cs$", "skip": "(Tests?/|\\.Tests?\\.|Tests?\\.cs$)", "msg": "classe ou record non sealed" }
+  ],
+  "data-access/ef-no-migrations": [
+    { "re": ".", "files": "(^|/)Migrations/", "msg": "fichier dans Migrations/ (schema gere hors du projet)" }
+  ]
+}

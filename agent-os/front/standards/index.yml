@@ -69,6 +69,12 @@ accessibility:
     tags: [ui, a11y]
 
 api:
+  request-timeouts:
+    description: The shared axios instance has no default timeout — bound a call whenever a hung request would strand UI state, from a named constant sized against the backend ceiling
+    tags: [api]
+  multipart-upload:
+    description: File uploads post a FormData with withMultipart(request) — no hand-set Content-Type, one file per request, base64 JSON only where the endpoint contract demands it
+    tags: [api]
   error-handling:
     description: Reads swallow + DisplayError + safe fallback; writes DisplayError + rethrow; toast exactly once; HttpStatusCode enum
     tags: [api]
@@ -102,6 +108,12 @@ error-handling:
     tags: [ui, api]
 
 react:
+  paginated-grids:
+    description: Server-paginated load-more grids — criteria hook builds the paged DTO, an accumulating query hook appends pages, manual sorting, skeleton/empty/load-more rendering
+    tags: [ui, api]
+  grid-filters:
+    description: Grid filter system + active-filter chips — applied/draft split, SidePanel of FilterSections, and a derived removable-Chip bar above the grid
+    tags: [ui]
   component-structure:
     description: Atomic design levels, file structure, props/export conventions, and feature-folder co-location by scope
     tags: [ui]
