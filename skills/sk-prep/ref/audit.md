@@ -6,7 +6,7 @@ Lu juste apres la sonde (qui rend AUDIT_MODE : pas d echo de plus).
 dans AUDIT_OUT_DIR/answers.jsonl
 {"question":"...","answer":"...","grounded":true|false}
 
-2. FEATURE_DIR = specs/<NNN>-<slug>-<AUDIT_SESSION>. Le suffixe
+2. FEATURE_DIR = specs/<NNN>-<slug>-<AUDIT_SESSION> : passe `<slug>-<AUDIT_SESSION>` en --short-name au script create-new-feature. Le suffixe
    est OBLIGATOIRE et se pose a la CREATION du dossier, pas
    apres. Sans lui, deux sessions du meme item partagent un
    dossier dans un specs/ commun, et /sk-impl lit « deja
@@ -20,8 +20,9 @@ dans AUDIT_OUT_DIR/answers.jsonl
    ou « relais » est ignoree et la phase disparait du calcul
    Ce que chaque phase RECOUVRE (pas des noms de marques) :
    bootstrap = recon jusqu a l entree dans specify ;
-   cycles = specify, clarify, plan, tasks, strip ;
-   closing = sanity, validation du trio, relais.
+   cycles = specify, clarify, plan, tasks, strip, standards (A.3),
+            recon.md (A.4bis) ;
+   closing = gate checklists (A.4), sanity (A.5), validation (A.6), relais.
    Donc 6 echos par run complet (un STOP avant cycles en emet 4,
    regle 7) : bootstrap start/end,
    cycles start/end, closing start/end. Une marque emise

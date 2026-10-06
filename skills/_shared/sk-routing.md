@@ -1,6 +1,7 @@
 # Routage sk-* (source unique)
 
-Standards Agent-OS = must. Cap 2-5 chemins.
+Standards Agent-OS = must. Ceux que les fichiers exercent : 3-5 par US, ~10 max,
+_meta.alwaysInject hors cap (sk-prep A.3).
 Ancres dans plan.md et tasks.md.
 Done = lint typecheck tests cibles.
 
@@ -65,7 +66,7 @@ PASS / FIXED / FAIL / ESCALATE) vit dans `sk-impl/SKILL.md` §4, pas ici.
 
 Zero Haiku pour le code et la revue : Sonnet pour le code, Opus pour la
 revue. Haiku UNIQUEMENT pour la recon de `/sk-prep` (A.1) : agents
-`Explore` read-only, sous `schema` impose, declenches sur critere (2 roots,
+`Explore` read-only, format de rendu impose DANS le prompt (l outil Agent n a pas de `schema`), declenches sur critere (2 roots,
 > 1 sous-systeme, regime >= M) — jamais sur un XS, ou la recon reste inline.
 
 ## Test E2E d un slot

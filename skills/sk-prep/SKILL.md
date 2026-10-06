@@ -103,9 +103,13 @@ ci-dessous vrai : AUCUN agent (5 sessions XS sur 5, la recon inline a
 suffi ; chaque appel d outil coute 3,5-8 s).
 Fan-out SEULEMENT si :
   - 2 git roots (`backend` renseigne ET le besoin touche l API) ;
-  - la recon inline touche > 1 sous-systeme (plusieurs dossiers de premier
-    niveau sous src/pages ou src/components) ;
-  - regime >= M (2 US ou plus attendues) sans doc code-search frais.
+  - la recon inline touche >= 2 pages (src/pages/<a> ET src/pages/<b>) ;
+    une page plus un composant partage qu elle consomme reste UN
+    sous-systeme ;
+  - les 2-3 greps montrent >= 2 livrables independants (ex. data layer ET
+    ecran) sans doc code-search frais. Le nombre d US n est fixe qu en
+    specify : on juge ici sur les livrables, pas sur des US qui n existent
+    pas encore.
 
 Avant de repartir, ECRIS la liste des QUESTIONS de recon (point
 d insertion, montage du composant, source de la donnee, construction de la
