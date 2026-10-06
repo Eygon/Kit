@@ -40,12 +40,13 @@ Complement de /sk-prep, ne produit PAS le trio.
 
 ## 0. Sonde et pre-requis (UN appel Bash)
 
-  node "<SK_SHARED>/sk-probe.mjs" --skill sk-impl
+  node "<SK_SHARED>/sk-probe.mjs" --skill sk-impl [--feature specs/<NNN>-<nom>]
 
 Elle rend AUDIT_MODE, superviseur (age UTC), branche par defaut, `backend`
 de .sk/repos.json (lu sur le PRINCIPAL), feature.json, scripts spec-kit,
-LOCALES, test de parite, commandes vitest/tsc/eslint. Ne les re-cherche
-pas.
+LOCALES, test de parite, commandes vitest/tsc/eslint, et l etat du trio
+(`trio`, `designMd` CITE-MAIS-ABSENT, taches ouvertes / cochees,
+`checkedWithoutFile`). Ne les re-cherche pas.
 
 spec.md + plan.md + tasks.md DOIVENT exister dans FEATURE_DIR du depot
 PRINCIPAL (specs/ gitignore est normal). Un manque -> STOP, /sk-prep.
@@ -127,7 +128,9 @@ dans 0bis, que l audit saute : le worker d audit partait a froid.
 ## 1. Parse tasks.md du SLOT
 
 US = groupes ([USn]) qui ont encore des taches [ ]. Toutes [X] -> STOP,
-deja implemente.
+deja implemente, SAUF si la sonde rend `checkedWithoutFile` != none : des
+cases cochees sans leur fichier = trio INCOHERENT (coche a tort, ou copie
+d un autre slot) -> STOP avec la liste, jamais « deja implemente ».
 
 ## 2. Quelles US pour CE run
 

@@ -18,9 +18,11 @@ Si AUDIT_MODE=1 (echo une fois). Absent = ignore.
    bootstrap = slot pool + trio. cycles = Sonnet(s) jusqu au
    dernier commit DONE. closing = gates + revue + verdict.
    `cycles start` s emet JUSTE AVANT le premier Agent/Workflow :
-   emis apres, la decomposition du run est perdue. Six echos par run, ni plus
-   ni moins : bootstrap s/e, cycles s/e, closing s/e.
-   Un STOP avant cycles emet quand meme bootstrap end.
+   emis apres, la decomposition du run est perdue. Six echos par run complet : bootstrap s/e, cycles s/e,
+   closing s/e. Un STOP avant cycles emet bootstrap start/end
+   SEULEMENT (2 marques, pas de cycles ni closing vides) et
+   result.sk-impl.json avec outcome "stopped", stop.section citee,
+   compteurs a 0 sauf userStories/tasks lus dans tasks.md.
 4. Ecris AUDIT_OUT_DIR/result.sk-impl.json avant la synthese,
    au schema EXACT de `<SK_SHARED>/sk-audit.md` §result. Jamais result.json
    nu (collision avec /sk-prep dans la meme session).
