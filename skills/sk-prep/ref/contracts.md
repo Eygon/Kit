@@ -99,13 +99,13 @@ verifiee se traite comme une source absente.
   Format :
     after: US1        # ou null
     parallel:
-      - US2
-      - US3
+      - [US1, US2]        # chaine : US du meme depot, dans l ordre
+      - [US3, US4, US5]   # autre depot : tourne en parallele
     contract: <chemin relatif au repo qui
       possede le yaml>
-  Meme git root -> NE PAS lister ces US dans
-  parallel (elles restent sequentielles apres
-  after). Mentionner dans plan.md que /sk-impl
+  Meme git root -> UNE chaine `[USa, USb]` dans
+  parallel (sequentielle dans sa voie), jamais
+  deux items separes. Mentionner dans plan.md que /sk-impl
   lira ce fichier, et y annoncer la part de la
   barriere (taches barriere / taches du run) :
   au-dela de la moitie, dire que le parallelisme

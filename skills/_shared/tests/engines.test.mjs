@@ -70,3 +70,37 @@ test("after-parallel: without reviewer sha256 the engine still pays its hash age
   assert.equal(result.ok, true);
   assert.equal(calls.filter((c) => c.startsWith("hash:")).length, 2);
 });
+
+test("after-parallel: chains of the same root run side by side, stories of a chain in order", async () => {
+  const args = {
+    barrier: null,
+    expectedHash: SHA,
+    parallel: [
+      { root: "/back", chain: [g("US1"), g("US2")] },
+      { root: "/front", chain: [g("US3"), g("US4"), g("US5")] },
+    ],
+  };
+  const { result, calls } = await run("speckit-us-after-parallel.js", args, async (label) => {
+    await new Promise((r) => setTimeout(r, 5));
+    if (label.startsWith("us:")) return done;
+    return { verdict: "PASS", issues: [], contractSha256: SHA };
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.parallel.length, 5);
+  const at = (l) => calls.indexOf(l);
+  assert.ok(at("us:US3") < at("us:US2"), "the front lane starts before the back lane finishes");
+  assert.ok(at("review:US1") < at("us:US2") && at("review:US4") < at("us:US5"), "a chain stays sequential");
+  assert.deepEqual(result.parallel.map((r) => r.root), ["/back", "/back", "/front", "/front", "/front"]);
+});
+
+test("after-parallel: a story that fails stops its own lane only", async () => {
+  const args = { barrier: null, expectedHash: SHA, parallel: [{ root: "/back", chain: [g("US1"), g("US2")] }, { root: "/front", chain: [g("US3"), g("US4")] }] };
+  const { result, calls } = await run("speckit-us-after-parallel.js", args, (label) => {
+    if (label === "us:US1") return { stopped: true, reason: "preuve" };
+    if (label.startsWith("us:")) return done;
+    return { verdict: "PASS", issues: [], contractSha256: SHA };
+  });
+  assert.equal(result.ok, false);
+  assert.ok(!calls.includes("us:US2"));
+  assert.ok(calls.includes("us:US4"));
+});

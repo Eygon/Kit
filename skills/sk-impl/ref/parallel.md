@@ -58,3 +58,11 @@ Hash du contrat, une seule source de verite :
 Workers : interdiction d ecrire / reformater
 le yaml contrat. Champ hors contrat = STOP.
 Jamais parallele sur le meme worktree.
+
+## Chaines (voies)
+
+Un item `- [US1, US2]` de parallel.yml = une CHAINE : dans args.parallel,
+`{ root: <slot de ce depot>, chain: [{id, prompt, reviewPrompt, fixPrompt}, ...] }`
+dans l ordre de la chaine. Les voies tournent en parallele, les US d une voie
+en sequence (meme slot). Une US ko arrete sa voie seulement ; ok=false au
+global. Un item simple `- US3` reste `{id, prompt, ..., root}`.

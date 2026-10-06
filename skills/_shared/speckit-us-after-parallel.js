@@ -17,11 +17,23 @@ function parseArgs(raw) {
 }
 const cfg = parseArgs(args)
 const barrier = cfg.__parseError ? null : (cfg.barrier || null)
-const parallelGroups = (cfg.__parseError || !Array.isArray(cfg.parallel)) ? [] : cfg.parallel
+const parallelItems = (cfg.__parseError || !Array.isArray(cfg.parallel)) ? [] : cfg.parallel
+// A parallel item is one story, or a CHAIN of stories of the same git root ({ chain: [g, g], root }).
+// Chains run side by side, the stories of a chain one after the other: 2 back US and 3 front US
+// make two lanes instead of a single parallel pair followed by three sequential stories.
+const lanes = parallelItems.map(function (it) {
+  if (it && Array.isArray(it.chain)) {
+    const root = it.root || (it.chain[0] && it.chain[0].root)
+    return { root: root, groups: it.chain.map(function (g) { return Object.assign({}, g, { root: g.root || root }) }) }
+  }
+  return { root: it && it.root, groups: [it] }
+})
+const parallelGroups = lanes.reduce(function (a, l) { return a.concat(l.groups) }, [])
 const fanOut = typeof parallel === 'function'
   ? function (thunks) { return parallel(thunks) }
   : function (thunks) { return Promise.all(thunks.map(function (fn) { return fn() })) }
-function collidingRoots(groups) {
+function collidingRoots(lanesOrGroups) {
+  const groups = lanesOrGroups
   if (groups.length < 2) return false
   const roots = []
   for (let i = 0; i < groups.length; i++) {
@@ -427,13 +439,22 @@ if (!barrier && parallelGroups.length === 0) {
     : (barrierResult && barrierResult.contractSha256) ? barrierResult.contractSha256
     : await readHash('hash:after-barrier')
   if (barrierResult && barrierResult.contractSha256) log('freeze du contrat lu sur la revue de la barriere')
-  if (collidingRoots(parallelGroups)) {
-    log('meme racine — fan-out refuse, sequentiel')
-    for (let i = 0; i < parallelGroups.length; i++) {
-      parallelResults.push(await runUs(parallelGroups[i]))
+  // A lane stops at its first story that is not done: the next story of the same root builds on it.
+  const runLane = async function (lane) {
+    const rows = []
+    for (let i = 0; i < lane.groups.length; i++) {
+      const row = await runUs(lane.groups[i])
+      rows.push(row)
+      if (workerKo(row)) { log('voie ' + (lane.root || '?') + ' arretee apres ' + row.id); break }
     }
+    return rows
+  }
+  if (collidingRoots(lanes)) {
+    log('meme racine — fan-out refuse, sequentiel')
+    for (let i = 0; i < lanes.length; i++) parallelResults = parallelResults.concat(await runLane(lanes[i]))
   } else {
-    parallelResults = await fanOut(parallelGroups.map(function (g) { return function () { return runUs(g) } }))
+    const perLane = await fanOut(lanes.map(function (l) { return function () { return runLane(l) } }))
+    parallelResults = perLane.reduce(function (a, r) { return a.concat(r) }, [])
   }
   if (parallelResults.some(workerKo)) {
     ok = false

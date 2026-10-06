@@ -14,8 +14,8 @@ Absent = sequentiel. Ne pas l inventer.
 ```
 after: US1            # ou `after: null` — voir ci-dessous
 parallel:
-  - US2
-  - US3
+  - [US1, US2]       # voie back, sequentielle
+  - [US3, US4, US5]  # voie front, sequentielle
 contract: <chemin relatif au repo qui possede le yaml>
 ```
 
@@ -45,9 +45,16 @@ contract: <chemin relatif au repo qui possede le yaml>
   fan-out ne rapportant plus que ~20 min.
   `speckit-us-after-parallel.js` gere deja
   `barrier: null` : aucun code a changer.
-- `parallel` : US a lancer ENSEMBLE, UNIQUEMENT
-  si elles sont sur des git roots DISTINCTS
-  (typiquement un back, un front).
+- `parallel` : US (ou CHAINES d US) a lancer
+  ENSEMBLE, UNIQUEMENT sur des git roots DISTINCTS
+  (typiquement un back, un front). Une chaine
+  `- [US1, US2]` = les US d un MEME depot, dans
+  l ordre, l une apres l autre ; les chaines de
+  depots differents tournent en parallele. 2 US
+  back et 3 US front = `- [US1, US2]` et
+  `- [US3, US4, US5]` : deux voies, au lieu d une
+  paire parallele suivie de trois US en serie.
+  Une US qui echoue arrete sa voie, pas l autre.
 - `contract` : chemin du contrat machine-readable
   (yaml / json / proto), relatif au repo qui
   possede le yaml. Existe deja, ou US1 le cree.

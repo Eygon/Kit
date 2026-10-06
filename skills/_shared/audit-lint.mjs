@@ -475,6 +475,10 @@ const isTestPath = (p) => /(^|[\/\\])(__tests__|tests?)[\/\\]|\.(test|spec)\.[jt
 // as a prod file of both stories and flagged path-missing in the verified facts).
 const isDocPath = (p) => /\.md$/i.test(p) || /^(?:\.\/)?(?:contracts|specs)\//.test(p);
 const isProdPath = (p) => !isTestPath(p) && !isDocPath(p);
+// Fichiers « type pur » : crees dans la tache de leur consommateur (sk-prep A.2), ils ne comptent
+// pas dans le cap de fichiers d une US. Sans eux, une US .NET en couches (interface de service et
+// de repository, DTO, entite, config EF) depassait le cap a chaque fois : 5 HIGH sur 5 US au banc L.
+const PURE_TYPE_FILE = /(?:^|\/)(?:Interfaces\/I[A-Z]\w*\.cs|[\w]*(?:Dto|Enum|Configuration)\.cs|Entities\/\w+\.cs|Enums\/\w+\.cs)$|(?:^|\/)(?:types|dtos|models)\/.*\.ts$|(?:Props|Dto|Model|Types?|Enum)\.ts$/;
 const LOCALE_FILE = /(?:^|\/)(?:locales|i18n|translations|lang)(?:\/[\w-]+)*\/[a-z]{2}(?:[-_][A-Za-z]{2})?\.json$/;
 
 // _meta.alwaysInject of agent-os/standards/index.yml: injected on every run, outside the cap
@@ -494,8 +498,11 @@ const parseParallelYml = (text) => {
   const after = text.match(/^\s*after:\s*(\S+)/m);
   const contract = text.match(/^\s*contract:\s*(\S+)/m);
   const block = text.split(/^\s*parallel:\s*$/m)[1];
-  const ids = block ? matchAll(block, /^\s*-\s*(US\d+)/gm).map((m) => m[1]) : [];
+  // `- US2` (une US) ou `- [US1, US2]` (chaine sequentielle d un meme depot).
+  const items = block ? matchAll(block, /^\s*-\s*(\[[^\]]*\]|US\d+)/gm).map((m) => matchAll(m[1], /US\d+/g).map((x) => x[0])) : [];
+  const ids = items.flat();
   return {
+    items,
     after: after ? (after[1] === "null" ? null : after[1]) : undefined,
     contract: contract ? contract[1] : null,
     parallel: ids,
@@ -613,7 +620,7 @@ export const lintSpec = (dir, opts = {}) => {
     const prod = new Set();
     // The LOCALES files of a front repo are mandatory for any UI story (sk-prep recon.md): they
     // count as one file, not three, or every UI story with a label goes over the cap.
-    for (const t of list) for (const p of t.paths) if (isProdPath(p) && p.includes("/") && !t.reusedOnly.has(p)) prod.add(LOCALE_FILE.test(p) ? "<locales>" : p);
+    for (const t of list) for (const p of t.paths) if (isProdPath(p) && p.includes("/") && !t.reusedOnly.has(p) && !PURE_TYPE_FILE.test(p)) prod.add(LOCALE_FILE.test(p) ? "<locales>" : p);
 
     if (list.length > MAX_TASKS_PER_STORY)
       add("high", "story-too-many-tasks", `${story} a ${list.length} taches (max ~${MAX_TASKS_PER_STORY}): recouper`, `tasks.md`);
