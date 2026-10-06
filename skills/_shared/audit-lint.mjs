@@ -405,7 +405,7 @@ const matchAll = (text, rx) => {
 
 const normPath = (p) => p.replace(/\\/g, "/").replace(/^\.\//, "");
 
-const parseTasks = (text) => {
+export const parseTasks = (text) => {
   const tasks = [];
   const lines = text.split("\n");
   let phase = null;

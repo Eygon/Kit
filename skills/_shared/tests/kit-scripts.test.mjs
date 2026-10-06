@@ -200,3 +200,14 @@ test("facts-add merges worker facts by text, keeps the newest, and brief-fill in
   assert.equal(mergeFacts([], Array.from({ length: MAX_FACTS + 5 }, (_, i) => `x${i}`)).length, MAX_FACTS);
   assert.deepEqual(factsOfOutput('rapport\n```json\n{"stopped":false,"facts":[{"fact":"z","source":"s"}]}\n```\nfin').map((f) => f.fact), ["z"]);
 });
+
+test("lanes plans waves: shared prod file keeps order, disjoint stories run together, PARTAGE ignored with union", async () => {
+  const { planWaves } = await import("../lanes.mjs");
+  const tasks = [
+    "## [US1] A", "- [ ] T001 [US1] Create `src/a/one.ts` and extend `src/config/shared.ts` — Test: `src/__tests__/a/one.test.ts`",
+    "## [US2] B", "- [ ] T002 [US2] Create `src/b/two.ts` and extend `src/config/shared.ts` — Test: `src/__tests__/b/two.test.ts`",
+    "## [US3] C", "- [ ] T003 [US3] Extend `src/a/one.ts` — Test: `src/__tests__/a/one.test.ts`",
+  ].join("\n");
+  assert.deepEqual(planWaves(tasks).waves, [["US1"], ["US2", "US3"]]);
+  assert.deepEqual(planWaves(tasks, { shared: ["src/config/shared.ts"] }).waves, [["US1", "US2"], ["US3"]]);
+});

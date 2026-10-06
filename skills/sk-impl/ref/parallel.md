@@ -67,6 +67,18 @@ dans l ordre de la chaine. Les voies tournent en parallele, les US d une voie
 en sequence (meme slot). Une US ko arrete sa voie seulement ; ok=false au
 global. Un item simple `- US3` reste `{id, prompt, ..., root}`.
 
+## Vagues calculees (lanes.mjs)
+
+  node "<SK_SHARED>/lanes.mjs" "<FEATURE_DIR>" [--union]
+donne les vagues : les US d une vague tournent en parallele (un slot chacune),
+la vague suivante part apres leur fusion. Dependance = fichier de prod commun,
+fichier reutilise (`Code:`) ou montage annonce `(USn)` : l ordre de tasks.md
+est garde. Mesure sur les 4 features du banc jeu : 7, 5, 5 et 6 vagues pour
+7, 7, 7 et 8 US. `--union` ne compte pas les fichiers PARTAGE (4 vagues au
+lieu de 6 en feature 4) mais leurs fusions demandent alors une passe de
+resolution (union des deux cotes, ~1 min d agent) : le pilote git
+`merge=union` a ete essaye et casse les objets `as const` (10 erreurs tsc).
+
 ## Voies dans un seul depot (banc jeu)
 
 Deux voies du MEME depot tournent chacune dans son slot (worktree du pool,
