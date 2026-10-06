@@ -157,7 +157,7 @@ l humain ne choisit pas.
 ## 3. GO humain AVANT tout Agent/Workflow
 
 D abord le linter du trio du slot, familles qui cassent un run seulement :
-  node "<SK_SHARED>/audit-lint.mjs" "<slot>/specs/<NNN>-<nom>" --ref HEAD --only mount,wire,story,recon,verified-fact,design-token,design-lib,design-class,design-section,task-without,task-needs,test-without
+  node "<SK_SHARED>/audit-lint.mjs" "<slot>/specs/<NNN>-<nom>" --ref HEAD --only mount,wire,story,recon,verified-fact,task-creates,design-token,design-lib,design-class,design-section,task-without,task-needs,test-without
 (Bash, chemins a barres obliques entre guillemets ; `--ref HEAD` depuis le
 slot : les fichiers des US deja livrees n existent que sur sa branche.)
 `verified-fact-line-mismatch` = le code a bouge depuis la prep (une autre
@@ -165,6 +165,10 @@ feature fusionnee) : AVANT le spawn, UNE commande recale plan.md et recon.md,
 sans la poser en question :
   node "<SK_SHARED>/fact-lines.mjs" "<FEATURE_DIR>" --ref HEAD --write
 (INTROUVABLE = le symbole a disparu : corrige ce fait a la main.)
+`task-creates-existing` = une autre feature a livre ce fichier depuis la
+prep : la tache devient « Etendre / reutiliser » (Code:) avant le spawn ; si
+le fichier livre differe de ce que la tache attend (champ nullable, defaut),
+c est une question du GO (banc Miro F3 : worker en STOP preuve sur ce cas).
 Banc Miro : F3 preparee avant la fusion de F2 avait 7 faits decales, que
 chaque worker aurait relus faux.
 UN SEUL AskUserQuestion (jusqu a 4 questions) : US retenues si plusieurs

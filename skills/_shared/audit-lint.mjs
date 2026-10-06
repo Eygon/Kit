@@ -885,6 +885,15 @@ export const lintSpec = (dir, opts = {}) => {
       }
     }
   }
+  // Tache « Creer » (non cochee) dont le fichier existe deja a la ref : une autre feature l a livre
+  // depuis la prep. Le worker le recreerait en doublon ou s arreterait (banc Miro F3 apres F2 :
+  // triplet BoardMember livre par le partage, T008 disait « Create »).
+  if (tree)
+    for (const t of tasks)
+      if (t.createLead === "strong" && !t.checked)
+        for (const p of t.created)
+          if (tree.has(p) || backHas(p))
+            add("high", "task-creates-existing", `${t.id || "tache"} cree \`${p}\`, qui existe deja sur ${ref} : passe la tache en « Etendre / reutiliser » (Code:) et relis ce qu il contient`, `tasks.md:${t.line}`);
   const createdSet = new Set(tasks.flatMap((t) => t.created));
   const citedSet = new Set(tasks.flatMap((t) => [...t.paths, ...t.mounts.map((m) => m.target)]));
   const exists = (p) => !tree || createdSet.has(p) || tree.has(p) || backHas(p);
