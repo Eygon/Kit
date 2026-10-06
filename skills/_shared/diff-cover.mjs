@@ -6,12 +6,12 @@
 //
 // Entree : un lcov.info (vitest --coverage.reporter=lcov, jest, c8, coverlet --format lcov).
 // Usage :
-//   node diff-cover.mjs --lcov <lcov.info> --range <base>..<head> [--root <depot>] [--min <pct>]
+//   node diff-cover.mjs --lcov <lcov.info | dossier> --range <base>..<head> [--root <depot>] [--min <pct>]
 //   --range <base> seul (sans ..) : arbre de travail, fichiers non suivis compris (worker avant commit).
 // Sortie : une ligne par fichier, OK / GAP (lignes non executees, regroupees en plages) ;
 // code 1 si un GAP depasse le seuil (par defaut : toute ligne ajoutee executable non couverte).
 // NOCOV (fichier hors lcov, ex. point d entree exclu) informe sans bloquer.
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -21,6 +21,26 @@ const AUTO_PROPERTY = /\{\s*get;\s*(?:(?:private\s+|protected\s+|internal\s+)?(?
 const SOURCE = /\.(?:[cm]?[jt]sx?|cs)$/;
 
 const slash = (p) => p.replace(/\\/g, "/");
+
+// --lcov accepte un dossier : coverlet ecrit <dossier>/<guid>/coverage.info, vitest lcov.info.
+// On prend le .info le plus recent (banc Miro : le chemin lcov.info du brief n existait pas cote .NET).
+export function findLcov(path) {
+  if (!statSync(path).isDirectory()) return path;
+  let best = null;
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = resolve(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith(".info")) {
+        const t = statSync(p).mtimeMs;
+        if (!best || t > best.t) best = { p, t };
+      }
+    }
+  };
+  walk(path);
+  if (!best) throw new Error(`aucun fichier .info sous ${path}`);
+  return best.p;
+}
 
 export function parseLcov(text, root = ".") {
   const files = new Map();
@@ -114,7 +134,7 @@ if (isMain) {
       added.set(slash(f), new Set(Array.from({ length: n }, (_, i) => i + 1)));
     }
   }
-  const report = diffCover(added, parseLcov(readFileSync(lcov, "utf8"), root));
+  const report = diffCover(added, parseLcov(readFileSync(findLcov(lcov), "utf8"), root));
   let bad = 0;
   for (const r of report) {
     if (r.status === "NOCOV") {

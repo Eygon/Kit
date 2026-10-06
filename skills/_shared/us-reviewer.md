@@ -133,7 +133,7 @@ seul commit DONE.
    `--coverage.enabled --coverage.reporter=lcov
    --coverage.reportsDirectory="$(git rev-parse --git-dir)/sk-cov"`
    (pas un second run), puis
-   `node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov/lcov.info" --range <US_BASE>..HEAD`.
+   `node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov" --range <US_BASE>..HEAD`.
    Chaque GAP est un ecart : ajoute le test qui execute ET asserte
    la ligne (FIXED), ou FAIL si la branche demande un choix de
    spec. Seule exception : garde defensive explicitement

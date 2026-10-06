@@ -323,14 +323,14 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
   toEqual de forme casse dans playerMotion.test.ts, invisible a related).
 Les trois partent dans UN appel en fin d US, suivis de la couverture du diff :
   node node_modules/eslint/bin/eslint.js <tes fichiers> && node node_modules/vitest/vitest.mjs related --run --coverage.enabled --coverage.reporter=lcov --coverage.reportsDirectory="$(git rev-parse --git-dir)/sk-cov" --testTimeout=20000 <tes fichiers prod> <tes fichiers de test> && <commande typecheck du Contexte>
-  node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov/lcov.info" --range HEAD   (avant ton commit DONE : arbre de travail + fichiers non suivis)
+  node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov" --range HEAD   (avant ton commit DONE : arbre de travail + fichiers non suivis)
 Chaque GAP est une ligne de prod que tu ajoutes et qu aucun test
 n execute (banc A/B : cylindre jamais construit, livre « vert ») :
 ajoute le test qui l execute et l asserte, ou supprime la branche
 si aucune tache ne la demande. NOCOV informe seulement (fichier
 exclu de la couverture, ex. point d entree). Back .NET : meme
 outil sur un lcov coverlet (`dotnet test --collect:"XPlat Code
-Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`).
+Coverage" --results-directory "$(git rev-parse --git-dir)/sk-cov" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`).
 Projet de test sans `coverlet.collector` : diff-cover non applicable, dis-le
 dans ta sortie (n ajoute pas le paquet : hors de tes chemins).
 Classe CHAQUE erreur contre tasks.md du slot AVANT de
