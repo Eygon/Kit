@@ -92,7 +92,13 @@ seul commit DONE.
    sa preuve, dans la section « Declare par le worker » ajoutee a la
    fin de ce brief : c est alors un ESCALATE. Un ecart declare mais
    atteignable dans les chemins de l US reste a corriger : cite ce
-   qui le rendait atteignable.
+   qui le rendait atteignable. Tout AUTRE ecart declare (signature
+   changee, etat duplique, valeur choisie faute de spec, module-level a
+   la place d un parametre) recoit un verdict explicite dans ta sortie :
+   accepte (pourquoi il ne cassera pas une US suivante) ou defaut
+   (FIXED / FAIL). Banc jeu : un layout duplique au niveau module, declare
+   puis jamais juge, a casse les tirs a travers les portes deux features
+   plus tard.
 4. La gate ciblee des tests de l US est encore verte : les
    fichiers de test de l US, vitest ou dotnet test filtre. Ne
    lance PAS `yarn typecheck` ni la suite complete : la cloture
