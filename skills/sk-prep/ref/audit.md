@@ -1,7 +1,6 @@
 # /sk-prep — Mode audit (lu seulement si AUDIT_MODE=1)
 
-Ce bloc s applique QUE si AUDIT_MODE=1. Verifie une fois
-au debut (echo AUDIT_MODE). Absent = ignore cette section.
+Lu juste apres la sonde (qui rend AUDIT_MODE : pas d echo de plus).
 
 1. Aucune AskUserQuestion. Lis AUDIT_INTENT_FILE. Consigne
 dans AUDIT_OUT_DIR/answers.jsonl
@@ -23,7 +22,8 @@ dans AUDIT_OUT_DIR/answers.jsonl
    bootstrap = recon jusqu a l entree dans specify ;
    cycles = specify, clarify, plan, tasks, strip ;
    closing = sanity, validation du trio, relais.
-   Donc exactement 6 echos par run : bootstrap start/end,
+   Donc 6 echos par run complet (un STOP avant cycles en emet 4,
+   regle 7) : bootstrap start/end,
    cycles start/end, closing start/end. Une marque emise
    deux fois, ou deux dans un meme echo, fausse la
    decomposition du temps.
@@ -36,7 +36,7 @@ dans AUDIT_OUT_DIR/answers.jsonl
    a rien : 4 sessions ont produit 4 formes incompatibles.
 6. Aucune interaction differee. Termine et rends l objet final.
 
-7. Garde-fou de taille (A.1bis) en audit : la question se resout par l intent (regle 1). Option 1 retenue = result.sk-prep.json outcome "stopped", stop.section "## A. 1bis Garde-fou de taille", puis bootstrap end et closing start/end quand meme.
+7. Garde-fou de taille (A.1bis) en audit : la question se resout par l intent (regle 1). Option 1 retenue = result.sk-prep.json outcome "stopped", stop.section "## A. 1bis Garde-fou de taille", dans cet ordre : bootstrap end, Write du result (featureDir null), closing start, closing end — 4 marques, pas de cycles. La valeur de stop.section est cette chaine exacte.
 
 8. Numerotation :
   En AUDIT_MODE : laisser create-new-feature.ps1 calculer

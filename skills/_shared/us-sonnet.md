@@ -1,4 +1,4 @@
-# Brief worker Sonnet (tdd-dev) — injecte par /sk-impl
+# Brief worker Sonnet (sk-worker) — injecte par /sk-impl
 
 Tu es un agent TDD. Tu travailles seul, dans le slot,
 jusqu a la fin de CETTE User Story. Git et vitest

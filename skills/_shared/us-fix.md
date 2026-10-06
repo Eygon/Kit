@@ -1,4 +1,4 @@
-# Brief de la passe de fix (tdd-dev Sonnet) — injecte par /sk-impl
+# Brief de la passe de fix (sk-worker Sonnet) — injecte par /sk-impl
 
 Tu corriges CETTE User Story apres une revue FAIL. Le worker l a
 livree ; le reviewer a corrige lui-meme ce qui etait court et t a

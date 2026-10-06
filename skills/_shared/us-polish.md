@@ -1,4 +1,4 @@
-# Brief de la passe de polish (tdd-dev Sonnet) — injecte par /sk-impl
+# Brief de la passe de polish (sk-worker Sonnet) — injecte par /sk-impl
 
 Tu appliques en UNE passe les ecarts « cosmetic » que les revues des
 US de ce run ont releves : une valeur de design (dimension,

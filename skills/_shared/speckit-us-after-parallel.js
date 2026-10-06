@@ -1,6 +1,6 @@
 export const meta = {
   name: 'speckit-us-after-parallel',
-  description: 'Barriere d abord, puis Promise.all sur le groupe parallel. Par US : Sonnet tdd-dev, puis reviewer Opus qui rend PASS, FIXED (il a corrige lui-meme), FAIL (passe de fix Sonnet puis review2) ou ESCALATE (arbitrage humain). Revue sans verdict relancee une fois. Zero Haiku.',
+  description: 'Barriere d abord, puis Promise.all sur le groupe parallel. Par US : Sonnet sk-worker, puis reviewer Opus qui rend PASS, FIXED (il a corrige lui-meme), FAIL (passe de fix Sonnet puis review2) ou ESCALATE (arbitrage humain). Revue sans verdict relancee une fois. Zero Haiku.',
   phases: [
     { title: 'US', detail: 'Sonnet medium RED GREEN REFACTOR + commit DONE', model: 'sonnet' },
     { title: 'Review', detail: 'Opus medium relit le commit contre la spec, corrige lui-meme ce qui est plus court a faire qu a expliquer', model: 'opus' },
@@ -157,7 +157,7 @@ async function reviewOnce(g, id, label, handoff) {
     phase: 'Review',
     model: 'opus',
     effort: 'medium',
-    agentType: 'tdd-reviewer',
+    agentType: 'sk-reviewer',
     schema: REVIEW_SCHEMA,
   })
 }
@@ -251,7 +251,7 @@ async function runUs(g) {
     phase: 'US',
     model: 'sonnet',
     effort: WORKER_EFFORT,
-    agentType: 'tdd-dev',
+    agentType: 'sk-worker',
     schema: US_SCHEMA,
   })
   log('US ' + id + ' Sonnet end')
@@ -307,7 +307,7 @@ async function runUs(g) {
   log('US ' + id + ' fix start')
   const fixBrief = fixPrompt + FIX_GATE_BUDGET + handoffOf(usOut, first.out) + '\n\nReprise apres review FAIL:\n' + formatNotes(row.issues)
   const fixOnce = function (label) {
-    return agent(fixBrief, { label: label + ':' + id, phase: 'US', model: 'sonnet', effort: WORKER_EFFORT, agentType: 'tdd-dev', schema: US_SCHEMA })
+    return agent(fixBrief, { label: label + ':' + id, phase: 'US', model: 'sonnet', effort: WORKER_EFFORT, agentType: 'sk-worker', schema: US_SCHEMA })
   }
   // A fix agent that dies (null) is retried once, like a review; a real STOP is not.
   let fixOut = await fixOnce('fix')

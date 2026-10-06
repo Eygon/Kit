@@ -27,7 +27,7 @@ modifie (il ajoute des regles a specify, plan, tasks et sanity).
 
 | Declencheur (sonde §0 ou $ARGUMENTS) | Module |
 |---|---|
-| `AUDIT_MODE=1` | `<REF>/audit.md` (avant tout le reste) |
+| `AUDIT_MODE=1` | `<REF>/audit.md` (juste apres la sonde) |
 | URL `claude.ai/design/p/...` ou lien Figma | `<REF>/design.md` (remplace la section 0) |
 | chemin `docs/legacy-search/*.md` | `<REF>/legacy.md` (0bis) |
 | chemin `docs/code-search/*.md` | `<REF>/code-search.md` (0ter) |
@@ -88,6 +88,10 @@ question, qui recapitule dans cet ordre (omets les blocs non declenches) :
 Seule autre question permise avant : le choix du fichier design sans
 ?file= (module design §0.1.3). Pas d US inventee ; le trio est cape a
 cette tranche. Sans reponse : pas de design.md, pas de specify.
+AUCUN module design / legacy / code-search declenche : pas de 0quater.
+La question n aurait qu un bloc (« US retenues ») pose avant la recon,
+la ou A.1bis peut encore tout arreter ; le choix des US part dans la
+question de clarify (A.2), quand les US existent.
 
 ## A. Preparation (toi, inline)
 
@@ -170,6 +174,8 @@ recopies au worker et le reviewer juge dessus.
 question sauf spec deja entiere. PUIS le filet, dans la MEME
 AskUserQuestion si possible : recapitule les hypotheses (portee, cas
 limites, regles) a valider ou corriger. Correction -> reinsere dans spec.md.
+Sans 0quater : la meme AskUserQuestion porte aussi les US retenues pour CE
+run (toutes par defaut) ; une US ecartee sort de spec.md.
 
 **plan** — Skill(speckit-plan) -> plan.md + artefacts JUSTIFIES. Injecte
 ICI la synthese recon sous `## Faits verifies` (chemin:lignes, source).
