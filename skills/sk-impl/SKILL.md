@@ -26,7 +26,7 @@ ce fichier. Agents : `sk-worker` (Sonnet, code et fix) et `sk-reviewer`
 | `AUDIT_MODE=1` (sonde) | `<REF>/audit.md`, avant tout le reste |
 | une US retenue porte des chemins backend | `<REF>/cross-repo.md` |
 | FEATURE_DIR/parallel.yml existe ET >= 2 US retenues | `<REF>/parallel.md` |
-| verdict final (toujours, en fin de run) | `<REF>/publish.md` |
+| verdict final (en fin de run, des qu un slot a ete pris) | `<REF>/publish.md` |
 
 ## Ce que cette commande fait
 
@@ -51,8 +51,12 @@ LOCALES, test de parite, commandes vitest/tsc/eslint, et l etat du trio
 spec.md + plan.md + tasks.md DOIVENT exister dans FEATURE_DIR du depot
 PRINCIPAL (specs/ gitignore est normal). Un manque -> STOP, /sk-prep.
 `git add -f specs` INTERDIT.
-- design.md : s il existe, il se transmet par extrait (§4). plan.md le
-  cite mais il manque -> STOP, relance /sk-prep.
+- design.md : s il existe, il se transmet par extrait (§4). Absent alors
+  qu une US RETENUE porte des taches `Design: design.md#C<n>` -> STOP,
+  relance /sk-prep (jamais un design deduit du JSX). Une US retenue sans
+  ancre (back, data layer) n en a pas besoin : elle continue.
+- STOP de pre-requis (avant le slot) : rien n a ete touche, pas de
+  publication ni de STATE.md ; dis la commande a relancer.
 - recon.md : inventaire VIVANT (§4bis). Absent : cree-le avec les 5 titres
   au premier DONE (`node <SK_SHARED>/recon-seed.mjs --out ...`).
 - parallel.yml : annotation ecrite par /sk-prep, copiee avec le trio,
