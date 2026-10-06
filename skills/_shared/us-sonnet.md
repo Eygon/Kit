@@ -231,7 +231,9 @@ d un hook, regle d API, 409) ne se prouve bien qu isole.
    Avant que le fichier de prod existe, chaque `it` echoue sur « Cannot
    find package <alias>/... » ou « Failed to resolve import » : C EST le
    RED attendu (un rouge par test, pas un crash du fichier). Ne repasse
-   pas a un import statique pour autant.
+   pas a un import statique pour autant. Un `vi.mock` du module pas
+   encore cree : le spy passe par `vi.hoisted`, et le test importe la prod
+   par const, sinon le fichier tombe au collect.
    Rouge compile (hors symbole manquant) : corrige le TEST.
    Vert d emblee : deja couvert, passe a la tache suivante.
 2. GREEN. Prod minimale de la tache. UNE gate, qui verifie
