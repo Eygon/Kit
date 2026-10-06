@@ -180,10 +180,29 @@ Le kit a aussi bien fonctionné là où on l'attendait. Les 2 ESCALATE étaient 
 | Étape | Mesure |
 |---|---|
 | Prep (7 US, 28 tâches, contrat, design) | 5,93 $ · 14 min · 0 HIGH après correction |
-| Impl : 2 voies en parallèle (back US1-3 ∥ front US4-7) | 7 US, 13 agents, ~10,6 $ soit **~1,5 $ par US** (jeu : 3,10 $). Back 77 tests, front 128, tsc et eslint verts, fusion dans dev des deux dépôts |
+| Impl : 2 voies en parallèle (back US1-3 ∥ front US4-7) | 7 US, 13 agents, 9,19 $ soit **~1,3 $ par US** (jeu : 3,10 $, avec des US plus grosses). Back 77 tests, front 128, tsc et eslint verts, fusion dans dev des deux dépôts |
 | Verdicts | 5 PASS (Opus), 1 PASS (Sonnet, palier auto sur une petite US), 1 FIXED : Opus a jugé défectueux un écart de design déclaré (label C7 décalé de 16 px) et l'a corrigé avec un test vu rouge |
 
-Défauts du kit révélés par ce run, et corrigés :
+**Miro F2 (partage de tableau, rôles lecteur/éditeur, back + front)** :
+
+| Étape | Mesure |
+|---|---|
+| Prep (9 US, 32 tâches, contrat) | 3,62 $ · 9 min · 0 finding. La prep a vu seule qu'un lecteur recevait déjà 403 sur les items (exigence déjà remplie) |
+| Impl, 2 voies (back US1-3 ∥ front US4-9) | 9 US, 18 agents, 9,38 $ soit **~1,0 $ par US**. Back 126 tests, front 199, tout vert, fusionné |
+| Reviews | 4 par Sonnet (palier auto) : 4 PASS à 0,21 $ en moyenne. 6 par Opus (0,70 $) : 3 FIXED, dont 2 fois un 204 du contrat non testé et 1 test tautologique |
+| Contre-vérification | 2 US validées par Sonnet relues par Opus : 2 PASS, verdicts identiques |
+
+Ce que F2 et F3 ont apporté au kit :
+- **diff-cover voit les branches** (BRDA) : le 204 d'un ternaire sur une ligne passait la couverture de ligne. L'alerte BRANCH reste non bloquante (une garde défensive n'est pas un défaut).
+- **Lint `mount-note-missing`** : un module créé dans une US mais lu seulement par une US ultérieure, sans annotation. 1 vrai positif, 0 faux positif sur 6 autres features.
+- **Lint `recon-edit-outside-paths`** : recon.md demandait d'éditer un fichier (builders.ts) qu'aucune tâche ne touche. 2 vrais positifs (F1 et F2).
+- **Lint des faits vérifiés** : il sautait les fichiers existants cités par une tâche « Créer » (15 faits sur 25 non vérifiés), et lisait le disque au lieu de la ref.
+- **Dérive après fusion** : F3 a été préparée avant la fusion de F2. Au GO, le lint trouve 7 faits décalés, et `fact-lines.mjs` les recale tous les 7 en une commande.
+- **`lanes.mjs`** voit les dépendances par nom de classe (même stack) et par mention « (USn) ».
+- **Moteur Workflow** : les faits d'un worker passent aux US suivantes du même dépôt pendant le run. Avant, ils n'arrivaient qu'après.
+- Le worker repasse l'import paresseux du RED en statique après GREEN ; un cas de contrat hors seed se teste en substituant le service.
+
+Défauts du kit révélés par F1, et corrigés :
 - Le brief d'une US back renvoyait à `specs/...` en relatif, alors que le trio vit dans le dépôt front. Il donne maintenant le chemin absolu.
 - Les faits du back (SQLite, horloge figée) arrivaient dans les briefs front. Ils sont maintenant rangés par dépôt (`--slot`).
 - `mount-check` lisait la tâche qui cite le fichier comme cible de montage au lieu de la tâche du fichier, d'où un faux UNMOUNTED.
@@ -202,4 +221,4 @@ Défauts du kit révélés par ce run, et corrigés :
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 30 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 34 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
