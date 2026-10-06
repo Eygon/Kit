@@ -263,6 +263,25 @@ function Resolve-SlotPath([string]$S) {
 
 # =========================================================================================
 
+# Verrou du pool autour de claim : free puis claim n est pas atomique, et deux sessions lancees
+# ensemble prenaient le meme slot (banc : 3 courses sur 3, deux CLAIM wt-1, la 2e ecrasait la
+# branche de la 1re). Sous le verrou, claim relit git : le second recoit REFUS et relance free.
+function Enter-PoolLock([string]$PoolRoot) {
+    New-Item -ItemType Directory -Force $PoolRoot | Out-Null
+    $lock = Join-Path $PoolRoot '.claim.lock'
+    for ($i = 0; $i -lt 100; $i++) {
+        try { return [System.IO.File]::Open($lock, 'CreateNew', 'Write', 'None') } catch {}
+        # Verrou orphelin (session tuee pendant un claim) : un claim dure < 30 s.
+        try { if (((Get-Date) - (Get-Item $lock).LastWriteTime).TotalSeconds -gt 60) { Remove-Item $lock -Force } } catch {}
+        Start-Sleep -Milliseconds 200
+    }
+    Write-Output "REFUS verrou du pool tenu depuis 20 s ($lock) : une autre session reserve un slot ; relancer."; exit 3
+}
+function Exit-PoolLock($Handle, [string]$PoolRoot) {
+    try { $Handle.Close() } catch {}
+    Remove-Item (Join-Path $PoolRoot '.claim.lock') -Force -ErrorAction SilentlyContinue
+}
+
 switch ($Action) {
 
     'status' {
@@ -320,6 +339,8 @@ switch ($Action) {
         $slot = Resolve-SlotPath $Slot
         if (-not $Branch) { Write-Output "-Branch requis"; exit 1 }
         $ctx = Resolve-Context $slot
+        $lockHandle = Enter-PoolLock $ctx.poolRoot
+        try {
         $name = (Split-Path -Leaf $slot).ToLower()
         $g = Read-GitSlot $slot $ctx.default
         $st = Read-Status $ctx.statusFile | Where-Object { $_.slot -eq $name } | Select-Object -First 1
@@ -363,6 +384,7 @@ switch ($Action) {
         } catch {}
         Write-Output ("CLAIM {0} | {1} | base {2} ({3}) | session {4} | terminal {5}" -f $slot, $Branch, $baseSha, $Base, $(if ($sessionId) { $sessionId } else { '-' }), $(if ($terminalId) { $terminalId } else { '-' }))
         exit 0
+    } finally { Exit-PoolLock $lockHandle $ctx.poolRoot }
     }
 
     'touch' {

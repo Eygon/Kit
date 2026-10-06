@@ -102,8 +102,11 @@ git fait foi). SKP = `pwsh -File <SK_SHARED>/sk-pool.ps1`.
    abandon). Jamais voler un slot dont git est sur une autre branche.
 3. `SKP -Action claim -Slot <slot> -Branch sk-impl-<FEATURE_SLUG> -Note
    "<US retenues>"` (reprise : rien touche ; branche feature/<NNN>-* :
-   `-Branch` = cette branche). exit 3 `REFUS` : decider avec l humain,
-   `-Force` seulement apres son accord.
+   `-Branch` = cette branche). exit 3 `REFUS` sur un slot que `free`
+   venait de rendre LIBRE = une autre session l a pris dans l intervalle
+   (claim est sous verrou) : relance free puis claim, une fois, sans
+   demander. Tout autre REFUS : decider avec l humain, `-Force`
+   seulement apres son accord.
 Heartbeat apres chaque US et a chaque ExitWorktree keep :
 `SKP -Action touch -Slot <slot> -Note "<US livrees / en cours>"`.
 Ne jamais supprimer un slot.

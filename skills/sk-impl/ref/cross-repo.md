@@ -42,6 +42,8 @@ BACK_ROOT est pose :
   3. SKP -Action claim -Slot <slot back>
        -Branch sk-impl-<FEATURE_SLUG>
        -Base origin/<defaut du backend>
+     (REFUS juste apres free = course avec une autre
+     session : free puis claim une fois de plus)
      -Base est OBLIGATOIRE ici : la base est la
      branche d integration du backend, PAS le HEAD
      du working tree principal, presque toujours
