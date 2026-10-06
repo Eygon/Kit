@@ -427,6 +427,11 @@ const parseTasks = (text) => {
     let own = body;
     for (const mt of mounts) if (mt.owner) own = own.split(mt.raw).join(" ");
     const paths = [...new Set(matchAll(own, PATH_TOKEN).map((x) => normPath(x[0])))];
+    // Files cited ONLY in a `Code:` segment are reused, not edited: they do not count in the
+    // prod-file cap of the story (a utility the task calls is not a file the US touches).
+    const codeSeg = matchAll(own, /Code:\s*([^—]*)/g).map((x) => x[1]).join(" ");
+    const rest = own.replace(/Code:\s*[^—]*/g, " ");
+    const reusedOnly = new Set(matchAll(codeSeg, PATH_TOKEN).map((x) => normPath(x[0])).filter((p) => !matchAll(rest, PATH_TOKEN).some((y) => normPath(y[0]) === p)));
     const lead = leadOf(body);
     const created = new Set(matchAll(body, CREATE_IN).map((x) => normPath(x[1])));
     const strong = CREATE_LEAD.test(lead);
@@ -450,6 +455,7 @@ const parseTasks = (text) => {
       id: id ? id[0] : null,
       parallel: /\[P\]/.test(body),
       paths,
+      reusedOnly,
       mounts,
       created: [...created],
       createLead: strong ? "strong" : CREATE_WEAK_LEAD.test(lead) ? "weak" : null,
@@ -467,6 +473,20 @@ const isTestPath = (p) => /(^|[\/\\])(__tests__|tests?)[\/\\]|\.(test|spec)\.[jt
 // comme fichiers prod (6 annonces pour 2 reels, d ou un HIGH et un MEDIUM faux).
 const isDocPath = (p) => /\.md$/i.test(p);
 const isProdPath = (p) => !isTestPath(p) && !isDocPath(p);
+const LOCALE_FILE = /(?:^|\/)(?:locales|i18n|translations|lang)(?:\/[\w-]+)*\/[a-z]{2}(?:[-_][A-Za-z]{2})?\.json$/;
+
+// _meta.alwaysInject of agent-os/standards/index.yml: injected on every run, outside the cap
+// (sk-prep A.3). Counting them sent a MEDIUM standards-over-cap on a 1-US trio with 6 real anchors.
+const alwaysInjected = (dir) => {
+  for (let d = resolve(dir); ; d = dirname(d)) {
+    const idx = join(d, "agent-os", "standards", "index.yml");
+    if (existsSync(idx)) {
+      const m = (read(idx) || "").match(/alwaysInject:\s*\n((?:[ \t]+-[ \t]+.+\n?)+)/);
+      return new Set(m ? matchAll(m[1], /-\s+(\S+)/g).map((x) => "@agent-os/standards/" + x[1].replace(/\.md$/, "")) : []);
+    }
+    if (dirname(d) === d) return new Set();
+  }
+};
 
 const parseParallelYml = (text) => {
   const after = text.match(/^\s*after:\s*(\S+)/m);
@@ -589,14 +609,16 @@ export const lintSpec = (dir, opts = {}) => {
   for (const [story, list] of stories) {
     if (story === "unassigned") continue;
     const prod = new Set();
-    for (const t of list) for (const p of t.paths) if (isProdPath(p)) prod.add(p);
+    // The LOCALES files of a front repo are mandatory for any UI story (sk-prep recon.md): they
+    // count as one file, not three, or every UI story with a label goes over the cap.
+    for (const t of list) for (const p of t.paths) if (isProdPath(p) && !t.reusedOnly.has(p)) prod.add(LOCALE_FILE.test(p) ? "<locales>" : p);
 
     if (list.length > MAX_TASKS_PER_STORY)
       add("high", "story-too-many-tasks", `${story} a ${list.length} taches (max ~${MAX_TASKS_PER_STORY}): recouper`, `tasks.md`);
     if (prod.size > MAX_PROD_FILES_PER_STORY)
       // The counted files are listed: without them the parent read the linter's source to find
       // out what it counted (918 prep: 12 lint runs in 5 min, 4 reads of this file).
-      add("high", "story-too-many-prod-files", `${story} touche ${prod.size} fichiers de production (max ~${MAX_PROD_FILES_PER_STORY}) : ${[...prod].join(", ")} — un chemin cite comme modele compte aussi`, `tasks.md`);
+      add("high", "story-too-many-prod-files", `${story} touche ${prod.size} fichiers de production (max ~${MAX_PROD_FILES_PER_STORY}) : ${[...prod].join(", ")} — un chemin cite comme modele compte aussi, pas un chemin cite seulement en Code:`, `tasks.md`);
     if (prod.size === 1 && stories.size > 1)
       add("low", "story-too-thin", `${story} ne porte qu un fichier de production: fusionner si c est le meme livrable`, `tasks.md`);
 
@@ -708,10 +730,12 @@ export const lintSpec = (dir, opts = {}) => {
     ...matchAll(planText, STANDARDS_REF).map((m) => m[0]),
     ...matchAll(tasksText, STANDARDS_REF).map((m) => m[0]),
   ]);
+  const always = alwaysInjected(dir);
+  const capped = [...standards].filter((s) => !always.has(s.replace(/\.md$/, "")));
   if (standards.size === 0)
     add("high", "standards-not-anchored", "aucun @agent-os/standards/ ancre dans plan.md ou tasks.md", "plan.md");
-  else if (standards.size > STANDARDS_CAP.max)
-    add("medium", "standards-over-cap", `${standards.size} standards ancres (cap ${STANDARDS_CAP.min}-${STANDARDS_CAP.max})`, "plan.md");
+  else if (capped.length > STANDARDS_CAP.max)
+    add("medium", "standards-over-cap", `${capped.length} standards ancres hors alwaysInject (cap ${STANDARDS_CAP.min}-${STANDARDS_CAP.max})`, "plan.md");
 
   // Faits verifies -> depot. Les fichiers que tasks.md demande de CREER ne sont
   // pas des faits, on les ecarte ; un chemin peut vivre dans le backend lie.

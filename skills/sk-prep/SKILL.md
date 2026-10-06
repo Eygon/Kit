@@ -67,8 +67,9 @@ checklists/requirements.md. Fichiers vides interdits. research.md,
 data-model.md, contracts/, quickstart.md seulement s ils ont du vrai
 contenu. design.md OBLIGATOIRE si un lien design est fourni, interdit
 sinon. Un doc legacy ou code-search ne produit AUCUN fichier : on le cite.
-recon.md OBLIGATOIRE des que la feature a >= 2 US (A.4bis) : l inventaire
-de l existant que chaque worker /sk-impl lit en premier. Ce n est PAS un
+recon.md OBLIGATOIRE, meme a 1 US (A.4bis, squelette genere) : l inventaire
+de l existant que chaque worker /sk-impl lit en premier (LOCALES, alias,
+composants reutilisables). Ce n est PAS un
 doublon de plan.md « Faits verifies » : plan.md dit ce qui est vrai pour
 specifier, recon.md dit ou est le code reutilisable pour implementer.
 
@@ -268,7 +269,8 @@ Elle nomme donc :
   equivalent dans src/components/{elements,widgets}` (confronte a la liste
   de recon.md, pas a ta memoire) pour tout « Creer » d un etat, bandeau,
   skeleton, modale, panneau, pastille ou filtre ;
-- pour une action serveur (mutation, PATCH/POST, export) : l endpoint du
+- pour une action serveur (mutation, PATCH/POST, export genere par le
+  serveur ; un export construit cote client n en est pas une) : l endpoint du
   contrat ET la fonction du service front (existante avec son chemin, ou
   « a creer dans <chemin> ») ;
 - pour toute donnee qu une AC affiche ou propose : sa source (service
@@ -310,5 +312,5 @@ figure pas. /sk-xs seulement si l humain n a PAS besoin du papier.
 - US choisies seulement, artefacts vides interdits, after_specify SKIPPED.
 - Tache = une ligne = un fichier prod + `Test:` ; `Monté dans:` pour tout
   composant, hook, service cree ; audit-lint : HIGH mount/wire bloquants.
-- recon.md part de recon-seed.mjs, verifie sur origin/<defaut>, < 10 Ko.
+- recon.md toujours, depuis recon-seed.mjs, verifie sur origin/<defaut>, < 10 Ko.
 - Relais ferme : /sk-impl.
