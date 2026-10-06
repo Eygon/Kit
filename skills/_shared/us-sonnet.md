@@ -29,8 +29,7 @@ personne ne repondra.
 
 - Cwd du slot (absolu) : <SLOT_CWD>
 - US id : <US_ID>
-- tasks.md : <TASKS_PATH> (chemin absolu, barres obliques ; c est la copie
-  de TON slot : en Bash, `specs/<FEATURE>/tasks.md` depuis le cwd du slot)
+- tasks.md : <TASKS_PATH> (chemin absolu, barres obliques ; <TASKS_WHERE>)
   Si specs/ est une jonction vers le depot principal,
   tes cases y sont ecrites directement : edition ligne a
   ligne, jamais de recopie du fichier en bloc.

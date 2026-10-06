@@ -16,12 +16,13 @@
 // Writes <out>/<US>-worker.md, -review.md, -fix.md (out defaults to the json's folder) and exits 1
 // when a brief would be incomplete. Prints one line per check.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { join, dirname, basename, resolve } from "node:path";
+import { join, dirname, basename, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractAcceptance } from "./spec-ac.mjs";
 import { buildPack, idsOfStory } from "./standards-pack.mjs";
 import { extractDesign } from "./design-extract.mjs";
 import { readFacts, mergeFacts } from "./facts-add.mjs";
+const slash = (p) => p.replace(/\\/g, "/");
 
 const norm = (p) => String(p).replace(/\\/g, "/").replace(/^api:/, "").trim();
 
@@ -160,6 +161,10 @@ export const fillBriefs = (json, templates) => {
     ["<#C<n>, #C<m>... ou aucune>", json.anchors && json.anchors.length ? json.anchors.join(", ") : "aucune"],
     ["<#C<n>... ou vide>", json.anchors && json.anchors.length ? json.anchors.join(", ") : "vide"],
     ["<TASKS_PATH>", tasksPath],
+    // US d un depot lie (back) : le trio vit dans le slot front, `specs/...` relatif au cwd n existe pas.
+    ["<TASKS_WHERE>", slash(resolve(tasksPath)).startsWith(slash(resolve(json.slot)) + "/")
+      ? "c est la copie de TON slot : en Bash, `" + slash(relative(json.slot, tasksPath)) + "` depuis le cwd du slot"
+      : "hors de ton depot (US d un depot lie) : utilise TOUJOURS ce chemin absolu, `specs/` n existe pas dans ton cwd"],
     ["<SPEC_PATH>", specPath],
     ["<STANDARDS_PACK>", packPath || "aucun (agent-os/standards absent du depot de l US)"],
     ["<STANDARDS_ROOT>", standardsRoot],
