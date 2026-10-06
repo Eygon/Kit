@@ -155,3 +155,10 @@ test("standards-pack reads a flat index (`game/x:` keys) and its tags", async ()
   for (const id of ["no-comments", "game/dom-hud", "react/file-decomposition"]) assert.ok(ids.has(id), id);
   assert.deepEqual(indexTags(yml).get("game/dom-hud"), ["ui"]);
 });
+
+test("derivePaths keeps the test of a companion cited in the task body", async () => {
+  const { derivePaths } = await import("../brief-fill.mjs");
+  const r = derivePaths(["- [ ] T002 [US1] Create `src/r/b.ts` and its texture factory `src/r/t/s.ts` (test `src/__tests__/r/t/s.test.ts`) — Test: `src/__tests__/r/b.test.ts`"], "");
+  assert.deepEqual(r.tests.sort(), ["src/__tests__/r/b.test.ts", "src/__tests__/r/t/s.test.ts"]);
+  assert.ok(r.prod.includes("src/r/t/s.ts"));
+});

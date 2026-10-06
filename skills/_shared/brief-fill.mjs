@@ -92,6 +92,8 @@ export const derivePaths = (tasks, reconText) => {
     for (const m of body.matchAll(/`([\w./@-]+\.(?:tsx?|jsx?|cs|json|s?css))`/g)) {
       const p = norm(m[1]);
       if (p.includes("/") && !/(^|\/)(?:__tests__|specs|contracts)\//.test(p) && !/\.(test|spec)\./.test(p)) prod.add(p);
+      // Test d un compagnon cite dans le corps (« and its x `a.ts` (test `a.test.ts`) ») : banc jeu.
+      else if (p.includes("/") && /\.(test|spec)\./.test(p)) tests.add(p);
     }
   }
   if (reconText && [...prod].some((p) => /(?:locales|i18n|translations|lang)\/[\w-]+\.json$/.test(p))) {
