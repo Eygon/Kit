@@ -66,6 +66,8 @@ export const factsOfOutput = (text) => {
   };
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const obj = tryParse(text.trim()) || (fenced && tryParse(fenced[1])) || tryParse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+  // Un facts.json d une autre voie (tableau nu) se verse tel quel : fusion des voies paralleles.
+  if (Array.isArray(obj)) return obj;
   return obj && Array.isArray(obj.facts) ? obj.facts : [];
 };
 

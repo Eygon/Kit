@@ -83,7 +83,9 @@ resolution (union des deux cotes, ~1 min d agent) : le pilote git
 
 Deux voies du MEME depot tournent chacune dans son slot (worktree du pool,
 trio copie), puis la voie secondaire est fusionnee dans la principale
-(`git merge --no-ff`) et ses cases reportees par `tasks-merge.mjs`.
+(`git merge --no-ff`) et ses cases reportees par `tasks-merge.mjs`, ses faits
+par `node facts-add.mjs <FEATURE_DIR principal> <FEATURE_DIR voie>/facts.json`
+(un facts.json se verse tel quel, sans `--us`).
 Condition : AUCUN fichier de prod commun entre les voies, fichiers PARTAGE et
 point d entree (main.ts) compris : ce que signale le lint
 `story-parallel-candidate`. Mesure : 2 fusions sans fichier commun propres ;
