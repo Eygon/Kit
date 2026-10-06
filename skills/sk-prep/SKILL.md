@@ -1,6 +1,6 @@
 ---
 name: sk-prep
-description: Variante PREPARATION-SEULE spec-kit. Produit le trio spec/plan/tasks (specify, clarify, plan, tasks) sans implementer. Relais unique : /sk-impl. Use when the user invokes /sk-prep or wants spec-kit planning only.
+description: Variante PREPARATION-SEULE spec-kit. Produit le trio spec/plan/tasks (format spec-kit, ecrit directement depuis les gabarits du kit) sans implementer. Relais unique : /sk-impl. Use when the user invokes /sk-prep or wants spec-kit planning only.
 argument-hint: "<besoin> [chemin d un doc docs/legacy-search/*.md et/ou docs/code-search/*.md a exploiter]"
 disable-model-invocation: true
 allowed-tools: Agent Bash Read Write Edit Glob Grep AskUserQuestion Skill ToolSearch DesignSync ListAgents SendMessage mcp__azure mcp__claude-in-chrome
@@ -152,66 +152,83 @@ AskUserQuestion, dans cet ordre :
   2. « Garder le papier » -> continue. L humain garde la main.
 Un XS qui passe ici sans question est le defaut mesure.
 
-### A.2 Trio spec-kit, dans l ordre, borne au perimetre du run
+### A.2 Trio, ecrit DIRECTEMENT au format du kit, borne au perimetre du run
 
-FEATURE_DIR : resous via .specify/feature.json ou le script setup-tasks
-de la sonde, et VERIFIE que le dossier existe (feature.json peut pointer
-sur un dossier supprime). Absent -> relance create-new-feature, jamais de
-mkdir a la main.
+Le trio s ecrit depuis les gabarits `<TPL>` = `templates/` a cote de ce
+fichier (spec.md, plan.md, requirements.md), aux titres de spec-kit : les
+skills speckit-* ne s ouvrent PAS (leur machinerie generique — hooks,
+branches, Setup/Foundational, taches de test separees — etait ensuite
+defaite a la main, et leurs ~20 k tokens se relisaient a chaque tour).
+Le trio reste lisible par /speckit-analyze et par les outils du kit.
 
-**specify** — Skill(speckit-specify) -> spec.md + checklists/requirements.md.
+**Dossier** — UN appel : le script create-new-feature de la sonde,
+`--json --short-name "<slug>" "<besoin>"` (en audit : `<REF>/audit.md`
+regle 2). Il cree FEATURE_DIR et .specify/feature.json ; rends-toi au
+dossier qu il rend, VERIFIE qu il existe. Jamais de mkdir a la main.
 Hook after_specify : SKIPPED (il reecrit AGENTS.md hors specs/).
-Une US = un livrable dont l Independent Test se joue SANS les US suivantes,
-~3-5 fichiers de prod (~20-40 min worker), ~3-6 taches. Pas 1 fichier par
-US, pas toute la feature dans une US. Une petite US qui reste un livrable
-a part (contrat, mapper, flag) se garde. Une feature dont TOUTES les US
-seraient minuscules est le cas A.1bis.
-INTERDIT : chemins API/backend ET pages/components dans le meme [USn]
-(meme repo, deux dossiers = meme interdiction). Front sans backend
-modifiable qui appelle un endpoint : le contrat (yaml/json dans
-contracts/) s ecrit TOI, en prep, avant les US — les US front codent
-contre lui, jamais contre une implementation, et ne l inventent pas
-(regles de source : `<REF>/contracts.md`).
-Chaque US porte des **Acceptance Scenarios** (Given/When/Then) : ils sont
-recopies au worker et le reviewer juge dessus.
 
-**clarify** — Skill(speckit-clarify) SYSTEMATIQUEMENT, au moins une
-question sauf spec deja entiere. PUIS le filet, dans la MEME
-AskUserQuestion si possible : recapitule les hypotheses (portee, cas
-limites, regles) a valider ou corriger. Correction -> reinsere dans spec.md.
-Sans 0quater : la meme AskUserQuestion porte aussi les US retenues pour CE
-run (toutes par defaut) ; une US ecartee sort de spec.md.
+**spec.md** (gabarit `<TPL>/spec.md`, une seule ecriture) — le QUOI, sans
+implementation. Une US = un livrable dont l Independent Test se joue SANS
+les US suivantes, ~3-5 fichiers de prod (~20-40 min worker), ~3-6 taches.
+Pas 1 fichier par US, pas toute la feature dans une US ; une petite US qui
+reste un livrable a part (contrat, mapper, flag) se garde. Chaque US porte
+des **Acceptance Scenarios** Given/When/Then : recopies au worker, le
+reviewer juge dessus. INTERDIT : chemins API/backend ET pages/components
+dans le meme [USn]. Front sans backend modifiable qui appelle un endpoint :
+le contrat (yaml/json dans contracts/) s ecrit TOI, en prep, avant les US ;
+les US front codent contre lui et ne l inventent pas (`<REF>/contracts.md`).
+Une valeur, une option ou une donnee que le besoin nomme et que le depot
+n a pas (enum sans la valeur, DTO sans le champ) : ni inventee, ni retiree
+en silence — c est une question de clarify.
+Puis checklists/requirements.md (gabarit `<TPL>/requirements.md`) : coche
+ce que la spec tient, laisse [ ] ce qu elle ne tient pas.
 
-**plan** — Skill(speckit-plan) -> plan.md + artefacts JUSTIFIES. Injecte
-ICI la synthese recon sous `## Faits verifies` (chemin:lignes, source).
-Ancre les standards (A.3). Artefacts conditionnels, fichiers vides
-INTERDITS : research.md (vraies decisions), data-model.md (entite/champ
+**clarify + filet + US retenues : UNE AskUserQuestion** (jusqu a 4
+questions dans le meme appel). Passe la spec au crible : perimetre exclu,
+donnees et leur source, parcours et etats (vide, erreur, chargement),
+regles et cas limites, contraintes non fonctionnelles, termes ambigus.
+Garde les 1-3 questions dont la reponse CHANGE une US, une AC ou une tache
+(au moins une, sauf spec deja entiere), chacune avec 2-4 options et ta
+recommandation en premier. Derniere question : le filet — les hypotheses
+que tu as prises (portee, cas limites, regles), a valider ou corriger —
+et, sans 0quater, les US retenues pour CE run (toutes par defaut).
+Reponses -> spec.md (`## Clarifications`, `### Session <date>`, une ligne
+`- Q: ... → A: ...` par question ; l AC ou l hypothese corrigee a sa
+place) ; une US ecartee sort de spec.md.
+
+**plan.md** (gabarit `<TPL>/plan.md`) — la synthese recon sous
+`## Faits verifies` (`chemin:lignes` + symbole + fait, recopies des
+rapports), les standards (A.3), la table des fichiers touches par US, les
+decisions. Artefacts conditionnels, fichiers vides INTERDITS : research.md
+(decision qui demande plus de 3 lignes), data-model.md (entite ou champ
 nouveau), contracts/ (interface qui change, chaque champ source),
-quickstart.md (procedure manuelle non triviale). « aucune entite » = le
-fichier ne doit pas exister ; supprime-le s il a ete cree vide.
+quickstart.md (procedure manuelle non triviale).
 
-**tasks** — Skill(speckit-tasks) -> tasks.md. Puis REECRIS-le au format du
-kit, que brief-fill.mjs, audit-lint.mjs et mount-check.mjs lisent :
+**tasks.md** — ecrit UNE fois, directement dans ce format, que
+brief-fill.mjs, audit-lint.mjs et mount-check.mjs lisent :
 
+  # Tasks: <titre>
   ## [US1] <titre de l US>
   - [ ] T001 [US1] Creer `src/x/y.tsx` — <ce que fait la tache> — Test: `src/__tests__/x/y.test.tsx` — Monté dans: `src/pages/p/p.tsx`
-  - [ ] T002 [US1] Etendre `src/api/a/aService.ts` (`createB`, POST /b du contrat contracts/b.yaml) — Test: `src/__tests__/api/a/aService.test.ts`
+  - [ ] T002 [US1] Etendre `src/api/a/aService.ts` (`createB`, POST /b de contracts/b.yaml) — Code: `src/api/a/aService.ts#getAll` — Test: `src/__tests__/api/a/aService.test.ts`
+  - [ ] T003 [US1] Ajouter les cles `pages.x.*` dans `src/i18n/locales/fr.json`, `en.json`, `es.json` — <cle = fr / en / es> — Test: `<test de parite de recon.md>`
 
-Une tache = une ligne = une action = UN fichier de prod + son `Test:`.
-Les tests ne sont PAS des taches separees (le worker fait RED puis GREEN
-dans la meme tache). PAS de tache pour : lire les standards, baseline,
+Une tache = une ligne = une action = UN fichier de prod + son `Test:`,
+sauf les fichiers LOCALES : UNE tache pour toutes les langues (le lint les
+compte pour un fichier). Les tests ne sont PAS des taches separees (RED
+puis GREEN dans la meme tache). Pas de phase Setup/Foundational sans
+nouvelle API publique ; pas de tache pour lire les standards, baseline,
 rituel RED, revue de diff, validation manuelle, verifier le design.
-STRIP : phases Setup/Foundational sans nouvelle API publique, toute US
-hors du perimetre de CE run.
-MONTAGE (bloquant au sanity) : une tache qui CREE un composant, un hook ou
-un service porte `Monté dans: <fichier>` (le fichier qui l importe et le
-rend ; un service : celui qui l appelle), touche par CETTE US. Parent qui
-n existe pas encore ou qui appartient a une autre US : `Monté dans:
-<fichier> (US<n>)` ET, dans US<n>, une tache « Monter <Nom> dans
-`<fichier>` » avec son test, qui rend <fichier>. Rien a monter (utils,
-mapper, DTO, type, colonnes, route) : pas d annotation.
-Une tache « Brancher / Cabler / Monter » cite le fichier cible, existant
-sur origin/<defaut> ou cree par une tache.
+Une ligne dit QUOI, OU et AVEC QUOI (fichier, symbole, endpoint, source de
+la donnee) ; elle ne recopie pas le code a ecrire.
+`Code:` = ce que la tache reutilise sans le modifier (hors cap de
+fichiers). MONTAGE (bloquant au sanity) : une tache qui CREE un composant,
+un hook ou un service porte `Monté dans: <fichier>` (qui l importe et le
+rend ; un service : qui l appelle), touche par CETTE US. Parent d une autre
+US ou pas encore cree : `Monté dans: <fichier> (US<n>)` ET, dans US<n>, une
+tache « Monter <Nom> dans `<fichier>` » avec son test, qui rend <fichier>.
+Rien a monter (utils, mapper, DTO, type, colonnes, route) : pas
+d annotation. « Brancher / Cabler / Monter » cite le fichier cible.
 `Slot : wt-N` nomme par l humain -> en-tete de plan.md.
 
 ### A.3 Standards AgentOS — autant que le besoin l exige, must

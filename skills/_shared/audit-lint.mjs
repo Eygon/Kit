@@ -471,7 +471,9 @@ const isTestPath = (p) => /(^|[\/\\])(__tests__|tests?)[\/\\]|\.(test|spec)\.[jt
 // La documentation n est pas du code de production : spec.md, plan.md et les
 // ancres @agent-os/standards/*.md citees dans les corps de taches comptaient
 // comme fichiers prod (6 annonces pour 2 reels, d ou un HIGH et un MEDIUM faux).
-const isDocPath = (p) => /\.md$/i.test(p);
+// contracts/ and specs/ are FEATURE_DIR artefacts, not prod code (v0 M run: contracts/x.yaml counted
+// as a prod file of both stories and flagged path-missing in the verified facts).
+const isDocPath = (p) => /\.md$/i.test(p) || /^(?:\.\/)?(?:contracts|specs)\//.test(p);
 const isProdPath = (p) => !isTestPath(p) && !isDocPath(p);
 const LOCALE_FILE = /(?:^|\/)(?:locales|i18n|translations|lang)(?:\/[\w-]+)*\/[a-z]{2}(?:[-_][A-Za-z]{2})?\.json$/;
 
@@ -754,7 +756,8 @@ export const lintSpec = (dir, opts = {}) => {
     for (const line of factsSection.split(LF)) {
       const paths = [...new Set(matchAll(line, PATH_TOKEN).map((x) => x[0]))].filter((x) => /[\/\\]/.test(x));
       if (!paths.length) continue;
-      const lineRef = line.match(LINE_REF);
+      // `chemin:12-20` (format prescrit par sk-prep A.1) autant que « lignes 12-20 ».
+      const lineRef = line.match(LINE_REF) || line.match(/\.[A-Za-z]{1,5}:(\d+)(?:\s*[-–]\s*(\d+))?\b/);
       const symbol = line.match(CODE_SPAN)?.[1];
       for (const raw of paths) {
         const rel = raw.replace(/\\/g, "/").replace(/^@/, "");
@@ -767,12 +770,13 @@ export const lintSpec = (dir, opts = {}) => {
           continue;
         }
         if (!lineRef || !symbol || paths.length > 1) continue;
-        const fromLine = Math.max(1, Number(lineRef[1]) - 3);
+        // 10 lines above: a fact that cites a line INSIDE a function names the function, declared above.
+        const fromLine = Math.max(1, Number(lineRef[1]) - 10);
         const toLine = Number(lineRef[2] || lineRef[1]) + 3;
         const slice = (read(abs) || "").split(LF).slice(fromLine - 1, toLine).join(LF);
         if (!slice.includes(symbol)) {
           facts.lineMismatch += 1;
-          add("medium", "verified-fact-line-mismatch", "Faits verifies : `" + symbol + "` absent de " + rel + " lignes " + lineRef[1] + (lineRef[2] ? "-" + lineRef[2] : "") + " (±3)", "plan.md");
+          add("medium", "verified-fact-line-mismatch", "Faits verifies : `" + symbol + "` absent de " + rel + " lignes " + lineRef[1] + (lineRef[2] ? "-" + lineRef[2] : "") + " (-10/+3)", "plan.md");
         }
       }
     }
