@@ -17,7 +17,7 @@ testFiles = fichiers de test cites par les taches, existants ou non.
    implemente ».
 3. Marques : UN echo par marque, UNE marque par commande,
    jamais deux marques dans le meme appel. Format exact :
-     echo AUDIT_MARK sk-prep bootstrap start
+     echo AUDIT_MARK sk-prep bootstrap start   (juste apres la sonde)
    <phase> prend TROIS valeurs et trois seulement :
    bootstrap | cycles | closing. Rien d autre n est lu :
    une marque « specify », « clarify », « plan », « sanity »

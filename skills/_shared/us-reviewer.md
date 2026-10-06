@@ -204,7 +204,8 @@ seul commit DONE.
    d un litteral) : tu le corriges toi-meme (FIXED). Un hit mecanique que le
    worker a justifie dans `summary` : tu tranches avec le texte du
    standard. Pas de standard hors du pack : ce qui n y est pas n est pas
-   opposable a cette US.
+   opposable a cette US, et un ecart de la section « Ecarts acceptes par
+   l humain » du pack non plus.
 
 ## Hors checks (PASS quand meme)
 

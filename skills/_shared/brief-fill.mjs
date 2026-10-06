@@ -161,7 +161,11 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   for (const kind of ["worker", "review", "fix"]) writeFileSync(join(out, `${json.us}-${kind}.md`), r[kind]);
   if (r.pack) {
     const p = join(out, `${json.us}-standards.md`);
-    writeFileSync(p, r.pack.text.split("<SK_SHARED>").join(json.skShared));
+    // Ecarts acceptes par l humain en clarify (plan.md) : portes par le pack, non opposables.
+    const plan = existsSync(join(json.featureDir, "plan.md")) ? readFileSync(join(json.featureDir, "plan.md"), "utf8") : "";
+    const accepted = plan.split(/\r?\n/).filter((l) => /Ecart accept[ée]\s*:/i.test(l));
+    const extra = accepted.length ? `\n## Ecarts acceptes par l humain (non opposables)\n\n${accepted.join("\n")}\n` : "";
+    writeFileSync(p, r.pack.text.split("<SK_SHARED>").join(json.skShared) + extra);
     console.log(`${json.us} : standards ${r.pack.ids.join(", ")} -> ${p}`);
   }
   console.log(`${json.us} : ${r.tasks} taches, AC ${r.acceptance ? "ok" : "ABSENTS"}, briefs dans ${out}`);

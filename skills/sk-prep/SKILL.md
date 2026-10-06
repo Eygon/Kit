@@ -234,7 +234,11 @@ brief-fill.mjs, audit-lint.mjs et mount-check.mjs lisent :
 
 Une tache = une ligne = une action = UN fichier de prod + son `Test:`,
 sauf les fichiers LOCALES : UNE tache pour toutes les langues (le lint les
-compte pour un fichier). Les tests ne sont PAS des taches separees (RED
+compte pour un fichier), et un fichier de type pur (DTO, props, model) qui
+se cree DANS la tache de son premier consommateur (« Creer `x.ts` et son
+type `xProps.ts` ») : pas de tache ni de `Test:` a lui seul. La tache qui
+cree un composant hote peut porter le montage de ce qu il consomme
+(« ... et y monter `useX` (US1) »). Les tests ne sont PAS des taches separees (RED
 puis GREEN dans la meme tache). Pas de phase Setup/Foundational sans
 nouvelle API publique ; pas de tache pour lire les standards, baseline,
 rituel RED, revue de diff, validation manuelle, verifier le design.
@@ -273,6 +277,16 @@ UN jeu de standards par US.
    l index du depot de l US), et la liste de la feature dans plan.md
    (`## Standards`). /sk-impl en tire le pack du worker et du reviewer.
 Index absent du depot d une US = trio non livrable pour cette US.
+4. Standard que le besoin contredit, ou qui exige une lib absente du depot
+   (ex. `react/forms` impose react-hook-form + zod, absents de package.json ;
+   l intent veut un 409 sous le champ la ou `api/error-handling` impose un
+   toast) : c est une question de clarify, jamais une decision silencieuse.
+   Ecart retenu par l humain -> plan.md `## Standards`, une ligne
+   `- Ecart accepte : @agent-os/standards/<id> — <regle ecartee> — <raison> (clarify Qn)`.
+   Le pack de l US le porte ; le reviewer ne le compte pas. Tout autre ecart
+   au standard reste un defaut. Un standard qui cite un module absent du
+   depot (helper, lib) : le depot prime, dis-le en une ligne dans plan.md
+   (`## Standards`), sans en faire une question.
 ### A.4 Gate checklists
 
 Compte [ ] vs [X] dans FEATURE_DIR/checklists. Incomplete ->
