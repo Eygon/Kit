@@ -94,7 +94,14 @@ Le flux a été testé de bout en bout avec un faux projet. DesignSync n'est uti
 - l'**instruction injectée** dans le JSX, ignorée et signalée ;
 - 8 tâches UI ancrées `Design: design.md#C<n>`.
 
-À l'implémentation, l'extrait par US est maintenant produit par l'outil.
+À l'implémentation, l'extrait par US est maintenant produit par l'outil. Mesuré sur l'US « panneau de commentaires » (6 ancres) :
+- le worker livre avec les 6 ancres conformes, uniquement des tokens Septeo, et 0 hex, 0 `px` arbitraire, 0 token design brut ;
+- le 13px est rendu en `--font-size-small` + `leading-4.5`, comme l'arbitrage le prévoit ;
+- la revue (check 8) a rattrapé un détail du contrat (texte « préservé tel que saisi » → `whitespace-pre-wrap`) ;
+- elle a reconnu le `<button>` natif imposé par l'arbitrage §5 comme un écart accepté ;
+- elle a vérifié le hash du contrat : intact.
+
+Voie front complète « commentaires » : US3 (data) puis US4 (UI design), 2 workers et 1 revue, environ 9 minutes.
 
 ## À faire de ton côté
 1. **Copier `agents/sk-worker.md` et `agents/sk-reviewer.md`** dans `~/.claude/agents/` (et `~/.cursor/agents/`). Les workflows les appellent désormais.
