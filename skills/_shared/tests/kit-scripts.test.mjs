@@ -72,3 +72,29 @@ test("tasks-merge unions the [X] of each slot copy by task id, never unticks", (
   assert.deepEqual(r.added, ["T001"]);
   assert.equal(r.text, "## [US1] a\n- [X] T001 [US1] back\n- [X] T010 [US3] front\n- [ ] T011 [US3] front\n");
 });
+
+import { derivePaths } from "../brief-fill.mjs";
+import { extractDesign } from "../design-extract.mjs";
+
+test("derivePaths reads prod and test paths of the task lines, LOCALES from recon.md", () => {
+  const tasks = [
+    "- [ ] T001 [US1] Creer `src/a/b.tsx` et son type `src/types/b.ts` — Code: `src/x/model.tsx` — Test: `src/__tests__/a/b.test.tsx` — Monté dans: `src/pages/p.tsx`",
+    "- [ ] T002 [US1] Ajouter les cles dans `src/i18n/locales/fr.json` — Test: `src/__tests__/i18n/parity.test.ts`",
+    "- [ ] T003 [US1] Creer `src/c.ts` — Monté dans: `src/pages/q.tsx` (US2)",
+  ];
+  const recon = "- LOCALES : src/i18n/locales/{en,es,fr}.json — chaque cle";
+  const r = derivePaths(tasks, recon);
+  assert.deepEqual(r.prod.sort(), ["src/a/b.tsx", "src/c.ts", "src/i18n/locales/en.json", "src/i18n/locales/es.json", "src/i18n/locales/fr.json", "src/pages/p.tsx", "src/types/b.ts"]);
+  assert.deepEqual(r.tests.sort(), ["src/__tests__/a/b.test.tsx", "src/__tests__/i18n/parity.test.ts"]);
+});
+
+test("extractDesign keeps the anchored sections, the tokens table and the arbitrations verbatim", () => {
+  const d = "# Design\n## 3. Token mapping\n| a | b |\n## C1 Panel\nwidth 360px\n### Etats\nhover\n## C2 Header\nh 48px\n## 5. Library <-> design arbitrations\n- G1 x\n";
+  const r = extractDesign(d, ["C1"]);
+  assert.deepEqual(r.missing, []);
+  assert.match(r.text, /## C1 Panel\nwidth 360px\n### Etats\nhover/);
+  assert.match(r.text, /\| a \| b \|/);
+  assert.match(r.text, /G1 x/);
+  assert.doesNotMatch(r.text, /C2 Header/);
+  assert.deepEqual(extractDesign(d, ["C9"]).missing, ["#C9"]);
+});

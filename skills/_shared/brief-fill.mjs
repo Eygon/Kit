@@ -72,6 +72,29 @@ export const applyConditions = (text, conds) =>
     .replace(/<!-- if:(\w+) -->\n?([\s\S]*?)<!-- \/if:\1 -->\n?/g, (_, name, body) => (conds[name] ? body : ""))
     .replace(/\n{3,}/g, "\n\n");
 
+// prod[] et tests[] deduits des lignes de tache quand le parent ne les donne pas : chemins de la
+// ligne hors `Code:` / `Eviter:` / `Test:`, cibles `Monté dans:` sans (US<n>), fichiers LOCALES de
+// recon.md si une tache touche une langue ; `Test:` pour les tests. Le parent garde la main : ce
+// qu il donne s ajoute. (Banc : l orchestrateur passait ~3 min a recopier, et oubliait un fichier.)
+export const derivePaths = (tasks, reconText) => {
+  const prod = new Set();
+  const tests = new Set();
+  for (const line of tasks) {
+    for (const m of line.matchAll(TEST_REF)) tests.add(norm(m[1]));
+    for (const m of line.matchAll(MOUNT_REF)) if (!m[3]) prod.add(norm(m[1]));
+    const body = line.replace(/(?:Code|Eviter|Avoid|Test):\s*[^—]*/g, " ").replace(MOUNT_REF, " ");
+    for (const m of body.matchAll(/`([\w./@-]+\.(?:tsx?|jsx?|cs|json|s?css))`/g)) {
+      const p = norm(m[1]);
+      if (p.includes("/") && !/(^|\/)(?:__tests__|specs|contracts)\//.test(p) && !/\.(test|spec)\./.test(p)) prod.add(p);
+    }
+  }
+  if (reconText && [...prod].some((p) => /(?:locales|i18n|translations|lang)\/[\w-]+\.json$/.test(p))) {
+    const loc = reconText.match(/LOCALES\s*:\s*([\w./-]+)\/\{([^}]+)\}\.json/);
+    if (loc) for (const l of loc[2].split(",")) prod.add(`${loc[1]}/${l.trim()}.json`);
+  }
+  return { prod: [...prod], tests: [...tests] };
+};
+
 export const fillBriefs = (json, templates) => {
   const us = json.us;
   const dir = json.featureDir;
@@ -80,6 +103,9 @@ export const fillBriefs = (json, templates) => {
   const specPath = json.specPath || join(dir, "spec.md");
   const reconPath = json.reconPath || (existsSync(join(dir, "recon.md")) ? join(dir, "recon.md") : "aucun");
   const tasks = tasksOfStory(readFileSync(tasksPath, "utf8"), us);
+  const derived = derivePaths(tasks, reconPath !== "aucun" && existsSync(reconPath) ? readFileSync(reconPath, "utf8") : "");
+  json.prod = [...new Set([...(json.prod || []).map(norm), ...derived.prod])];
+  json.tests = [...new Set([...(json.tests || []).map(norm), ...derived.tests])];
   const acceptance = extractAcceptance(readFileSync(specPath, "utf8"), us);
   const list = (a) => (a && a.length ? a.join("\n") : "aucune");
   const facts = json.facts && json.facts.length ? json.facts.map((f) => "- " + f).join("\n") : "Aucun fait transmis : recon.md fait foi.";

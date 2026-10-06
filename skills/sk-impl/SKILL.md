@@ -158,20 +158,23 @@ n aies verifie pour CETTE US. Ton jugement va dans un JSON par US, la
 recopie a l outil :
 
   FEATURE_DIR/briefs/<US_ID>.json = { featureDir, slot, us, skShared,
-    prod, tests, standards, standardsRoot?, lecture, facts, designPath?,
-    anchors?, contractPath?, contractHash?, workerNotes?, reviewNotes? }
+    lecture, facts, standardsRoot?, prod?, tests?, standards?,
+    contractPath?, contractHash?, workerNotes?, reviewNotes? }
   node "<SK_SHARED>/brief-fill.mjs" <ce json> --out FEATURE_DIR/briefs
 
 Il recopie taches et scenarios d acceptation de l US, met les memes chemins
 dans les trois briefs (worker, review, fix), retire les blocs design /
 contrat sans objet, et sort en exit 1 sur un brief incomplet : corrige le
 JSON, jamais le brief.
-- tests : UN fichier par tache de prod (colonne `Test:`). Tache sans
-  `Test:` : derive le miroir src/__tests__/<chemin>/<nom>.test.tsx et
-  signale le defaut de prep au GO.
-- prod : tout fichier que l US touche, y compris la cible de chaque
-  `Monté dans: <fichier>` SANS `(US<n>)`, et cote front TOUS les fichiers
-  de la ligne LOCALES de recon.md (le test de parite est une gate de fin).
+- prod / tests : DEDUITS par brief-fill des lignes de tache (chemins hors
+  `Code:`, cibles `Monté dans:` sans (US<n>), `Test:`, et les fichiers
+  LOCALES de recon.md si une tache touche une langue). N y ajoute que ce
+  que les taches ne nomment pas ; un fichier cree par une tache et absent
+  du resultat sort en KO. Tache sans `Test:` : signale le defaut de prep
+  au GO.
+- design : l extrait design-<US>.md est ECRIT par brief-fill depuis les
+  ancres `Design: design.md#C<n>` des taches (sections + §3 + §5, sans
+  reformulation) ; ne le decoupe plus a la main.
 - lecture : les fichiers que tu as lus pour etablir les facts et que le
   worker va ouvrir, `chemin:lignes`, un par ligne.
 - standards : les ids de la ligne `Standards:` de l US dans tasks.md
@@ -188,12 +191,9 @@ JSON, jamais le brief.
   (chemin:ligne, ou « a creer dans <chemin> sur le modele de
   <chemin:ligne> »). Une phrase de plan.md vraie pour une autre US n est
   pas un fait ici ; une interdiction sans fait source ne se pose pas.
-- designPath : jamais design.md complet, l extrait design-<US_ID>.md
-  (3-5 Ko) que tu ecris avant le spawn : sections #C<n> des taches de l US
-  (texte integral), table des tokens §3 et arbitrages §5 entiers, decoupes
-  par titres (`grep -nE "^#{2,4} C<n>\b|^## "` puis sed -n), sans
-  reformulation. anchors = ses ancres ; designConformance devient
-  obligatoire dans la sortie.
+- design : jamais design.md complet au worker ni au reviewer : l extrait
+  de brief-fill (ci-dessus) ; designConformance devient obligatoire dans la
+  sortie du worker.
 - contractPath + contractHash : si parallel.yml ou 2 repos.
 Prompt de chaque agent, trois lignes : « Ton brief est dans
 <FEATURE_DIR/briefs/US_ID-worker.md> (resp. -review, -fix) ; lis-le en
