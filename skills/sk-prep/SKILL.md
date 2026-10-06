@@ -190,8 +190,9 @@ que tu as prises (portee, cas limites, regles), a valider ou corriger —
 et, sans 0quater, les US retenues pour CE run (toutes par defaut ; deja
 tranchees en 0quater : ne les repose pas).
 AVANT de la poser, esquisse le decoupage (US -> fichiers de prod, LOCALES
-pour un, types purs et compagnons « and its » pour zero) et confronte-le au cap (~6 fichiers, ~6
-taches, au plus 2 composants crees par US) : le
+pour un, types purs et compagnons « and its » pour zero) et confronte-le au cap (~6 fichiers dont
+chaque fichier existant ETENDU, config comprise ; 8 au plus compagnons
+compris ; ~6 taches ; au plus 2 composants crees par US) : le
 decoupage propose fait partie de la question. Decouvrir le depassement au
 lint, apres clarify, forcait a re-decouper contre la reponse de l humain
 (banc, cycle 2 : 2 preps sur 5).
@@ -214,6 +215,9 @@ le contrat (yaml/json dans contracts/) s ecrit TOI, en prep, avant les US ;
 les US front codent contre lui et ne l inventent pas (`<REF>/contracts.md`).
 Puis checklists/requirements.md (gabarit `<TPL>/requirements.md`) : coche
 ce que la spec tient, laisse [ ] ce qu elle ne tient pas.
+
+Ordre d ecriture : spec.md -> plan.md -> pack de standards (A.3) -> plan.md
+`## Standards` -> recon.md (A.4bis) -> tasks.md.
 
 **plan.md** (gabarit `<TPL>/plan.md`) — la synthese recon sous
 `## Verified facts` (`chemin:lignes` + symbole + fait, recopies des
@@ -250,8 +254,12 @@ de la donnee, valeurs exigees) ; elle ne recopie pas le corps du code.
 `Code:` = ce que la tache reutilise sans le modifier (hors cap de
 fichiers). `Eviter: <symbole> (<raison>)` = un voisin qui ressemble mais ne
 convient pas (ex. le formateur d affichage pour un export). MONTAGE (bloquant au sanity) : une tache qui CREE un composant,
-un hook ou un service porte `Monté dans: <fichier>` (qui l importe et le
-rend ; un service : qui l appelle), touche par CETTE US. Parent d une autre
+un hook, un service ou un module de logique/systeme appele ailleurs porte
+`Monté dans: <fichier>` (qui l importe et le rend ; sinon : qui l appelle),
+touche par CETTE US. Point d entree non rendable en test (main.ts,
+index.tsx) : garde-le a quelques lignes et monte dans un module
+d orchestration extrait et testable (`src/engine/gameApp.ts`) ; une tache
+CSS prend en `Test:` le test du module qui pose les classes. Parent d une autre
 US ou pas encore cree : `Monté dans: <fichier> (US<n>)` ET, dans US<n>, une
 tache « Monter <Nom> dans `<fichier>` » avec son test, qui rend <fichier>.
 Rien a monter (utils, mapper, DTO, type, colonnes, route) : pas
@@ -315,7 +323,8 @@ Il ecrit les cinq titres fixes, la liste des composants partages (lue sur
 origin/<defaut>, nom — chemin — props), la ligne LOCALES et le test de
 parite, les alias tsconfig et les interdits grep-ables de depart, chaque
 ligne avec sa source. Toi, ensuite (Edit) :
-- sous « Composants partages reutilisables » : GARDE seulement ceux qui
+- sous « Composants partages reutilisables » (« Modules existants » sur un
+  depot sans JSX : meme regle) : GARDE seulement ceux qui
   repondent a un mot de la spec (grille, etat vide, erreur, skeleton,
   modale, panneau, filtre, pastille...) ; supprime le reste ;
 - sous « Helpers et hooks », « Pieges verifies », « Recettes de test » :
@@ -323,9 +332,14 @@ ligne avec sa source. Toi, ensuite (Edit) :
   d une donnee transverse, format des nombres et son piege en test,
   comment les tests voisins mockent un service), une ligne par fait,
   `chemin:ligne` en source, 200 caracteres au plus ;
-- sous « Interdits grep-ables » : UNE regex par ligne, rien d autre. Un
-  piege qu on ne peut pas grep va dans « Pieges verifies ».
-Chaque chemin cite existe sur origin/<defaut> (le working tree est
+- sous « Interdits grep-ables » : UNE regex par ligne, globale, rien
+  d autre. Un piege qu on ne peut pas grep va dans « Pieges verifies ». Un
+  interdit limite a un dossier (three.js dans src/logic) est deja porte par
+  les controles mecaniques des standards (`metadata.checks`) : ne le
+  recopie pas.
+Chaque chemin cite existe sur origin/<defaut> : un module absent se dit
+sans chemin (« aucun module audio »), sinon le lint le prend pour un
+chemin perime (le working tree est
 presque toujours sur une autre branche). Fichier < ~10 Ko : chaque worker
 et chaque reviewer le relit en entier. Ne recopie pas le standard i18n :
 la ligne LOCALES vient des fichiers, pas du standard.
