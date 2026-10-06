@@ -174,6 +174,22 @@ Le kit a aussi bien fonctionné là où on l'attendait. Les 2 ESCALATE étaient 
 | Gate du reviewer = `related` + imports paresseux | Le reviewer relance aussi les tests qui chargent le module indirectement | Retrouve le test cassé (F3-US5) raté par Sonnet |
 | `reviewTier: "auto"` (expérimental, désactivé par défaut) | Première review par Sonnet pour une petite US (≤ 4 fichiers de prod) qui ne déclare aucun écart | Avec les deux contrôles ci-dessus, Sonnet rattrape 3 défauts mécaniques sur 4. Il rate encore un écart de conception, d'où le garde-fou |
 
+
+**Miro F1 (commentaires des post-it, régime L : back .NET + front React + design)**, préparé et implémenté avec le kit de cette nuit :
+
+| Étape | Mesure |
+|---|---|
+| Prep (7 US, 28 tâches, contrat, design) | 5,93 $ · 14 min · 0 HIGH après correction |
+| Impl : 2 voies en parallèle (back US1-3 ∥ front US4-7) | 7 US, 13 agents, ~10,6 $ soit **~1,5 $ par US** (jeu : 3,10 $). Back 77 tests, front 128, tsc et eslint verts, fusion dans dev des deux dépôts |
+| Verdicts | 5 PASS (Opus), 1 PASS (Sonnet, palier auto sur une petite US), 1 FIXED : Opus a jugé défectueux un écart de design déclaré (label C7 décalé de 16 px) et l'a corrigé avec un test vu rouge |
+
+Défauts du kit révélés par ce run, et corrigés :
+- Le brief d'une US back renvoyait à `specs/...` en relatif, alors que le trio vit dans le dépôt front. Il donne maintenant le chemin absolu.
+- Les faits du back (SQLite, horloge figée) arrivaient dans les briefs front. Ils sont maintenant rangés par dépôt (`--slot`).
+- `mount-check` lisait la tâche qui cite le fichier comme cible de montage au lieu de la tâche du fichier, d'où un faux UNMOUNTED.
+- `diff-cover` côté .NET : coverlet écrit `<guid>/coverage.info`, et les propriétés auto `{ get; set; }` faisaient du bruit. Les deux sont gérés.
+- Retours de prep : recettes back dans recon.md (section `## Back`, vérifiée dans le dépôt back), source « créé par T<n> » pour une table que crée la feature, design.md écrit avant que FEATURE_DIR existe, token cité dans une note pris pour une cible.
+
 ## À faire de ton côté
 1. **Copier `agents/sk-worker.md` et `agents/sk-reviewer.md`** dans `~/.claude/agents/` (et `~/.cursor/agents/`). Les workflows les appellent désormais.
 2. **Index front** : 4 standards existaient sans être indexés, donc n'étaient jamais appliqués : `api/multipart-upload`, `api/request-timeouts`, `react/grid-filters`, `react/paginated-grids`. Ils sont ajoutés dans `agent-os/front/standards/index.yml` du dépôt : à reporter dans MySepteoWeb.
@@ -186,4 +202,4 @@ Le kit a aussi bien fonctionné là où on l'attendait. Les 2 ESCALATE étaient 
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 27 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 30 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
