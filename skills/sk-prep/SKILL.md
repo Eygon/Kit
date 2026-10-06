@@ -73,7 +73,7 @@ sinon. Un doc legacy ou code-search ne produit AUCUN fichier : on le cite.
 recon.md OBLIGATOIRE, meme a 1 US (A.4bis, squelette genere) : l inventaire
 de l existant que chaque worker /sk-impl lit en premier (LOCALES, alias,
 composants reutilisables). Ce n est PAS un
-doublon de plan.md « Faits verifies » : plan.md dit ce qui est vrai pour
+doublon de plan.md « Verified facts » : plan.md dit ce qui est vrai pour
 specifier, recon.md dit ou est le code reutilisable pour implementer.
 
 Ordre : d abord LIRE (modules design / legacy / code-search declenches),
@@ -97,9 +97,8 @@ SAUF besoin vague (ameliorer, optimiser, simplifier, « c est penible »,
 sans comportement nomme) : alors 0quater = UNE question de perimetre apres
 2-3 greps, avec 3-4 pistes concretes tirees du code, AVANT A.1bis (qui
 ne peut pas juger la taille d un perimetre inconnu).
-La question n aurait qu un bloc (« US retenues ») pose avant la recon,
-la ou A.1bis peut encore tout arreter ; le choix des US part dans la
-question de clarify (A.2), quand les US existent.
+(Pourquoi pas de 0quater sinon : il ne poserait que « US retenues », or
+les US n existent pas encore ; ce choix va dans la question de clarify A.2.)
 
 ## A. Preparation (toi, inline)
 
@@ -133,14 +132,14 @@ prompt, qui finit par :
     files:    une ligne par fait, `<chemin RELATIF a la racine du depot>:<lignes> — <symbole> — <fait>`
     notFound: la question restee sans reponse, en clair, ou `none`
     searched: les dossiers REELLEMENT balayes, un par ligne »
-Chemins absolus interdits (les Faits verifies doivent etre resolus par
+Chemins absolus interdits (les Verified facts doivent etre resolus par
 /sk-impl et le lint). Hors format = relance UNE fois, puis model sonnet.
 
 GARDE DE COUVERTURE avant specify : chaque question sans reponse, et
 chaque zone ou une tache va ecrire sans qu aucun `searched` la couvre ->
 un Grep/Glob cible ou UN agent de plus. Pas de specify avec une question
-ouverte. Ce qui a ete comble va dans plan.md (Faits verifies).
-Chaque `path:lines` rendu se recopie tel quel dans les Faits verifies :
+ouverte. Ce qui a ete comble va dans plan.md (Verified facts).
+Chaque `path:lines` rendu se recopie tel quel dans les Verified facts :
 audit-lint les confronte au depot (`verified-fact-*`).
 
 ### A.1bis Garde-fou de taille (APRES la recon, AVANT specify)
@@ -217,7 +216,7 @@ Puis checklists/requirements.md (gabarit `<TPL>/requirements.md`) : coche
 ce que la spec tient, laisse [ ] ce qu elle ne tient pas.
 
 **plan.md** (gabarit `<TPL>/plan.md`) — la synthese recon sous
-`## Faits verifies` (`chemin:lignes` + symbole + fait, recopies des
+`## Verified facts` (`chemin:lignes` + symbole + fait, recopies des
 rapports), les standards (A.3), la table des fichiers touches par US, les
 decisions. Artefacts conditionnels, fichiers vides INTERDITS : research.md
 (decision qui demande plus de 3 lignes), data-model.md (entite ou champ
@@ -236,8 +235,10 @@ brief-fill.mjs, audit-lint.mjs et mount-check.mjs lisent :
 
 Une tache = une ligne = une action = UN fichier de prod + son `Test:`,
 sauf les fichiers LOCALES : UNE tache pour toutes les langues (le lint les
-compte pour un fichier), et un fichier de type pur (DTO, props, model) qui
-se cree DANS la tache de son premier consommateur (« Creer `x.ts` et son
+compte pour un fichier), et un fichier de type pur (DTO, props, model,
+enum et ses Record de libelles, entree qu un Record exhaustif exige pour un
+nouveau membre d enum) qui se cree ou s etend DANS la tache de son premier
+consommateur (« Creer `x.ts` et son
 type `xProps.ts` ») : pas de tache ni de `Test:` a lui seul. La tache qui
 cree un composant hote peut porter le montage de ce qu il consomme
 (« ... et y monter `useX` (US1) »). Les tests ne sont PAS des taches separees (RED
@@ -271,9 +272,11 @@ UN jeu de standards par US.
 2. UN appel, AVANT d ecrire tasks.md (les chemins et les noms des taches les
    appliquent : placement, nommage, enums, structure des services) :
      node "<SK_SHARED>/standards-pack.mjs" pack --root <depot> [--ref origin/<branche>] --ids <a,b,c>
-   Il rend le corps des alwaysInject + des standards choisis, et sort en 1
-   sur un id inconnu de l index de CE depot. Lis-le une fois ; ne recopie
-   aucun corps dans le trio.
+   avec `--out "<FEATURE_DIR>/.standards-<depot>.md"` puis Read de ce
+   fichier (le pack fait 30-40 Ko : sur stdout, Bash le tronque). Il rend
+   le corps des alwaysInject + des standards choisis, et sort en 1 sur un
+   id inconnu de l index de CE depot. Lis-le une fois ; ne recopie aucun
+   corps dans le trio.
 3. Ancres : sous chaque `## [USn]` de tasks.md, une ligne
    `Standards: @agent-os/standards/<a>, @agent-os/standards/<b>` (ids de
    l index du depot de l US), et la liste de la feature dans plan.md
@@ -287,12 +290,18 @@ Index absent du depot d une US = trio non livrable pour cette US.
    `- Ecart accepte : @agent-os/standards/<id> — <regle ecartee> — <raison> (clarify Qn)`.
    Le pack de l US le porte ; le reviewer ne le compte pas. Tout autre ecart
    au standard reste un defaut. Un standard qui cite un module absent du
-   depot (helper, lib) : le depot prime, dis-le en une ligne dans plan.md
-   (`## Standards`), sans en faire une question.
+   depot (helper, lib) : le depot prime, une ligne dans plan.md
+   `## Standards` : `- Depot prime : @agent-os/standards/<id> — <module
+   absent> -> <equivalent du depot>`, sans question. SAUF si cet
+   equivalent change un AC (autre controle, autre comportement) : alors
+   c est une question de clarify, comme ci-dessus.
 ### A.4 Gate checklists
 
 Compte [ ] vs [X] dans FEATURE_DIR/checklists. Incomplete ->
-AskUserQuestion : completer maintenant ou livrer en l etat.
+AskUserQuestion : completer maintenant ou livrer en l etat. Recommande
+(en premier) « completer » sauf si l item ouvert n est pas verifiable
+depuis le code (valeur backend inconnue...) : alors « livrer en l etat »,
+l item reste ouvert et cite en A.6.
 
 ### A.4bis recon.md
 
@@ -329,7 +338,8 @@ D abord le linter, qui fait la partie mecanique :
 (chemins en barres obliques, entre guillemets).
 Bloquant : tout HIGH mount-*, wire-*, task-needs-search. story-too-many-*
 est bloquant SAUF si l humain a retenu ce decoupage en clarify en voyant la
-taille : alors signale-le en A.6, ne re-decoupe pas. A corriger avant
+taille : alors signale-le en A.6, ne re-decoupe pas ; il ne compte pas comme
+HIGH pour la validation 6 (ni pour un intent « approuver si aucun HIGH »). A corriger avant
 la validation 6 : les MEDIUM recon-*, design-*, task-without-prod-path,
 test-without-subject. Les autres HIGH se confrontent au critere ci-dessous.
 contract-field-without-source (MEDIUM) : ne regarde que les champs que la

@@ -32,8 +32,10 @@ testFiles = fichiers de test cites par les taches, existants ou non.
    cycles start/end, closing start/end. Une marque emise
    deux fois, ou deux dans un meme echo, fausse la
    decomposition du temps.
-4. Trio en ANGLAIS : spec.md, plan.md, tasks.md, checklists.
-   Sans exception.
+4. Prose du trio en ANGLAIS : spec.md, plan.md, tasks.md, checklists.
+   Les mots-cles des gabarits restent valides tels quels (`Test:`,
+   `Monté dans:`/`Mounted in:`, `Eviter:`/`Avoid:`, `Code:`), et recon.md
+   garde les titres de recon-seed : ne les traduis pas.
 5. Ecris AUDIT_OUT_DIR/result.sk-prep.json (Write) avant la
    synthese, au schema EXACT de `<SK_SHARED>/sk-audit.md` §result — memes
    cles, memes types, rien de plus. Jamais result.json nu : les
