@@ -328,7 +328,10 @@ Les trois partent dans UN appel en fin d US, suivis de la couverture du diff :
 Chaque GAP est une ligne de prod que tu ajoutes et qu aucun test
 n execute (banc A/B : cylindre jamais construit, livre « vert ») :
 ajoute le test qui l execute et l asserte, ou supprime la branche
-si aucune tache ne la demande. NOCOV informe seulement (fichier
+si aucune tache ne la demande. Methode imposee par une tache mais
+appelee seulement par une US ulterieure, et que les standards de test
+interdisent de tester seule : garde-la, et declare l ecart dans ta
+sortie (le reviewer le juge). NOCOV informe seulement (fichier
 exclu de la couverture, ex. point d entree). Back .NET : meme
 outil sur un lcov coverlet (`dotnet test --collect:"XPlat Code
 Coverage" --results-directory "$(git rev-parse --git-dir)/sk-cov" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`).

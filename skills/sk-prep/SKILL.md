@@ -268,6 +268,10 @@ extrait et testable (`src/engine/gameApp.ts`). Une tache CSS prend en
 `Test:` le test du module qui pose les classes. Parent d une autre
 US ou pas encore cree : `Monté dans: <fichier> (US<n>)` ET, dans US<n>, une
 tache « Monter <Nom> dans `<fichier>` » avec son test, qui rend <fichier>.
+Une methode que seule une US ULTERIEURE appelle se cree dans CETTE US-la,
+pas plus tot : livree sans appelant, elle n est executee par aucun test
+(diff-cover GAP) et sa forme se devine (banc Miro F2 : `UserRepository.Exists`
+en US2, appelee en US3).
 Rien a monter (utils, mapper, DTO, type, colonnes, route, query keys et
 query functions, controleur ASP.NET decouvert par MapControllers, service
 ou repository .NET auto-enregistre) : pas d annotation. Une US qui ajoute une VARIANTE a un type deja consomme
