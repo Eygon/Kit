@@ -1,5 +1,16 @@
 # Agent OS Standards Index
 
+# _meta.alwaysInject : standards qui s appliquent a tout fichier C# ecrit, injectes a chaque US back
+# hors cap (meme mecanique que l index front).
+_meta:
+  maxPerGroup: 5
+  injectedAreMust: true
+  alwaysInject:
+    - global/sealed-by-default
+    - global/no-hardcoded-values
+    - architecture/layer-base-classes
+    - architecture/interface-file-structure
+
 architecture:
   di-auto-registration:
     description: Four naming suffixes (*Service, *Repository, *Factory, *Context) auto-registered as Scoped
