@@ -49,9 +49,9 @@ export const indexIds = (yml) => {
   let group = null;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
-    const top = l.match(/^([A-Za-z0-9_.-]+):\s*$/);
-    const topWithValue = l.match(/^([A-Za-z0-9_.-]+):\s*\S/);
-    const child = l.match(/^ {2}([A-Za-z0-9_.-]+):\s*$/);
+    const top = l.match(/^([A-Za-z0-9_./-]+):\s*$/);
+    const topWithValue = l.match(/^([A-Za-z0-9_./-]+):\s*\S/);
+    const child = l.match(/^ {2}([A-Za-z0-9_./-]+):\s*$/);
     if (top) {
       group = top[1] === "_meta" ? "_meta" : top[1];
       const next = lines[i + 1] || "";
@@ -75,7 +75,7 @@ export const indexTags = (yml) => {
   const tags = new Map();
   let group = null, last = null;
   for (const l of yml.split(/\r?\n/)) {
-    const g = l.match(/^([\w.-]+):\s*$/);
+    const g = l.match(/^([\w./-]+):\s*$/);
     const c = l.match(/^ {2}([\w.-]+):\s*$/);
     const t = l.match(/^\s+tags:\s*\[([^\]]*)\]/);
     const d = l.match(/^ {2}description:/);
@@ -88,7 +88,7 @@ export const indexTags = (yml) => {
 };
 
 const UI_ONLY = new Set(["ui", "css", "a11y"]);
-const UI_FILE = /\.(?:tsx|jsx|css|scss|vue|cshtml|razor)$|(?:^|\/)use[A-Z]\w*\.[jt]s$/;
+const UI_FILE = /\.(?:tsx|jsx|css|scss|vue|cshtml|razor|html)$|(?:^|\/)use[A-Z]\w*\.[jt]s$|(?:^|\/)(?:ui|components|views|hud)\//;
 
 export const alwaysOf = (yml) => {
   const m = yml.match(/alwaysInject:\s*\n((?:[ \t]+-[ \t]+.+\n?)+)/);

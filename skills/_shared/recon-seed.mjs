@@ -67,14 +67,19 @@ export const seed = (root, ref, dirs) => {
   const aliases = aliasesOf(root);
   const tsLine = (git(root, "show", `${ref}:tsconfig.json`) || "").split("\n").findIndex((l) => l.includes('"paths"')) + 1;
   const comps = componentsOn(root, ref, dirs, files);
+  // Interdits et sections propres a une stack : seulement si le depot l a (banc jeu three.js :
+  // `<table`, tokens Septeo et alias MySepteoWeb poses sur un depot sans JSX ni lib Septeo).
+  const hasJsx = files.some((f) => /\.(tsx|jsx)$/.test(f));
+  const hasSepteo = /"@septeo\//.test(git(root, "show", `${ref}:package.json`) || "");
+  const modules = hasJsx ? [] : [...new Set(files.filter((f) => /^src\/[^/]+\/[^/]+\.[jt]s$/.test(f) && !f.includes("__tests__")).map((f) => f.split("/")[1]))].sort().map((d) => `- src/${d}/ : ${files.filter((f) => f.startsWith(`src/${d}/`) && !f.includes("__tests__")).map((f) => f.slice(d.length + 5)).join(", ")} — source: git ls-tree ${ref}`);
   const lines = [
     "# Recon de feature",
     "",
     `Squelette genere par recon-seed.mjs sur ${ref} (${(git(root, "rev-parse", "--short", ref) || "").trim()}). La prep garde ce qui sert la spec et ajoute ses faits.`,
     "",
-    "## Composants partages reutilisables",
-    "",
-    ...(comps.length ? comps : [`- aucun composant sous ${dirs.join(", ")} sur ${ref} — source: git ls-tree ${ref}`]),
+    ...(hasJsx
+      ? ["## Composants partages reutilisables", "", ...(comps.length ? comps : [`- aucun composant sous ${dirs.join(", ")} sur ${ref} — source: git ls-tree ${ref}`])]
+      : ["## Modules existants", "", ...(modules.length ? modules : [`- aucun module sous src/ sur ${ref}`])]),
     "",
     "## Helpers et hooks de la feature",
     "",
@@ -86,14 +91,16 @@ export const seed = (root, ref, dirs) => {
   }
   if (aliases.length) lines.push(`- ALIAS tsconfig : ${aliases.join(" ; ")} — aucun autre alias n existe — source: tsconfig.json:${tsLine || 1}`);
   lines.push("", "## Recettes de test", "", "## Interdits grep-ables", "");
-  lines.push("- `<table`");
-  lines.push("- `--bg-page|--fg-|--blueS-|--grey-`");
-  lines.push("- `className=.*#[0-9A-Fa-f]{3,6}\\b`");
-  lines.push("- `\\[[0-9.]+px\\]`");
+  if (hasJsx) {
+    lines.push("- `<table`");
+    lines.push("- `className=.*#[0-9A-Fa-f]{3,6}\\b`");
+    lines.push("- `\\[[0-9.]+px\\]`");
+  }
+  if (hasSepteo) lines.push("- `--bg-page|--fg-|--blueS-|--grey-`");
   const aliasRoots = aliases.map((a) => a.split("->")[0].replace(/\/\*$/, ""));
   if (aliasRoots.length) {
-    lines.push(`- \`from ["'](?:prjTypes|@api|@utils|@prjTypes)/\``);
-    if (!aliasRoots.includes("~")) lines.push("- `from [\"']~/`");
+    const ghosts = ["prjTypes", "@api", "@utils", "@prjTypes", "~"].filter((g) => !aliasRoots.includes(g));
+    if (ghosts.length) lines.push(`- \`from ["'](?:${ghosts.join("|")})/\``);
   }
   return lines.join("\n") + "\n";
 };

@@ -147,3 +147,11 @@ test("audit-lint leaves the `and its` companions out of the file cap, up to 8 fi
   assert.doesNotMatch(run([t(1, "Create `src/a/useA.ts` and its key factory `src/k/aKeys.ts`"), t(2, "Create `src/a/useB.ts` and its key factory `src/k/bKeys.ts`"), ...base]), /story-too-many-prod-files/);
   assert.match(run([t(1, "Create `src/a/useA.ts` and its key factory `src/k/aKeys.ts`, `src/k/a2.ts`"), t(2, "Create `src/a/useB.ts` and its key factory `src/k/bKeys.ts`, `src/k/b2.ts`"), ...base]), /compagnons compris/);
 });
+
+test("standards-pack reads a flat index (`game/x:` keys) and its tags", async () => {
+  const { indexIds, indexTags } = await import("../standards-pack.mjs");
+  const yml = "_meta:\n  alwaysInject:\n    - no-comments\n\nno-comments:\n  description: d\n  tags: [naming]\n\ngame/dom-hud:\n  description: d\n  tags: [ui]\n\nreact:\n  file-decomposition:\n    description: d\n    tags: [structure]\n";
+  const ids = indexIds(yml);
+  for (const id of ["no-comments", "game/dom-hud", "react/file-decomposition"]) assert.ok(ids.has(id), id);
+  assert.deepEqual(indexTags(yml).get("game/dom-hud"), ["ui"]);
+});

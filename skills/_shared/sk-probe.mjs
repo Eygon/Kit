@@ -106,7 +106,7 @@ const unindexed = (top, indexText) => {
   const ids = new Set();
   let group = null;
   for (const l of indexText.split(/\r?\n/)) {
-    const g = l.match(/^([\w.-]+):\s*$/);
+    const g = l.match(/^([\w./-]+):\s*$/);
     const c = l.match(/^ {2}([\w.-]+):\s*$/);
     const d = l.match(/^ {2}description:/);
     if (g) group = g[1];
