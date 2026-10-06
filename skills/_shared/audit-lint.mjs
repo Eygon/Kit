@@ -752,6 +752,16 @@ export const lintSpec = (dir, opts = {}) => {
       const shared = [...filesOf].some(([other, os]) => other !== story && [...set].some((p) => os.has(p)));
       if (!shared) add("low", "story-parallel-candidate", `${story} ne partage aucun fichier de prod avec les autres US : voie parallele possible (parallel.yml, sk-impl ref/parallel.md)`, "tasks.md");
     }
+    // Paires sans fichier commun : deux voies possibles meme quand aucune US n est isolee
+    // (banc jeu F4 : US1/US2 contre US6/US5, raisonne a la main).
+    const ids = [...filesOf.keys()];
+    const pairs = [];
+    for (let i = 0; i < ids.length; i++)
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = filesOf.get(ids[i]), b = filesOf.get(ids[j]);
+        if (a.size && b.size && ![...a].some((p) => b.has(p))) pairs.push(`${ids[i]}|${ids[j]}`);
+      }
+    if (pairs.length) add("low", "story-parallel-pairs", `paires d US sans fichier de prod commun (voies paralleles possibles) : ${pairs.slice(0, 8).join(", ")}${pairs.length > 8 ? ` +${pairs.length - 8}` : ""}`, "tasks.md");
   }
   if (existsSync(parallelPath)) {
     const y = parseParallelYml(read(parallelPath) || "");
