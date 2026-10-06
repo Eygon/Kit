@@ -16,7 +16,9 @@ seul arret legitime est un STOP appuye sur une preuve.
 - Chemins prod autorises : <PROD_PATHS>
 - Fichiers de test : <TEST_FILES>
 - Outils du kit : <SK_SHARED>
+<!-- if:design -->
 - Design (extrait de l US) : <DESIGN_PATH ou aucun>
+<!-- /if:design -->
 - recon.md : <RECON_PATH ou aucun> — consulte la ligne dont tu as
   besoin (grep dans le fichier), ne le relis pas en entier.
 

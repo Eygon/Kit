@@ -54,8 +54,11 @@ Tes limites quand tu corriges :
 - Commit attendu : sk-impl DONE(<US_ID>)
 - Outils du kit : <SK_SHARED> (dossier _shared, chemin absolu)
 
+<!-- if:contract -->
 - Contrat (si 2 repos / CONTRACT_PATH fourni) : <CONTRACT_PATH ou vide>
   Hash freeze : <CONTRACT_HASH ou vide>
+<!-- /if:contract -->
+<!-- if:design -->
 - Design (si DESIGN_PATH fourni) : <DESIGN_PATH ou vide>
   Ancres de cette US : <#C<n>... ou vide>
   C est l EXTRAIT design-<US_ID>.md que le worker a recu
@@ -64,6 +67,7 @@ Tes limites quand tu corriges :
   section que le worker n avait pas a lire. Si l extrait
   te semble incomplet, c est un defaut de decoupe du
   parent : ESCALATE, ne rouvre pas design.md.
+<!-- /if:design -->
 - recon.md de la feature : <RECON_PATH ou vide>
   Inventaire de l existant (composants partages, helpers,
   pieges). Lis-le avant tout grep : un doublon d un
@@ -130,8 +134,11 @@ seul commit DONE.
    C est mecanique, fais-le en premier, avant toute lecture.
    Une seule commande :
    git diff <US_BASE>..HEAD --unified=0 -- <chemins prod> | grep -E '^\+' | grep -nE '<re1>|<re2>|...'
+<!-- if:contract -->
 7. Si CONTRACT_PATH est fourni : NI front NI back
    n invente un champ / payload hors contrat.
+<!-- /if:contract -->
+<!-- if:design -->
 8. Si DESIGN_PATH est fourni : conformite au pixel.
    Pour CHAQUE ancre #C<n> de l US, ouvre la section et
    le(s) composant(s) qui l implementent. Tout ce que la
@@ -155,10 +162,13 @@ seul commit DONE.
    les elements cles. Jamais un 2e port Vite.
    Un ecart de valeur se corrige sans nouveau test ; un test
    qui fige l ancienne valeur passe a la valeur du design.
+<!-- /if:design -->
+<!-- if:contract -->
 9. Si CONTRACT_HASH est fourni : le sha256 actuel
    de CONTRACT_PATH doit matcher. Mutation yaml
    (reformat, champ ajoute, reordre) : FAIL, le fix restaure
    le fichier (tu ne touches pas au contrat).
+<!-- /if:contract -->
 10. Montage — mecanique, UNE commande pour tout ce que l US a ajoute :
      node "<SK_SHARED>/mount-check.mjs" --root "<SLOT_CWD>" --range "<US_BASE>..HEAD" --tasks "<TASKS_PATH>"
    Elle classe chaque composant, hook ou service ajoute : MOUNTED

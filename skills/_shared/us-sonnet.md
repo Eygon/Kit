@@ -43,13 +43,17 @@ personne ne repondra.
   Les fichiers que le parent a deja lus pour etablir les
   FACTS et que tu vas lire ou modifier : ouvre-les tous
   dans le MEME message (Read en parallele), avec recon.md.
+<!-- if:design -->
 - Design de reference : <DESIGN_PATH ou aucun>
   Ancres de cette US : <#C<n>, #C<m>... ou aucune>
+<!-- /if:design -->
+<!-- if:contract -->
 - Contrat (si CONTRACT_PATH fourni) : <CONTRACT_PATH ou vide>
   Hash freeze : <CONTRACT_HASH ou vide>
   Hors US1/after : interdiction d ecrire /
   reformater ce yaml. Champ absent = STOP,
   n invente pas.
+<!-- /if:contract -->
 
 ## Recon de feature — a lire EN PREMIER (si RECON_PATH)
 
@@ -126,6 +130,7 @@ en rendant <fichier>, pas <Nom> seul. C est aussi le cas des
 fichiers d autres US annotes `Monte dans: <fichier> (<US_ID>)` :
 ils attendent TON montage, et le reviewer les controle.
 
+<!-- if:design -->
 ## Design — contrat au pixel (si DESIGN_PATH)
 
 DESIGN_PATH pointe sur l EXTRAIT de cette US
@@ -175,6 +180,7 @@ Regles, toutes relevees en review :
    par le reviewer (check 8), pas simule dans le test.
 6. Rends au parent, par ancre #C<n> : "conforme" ou la
    liste exacte des proprietes non atteintes et pourquoi.
+<!-- /if:design -->
 
 ## Moins d allers-retours
 
@@ -417,6 +423,7 @@ par `Corrige recon.md :` puis le fait juste, la ligne
 fausse citee dans `source`. Le parent la remplace. `facts: []` est une reponse
 valide si recon.md couvrait tout.
 
+<!-- if:design -->
 designConformance (OBLIGATOIRE des que DESIGN_PATH
 est fourni, une entree PAR ancre de l US) :
 
@@ -436,3 +443,4 @@ Un `ecart` atteignable se corrige avant le commit DONE ;
 un ecart inatteignable se declare avec sa preuve (regle 3
 du Design). Le reviewer relit chaque ancre : un ecart non
 signale qu il trouve coute une passe de fix.
+<!-- /if:design -->

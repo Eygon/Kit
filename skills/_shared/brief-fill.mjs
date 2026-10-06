@@ -22,16 +22,21 @@ import { extractAcceptance } from "./spec-ac.mjs";
 
 const norm = (p) => String(p).replace(/\\/g, "/").replace(/^api:/, "").trim();
 
-// Task lines of `## [USn] ...` up to the next `## ` heading.
+// Task lines of one story. A line belongs to USn when it carries the `[USn]` label, wherever
+// it sits, or when it has no label and sits under a `## [USn] ...` or `## Phase k: User Story n`
+// heading (spec-kit's own layout). Matching the `## [USn]` heading only returned 0 tasks on a
+// tasks.md left in spec-kit's layout, and brief-fill then refused every brief.
 export const tasksOfStory = (tasksText, us) => {
-  const lines = tasksText.split(/\r?\n/);
-  const head = new RegExp(`^##\\s+\\[${us.replace(/^US/i, "US")}\\]`, "i");
-  const start = lines.findIndex((l) => head.test(l));
-  if (start < 0) return [];
+  const n = String(us).replace(/^US/i, "");
+  const label = new RegExp(`\\[US${n}\\]`, "i");
+  const anyLabel = /\[US\d+\]/i;
+  const head = new RegExp(`^##\\s+(?:\\[US${n}\\]|(?:Phase\\s+\\d+\\s*:\\s*)?User Story\\s+${n}\\b)`, "i");
   const out = [];
-  for (let i = start + 1; i < lines.length; i++) {
-    if (/^##\s/.test(lines[i])) break;
-    if (/^- \[[ xX]\] T\d+/.test(lines[i])) out.push(lines[i]);
+  let inStory = false;
+  for (const line of tasksText.split(/\r?\n/)) {
+    if (/^##\s/.test(line)) inStory = head.test(line);
+    if (!/^- \[[ xX]\] T\d+/.test(line)) continue;
+    if (label.test(line) || (inStory && !anyLabel.test(line))) out.push(line);
   }
   return out;
 };
@@ -56,6 +61,14 @@ export const checkStory = (tasks, us, json) => {
 };
 
 const replaceAll = (text, pairs) => pairs.reduce((t, [from, to]) => t.split(from).join(to), text);
+
+// `<!-- if:design -->...<!-- /if:design -->` : kept (markers removed) when the condition holds,
+// dropped otherwise. A brief without design or contract no longer carries the ~5 KB of rules
+// that only apply to them, which every agent read in full and some applied anyway.
+export const applyConditions = (text, conds) =>
+  text
+    .replace(/<!-- if:(\w+) -->\n?([\s\S]*?)<!-- \/if:\1 -->\n?/g, (_, name, body) => (conds[name] ? body : ""))
+    .replace(/\n{3,}/g, "\n\n");
 
 export const fillBriefs = (json, templates) => {
   const us = json.us;
@@ -84,6 +97,12 @@ export const fillBriefs = (json, templates) => {
     ["<TASKS_PATH>", tasksPath],
     ["<SPEC_PATH>", specPath],
   ];
+  const conds = { design: Boolean(json.designPath), contract: Boolean(json.contractPath) };
+  templates = {
+    worker: applyConditions(templates.worker, conds),
+    review: applyConditions(templates.review, conds),
+    fix: applyConditions(templates.fix, conds),
+  };
   const worker = replaceAll(templates.worker, [
     ...common,
     ["<FEATURE>", feature],
