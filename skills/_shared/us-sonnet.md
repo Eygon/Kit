@@ -265,7 +265,11 @@ d un hook, regle d API, 409) ne se prouve bien qu isole.
    Le GREEN d un lot intermediaire s arrete a `test -f <fichier
    prod>` ; seul celui du dernier lot porte le `sed` qui coche la
    case : une tache a moitie testee ne se coche pas.
-3. Tache suivante. Nettoyage leger si evident.
+3. Tache suivante. Nettoyage leger si evident. Le test du RED charge
+   le module par import paresseux (chemin en chaine) : une fois GREEN,
+   repasse-le en import statique (refaire l empreinte). `related` le
+   voit alors, la revue aussi (banc Miro : imports paresseux laisses,
+   invisibles aux gates des US suivantes).
    Interdit : suite complete, hors chemins prod listes.
 
 Premier `it` qui importe a froid et depasse 5000 ms : faux
@@ -332,7 +336,10 @@ si aucune tache ne la demande. BRANCH (non bloquant) = une branche
 jamais prise sur une ligne ajoutee : teste-la si c est un cas du
 contrat ou d une AC (204, 404, liste vide, refus), sinon laisse (garde
 defensive). Banc Miro : le 204 de `Count == 0 ? NoContent() : Ok()`
-passait la couverture de ligne. Methode imposee par une tache mais
+passait la couverture de ligne. Un cas du contrat que le seed
+n atteint pas (liste vide, 204) n est PAS inatteignable : substitue le
+service dans le test d API (`ConfigureTestServices` + substitut qui rend
+une liste vide), comme les tests voisins (2 revues FIXED sur ce cas). Methode imposee par une tache mais
 appelee seulement par une US ulterieure, et que les standards de test
 interdisent de tester seule : garde-la, et declare l ecart dans ta
 sortie (le reviewer le juge). NOCOV informe seulement (fichier
