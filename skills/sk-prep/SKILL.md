@@ -369,7 +369,10 @@ HIGH pour la validation 6 (ni pour un intent « approuver si aucun HIGH »). A c
 la validation 6 : les MEDIUM recon-*, design-*, task-without-prod-path,
 test-without-subject. Les autres HIGH se confrontent au critere ci-dessous.
 contract-field-without-source (MEDIUM) : ne regarde que les champs que la
-feature AJOUTE.
+feature AJOUTE. story-parallel-candidate (LOW) : l US ne partage aucun
+fichier de prod ; ecris parallel.yml en deux voies (chaines, ref/contracts.md
+§chaines), meme dans un seul depot : /sk-impl la fait tourner dans un
+second slot pendant le reste.
 Puis UN critere, a la main : une tache est prete quand un worker qui ne
 lit que sa ligne et recon.md peut ecrire sa premiere ligne sans chercher.
 Elle nomme donc :

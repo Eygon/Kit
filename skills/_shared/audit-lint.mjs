@@ -737,6 +737,22 @@ export const lintSpec = (dir, opts = {}) => {
   }
 
   const parallelPath = join(dir, "parallel.yml");
+  // Voie parallele intra-depot : une US qui ne partage AUCUN fichier de prod avec les autres peut
+  // tourner dans son propre slot (banc jeu : US4 disjointe, aucune parallel.yml proposee).
+  if (!existsSync(parallelPath) && stories.size > 2) {
+    const filesOf = new Map();
+    for (const [story, list] of stories) {
+      if (story === "unassigned") continue;
+      const set = new Set();
+      for (const t of list) for (const p of t.paths) if (isProdPath(p) && p.includes("/") && !t.reusedOnly.has(p)) set.add(p);
+      filesOf.set(story, set);
+    }
+    for (const [story, set] of filesOf) {
+      if (!set.size) continue;
+      const shared = [...filesOf].some(([other, os]) => other !== story && [...set].some((p) => os.has(p)));
+      if (!shared) add("low", "story-parallel-candidate", `${story} ne partage aucun fichier de prod avec les autres US : voie parallele possible (parallel.yml, sk-impl ref/parallel.md)`, "tasks.md");
+    }
+  }
   if (existsSync(parallelPath)) {
     const y = parseParallelYml(read(parallelPath) || "");
     const known = new Set([...stories.keys()].filter((k) => k !== "unassigned"));
