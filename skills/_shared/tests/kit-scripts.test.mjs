@@ -302,3 +302,18 @@ test("fact-lines: a fact whose symbol slid is moved to the nearest non-import oc
   assert.equal(changes[0].new, "21-22");
   assert.ok(text.includes("`src/page.tsx:21-22`"));
 });
+
+test("cap-check: a sketch is measured with the lint's own count (pure types and Code: refs excluded)", async () => {
+  const { capReport } = await import("../cap-check.mjs");
+  const sketch = [
+    "## [US1] api",
+    "- [ ] T001 [US1] Create `Api/Controllers/XController.cs` — Code: `Api/Controllers/YController.cs`",
+    "- [ ] T002 [US1] Create `Api/Services/XService.cs` and its interface `Api/Services/Interfaces/IXService.cs`",
+    "## [US2] ui",
+    ...Array.from({ length: 7 }, (_, i) => `- [ ] T1${i} [US2] Create \`src/c${i}.tsx\``),
+  ].join("\n");
+  const [a, b] = capReport(sketch);
+  assert.deepEqual(a.prod.sort(), ["Api/Controllers/XController.cs", "Api/Services/XService.cs"]);
+  assert.equal(a.over, false);
+  assert.equal(b.over, true);
+});

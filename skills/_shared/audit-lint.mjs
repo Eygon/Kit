@@ -493,6 +493,23 @@ const isProdPath = (p) => !isTestPath(p) && !isDocPath(p);
 const PURE_TYPE_FILE = /(?:^|\/)(?:Interfaces\/I[A-Z]\w*\.cs|[\w]*(?:Dto|Enum|Configuration)\.cs|Entities\/\w+\.cs|Enums\/\w+\.cs)$|(?:^|\/)(?:types|dtos|models)\/.*\.ts$|(?:Props|Dto|Model|Types?|Enum)\.ts$/;
 const LOCALE_FILE = /(?:^|\/)(?:locales|i18n|translations|lang)(?:\/[\w-]+)*\/[a-z]{2}(?:[-_][A-Za-z]{2})?\.json$/;
 
+// Ce que le cap d une US compte : fichiers de prod hors Code:, hors types purs, langues = un fichier ;
+// les compagnons « and its » a part. Partage par le lint et par cap-check.mjs (esquisse avant clarify).
+export const MAX_CAP = { tasks: MAX_TASKS_PER_STORY, prod: MAX_PROD_FILES_PER_STORY, withCompanions: MAX_FILES_WITH_COMPANIONS };
+export const countStory = (list) => {
+  const prod = new Set();
+  // The LOCALES files of a front repo are mandatory for any UI story (sk-prep recon.md): they
+  // count as one file, not three, or every UI story with a label goes over the cap.
+  const companionFiles = new Set();
+  for (const t of list) for (const p of t.paths) {
+    if (!isProdPath(p) || !p.includes("/") || t.reusedOnly.has(p) || PURE_TYPE_FILE.test(p)) continue;
+    if (t.companions.has(p)) companionFiles.add(p);
+    else prod.add(LOCALE_FILE.test(p) ? "<locales>" : p);
+  }
+  for (const p of prod) companionFiles.delete(p);
+  return { prod, companionFiles };
+};
+
 // _meta.alwaysInject of agent-os/standards/index.yml: injected on every run, outside the cap
 // (sk-prep A.3). Counting them sent a MEDIUM standards-over-cap on a 1-US trio with 6 real anchors.
 const alwaysInjected = (dir) => {
@@ -629,16 +646,7 @@ export const lintSpec = (dir, opts = {}) => {
 
   for (const [story, list] of stories) {
     if (story === "unassigned") continue;
-    const prod = new Set();
-    // The LOCALES files of a front repo are mandatory for any UI story (sk-prep recon.md): they
-    // count as one file, not three, or every UI story with a label goes over the cap.
-    const companionFiles = new Set();
-    for (const t of list) for (const p of t.paths) {
-      if (!isProdPath(p) || !p.includes("/") || t.reusedOnly.has(p) || PURE_TYPE_FILE.test(p)) continue;
-      if (t.companions.has(p)) companionFiles.add(p);
-      else prod.add(LOCALE_FILE.test(p) ? "<locales>" : p);
-    }
-    for (const p of prod) companionFiles.delete(p);
+    const { prod, companionFiles } = countStory(list);
 
     if (list.length > MAX_TASKS_PER_STORY)
       add("high", "story-too-many-tasks", `${story} a ${list.length} taches (max ~${MAX_TASKS_PER_STORY}): recouper`, `tasks.md`);

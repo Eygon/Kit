@@ -198,7 +198,11 @@ model/dto/mapper et le fichier de props tels qu ils seront dans tasks.md,
 c est la que le compte se joue ; le lint ne compte PAS les types purs :
 `Interfaces/I*.cs`, `*Dto.cs`, `*Enum.cs`, `*Configuration.cs`, `Entities/`,
 `Enums/`, `types|dtos|models/*.ts`, `*Props.ts` ; les fichiers de langue comptent pour un)
-et confronte-le au cap (~6 fichiers dont
+et MESURE-le avant de poser la question : ecris l esquisse au format
+tasks.md (`## [USn] titre`, `- [ ] T001 [USn] Create \`a.ts\` and its DTO
+\`b.ts\` — Code: \`c.ts\``) dans `<slot>/.sk/sketch-tasks.md`, puis
+  node "<SK_SHARED>/cap-check.mjs" "<slot>/.sk/sketch-tasks.md"
+(meme compte que le lint ; TROP = redecoupe avant la question). Confronte-le au cap (~6 fichiers dont
 chaque fichier existant ETENDU, config comprise ; 8 au plus compagnons
 compris ; ~6 taches ; au plus 2 composants crees par US) : le
 decoupage propose fait partie de la question. Decouvrir le depassement au
