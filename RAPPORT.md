@@ -119,6 +119,9 @@ Voie front complète « commentaires » : US3 (data) puis US4 (UI design), 2 wor
 | C1 : contrat modifié en cours de run | Dérive vue au hash près (ligne 107) | Le reviewer rendait FAIL, et le fix aurait écrasé le contrat. Désormais ESCALATE si la modif ne vient pas de l'US : rejoué, ESCALATE obtenu, contrat intact |
 | C2 : tâche qui écrit le contrat | Le worker a laissé le contrat intact mais a livré un champ hors contrat | brief-fill refuse la tâche en amont ; le worker s'arrête (STOP prouvé, 19 s) sur un champ absent du contrat |
 | design.md écrit par Sonnet au lieu d'Opus | 0,50 $ et 2 min. Valeurs, tokens, arbitrages et injection signalée équivalents ; 2 décisions de jugement laissées « à confirmer » (ombre, point d'entrée) | Délégué à Sonnet ; Opus relit §2/§5 et pose les points en suspens au clarify (≈ −1,5 $ par prep design) |
+| Plafond de taille par dépôt | Le back n'atteint jamais le plafond. Côté front, ce sont les petits fichiers « compagnons » (clés de requête) et une ligne de montage qui le dépassent, alors que ces US se livrent en 2 à 5 min (l1 US4 : 8 fichiers, 2 min 24) | Pas de plafond par dépôt. Les compagnons « and its » ne comptent plus (8 fichiers au plus avec eux), plafond à 6. Dépassements sur le corpus : 27 → 8, rien d'autre ne change |
+| A/B standards sur une US d'interface (l1 US4, même commit) | Avec standards : 2,03 $, revue PASS, 0 écart. Sans : 1,97 $, revue FIXED, 1 vrai écart (table `Record<Enum>` dans le composant) et 1 « écart » corrigé à tort | Standards gardés dans le brief, à coût égal pour du code propre du premier coup. +2 contrôles mécaniques (`Record<Enum>` hors du fichier de l'enum, type déclaré dans un `.tsx`), 0 faux positif. Le reviewer vérifie désormais la portée du standard et le fichier modèle avant de corriger |
+| Deux /sk-impl qui réservent un slot en même temps | Course reproduite 3 fois sur 3 : les deux obtenaient wt-1, le second écrasait la branche du premier | Réservation sous verrou : le second reçoit REFUS et se rabat sur un autre slot, sans rien demander. Vérifié 3 fois sur 3 |
 | Répétitions (3 preps) | 0 HIGH | 7 ambiguïtés levées : pack lu via fichier (38 Ko tronqués sinon), ligne « Dépôt prime », enum dans la tâche consommatrice, HIGH de taille exempté, etc. |
 
 ## À faire de ton côté
@@ -133,4 +136,4 @@ Voie front complète « commentaires » : US3 (data) puis US4 (UI design), 2 wor
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 18 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 19 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.

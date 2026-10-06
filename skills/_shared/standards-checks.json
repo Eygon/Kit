@@ -151,9 +151,9 @@
   "react/file-decomposition": [
     {
       "re": "^\\s*(?:export\\s+)?(?:interface\\s+\\w+|type\\s+\\w+\\s*(?:<[^>]*>)?\\s*=)",
-      "files": "^src/.*/(?:hooks|components|pages)/.*\\.tsx?$",
+      "files": "^src/.*\\.tsx$",
       "skip": "(__tests__/|\\.(test|spec)\\.|/types/)",
-      "msg": "type ou interface declare hors de types/"
+      "msg": "type ou interface declare dans un .tsx (types/<comp>.ts)"
     }
   ]
 }

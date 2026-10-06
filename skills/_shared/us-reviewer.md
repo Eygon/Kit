@@ -204,7 +204,11 @@ seul commit DONE.
      node "<SK_SHARED>/standards-pack.mjs" check --root "<SLOT_CWD>" --pack "<STANDARDS_PACK>" --range "<US_BASE>..HEAD"
    puis lis le diff de l US contre chaque standard du pack (placement des
    fichiers, nommage, decoupage, structure des services, tests). Un ecart
-   cite le standard (`<id>` + la regle) et fichier:ligne. Un ecart court
+   cite le standard (`<id>` + la regle) et fichier:ligne. Avant de le
+   retenir : la regle vise-t-elle ce type de fichier (description du
+   standard : « .tsx », « services »...) ? Le fichier modele de la tache
+   (`Code:`) fait-il pareil ? Hors portee, ou meme motif dans le modele :
+   ce n est pas un ecart (le depot prime), ne le corrige pas. Un ecart court
    (renommer, deplacer un fichier, retirer un commentaire, enum a la place
    d un litteral) : tu le corriges toi-meme (FIXED). Un hit mecanique que le
    worker a justifie dans `summary` : tu tranches avec le texte du
