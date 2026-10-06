@@ -161,8 +161,10 @@ D abord le linter du trio du slot, familles qui cassent un run seulement :
 (Bash, chemins a barres obliques entre guillemets ; `--ref HEAD` depuis le
 slot : les fichiers des US deja livrees n existent que sur sa branche.)
 `verified-fact-line-mismatch` = le code a bouge depuis la prep (une autre
-feature fusionnee) : AVANT le spawn, recale chaque ligne citee dans plan.md
-et recon.md (grep du symbole, une commande), sans la poser en question.
+feature fusionnee) : AVANT le spawn, UNE commande recale plan.md et recon.md,
+sans la poser en question :
+  node "<SK_SHARED>/fact-lines.mjs" "<FEATURE_DIR>" --ref HEAD --write
+(INTROUVABLE = le symbole a disparu : corrige ce fait a la main.)
 Banc Miro : F3 preparee avant la fusion de F2 avait 7 faits decales, que
 chaque worker aurait relus faux.
 UN SEUL AskUserQuestion (jusqu a 4 questions) : US retenues si plusieurs
