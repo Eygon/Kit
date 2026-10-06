@@ -263,12 +263,35 @@ function handoffOf(usOut, review) {
   return '\n\n## Passation du worker — ne refais pas sa recon\n' + parts.join('\n\n') + '\nLis d abord les fichiers cites par les issues. Ne relis pas recon.md en entier.'
 }
 
+// Facts carried inside ONE Workflow run. The briefs are filled before the run, so a fact found by
+// US1 never reached US2's worker (facts-add only runs after the Workflow returns). Same repo only:
+// a group's root, or no root on either side (Miro bench: back recipes are noise for the front).
+const carriedFacts = []
+function carryFacts(g, facts) {
+  if (!Array.isArray(facts)) return
+  for (const f of facts) {
+    if (!f || !f.fact) continue
+    const text = String(f.fact)
+    if (carriedFacts.some(function (c) { return c.fact === text })) continue
+    carriedFacts.push({ fact: text, source: f.source ? String(f.source) : '', root: g.root ? String(g.root) : '', us: g.id || g.usId || '?' })
+  }
+}
+function carriedFor(g) {
+  const root = g.root ? String(g.root) : ''
+  const mine = carriedFacts.filter(function (c) { return !c.root || !root || c.root === root }).slice(-20)
+  if (!mine.length) return ''
+  return '\n\n## Faits etablis par les US precedentes de ce run (meme depot)\n' + mine.map(function (c) {
+    return '- ' + c.fact + (c.source ? ' — source : ' + c.source : '') + ' (' + c.us + ')'
+  }).join('\n')
+}
+
 // Runs one US: worker -> review (retried once) -> fix if the reviewer asks for one -> review2.
 // row.halt is set whenever the next US must not start.
 async function runUs(g) {
   const id = g.id || g.usId || '?'
-  const prompt = g.prompt || g.workerPrompt || ''
-  const fixPrompt = g.fixPrompt || prompt
+  const carried = carriedFor(g)
+  const prompt = (g.prompt || g.workerPrompt || '') && (g.prompt || g.workerPrompt) + carried
+  const fixPrompt = g.fixPrompt ? g.fixPrompt + carried : prompt
   const row = { id: id, review: null, fixed: false }
   if (g.root) row.root = String(g.root)
   if (!prompt) {
@@ -294,6 +317,7 @@ async function runUs(g) {
     if (Array.isArray(usOut.designConformance)) row.designConformance = usOut.designConformance
   }
   if (row.facts.length) log('US ' + id + ' facts ' + row.facts.length)
+  carryFacts(g, row.facts)
 
   if (usOut == null) {
     row.error = 'worker'
@@ -353,6 +377,7 @@ async function runUs(g) {
   // or the next US gives up on the same false fact (916: US15 fact, US24 fix).
   if (fixOut && typeof fixOut === 'object' && Array.isArray(fixOut.facts) && fixOut.facts.length) {
     row.facts = row.facts.concat(fixOut.facts)
+    carryFacts(g, fixOut.facts)
     log('US ' + id + ' fix facts ' + fixOut.facts.length)
   }
   if (workerStopped(fixOut)) {

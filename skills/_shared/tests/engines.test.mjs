@@ -124,3 +124,16 @@ test("loop: reviewTier auto gives the first review of a small undeclared US to S
   assert.equal(models["review2:US1"], "opus");
   assert.equal(models["review:US2"], "opus");
 });
+
+test("loop: facts found by a worker reach the next workers of the same repo within the run", async () => {
+  const prompts = {};
+  const { result } = await run("speckit-us-loop.js", { groups: [g("US1", "/back"), g("US2", "/front"), g("US3", "/back")] }, (label, prompt) => {
+    prompts[label] = prompt;
+    if (label === "us:US1") return { ...done, facts: [{ fact: "sqlite memoire partagee", source: "a.cs" }] };
+    if (label.startsWith("us:")) return done;
+    return { verdict: "PASS", issues: [] };
+  });
+  assert.equal(result.ok, true);
+  assert.ok(!prompts["us:US2"].includes("sqlite"));
+  assert.ok(prompts["us:US3"].includes("sqlite memoire partagee"));
+});

@@ -233,8 +233,11 @@ Fix en STOP : pas de nouvelle revue, tu remontes.
 
 **n>=2** (hors parallel.md) : Workflow
 scriptPath `<SK_SHARED>/speckit-us-loop.js` (chemin absolu resolu),
-args.groups[] = [{id, prompt, reviewPrompt, fixPrompt}] dans l ordre de
-tasks.md (fixPrompt dans CHAQUE groupe). Boucle : worker -> revue. PASS /
+args.groups[] = [{id, prompt, reviewPrompt, fixPrompt, root}] dans l ordre de
+tasks.md (fixPrompt dans CHAQUE groupe ; root = SLOT_CWD de l US). Le moteur
+transmet les faits d un worker aux workers et fix suivants du MEME root dans
+le run : les briefs etant remplis avant, sans lui US2 ignorait ce que US1
+venait d etablir. Boucle : worker -> revue. PASS /
 FIXED : US suivante. FAIL : fix (1 passe) puis review2 ; review2 FAIL ou
 ESCALATE = STOP la chaine. Worker STOP (budget/WIP), fix STOP, revue sans
 verdict lisible (relancee une fois) = STOP la chaine. Lis chaque ligne de
