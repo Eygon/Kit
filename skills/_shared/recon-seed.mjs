@@ -100,7 +100,7 @@ export const seed = (root, ref, dirs) => {
   const aliasRoots = aliases.map((a) => a.split("->")[0].replace(/\/\*$/, ""));
   if (aliasRoots.length) {
     const ghosts = ["prjTypes", "@api", "@utils", "@prjTypes", "~"].filter((g) => !aliasRoots.includes(g));
-    if (ghosts.length) lines.push(`- \`from ["'](?:${ghosts.join("|")})/\``);
+    if (ghosts.length) lines.push(`- \`from ["'](${ghosts.join("|")})/\``);
   }
   return lines.join("\n") + "\n";
 };
