@@ -328,7 +328,11 @@ Les trois partent dans UN appel en fin d US, suivis de la couverture du diff :
 Chaque GAP est une ligne de prod que tu ajoutes et qu aucun test
 n execute (banc A/B : cylindre jamais construit, livre « vert ») :
 ajoute le test qui l execute et l asserte, ou supprime la branche
-si aucune tache ne la demande. Methode imposee par une tache mais
+si aucune tache ne la demande. BRANCH (non bloquant) = une branche
+jamais prise sur une ligne ajoutee : teste-la si c est un cas du
+contrat ou d une AC (204, 404, liste vide, refus), sinon laisse (garde
+defensive). Banc Miro : le 204 de `Count == 0 ? NoContent() : Ok()`
+passait la couverture de ligne. Methode imposee par une tache mais
 appelee seulement par une US ulterieure, et que les standards de test
 interdisent de tester seule : garde-la, et declare l ecart dans ta
 sortie (le reviewer le juge). NOCOV informe seulement (fichier

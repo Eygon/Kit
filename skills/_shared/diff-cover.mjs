@@ -54,6 +54,13 @@ export function parseLcov(text, root = ".") {
     } else if (line.startsWith("DA:") && current) {
       const [n, hits] = line.slice(3).split(",");
       current.set(Number(n), Number(hits));
+    } else if (line.startsWith("BRDA:") && current) {
+      // BRDA:<ligne>,<bloc>,<branche>,<pris|->. Une branche jamais prise sur une ligne executee :
+      // le 204 d un `count == 0 ? NoContent() : Ok()` (banc Miro F2), invisible a la couverture de ligne.
+      const [n, , , taken] = line.slice(5).split(",");
+      const key = `br:${n}`;
+      const miss = taken === "-" || Number(taken) === 0;
+      current.set(key, (current.get(key) || 0) + (miss ? 1 : 0));
     } else if (line === "end_of_record") {
       current = null;
     }
@@ -106,7 +113,8 @@ export function diffCover(added, coverage) {
     }
     const executable = [...lines].filter((n) => cov.has(n));
     const missed = executable.filter((n) => cov.get(n) === 0);
-    report.push({ file, status: missed.length ? "GAP" : "OK", executable: executable.length, missed });
+    const branches = executable.filter((n) => cov.get(n) > 0 && cov.get(`br:${n}`) > 0);
+    report.push({ file, status: missed.length ? "GAP" : branches.length ? "BRANCH" : "OK", executable: executable.length, missed, branches });
   }
   return report;
 }
@@ -144,6 +152,8 @@ if (isMain) {
       const over = pct < min;
       if (over) bad++;
       console.log(`GAP ${r.file} ${pct}% lignes ajoutees non executees: ${ranges(r.missed)}${over ? "" : " (sous le seuil)"}`);
+    } else if (r.status === "BRANCH") {
+      console.log(`BRANCH ${r.file} branche jamais prise sur les lignes ajoutees: ${ranges(r.branches)}`);
     } else {
       console.log(`OK ${r.file} (${r.executable} lignes executables ajoutees)`);
     }

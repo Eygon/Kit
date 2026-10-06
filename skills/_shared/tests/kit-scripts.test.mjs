@@ -284,3 +284,12 @@ test("lanes: a story naming a class created earlier (same stack) or citing (USn)
   ].join("\n");
   assert.deepEqual(planWaves(tasks).waves, [["US1", "US3"], ["US2", "US4"]]);
 });
+
+test("diff-cover: a branch never taken on an executed added line is reported as BRANCH", async () => {
+  const { addedLines, parseLcov, diffCover } = await import("../diff-cover.mjs");
+  const diff = ["+++ b/Api/C.cs", "@@ -0,0 +1,2 @@", "+var r = Get();", "+return r.Count == 0 ? NoContent() : Ok(r);"].join("\n");
+  const lcov = ["SF:Api/C.cs", "DA:1,3", "DA:2,3", "BRDA:2,0,0,0", "BRDA:2,0,1,3", "end_of_record"].join("\n");
+  const [r] = diffCover(addedLines(diff), parseLcov(lcov, "."));
+  assert.equal(r.status, "BRANCH");
+  assert.deepEqual(r.branches, [2]);
+});

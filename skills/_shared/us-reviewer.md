@@ -135,6 +135,8 @@ seul commit DONE.
    (pas un second run ; back .NET : `--collect:"XPlat Code Coverage"
    --results-directory` vers ce meme dossier, Format=lcov), puis
    `node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov" --range <US_BASE>..HEAD`.
+   BRANCH (branche jamais prise) : ecart seulement si c est un cas du
+   contrat ou d une AC (204, 404, liste vide) ; garde defensive = rien.
    Chaque GAP est un ecart : ajoute le test qui execute ET asserte
    la ligne (FIXED), ou FAIL si la branche demande un choix de
    spec. Seule exception : garde defensive explicitement
