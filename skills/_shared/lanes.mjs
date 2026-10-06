@@ -33,11 +33,28 @@ export const planWaves = (tasksText, { shared = [] } = {}) => {
     }
     for (const m of t.mounts) if (m.owner && touched.has(m.owner)) mountsFor.get(m.owner).add(t.story);
   }
+  // Texte de chaque US hors notes de montage (une note « Monte dans: x (US6) » regarde en avant),
+  // et symboles crees (nom de fichier sans extension) : une US qui nomme `BoardService.getMembers
+  // (US4)` ou la classe `UserRepository` creee plus tot en depend sans toucher son fichier (banc
+  // Miro F2 : US5 lisait le service de US4, et le planificateur les mettait dans la meme vague).
+  const text = new Map(order.map((s) => [s, ""]));
+  const createdBy = new Map(order.map((s) => [s, new Set()]));
+  for (const t of tasks) {
+    text.set(t.story, text.get(t.story) + " " + t.body.replace(/(?:Mont[ée]e?s?\s+dans|Mounted\s+in)\s*:[^—]*/gi, " "));
+    // `created` ne garde que le fichier de tete : une tache « Create » cree aussi ses compagnons (« and its DTO »).
+    const made = [...(t.created || []), ...(t.createLead ? t.paths.filter((p) => !t.reusedOnly.has(p)) : [])];
+    for (const p of made) if (isProd(p)) createdBy.get(t.story).add(p.split("/").pop().replace(/\.[^.]+$/, ""));
+  }
+  const names = (s) => [...createdBy.get(s)].filter((n) => n.length >= 4 && n !== "index");
+  // Meme nom des deux cotes d un contrat (`Comment` entite .NET et modele TS) : pas une dependance.
+  const family = (s) => new Set([...touched.get(s)].map((p) => (/\.cs$/.test(p) ? "cs" : "js")));
+  const sameStack = (a, b) => [...family(a)].some((f) => family(b).has(f));
   const deps = new Map(order.map((s) => [s, new Set()]));
   order.forEach((b, j) => {
     for (const a of order.slice(0, j)) {
       const ta = touched.get(a);
-      const clash = [...touched.get(b)].some((p) => ta.has(p)) || [...reused.get(b)].some((p) => ta.has(p)) || mountsFor.get(b).has(a);
+      const named = new RegExp(`\\(${a}\\)`).test(text.get(b)) || (sameStack(a, b) && names(a).some((n) => new RegExp(`(?<![/.])${n}s?\\b`).test(text.get(b))));
+      const clash = named || [...touched.get(b)].some((p) => ta.has(p)) || [...reused.get(b)].some((p) => ta.has(p)) || mountsFor.get(b).has(a);
       if (clash) deps.get(b).add(a);
     }
   });

@@ -269,3 +269,18 @@ test("mount-check: a task naming the file as its mount target does not shadow th
   assert.equal(r.status, "PLANNED");
   assert.equal(r.owner, "US6");
 });
+
+test("lanes: a story naming a class created earlier (same stack) or citing (USn) waits; a same name across stacks does not", async () => {
+  const { planWaves } = await import("../lanes.mjs");
+  const tasks = [
+    "## [US1] model",
+    "- [ ] T001 [US1] Create `Api/Entities/Comment.cs` and its DTO `Api/Dtos/CommentDto.cs`",
+    "## [US2] api",
+    "- [ ] T002 [US2] Create `Api/Controllers/CommentsController.cs` returning `CommentDto`",
+    "## [US3] front model",
+    "- [ ] T003 [US3] Create `src/types/models/comment.ts` (Comment model)",
+    "## [US4] front hook",
+    "- [ ] T004 [US4] Create `src/hooks/useComments.ts` calling the service (US3)",
+  ].join("\n");
+  assert.deepEqual(planWaves(tasks).waves, [["US1", "US3"], ["US2", "US4"]]);
+});
