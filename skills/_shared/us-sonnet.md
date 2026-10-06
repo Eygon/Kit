@@ -29,7 +29,7 @@ personne ne repondra.
 
 - Cwd du slot (absolu) : <SLOT_CWD>
 - US id : <US_ID>
-- tasks.md du slot : <SLOT_CWD>\specs\<FEATURE>\tasks.md
+- tasks.md du slot : <SLOT_CWD>/specs/<FEATURE>/tasks.md (en Bash : `specs/<FEATURE>/tasks.md`, barres obliques)
   Si specs/ est une jonction vers le depot principal,
   tes cases y sont ecrites directement : edition ligne a
   ligne, jamais de recopie du fichier en bloc.
@@ -195,6 +195,10 @@ longue, pas le code. Donc :
   elles aussi dans le MEME message ;
 - les commandes qui s enchainent partent dans UN appel
   Bash avec `&&` (gate + case, gates de fin) ;
+- jamais de `| tail`, `| head` ou `| grep` derriere une gate qui coche une
+  case : le pipe rend le code de sortie du filtre, une gate rouge coche
+  alors la case (vecu : T002 coche apres un run rouge). Filtre la sortie
+  dans un appel separe, ou `set -o pipefail` en tete.
 - une commande longue (gates de fin, typecheck) porte un
   timeout Bash de 600000 ms plutot que d etre decoupee.
 
