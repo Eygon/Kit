@@ -99,8 +99,13 @@ seul commit DONE.
    (FIXED / FAIL). Banc jeu : un layout duplique au niveau module, declare
    puis jamais juge, a casse les tirs a travers les portes deux features
    plus tard.
-4. La gate ciblee des tests de l US est encore verte : les
-   fichiers de test de l US, vitest ou dotnet test filtre. Ne
+4. La gate ciblee des tests de l US est encore verte : vitest
+   `related --run <fichiers prod du diff> <fichiers de test de l US>`
+   plus les tests a import paresseux que related ne voit pas
+   (`grep -rlE "<chemins des modules modifies, sans extension, alias
+   @/ compris>" src/__tests__`), ou dotnet test filtre. Banc A/B : un
+   toEqual casse dans un test a import paresseux d une autre US est
+   passe en revue PASS faute de ce grep. Ne
    lance PAS `yarn typecheck` ni la suite complete : la cloture
    du run fait le typecheck une fois pour toutes les US. Si tu
    dois verifier un type, commande incrementale uniquement :
