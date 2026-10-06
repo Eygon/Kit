@@ -167,9 +167,14 @@ seul commit DONE.
 <!-- /if:design -->
 <!-- if:contract -->
 9. Si CONTRACT_HASH est fourni : le sha256 actuel
-   de CONTRACT_PATH doit matcher. Mutation yaml
-   (reformat, champ ajoute, reordre) : FAIL, le fix restaure
-   le fichier (tu ne touches pas au contrat).
+   de CONTRACT_PATH doit matcher. Sinon, tu ne touches pas au contrat :
+   - la mutation est dans le diff de l US (`git diff <US_BASE>..HEAD --
+     <CONTRACT_PATH>` non vide) : FAIL, le fix fait
+     `git checkout <US_BASE> -- <CONTRACT_PATH>` et rien d autre ;
+   - sinon (fichier hors git, specs/ ignore, ou change par un autre que
+     l US) : ESCALATE. Une autre voie, ou l humain, a pu le changer
+     volontairement : restaurer depuis une copie ecraserait sa decision.
+     Cite la ligne qui differe.
    Rends TOUJOURS le sha256 mesure dans `contractSha256` (sortie) : le
    moteur s en sert comme gel du contrat au lieu de lancer un agent dedie.
 <!-- /if:contract -->

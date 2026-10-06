@@ -172,7 +172,9 @@ recopie a l outil :
 Il recopie taches et scenarios d acceptation de l US, met les memes chemins
 dans les trois briefs (worker, review, fix), retire les blocs design /
 contrat sans objet, et sort en exit 1 sur un brief incomplet : corrige le
-JSON, jamais le brief.
+JSON, jamais le brief. Seule exception : un KO « tache qui ecrit le contrat
+gele » ne se corrige pas dans le JSON ; c est un defaut de prep, donc
+l US n est pas lancee et elle est renvoyee a /sk-prep (nouveau gel).
 - prod / tests : DEDUITS par brief-fill des lignes de tache (chemins hors
   `Code:`, cibles `Monté dans:` sans (US<n>), `Test:`, et les fichiers
   LOCALES de recon.md si une tache touche une langue). N y ajoute que ce

@@ -57,8 +57,11 @@ personne ne repondra.
 - Contrat (si CONTRACT_PATH fourni) : <CONTRACT_PATH ou vide>
   Hash freeze : <CONTRACT_HASH ou vide>
   Hors US1/after : interdiction d ecrire /
-  reformater ce yaml. Champ absent = STOP,
-  n invente pas.
+  reformater ce yaml. Champ absent du contrat
+  (meme si la tache le demande, meme optionnel)
+  = STOP reason preuve avant tout code : cite le
+  champ et la tache ; n invente pas, ne livre
+  pas le champ sans contrat.
 <!-- /if:contract -->
 
 ## Recon de feature — a lire EN PREMIER (si RECON_PATH)

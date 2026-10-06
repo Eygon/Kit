@@ -121,3 +121,9 @@ test("standards-pack check catches the banned patterns on added lines only", () 
     assert.ok(ids.includes(id), `missing ${id}`);
   assert.ok(!runChecks(dir, pack, {}).some((h) => h.includes("export const A")));
 });
+
+test("contractWrites flags a task that writes the frozen contract, not one that cites it", async () => {
+  const { contractWrites } = await import("../brief-fill.mjs");
+  assert.deepEqual(contractWrites(["- [ ] T040 [US7] Extend `specs/001-x/contracts/comments.yaml` `CommentDto` with `pinned`"]), ["specs/001-x/contracts/comments.yaml"]);
+  assert.deepEqual(contractWrites(["- [ ] T012 [US3] Create `src/api/c.ts` (GET contracts/comments.yaml `getComments`) — Code: `specs/001-x/contracts/comments.yaml`"]), []);
+});

@@ -28,6 +28,12 @@ const norm = (p) => String(p).replace(/\\/g, "/").replace(/^api:/, "").trim();
 // it sits, or when it has no label and sits under a `## [USn] ...` or `## Phase k: User Story n`
 // heading (spec-kit's own layout). Matching the `## [USn]` heading only returned 0 tasks on a
 // tasks.md left in spec-kit's layout, and brief-fill then refused every brief.
+// Chemins de contrat (contracts/*.yaml|json) qu une tache ECRIT : hors Code:/Eviter:/Test:.
+export const contractWrites = (tasks) =>
+  tasks.flatMap((line) =>
+    [...line.replace(/(?:Code|Eviter|Avoid|Test):\s*[^—]*/g, " ").matchAll(/`([^`]*contracts\/[^`]+\.(?:ya?ml|json))`/g)].map((m) => m[1].replace(/\\/g, "/")),
+  );
+
 export const tasksOfStory = (tasksText, us) => {
   const n = String(us).replace(/^US/i, "");
   const label = new RegExp(`\\[US${n}\\]`, "i");
@@ -182,6 +188,12 @@ export const fillBriefs = (json, templates) => {
       if (!p.includes("/") || /(^|\/)(?:__tests__|specs|contracts)\//.test(p) || /\.(test|spec)\./.test(p)) continue;
       if (!prodSet.has(p) && !existsSync(join(json.slot, p))) problems.push(`fichier cree par une tache absent de prod[] : ${p}`);
     }
+  }
+  // Contrat gele (contractHash) : aucune tache ne l ecrit. Une tache qui l etend est un defaut de
+  // prep (le contrat se change en /sk-prep, puis nouveau gel), pas un travail de worker.
+  if (json.contractHash) {
+    const hit = contractWrites(tasks);
+    if (hit.length) problems.push(`tache qui ecrit le contrat gele (defaut de prep, a corriger dans le trio) : ${hit.join(", ")}`);
   }
   // A placeholder left behind (`<PROD_PATHS>`) is a hole the agent fills by searching.
   for (const [name, text] of [["worker", worker], ["review", review], ["fix", fix]]) {
