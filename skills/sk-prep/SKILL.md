@@ -256,10 +256,11 @@ fichiers). `Eviter: <symbole> (<raison>)` = un voisin qui ressemble mais ne
 convient pas (ex. le formateur d affichage pour un export). MONTAGE (bloquant au sanity) : une tache qui CREE un composant,
 un hook, un service ou un module de logique/systeme appele ailleurs porte
 `Monté dans: <fichier>` (qui l importe et le rend ; sinon : qui l appelle),
-touche par CETTE US. Point d entree non rendable en test (main.ts,
-index.tsx) : garde-le a quelques lignes et monte dans un module
-d orchestration extrait et testable (`src/engine/gameApp.ts`) ; une tache
-CSS prend en `Test:` le test du module qui pose les classes. Parent d une autre
+touche par CETTE US. Point d entree (main.ts, index.tsx) : si le depot le
+teste deja (recon : un test l importe avec des mocks), monte dedans ;
+sinon, garde-le a quelques lignes et monte dans un module d orchestration
+extrait et testable (`src/engine/gameApp.ts`). Une tache CSS prend en
+`Test:` le test du module qui pose les classes. Parent d une autre
 US ou pas encore cree : `Monté dans: <fichier> (US<n>)` ET, dans US<n>, une
 tache « Monter <Nom> dans `<fichier>` » avec son test, qui rend <fichier>.
 Rien a monter (utils, mapper, DTO, type, colonnes, route) : pas
