@@ -305,6 +305,7 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
   La gate vitest ne voit pas les erreurs de type : un test
   vert peut casser le typecheck. Ne l annonce vert qu apres
   l avoir lance.
+<!-- if:front -->
 - lint : JAMAIS `yarn lint` (baseline de centaines
   d erreurs CRLF). Toujours
   `node node_modules/eslint/bin/eslint.js <tes fichiers>`,
@@ -333,6 +334,19 @@ outil sur un lcov coverlet (`dotnet test --collect:"XPlat Code
 Coverage" --results-directory "$(git rev-parse --git-dir)/sk-cov" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`).
 Projet de test sans `coverlet.collector` : diff-cover non applicable, dis-le
 dans ta sortie (n ajoute pas le paquet : hors de tes chemins).
+<!-- /if:front -->
+<!-- if:back -->
+- Back .NET, fin d US, UN appel : `dotnet build --nologo -v q` (0 erreur,
+  0 nouvel avertissement) puis `dotnet test <projet de test> --nologo -v q
+  --filter <classes de test de tes taches> --collect:"XPlat Code Coverage"
+  --results-directory "$(git rev-parse --git-dir)/sk-cov" --
+  DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`,
+  puis `node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov" --range HEAD`.
+  Chaque GAP = une ligne ajoutee qu aucun test n execute : teste-la ou
+  retire-la. Projet de test sans `coverlet.collector` : diff-cover non
+  applicable, dis-le dans ta sortie (n ajoute pas le paquet).
+  Pas d eslint, de vitest ni de tsc dans un depot .NET.
+<!-- /if:back -->
 Classe CHAQUE erreur contre tasks.md du slot AVANT de
 conclure :
 - fichier cite par une US ULTERIEURE -> « pas encore

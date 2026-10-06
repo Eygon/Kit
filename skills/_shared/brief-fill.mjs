@@ -169,7 +169,12 @@ export const fillBriefs = (json, templates) => {
     ["<STANDARDS_PACK>", packPath || "aucun (agent-os/standards absent du depot de l US)"],
     ["<STANDARDS_ROOT>", standardsRoot],
   ];
-  const conds = { design: Boolean(json.designPath), contract: Boolean(json.contractPath) };
+  // Stack de l US, pour ne donner au worker que ses gates (banc Miro : 4 Ko de recettes
+  // vitest/eslint dans chaque brief back). Ni l un ni l autre reconnu : les deux.
+  const prodAll = [...new Set([...(json.prod || []), ...derived.prod])];
+  const isFront = prodAll.some((p) => /\.(?:[cm]?[jt]sx?|s?css)$/.test(p));
+  const isBack = prodAll.some((p) => /\.cs$/.test(p));
+  const conds = { design: Boolean(json.designPath), contract: Boolean(json.contractPath), front: isFront || !isBack, back: isBack || !isFront };
   templates = {
     worker: applyConditions(templates.worker, conds),
     review: applyConditions(templates.review, conds),
