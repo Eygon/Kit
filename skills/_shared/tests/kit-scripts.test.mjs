@@ -56,3 +56,9 @@ test("standards-pack reads index ids, alwaysInject and story anchors", () => {
   assert.deepEqual(idsOfStory(tasks, "US2").sort(), ["react/forms", "react/i18n"]);
   assert.equal(normId("`@agent-os/standards/react/hooks.md`,"), "react/hooks");
 });
+
+test("standards-pack takes the file-level Standards line for every story", () => {
+  const tasks = "# Tasks: x\n\nStandards: @agent-os/standards/api/service-structure, @agent-os/standards/http-status\n\n## [US1] A\n- [ ] T001 [US1] x\n## [US2] B\nStandards: @agent-os/standards/react/forms\n";
+  assert.deepEqual(idsOfStory(tasks, "US1").sort(), ["api/service-structure", "http-status"]);
+  assert.deepEqual(idsOfStory(tasks, "US2").sort(), ["api/service-structure", "http-status", "react/forms"]);
+});

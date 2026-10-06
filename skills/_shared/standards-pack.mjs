@@ -82,10 +82,17 @@ export const idsOfStory = (tasksText, us) => {
   const head = new RegExp(`^##\\s+(?:\\[US${n}\\]|(?:Phase\\s+\\d+\\s*:\\s*)?User Story\\s+${n}\\b)`, "i");
   const ids = new Set();
   let inStory = false;
+  // Avant le premier `## ` : en-tete du fichier, ses ancres valent pour toutes les US.
+  let preamble = true;
   for (const line of tasksText.split(/\r?\n/)) {
-    if (/^##\s/.test(line)) inStory = head.test(line);
+    if (/^##\s/.test(line)) {
+      preamble = false;
+      inStory = head.test(line);
+    }
+    if (preamble) inStory = true;
     const labelled = new RegExp(`\\[US${n}\\]`, "i").test(line);
     if (!inStory && !labelled) continue;
+    if (preamble) inStory = false;
     for (const m of line.matchAll(/@agent-os\/standards\/[\w./-]+/g)) ids.add(normId(m[0]));
     const s = line.match(/^\s*(?:\*\*)?Standards(?:\*\*)?\s*:\s*(.+)$/i);
     if (s) for (const part of s[1].split(/[,\s]+/)) if (/^[\w./@-]+$/.test(part) && part.includes("/") || /^[a-z][\w-]+$/.test(part)) ids.add(normId(part));
