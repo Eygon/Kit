@@ -237,6 +237,9 @@ d un hook, regle d API, 409) ne se prouve bien qu isole.
    pas a un import statique pour autant. Un `vi.mock` du module pas
    encore cree : le spy passe par `vi.hoisted`, et le test importe la prod
    par const, sinon le fichier tombe au collect.
+   Date relative (« il y a 5 min ») avec userEvent :
+   `vi.useFakeTimers({ toFake: ["Date"] })`, jamais les faux timers
+   complets (userEvent attend un setTimeout et le test pend 5 s).
    Rouge compile (hors symbole manquant) : corrige le TEST.
    Vert d emblee : deja couvert, passe a la tache suivante.
 2. GREEN. Prod minimale de la tache. UNE gate, qui verifie
