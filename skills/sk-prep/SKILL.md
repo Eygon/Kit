@@ -282,6 +282,10 @@ extrait et testable (`src/engine/gameApp.ts`). Une tache CSS prend en
 `Test:` le test du module qui pose les classes. Parent d une autre
 US ou pas encore cree : `Monté dans: <fichier> (US<n>)` ET, dans US<n>, une
 tache « Monter <Nom> dans `<fichier>` » avec son test, qui rend <fichier>.
+Un helper EXISTANT mais non exporte (fonction locale d un autre module) que
+l US reutilise : la tache etend ce module pour l exporter (il entre dans les
+chemins, et dans le cap), sinon le worker le recopie (banc Miro F4 :
+`isTextFieldTarget` duplique entre deux hooks de raccourcis).
 Une methode que seule une US ULTERIEURE appelle se cree dans CETTE US-la,
 pas plus tot : livree sans appelant, elle n est executee par aucun test
 (diff-cover GAP) et sa forme se devine (banc Miro F2 : `UserRepository.Exists`
