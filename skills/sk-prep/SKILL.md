@@ -263,7 +263,11 @@ CSS prend en `Test:` le test du module qui pose les classes. Parent d une autre
 US ou pas encore cree : `Monté dans: <fichier> (US<n>)` ET, dans US<n>, une
 tache « Monter <Nom> dans `<fichier>` » avec son test, qui rend <fichier>.
 Rien a monter (utils, mapper, DTO, type, colonnes, route) : pas
-d annotation. « Brancher / Cabler / Monter » cite le fichier cible.
+d annotation. Une US qui ajoute une VARIANTE a un type deja consomme
+(union d invites, d evenements, d etats) touche aussi le consommateur qui
+l affiche ou la traite (HUD, director audio, switch), dans ses chemins ou
+par une tache ; sinon la variante sort avec le texte d une autre (banc
+jeu : invite de porte affichee comme un achat d arme). « Brancher / Cabler / Monter » cite le fichier cible.
 `Slot : wt-N` nomme par l humain -> en-tete de plan.md.
 
 ### A.3 Standards AgentOS — appliques strictement, par depot, par US
