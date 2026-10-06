@@ -226,7 +226,10 @@ const addedInRange = (root, range) => {
       .split("\n")
       .map((s) => s.trim())
       .filter(Boolean)
-      .filter((f) => mountKind(f));
+      // Tout module source ajoute, pas seulement composant/hook/service : sur une stack sans
+      // React (banc jeu three.js), le filtre mountKind rendait NONE a chaque US. Types seuls
+      // et point d entree sortent en SKIP plus loin.
+      .filter((f) => mountKind(f) || (/^src\/.*\.[jt]sx?$/.test(f) && !/(__tests__\/|\.(test|spec)\.|\.d\.ts$)/.test(f)));
   } catch {
     return null;
   }
@@ -252,7 +255,7 @@ if (isMain) {
     files = [...new Set([...explicit, ...added])];
   }
   if (!files.length) {
-    console.log("NONE aucun composant, hook ou service a controler");
+    console.log("NONE aucun module ajoute a controler");
     process.exit(0);
   }
   const tasksText = opt("tasks") ? readText(resolve(root, opt("tasks"))) : null;
