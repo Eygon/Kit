@@ -118,7 +118,7 @@ export const fillBriefs = (json, templates) => {
   const derived = derivePaths(tasks, reconPath !== "aucun" && existsSync(reconPath) ? readFileSync(reconPath, "utf8") : "");
   json.prod = [...new Set([...(json.prod || []).map(norm), ...derived.prod])];
   json.tests = [...new Set([...(json.tests || []).map(norm), ...derived.tests])];
-  const sharedNote = derived.shared.length ? `\n\n## Fichiers partages (ajout seulement)\n\n${derived.shared.map((p) => `- \`${p}\``).join("\n")} : tu peux y AJOUTER les entrees que les standards y rangent (config visuelle, textes...) ; ne modifie ni ne retire une entree existante.\n` : "";
+  const sharedNote = derived.shared.length ? `\n\n## Fichiers partages (ajout seulement)\n\n${derived.shared.map((p) => `- \`${p}\``).join("\n")} : tu peux y AJOUTER les entrees que les standards y rangent (config visuelle, textes...) ; ne modifie ni ne retire une entree existante, SAUF celle que ton US rend morte (son dernier lecteur est dans tes chemins et ne la lit plus : retire-la, grep a l appui).\n` : "";
   const acceptance = extractAcceptance(readFileSync(specPath, "utf8"), us);
   const list = (a) => (a && a.length ? a.join("\n") : "aucune");
   // Les workers rendent facts: [{fact, source}] ; recopies tels quels, ils sortaient en
