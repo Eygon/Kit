@@ -162,6 +162,18 @@ Ce que le domaine a révélé, et ce qui a été corrigé dans le kit :
 
 Le kit a aussi bien fonctionné là où on l'attendait. Les 2 ESCALATE étaient de vrais défauts de prep, et le reviewer a refusé de les trancher seul. Les contre-tests rouge→vert ont été faits, la reprise des faits d'une US à l'autre a évité des recherches répétées, et 0 standard a été violé en fin de chaîne.
 
+## Nuit du 6 au 7 octobre : nouveaux systèmes, mis à l'épreuve
+
+| Système | Ce qu'il fait | Résultat mesuré |
+|---|---|---|
+| `facts-add.mjs` | Les faits rendus par chaque worker vont automatiquement dans `facts.json`, et brief-fill les injecte aux US suivantes | Plus de recopie manuelle, ni de `[object Object]` |
+| `lanes.mjs` | Calcule les vagues d'US parallélisables (fichiers communs, réutilisation, propriétaire du montage) | Jeu : 5 à 7 vagues pour 7 ou 8 US. Proposé au GO quand il n'y a pas de parallel.yml |
+| Pilote de fusion `merge=union` | Testé pour fusionner seul les fichiers PARTAGE | **Rejeté** : il casse les objets `as const` (10 erreurs tsc) |
+| Test A/B : review par Sonnet ou par Opus | 7 US du jeu déjà revues, rejouées avec Sonnet | Sonnet seul : 3 défauts ratés sur 5, et 1 trouvé à moitié. Opus reste le reviewer |
+| `diff-cover.mjs` | Liste les lignes de prod ajoutées qu'aucun test n'exécute (lcov : vitest, jest, coverlet) | Retrouve le cylindre jamais construit (F4-US1) raté par Sonnet. Tourne à la fin du worker et dans la review |
+| Gate du reviewer = `related` + imports paresseux | Le reviewer relance aussi les tests qui chargent le module indirectement | Retrouve le test cassé (F3-US5) raté par Sonnet |
+| `reviewTier: "auto"` (expérimental, désactivé par défaut) | Première review par Sonnet pour une petite US (≤ 4 fichiers de prod) qui ne déclare aucun écart | Avec les deux contrôles ci-dessus, Sonnet rattrape 3 défauts mécaniques sur 4. Il rate encore un écart de conception, d'où le garde-fou |
+
 ## À faire de ton côté
 1. **Copier `agents/sk-worker.md` et `agents/sk-reviewer.md`** dans `~/.claude/agents/` (et `~/.cursor/agents/`). Les workflows les appellent désormais.
 2. **Index front** : 4 standards existaient sans être indexés, donc n'étaient jamais appliqués : `api/multipart-upload`, `api/request-timeouts`, `react/grid-filters`, `react/paginated-grids`. Ils sont ajoutés dans `agent-os/front/standards/index.yml` du dépôt : à reporter dans MySepteoWeb.
@@ -174,4 +186,4 @@ Le kit a aussi bien fonctionné là où on l'attendait. Les 2 ESCALATE étaient 
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 19 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 27 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
