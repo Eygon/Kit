@@ -1,0 +1,186 @@
+# Injected standards are must. Select at most _meta.maxPerGroup per group via tags.
+# Unselected standards are out of scope for that run. Skip this _meta key when matching.
+# _meta.alwaysInject is exempt from the cap: those standards apply to every file written,
+# so they are injected on every run and never compete for a slot.
+
+_meta:
+  maxPerGroup: 5
+  injectedAreMust: true
+  alwaysInject:
+    - css/tailwind-tokens
+    - septeo-library-first
+    - no-comments
+    - naming-language
+    - file-placement
+    - react/file-decomposition
+    - enums
+
+constants:
+  description: SCREAMING_SNAKE_CASE with unit suffixes (_MS/_PX), as const/readonly literals, xxxConstants.ts files, and named backend/legacy IDs with required JSDoc trace
+  tags: [typing, naming]
+
+enums:
+  description: Enum location, one-per-file, mandatory Enum suffix, SCREAMING_SNAKE_CASE members, string-vs-numeric value choice, one representation per concept, and co-located guards/option-arrays/Record maps
+  tags: [typing]
+
+file-placement:
+  description: Canonical rule for where any file lives — place every artifact (component, hook, type/dto/mapper, util) at the narrowest scope that consumes it, promote only on a wider second consumer
+  tags: [structure]
+
+naming-language:
+  description: English-only for code identifiers (components, folders, files, hooks, vars, types), with explicit verbatim exceptions for backend contract values and route URL segments
+  tags: [naming]
+
+no-comments:
+  description: Production code carries no explanatory comments — the name, the type or an extracted function says it instead; the only survivors are the JSDoc that constants requires and a machine-read directive
+  tags: [naming, structure]
+
+no-dead-files:
+  description: A file left with nothing but export {} (or no export at all) after a refactor is deleted, not kept as a placeholder — check every import and test before deleting
+  tags: [structure]
+
+septeo-library-first:
+  description: Reach for the @septeo/septeo-ui-components control before hand-rolling one — Button, Switch, Table, Modal, dropdowns and inputs are the library's job; a bare styled button is only for what the library does not cover
+  tags: [ui, css, a11y]
+
+http-status:
+  description: Use the HttpStatusCode enum for HTTP status checks — never a raw numeric literal
+  tags: [api]
+
+utils:
+  description: Shared helpers in src/utils/ — one topic folder, one function per file named after its export; storage only via KeyValueStorage; all error display via DisplayError
+  tags: [structure]
+
+accessibility:
+  focus-visibility:
+    description: Keyboard focus ring via focus-visible:outline with --primary-60 (lighter token on dark bg); extract a focusRing constant when reused
+    tags: [ui, a11y]
+  icons-and-labels:
+    description: <Icon> is always aria-hidden; icon-only controls need an aria-label (owned) or sr-only text (third-party), always via t()
+    tags: [ui, a11y, i18n]
+  live-regions:
+    description: role=alert for errors, aria-live=polite for status, aria-busy on in-flight controls; announced text via t()
+    tags: [ui, a11y, i18n]
+  modal-dialog:
+    description: Reuse the shared <Modal> built on native <dialog> + showModal(); aria-modal + aria-labelledby via useId; no hand-rolled div role=dialog
+    tags: [ui, a11y]
+  semantic-elements:
+    description: Every interactive element is a native control (<button type=button>/<a>/<ol><li>) with aria-current for active items — never a clickable <div onClick>
+    tags: [ui, a11y]
+
+api:
+  error-handling:
+    description: Reads swallow + DisplayError + safe fallback; writes DisplayError + rethrow; toast exactly once; HttpStatusCode enum
+    tags: [api]
+  service-structure:
+    description: Per-domain default-export class, static async method recipe, mandatory queryFunctions pass-through, DTO-to-model mapping & 204 semantics
+    tags: [api]
+  url-builders:
+    description: Centralized company-scoped endpoint builders in apiURL; no inline URLs; debugMode base toggle; placeholder + replace path params
+    tags: [api]
+
+css:
+  conditional-classes:
+    description: Compose conditional/variant Tailwind classes with template literals only (no clsx/cn/cva) — repeated strings to a const, multi-state logic to pure getXClasses helpers
+    tags: [ui, css]
+  scss-escape-hatch:
+    description: Tailwind utilities by default; co-located .scss only to override Septeo component internals, always @use variables and reuse var(--token)
+    tags: [ui, css]
+  tailwind-tokens:
+    description: Tailwind v4 CSS-first config; consume Septeo design-system tokens via CSS-var arbitrary values (text-(--neutral-95), text-(length:--font-size-small), rounded-(--radius)) — never the Tailwind palette
+    tags: [ui, css]
+  rem-units:
+    description: Every arbitrary Tailwind length, including ones nested inside a compound value or a library width prop, is rem never px — base 1rem = 16px, token or default scale step first
+    tags: [ui, css]
+
+error-handling:
+  error-contract:
+    description: IErrorResponse shape — translationCode preferred over legacy French validation fields; type axios errors as AxiosError<IErrorResponse>, never any
+    tags: [api]
+  ui-states:
+    description: A failed query (isError) renders SectionError (role=alert) / null / AccessDenied; no React ErrorBoundary by design
+    tags: [ui, api]
+
+react:
+  component-structure:
+    description: Atomic design levels, file structure, props/export conventions, and feature-folder co-location by scope
+    tags: [ui]
+  context-providers:
+    description: Context split into context/provider/hook files, null + throwing consumer hook, memoized provider value, RHF FormProvider for form state
+    tags: [ui]
+  data-tables:
+    description: Data table pattern — hook builds TanStack table, thin widget renders Septeo <Table>, column/cell/state conventions
+    tags: [ui]
+  file-decomposition:
+    description: One component per .tsx file; props/types, secondary components, and non-trivial helpers each move to their own file at scope — only the loading skeleton and co-located .scss may stay
+    tags: [ui]
+  forms:
+    description: Form & validation pattern — react-hook-form + zod, co-located schema/mappers, controller field wrappers, multi-step
+    tags: [ui]
+  hooks:
+    description: What belongs in a hooks/ folder, when to extract a hook, state shape (one object over many useState), named-object return shape, Loader/Query/Search naming, composing focused sub-hooks, and useCallback/useMemo discipline
+    tags: [ui]
+  infinite-scroll-grids:
+    description: Virtualized infinite-scroll grids — useInfiniteQuery page accumulation, a TableInfiniteScroll config object handed to the Septeo <Table>, derived hasNextPage, and the split first-load vs load-more error states
+    tags: [ui, api]
+  i18n:
+    description: All user-facing copy renders through i18n (t); no hardcoded display strings in components, with verbatim exceptions for backend/route contracts
+    tags: [ui, i18n]
+  mutation-cache-updates:
+    description: setQueryData for locally-known fields, invalidateQueries for server-derived data; optimistic 4-callback recipe vs plain invalidate-on-success
+    tags: [api]
+  redux-store:
+    description: Typed RTK store conventions — useAppSelector/useAppDispatch only, single typed slice state, named reducer + action exports, selectors typed on a narrow slice shape with createSelector, cross-slice reactions via extraReducers, sync orchestration thunks in actions/; async fetch in TanStack Query only (createAsyncThunk forbidden except legacy tabsCache)
+    tags: [ui]
+  routing:
+    description: Config-driven routing — RouteConfig[] + createRoute, per-domain files, lazy/Suspense; authorization per active profile via screenCode only (tabsPermissions/userPermissions declared but NOT enforced), RouteGuard resolution order, nested page routing
+    tags: [ui]
+  tanstack-query:
+    description: TanStack Query conventions — file triad, query key factory, queryTimes with the cache category fixed per domain, hook naming
+    tags: [api]
+
+testing:
+  testing-patterns:
+    description: File structure, mapper test cases, and component test pattern with mocks
+    tags: [testing]
+  mocking-conventions:
+    description: vi.mock conventions for default-export services, hooks, and form-field components (avoids false-red infra failures)
+    tags: [testing]
+
+typing:
+  boundary-narrowing:
+    description: Untrusted input enters as unknown then is narrowed via isX/parseX guards or zod safeParse; never any
+    tags: [typing]
+  dto-interface:
+    description: DTOs are always interfaces; models may be classes or interfaces
+    tags: [typing]
+  generic-unknown-slots:
+    description: Generic constraints and unused library type slots use unknown, never any
+    tags: [typing]
+  mapper-defaults:
+    description: DTO→model mappers resolve all nullability with type-appropriate defaults (null/""/0/false/[]); model fields stay concrete
+    tags: [typing]
+  mapper-dropdown-selects:
+    description: Selectable models carry value/label; xToDropdownSelects helpers prepend emptyDropdownSelect and localeCompare-sort for Septeo UI dropdowns
+    tags: [typing]
+  mapper-naming:
+    description: Naming conventions for mapper functions and transformation helpers
+    tags: [typing]
+  model-dto-mapper:
+    description: Triad of model/dto/mapper files required for every API-bound data type, one exported type per file
+    tags: [typing, structure]
+  nested-mapping-helpers:
+    description: Convert nested DTO fields/arrays with local non-exported helpers composed in the main mapper; compose existing exported mappers for typed-triad sub-objects; export empty*/EMPTY_* default instances; promote to a dedicated triad only when reused elsewhere
+    tags: [typing]
+  param-base-class:
+    description: Param base class for referential types mapped to backend param tables
+    tags: [typing]
+  partial-update-builder:
+    description: Build partial-update (PATCH) payloads with buildXDto — assign a key only when !== undefined; coerce cleared optional inputs to null
+    tags: [typing]
+  read-write-dto:
+    description: A read/write resource has decoupled DTOs — an optional-field read DTO, a required-but-nullable create DTO (SaveXDto), and an optional-field patch DTO (UpdateXDto); write DTOs drop read-only fields
+    tags: [typing]
+  test-double-assertion:
+    description: as unknown as T (double assertion) is allowed only in tests for partial mocks; production code must narrow instead
+    tags: [typing, testing]

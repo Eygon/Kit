@@ -1,0 +1,127 @@
+# Agent OS Standards Index
+
+architecture:
+  di-auto-registration:
+    description: Four naming suffixes (*Service, *Repository, *Factory, *Context) auto-registered as Scoped
+  interface-file-structure:
+    description: Interface in Interfaces/ subfolder, separate file from implementation
+  layer-base-classes:
+    description: Service<TRepo> and Repository<TContext> are mandatory base classes
+  service-repository-responsibilities:
+    description: Business logic lives in the Service; the Repository only reads/writes data — except building an IQueryable for EF Core
+
+authentication:
+  company-scoped-identity:
+    description: The userIds claim is a userId:COMPANY map resolving per-company identity via JwtHelper; claim keys are Constants.Jwt consts. The MySepteo-issued token carrying it is legacy.
+  jwt-validation:
+    description: Accept Azure AD v1 + v2 issuers and the custom MySepteo HMAC issuer (legacy); signing keys = Azure OIDC + optional JwtSecret; audiences = API + Gateway
+
+authorization:
+  authorization-policies:
+    description: Policy names are const in Constants.Policies (Domain.Action[.Scope]); add to Policies.Roles for auto-registration via AddApplicationPolicies; routes use [Authorize(Policy = Policies.X)]
+  company-access:
+    description: AuthorizedCompanyMiddleware authorizes a user token if the company is in its userIds (GROUPE_SEPTEO always), an app token if the company is in its Company.* roles or ALL; else 403
+  policy-evaluation:
+    description: Every policy + a global fallback passes for an authenticated user (Scope claim), the MySepteo gateway (aud), or a trusted application (client-id allow-list); app tokens also need the role
+
+configuration:
+  iconfig-binding:
+    description: Strongly-typed config classes implement IConfig (static Section); Helper.AddConfigurations reflects & registers IOptions<ConfigXxx> automatically; consume via IOptions<T>
+  required-optional-config:
+    description: Config classes signal mandatory keys with `required`, optional keys with T? and inline defaults — the same type-driven signal as input DTOs
+  secrets:
+    description: Secret-bearing config properties are bound from configuration; real values come from environment variables (container/K8s), never hardcoded or committed to appsettings
+  tenant-connection-strings:
+    description: Per-tenant connection strings are composed from a Pattern template + Databases list in ConfigConnectionStrings.Get(company), not stored per company
+
+controllers:
+  binding-conventions:
+    description: Binding sources always explicit ([FromRoute]/[FromBody]/[FromQuery]/[FromServices]); integer id route params use the :int constraint
+  controller-patterns:
+    description: Controller base class inheritance, [FromServices] per-action injection, [Authorize(Policy)] mandatory
+  controller-return-type:
+    description: Actions return Task<ActionResult<T>> for explicit status control — never a bare Task<TDto>
+  current-user-resolution:
+    description: Resolve the caller from the JWT via base helpers; return the canonical 401 message when unidentified
+  http-204-no-content:
+    description: A GET that finds nothing returns HTTP 204 No Content — not 404, not 200 with an empty body
+  http-response-contract:
+    description: Every action declares its full [ProducesResponseType] set — success code plus every other status it can return
+
+data-access:
+  dbcontext-conventions:
+    description: One DbContext per business domain inheriting BaseDbContext<TContext>; DbSets as expression-bodied => Set<T>(); base does UseSqlServer + DEBUG-only diagnostics
+  ef-entity-type-configuration:
+    description: All EF mapping in IEntityTypeConfiguration<T> — never [Table]/[Column]/[Key]/[ForeignKey]; attribute wiring for DbSet entities, ApplyConfiguration for non-DbSet parents
+  ef-no-migrations:
+    description: Schema managed outside this project — never run dotnet ef migrations add or create Migrations/
+  ef-query-patterns:
+    description: Reads use AsNoTracking + .Select() projection; writes must NOT use AsNoTracking
+  get-by-key:
+    description: Use the base Repository Get<T>(DbSet, id) helper for a by-PK load (FindAsync); it rejects Id==0. Data reads use AsNoTracking + .Select projection instead.
+  multi-tenant-db-context:
+    description: Never instantiate DbContext directly — tenant routing via ICurrentDbContextFactory
+  query-extensions:
+    description: Complex or multi-repository Include/filter chains live as static IQueryable<T> extensions in DAL/Queries; simple one-off filters stay inline in the repository
+  query-input-safety:
+    description: Client-controlled ordering must go through a static whitelist map (string never reaches SQL); contains-search must escape LIKE wildcards
+  repository-returns-dto:
+    description: Repositories project/map reads to DTOs (or scalars), not entities; returning a tracked entity is reserved for multi-step transactional writes the service owns
+  scoped-request-state:
+    description: ICurrentCompanyAccessor / ICurrentDbContextFactory are Scoped per-request — written by middleware, read by repositories; never Singleton (would leak a tenant's DB across requests)
+  tenant-resolution:
+    description: CurrentDbContextMiddleware maps the {company} route value (upper, default GROUPE_SEPTEO) to a connection string and sets ICurrentDbContextFactory + ICurrentCompanyAccessor; unknown company → 400
+  tph-discriminators:
+    description: Entity hierarchies use Table-Per-Hierarchy via HasDiscriminator; discriminator values are named constants in DAL/Discriminators/, never magic literals
+
+dto:
+  dto-cross-field-validation:
+    description: PATCH DTOs expose a HasAnySuppliedValue aggregate; a class-level ValidationAttribute rejects a no-op (all-absent) payload
+  dto-shape:
+    description: DTOs are public sealed record (unsealed only when a base of a hierarchy); { get; init; } by default and { get; set; } only where binding needs it; XML-doc'd properties; collections default to []
+  nullable-as-required:
+    description: Input DTO required-ness — optional via nullable type; mandatory via the `required` modifier (value-constraint DataAnnotations like [Range]/[MinLength] are allowed but not mandatory). External* DTOs are a known deviation.
+  optional-patch:
+    description: Optional<T> distinguishes "field not sent" from "field set to null" in PATCH DTOs
+  optional-validation-attributes:
+    description: Validate Optional<T> properties with the [Optional*] attribute family — plain [Range]/[StringLength] silently skip Optional<T> and validate nothing
+
+error-handling:
+  domain-exceptions:
+    description: Services throw BadRequestException/ForbiddenException/ResourceNotFoundException; ExceptionHandlingMiddleware maps them to 400/403/404. Controllers don't catch.
+
+global:
+  no-hardcoded-values:
+    description: Never hardcode limits/thresholds/business values — use a named constant or a parameter
+  sealed-by-default:
+    description: Classes and records are sealed by default across every layer (Controllers, DTO, DAL, Services, Repositories); drop sealed only for a deliberate base type, and confirm intent with the author when a type becomes a parent
+
+mappers:
+  manual-mappers:
+    description: Entity↔DTO mapping via manual static extension methods — never AutoMapper or Mapster
+  mapper-base-fill:
+    description: For inheritance hierarchies, a base mapper fills shared fields on an already-built derived DTO (_ = derived.ToBaseDto(dto)); it returns the DTO, discarded by the caller
+  mapper-composition:
+    description: Map nested objects via null-conditional child mappers (child?.ToChildDto()); map collections via spread [.. seq.Select(x => x.ToDto())]. Never re-inline a child's mapping.
+  mapper-null-defaults:
+    description: The mapper coalesces nullable entity columns into the DTO's non-null shape with explicit defaults (?? string.Empty, enum default, fallback field)
+  mapper-preloaded-navigations:
+    description: Mappers read only navigations the repository already Include'd; they never lazy-load. Document the required Include where non-obvious.
+
+middleware:
+  middleware-authoring:
+    description: sealed XxxMiddleware with (RequestDelegate, ILogger) ctor; inject scoped deps into Invoke(...) not the ctor (middleware is singleton); paired UseXxxMiddleware extension
+  pipeline-ordering:
+    description: Custom middleware order — UseAuthentication/Authorization first, then ExceptionHandling → CurrentDbContext → AuthorizedCompany; company resolved before it is authorized
+
+services:
+  post-commit-side-effects:
+    description: Any non-transactional side-effect after a successful commit (email, notification, external call) is best-effort — try/catch + log, never fail the persisted write
+  service-composition:
+    description: A service depends on other domains' services (interfaces), never their repositories; inherit Service<TRepo> only when the service owns a repository
+  service-validation:
+    description: Business rules DataAnnotations can't express are enforced in the service via guard checks throwing domain exceptions; no-op PATCH short-circuited via HasAnySuppliedValue
+
+testing:
+  testing-conventions:
+    description: NUnit 4 + NSubstitute + Shouldly, AAA pattern — no Repository tests, no EF In-Memory
