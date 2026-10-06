@@ -31,7 +31,7 @@ modifie (il ajoute des regles a specify, plan, tasks et sanity).
 | URL `claude.ai/design/p/...` ou lien Figma | `<REF>/design.md` (remplace la section 0) |
 | chemin `docs/legacy-search/*.md` | `<REF>/legacy.md` (0bis) |
 | chemin `docs/code-search/*.md` | `<REF>/code-search.md` (0ter) |
-| un contrat a ecrire dans contracts/ (endpoint appele, nouveau ou dicte par l humain), OU `backend` renseigne ET besoin qui touche l API, OU un champ d AC qui doit etre SERVI par une API ou une base et qui vient d un legacy, d un mockup ou d un autre systeme (un champ derive cote front d une donnee existante ne le declenche pas) | `<REF>/contracts.md` |
+| un contrat a ecrire dans contracts/ (endpoint appele, nouveau ou dicte par l humain), OU `backend` renseigne ET besoin qui touche l API, OU un champ d AC qui doit etre SERVI par une API ou une base et qui vient d un legacy, d un mockup ou d un autre systeme (un champ derive cote front d une donnee existante ne le declenche pas ; appeler en lecture un endpoint EXISTANT, sans champ nouveau, non plus : cite-le dans les Verified facts) | `<REF>/contracts.md` |
 
 ## 0. Sonde (UN appel Bash, avant toute autre action)
 
@@ -185,7 +185,10 @@ Une valeur, une option ou une donnee que le besoin nomme et que le depot
 n a pas (enum sans la valeur, DTO sans le champ) : ni inventee, ni retiree
 en silence — c est une question. Garde les 1-3 questions dont la reponse CHANGE une US, une AC ou une tache
 (au moins une, sauf spec deja entiere), chacune avec 2-4 options et ta
-recommandation en premier. Derniere question : le filet — les hypotheses
+recommandation en premier. Un manque decouvert APRES clarify, en ecrivant
+tasks.md (prop absente de la lib, endpoint manquant) : UNE question tardive
+est permise, avant tasks.md, tracee dans `## Clarifications` ; la reponse
+corrige la spec avant d ecrire les taches. Derniere question : le filet — les hypotheses
 que tu as prises (portee, cas limites, regles), a valider ou corriger —
 et, sans 0quater, les US retenues pour CE run (toutes par defaut ; deja
 tranchees en 0quater : ne les repose pas).
@@ -225,14 +228,18 @@ Ordre d ecriture : spec.md -> pack de standards (A.3, il ne depend que des
 ids choisis) -> plan.md (avec `## Standards`) -> recon.md (A.4bis) -> tasks.md.
 
 **plan.md** (gabarit `<TPL>/plan.md`) — la synthese recon sous
-`## Verified facts` (`chemin:lignes` + symbole + fait, recopies des
-rapports), les standards (A.3), la table des fichiers touches par US, les
+`## Verified facts` (une ligne par fait : `` `chemin:12-20` — `Symbole` — fait ``,
+recopies des rapports ; le lint prend le PREMIER code span apres le
+chemin comme symbole et lit tout « ligne N » / « line N » comme un numero :
+pas de numero en prose), les standards (A.3), la table des fichiers touches par US, les
 decisions. Artefacts conditionnels, fichiers vides INTERDITS : research.md
 (decision qui demande plus de 3 lignes), data-model.md (entite ou champ
 nouveau), contracts/ (interface qui change, chaque champ source),
 quickstart.md (procedure manuelle non triviale).
 
-**tasks.md** — ecrit UNE fois, directement dans ce format, que
+**tasks.md** — tout chemin cite dans une tache compte dans son cap, SAUF
+derriere `Code:` / `Test:` / `Monté dans:` : un fichier modele se cite en
+`Code:`, jamais dans la prose. Ecrit UNE fois, directement dans ce format, que
 brief-fill.mjs, audit-lint.mjs et mount-check.mjs lisent :
 
   # Tasks: <titre>
