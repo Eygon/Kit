@@ -85,6 +85,9 @@ const REVIEW_SCHEMA = {
     // What the reviewer fixed itself, and the commit that carries it.
     fixes: { type: 'array', items: NOTE_SCHEMA },
     commit: { type: 'string' },
+    // sha256 of CONTRACT_PATH as the reviewer measured it (check 9). The after-parallel engine
+    // reads the freeze from it instead of paying a dedicated hash agent on the critical path.
+    contractSha256: { type: 'string' },
   },
 }
 
@@ -176,6 +179,7 @@ function applyReview(row, out, verdict) {
   const fixes = out && typeof out === 'object' ? notesOf(out.fixes) : []
   if (fixes.length) row.reviewFixes = (row.reviewFixes || []).concat(fixes)
   // Any reviewer commit is recorded, whatever the verdict: the closing checks each one.
+  if (out && typeof out === 'object' && /^[0-9a-f]{64}$/i.test(String(out.contractSha256 || '').trim())) row.contractSha256 = String(out.contractSha256).trim().toLowerCase()
   if (out && typeof out === 'object' && String(out.commit || '').trim()) row.reviewCommits = (row.reviewCommits || []).concat([String(out.commit).trim()])
   if (verdict === 'PASS' || verdict === 'FIXED') {
     const notes = issuesOf(out)

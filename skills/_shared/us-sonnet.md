@@ -227,6 +227,10 @@ d un hook, regle d API, 409) ne se prouve bien qu isole.
      const M = "<alias/chemin>"; const { X } = await import(/* @vite-ignore */ M)
    un chemin litteral est resolu au collect et fait tomber
    tout le fichier au lieu d un rouge par test.
+   Avant que le fichier de prod existe, chaque `it` echoue sur « Cannot
+   find package <alias>/... » ou « Failed to resolve import » : C EST le
+   RED attendu (un rouge par test, pas un crash du fichier). Ne repasse
+   pas a un import statique pour autant.
    Rouge compile (hors symbole manquant) : corrige le TEST.
    Vert d emblee : deja couvert, passe a la tache suivante.
 2. GREEN. Prod minimale de la tache. UNE gate, qui verifie

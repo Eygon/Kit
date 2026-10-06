@@ -170,6 +170,8 @@ seul commit DONE.
    de CONTRACT_PATH doit matcher. Mutation yaml
    (reformat, champ ajoute, reordre) : FAIL, le fix restaure
    le fichier (tu ne touches pas au contrat).
+   Rends TOUJOURS le sha256 mesure dans `contractSha256` (sortie) : le
+   moteur s en sert comme gel du contrat au lieu de lancer un agent dedie.
 <!-- /if:contract -->
 10. Montage — mecanique, UNE commande pour tout ce que l US a ajoute :
      node "<SK_SHARED>/mount-check.mjs" --root "<SLOT_CWD>" --range "<US_BASE>..HEAD" --tasks "<TASKS_PATH>"
@@ -239,3 +241,6 @@ Le workflow impose un schema : remplis ces champs, rien d autre.
   defaut). [] si rien.
 - commit : le SHA court de ton commit `sk-impl REVIEW(<US_ID>)`, vide
   si tu n as rien corrige.
+<!-- if:contract -->
+- contractSha256 : `sha256sum <CONTRACT_PATH>` mesure en fin de revue.
+<!-- /if:contract -->

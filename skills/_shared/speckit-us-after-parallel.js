@@ -98,6 +98,9 @@ const REVIEW_SCHEMA = {
     // What the reviewer fixed itself, and the commit that carries it.
     fixes: { type: 'array', items: NOTE_SCHEMA },
     commit: { type: 'string' },
+    // sha256 of CONTRACT_PATH as the reviewer measured it (check 9). The after-parallel engine
+    // reads the freeze from it instead of paying a dedicated hash agent on the critical path.
+    contractSha256: { type: 'string' },
   },
 }
 
@@ -189,6 +192,7 @@ function applyReview(row, out, verdict) {
   const fixes = out && typeof out === 'object' ? notesOf(out.fixes) : []
   if (fixes.length) row.reviewFixes = (row.reviewFixes || []).concat(fixes)
   // Any reviewer commit is recorded, whatever the verdict: the closing checks each one.
+  if (out && typeof out === 'object' && /^[0-9a-f]{64}$/i.test(String(out.contractSha256 || '').trim())) row.contractSha256 = String(out.contractSha256).trim().toLowerCase()
   if (out && typeof out === 'object' && String(out.commit || '').trim()) row.reviewCommits = (row.reviewCommits || []).concat([String(out.commit).trim()])
   if (verdict === 'PASS' || verdict === 'FIXED') {
     const notes = issuesOf(out)
@@ -417,7 +421,12 @@ if (!barrier && parallelGroups.length === 0) {
   ok = false
   stopped = true
 } else {
-  frozenHash = parentChecksHash ? String(cfg.expectedHash) : await readHash('hash:after-barrier')
+  // The barrier reviewer measured the contract (check 9): its sha256 is the freeze. A dedicated
+  // hash agent is paid only when that review did not return one.
+  frozenHash = parentChecksHash ? String(cfg.expectedHash)
+    : (barrierResult && barrierResult.contractSha256) ? barrierResult.contractSha256
+    : await readHash('hash:after-barrier')
+  if (barrierResult && barrierResult.contractSha256) log('freeze du contrat lu sur la revue de la barriere')
   if (collidingRoots(parallelGroups)) {
     log('meme racine — fan-out refuse, sequentiel')
     for (let i = 0; i < parallelGroups.length; i++) {
@@ -432,7 +441,12 @@ if (!barrier && parallelGroups.length === 0) {
     log('parallel worker ko — ok=false')
   }
   if (ok && cfg.hashPrompt && !parentChecksHash) {
-    const later = await readHash('hash:after-parallel')
+    // Each parallel reviewer re-measured the contract after its worker: when they all did, no
+    // hash agent is needed; any reviewer that did not makes the engine pay one.
+    const measured = parallelResults.map(function (r) { return r && r.contractSha256 }).filter(Boolean)
+    const allMeasured = measured.length === parallelResults.length && measured.length > 0
+    const drift = allMeasured ? measured.find(function (h) { return h !== frozenHash }) : null
+    const later = allMeasured ? (drift || frozenHash) : await readHash('hash:after-parallel')
     // An unreadable hash proves nothing: never read it as "no drift".
     if (!frozenHash || !later) {
       ok = false
