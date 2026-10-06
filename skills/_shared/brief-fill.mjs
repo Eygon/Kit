@@ -97,6 +97,7 @@ export const fillBriefs = (json, templates) => {
     ["<RECON_PATH ou aucun>", reconPath],
     ["<RECON_PATH ou vide>", reconPath === "aucun" ? "vide" : reconPath],
     ["<CONTRACT_PATH ou vide>", json.contractPath || "vide"],
+    ["<CONTRACT_PATH>", json.contractPath || "vide"],
     ["<CONTRACT_HASH ou vide>", json.contractHash || "vide"],
     ["<DESIGN_PATH ou aucun>", json.designPath || "aucun"],
     ["<DESIGN_PATH ou vide>", json.designPath || "vide"],
