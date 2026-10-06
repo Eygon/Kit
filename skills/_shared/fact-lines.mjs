@@ -37,6 +37,7 @@ export function relocate(lines, symbol, from, to) {
     if (best < 0 || Math.abs(i + 1 - from) < Math.abs(best + 1 - from)) best = i;
   });
   if (best < 0) return { missing: true };
+  if (best + 1 === from) return null;
   return { from: best + 1, to: best + 1 + (to - from) };
 }
 
