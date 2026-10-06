@@ -82,6 +82,22 @@ Sans reponse a ces items, n ecris pas design.md.
 
 ### 0.3 Extraction : design.md = contrat, pas resume
 
+Delegue l ecriture a UN agent Sonnet (Agent, subagent_type
+general-purpose, model sonnet), une fois les reponses 0quater
+obtenues. Son prompt : les sections 0.3 et 0.4 de CE fichier
+(chemin, a lire), les reponses 0quater, la liste des fichiers
+importes (contenu deja lu : passe les chemins ou colle-le), le
+chemin de design-tokens.md, le depot pour verifier les cibles,
+le chemin de sortie, et « un point que tu ne peux pas trancher
+depuis les reponses = ligne §5 `pending`, pas de choix par
+defaut ». Mesure : 0,50 $ et 2 min, au lieu de ~2 $ inline, a
+qualite egale sur les valeurs. A son retour, relis seulement
+§2 et §5 : chaque `pending` part dans la question de clarify
+(A.2), et une zone que la feature exige sans qu elle soit dans
+le mockup (point d entree, bouton d ouverture) recoit sa section
+`## C<n>`. Agent indisponible (Cursor sans sous-agent) : ecris-le
+toi-meme, memes regles.
+
 Ecris FEATURE_DIR/design.md AVANT specify (la spec le
 cite dans ses AC : "conforme a design.md §X"). Structure :
 
