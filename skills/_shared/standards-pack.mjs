@@ -70,6 +70,26 @@ export const indexIds = (yml) => {
   return ids;
 };
 
+// tags of each id, read from the index (`tags: [ui, css]`).
+export const indexTags = (yml) => {
+  const tags = new Map();
+  let group = null, last = null;
+  for (const l of yml.split(/\r?\n/)) {
+    const g = l.match(/^([\w.-]+):\s*$/);
+    const c = l.match(/^ {2}([\w.-]+):\s*$/);
+    const t = l.match(/^\s+tags:\s*\[([^\]]*)\]/);
+    const d = l.match(/^ {2}description:/);
+    if (g) { group = g[1]; last = null; }
+    else if (c && group) last = group + "/" + c[1];
+    else if (d && group) last = group;
+    if (t && last) tags.set(last, t[1].split(",").map((x) => x.trim()).filter(Boolean));
+  }
+  return tags;
+};
+
+const UI_ONLY = new Set(["ui", "css", "a11y"]);
+const UI_FILE = /\.(?:tsx|jsx|css|scss|vue|cshtml|razor)$|(?:^|\/)use[A-Z]\w*\.[jt]s$/;
+
 export const alwaysOf = (yml) => {
   const m = yml.match(/alwaysInject:\s*\n((?:[ \t]+-[ \t]+.+\n?)+)/);
   return m ? [...m[1].matchAll(/-\s+(\S+)/g)].map((x) => normId(x[1])) : [];
@@ -123,12 +143,24 @@ const ownChecks = (head) => {
   return out.filter((c) => c.re);
 };
 
-export const buildPack = ({ root, ref, ids }) => {
+export const buildPack = ({ root, ref, ids, prodPaths }) => {
   const yml = readAt(root, ref, `${STD_DIR}/index.yml`);
   if (yml === null) return { error: `${STD_DIR}/index.yml absent de ${root}${ref ? ` sur ${ref}` : ""}` };
   const known = indexIds(yml);
   const always = alwaysOf(yml);
-  const wanted = [...new Set([...always, ...ids.map(normId)])];
+  let wanted = [...new Set([...always, ...ids.map(normId)])];
+  // Une US sans fichier d interface (service, hook, DTO, C#) ne recoit pas les standards purement
+  // UI/CSS : ils ne s exercent sur aucun de ses fichiers (pack US1 data layer : 41 Ko -> ~20 Ko).
+  const skipped = [];
+  if (Array.isArray(prodPaths) && prodPaths.length && !prodPaths.some((p) => UI_FILE.test(p))) {
+    const tags = indexTags(yml);
+    wanted = wanted.filter((id) => {
+      const t = tags.get(id);
+      const uiOnly = t && t.length && t.every((x) => UI_ONLY.has(x));
+      if (uiOnly) skipped.push(id);
+      return !uiOnly;
+    });
+  }
   const unknown = [];
   const parts = [];
   const checks = [];
@@ -147,6 +179,7 @@ export const buildPack = ({ root, ref, ids }) => {
     "# Standards de cette US — MUST",
     "",
     `Depot : ${root}${ref ? ` (${ref})` : ""}. Standards : ${wanted.join(", ")}.`,
+    ...(skipped.length ? [`Ecartes (UI seulement, aucun fichier d interface dans l US) : ${skipped.join(", ")}.`] : []),
     "Chaque fichier de prod que tu ecris ou modifies les respecte. Un ecart est un defaut de revue",
     "(check 11), au meme titre qu un AC non tenu. Les controles mecaniques en fin de fichier se",
     "lancent en UNE commande : node <SK_SHARED>/standards-pack.mjs check --root <slot> --pack <ce fichier>.",
@@ -155,7 +188,7 @@ export const buildPack = ({ root, ref, ids }) => {
   const machine = checks.length
     ? "\n## Controles mecaniques\n\n```json\n" + JSON.stringify(checks, null, 0).replace(/},{/g, "},\n{") + "\n```\n"
     : "\n## Controles mecaniques\n\naucun pour ces standards.\n";
-  return { text: header + "\n" + parts.join("\n") + machine, ids: wanted, unknown, checks: checks.length };
+  return { text: header + "\n" + parts.join("\n") + machine, ids: wanted, unknown, skipped, checks: checks.length };
 };
 
 const addedLines = (root, mode) => {

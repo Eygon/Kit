@@ -86,7 +86,7 @@ export const fillBriefs = (json, templates) => {
   // lus dans le depot de l US (standardsRoot : le slot front, ou le slot back pour une US back).
   const standardsRoot = json.standardsRoot || json.slot;
   const standardsIds = [...new Set([...(json.standards || []), ...idsOfStory(readFileSync(tasksPath, "utf8"), us)])];
-  const pack = json.noStandardsPack ? null : buildPack({ root: standardsRoot, ref: json.standardsRef || null, ids: standardsIds });
+  const pack = json.noStandardsPack ? null : buildPack({ root: standardsRoot, ref: json.standardsRef || null, ids: standardsIds, prodPaths: json.prod || [] });
   const packPath = pack && !pack.error ? join(json.briefsDir || join(dir, "briefs"), `${us}-standards.md`) : null;
   const common = [
     ["<SLOT_CWD>", json.slot],
