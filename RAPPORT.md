@@ -202,6 +202,17 @@ Ce que F2 et F3 ont apporté au kit :
 - **Moteur Workflow** : les faits d'un worker passent aux US suivantes du même dépôt pendant le run. Avant, ils n'arrivaient qu'après.
 - Le worker repasse l'import paresseux du RED en statique après GREEN ; un cas de contrat hors seed se teste en substituant le service.
 
+**Miro F3 (annuler / rétablir, front seul)**, volontairement préparée AVANT la fusion de F2 pour tester la dérive :
+
+| Étape | Mesure |
+|---|---|
+| Prep (3 US, 11 tâches) | 3,71 $ · 8 min · 0 finding |
+| GO après la fusion de F2 | le lint (qui lit maintenant la ref) trouve 7 faits décalés, et `fact-lines.mjs` les recale en une commande |
+| Impl (3 US) | 4,30 $. Front 253 tests, tout vert, fusionné |
+| Dérive de structure | T008 demandait de « créer » des types livrés depuis par F2. Le worker s'est arrêté avec la preuve au lieu de casser un consommateur. Arbitrage : garder l'existant et supprimer un service en doublon. Nouvelle règle de lint `task-creates-existing`, vérifiée au GO |
+
+Prep F4 (connecteurs, 8 US, 37 tâches) : 4,03 $. Nouvel outil `cap-check.mjs` : il mesure l'esquisse de découpage AVANT clarify, avec le même compte que le lint. 3 preps sur 4 redécoupaient après la réponse de l'humain.
+
 Défauts du kit révélés par F1, et corrigés :
 - Le brief d'une US back renvoyait à `specs/...` en relatif, alors que le trio vit dans le dépôt front. Il donne maintenant le chemin absolu.
 - Les faits du back (SQLite, horloge figée) arrivaient dans les briefs front. Ils sont maintenant rangés par dépôt (`--slot`).
@@ -221,4 +232,4 @@ Défauts du kit révélés par F1, et corrigés :
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 34 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 35 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
