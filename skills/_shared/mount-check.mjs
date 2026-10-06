@@ -198,6 +198,11 @@ export const checkMounts = ({ root, files, tasksText = null }) => {
     // prouve par un test d integration, pas par un import (banc L : 4 faux UNMOUNTED sur du .cs).
     if (!SOURCE.test(rel)) return { file: rel, kind: "other", status: "SKIP", reason: "hors JS/TS : montage prouve par le test d integration de l US" };
     if (text === null) return { file: rel, kind, status: "UNMOUNTED", reason: "fichier absent" };
+    // Point d entree (charge par index.html ou nomme main/index a la racine de src) : c est la
+    // racine du montage, personne ne l importe (banc jeu : main.ts UNMOUNTED a chaque US).
+    const html = readText(join(root, "index.html")) || "";
+    if (/^src\/(?:main|index)\.[jt]sx?$/.test(rel) || html.includes(`/${rel}`) || html.includes(`"${rel}"`))
+      return { file: rel, kind: "entry", status: "SKIP", reason: "point d entree, racine du montage" };
     // Un fichier qui n exporte que des types (props, DTO) n a rien a monter : les workers le
     // passaient en argument et recevaient un UNMOUNTED a justifier (banc, 3 workers sur 4).
     if (!mountKind(rel) && exportedNames(text).length === 0 && /\bexport\s+(?:type|interface)\b/.test(text))
