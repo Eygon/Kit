@@ -272,9 +272,12 @@ Une methode que seule une US ULTERIEURE appelle se cree dans CETTE US-la,
 pas plus tot : livree sans appelant, elle n est executee par aucun test
 (diff-cover GAP) et sa forme se devine (banc Miro F2 : `UserRepository.Exists`
 en US2, appelee en US3).
-Rien a monter (utils, mapper, DTO, type, colonnes, route, query keys et
-query functions, controleur ASP.NET decouvert par MapControllers, service
-ou repository .NET auto-enregistre) : pas d annotation. Une US qui ajoute une VARIANTE a un type deja consomme
+Rien a monter (utils purs, mapper, DTO, type, colonnes, route, controleur
+ASP.NET decouvert par MapControllers, service ou repository .NET
+auto-enregistre) : pas d annotation. Une query function ou une query key
+creee sans son hook dans la meme US porte `Monté dans: <hook> (US<n>)` :
+mount-check la controle comme tout module (banc Miro F2 : `fetchUsers`
+livre sans lecteur). Une US qui ajoute une VARIANTE a un type deja consomme
 (union d invites, d evenements, d etats) touche aussi le consommateur qui
 l affiche ou la traite (HUD, director audio, switch), dans ses chemins ou
 par une tache ; sinon la variante sort avec le texte d une autre (banc
