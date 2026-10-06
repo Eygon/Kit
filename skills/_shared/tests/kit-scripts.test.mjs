@@ -169,3 +169,24 @@ test("derivePaths opens the recon.md PARTAGE files to every story", async () => 
   assert.deepEqual(r.shared, ["src/config/visualConfig.ts", "src/ui/texts.ts"]);
   assert.ok(r.prod.includes("src/config/visualConfig.ts"));
 });
+
+test("brief-fill renders worker facts given as {fact, source} objects", async () => {
+  const { mkdtempSync, writeFileSync, readFileSync, mkdirSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join, dirname } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const here = dirname(fileURLToPath(import.meta.url));
+  const slot = mkdtempSync(join(tmpdir(), "bf-"));
+  const fd = join(slot, "specs", "001-x");
+  mkdirSync(join(fd, "briefs"), { recursive: true });
+  writeFileSync(join(fd, "tasks.md"), "## [US1] X\n- [ ] T001 [US1] Create `src/a/b.ts` — Test: `src/__tests__/a/b.test.ts`\n");
+  writeFileSync(join(fd, "spec.md"), "### User Story 1 - X\n**Acceptance Scenarios**:\n1. **Given** a, **When** b, **Then** c.\n");
+  const json = join(fd, "briefs", "US1.json");
+  writeFileSync(json, JSON.stringify({ featureDir: fd, slot, us: "US1", skShared: join(here, ".."), lecture: [], facts: [{ fact: "le stick vit dans #app", source: "src/e/t.ts:12" }, "fait texte"] }));
+  try { execFileSync("node", [join(here, "..", "brief-fill.mjs"), json, "--out", join(fd, "briefs")], { cwd: slot, encoding: "utf8" }); } catch {}
+  const brief = readFileSync(join(fd, "briefs", "US1-worker.md"), "utf8");
+  assert.match(brief, /- le stick vit dans #app — source: src\/e\/t\.ts:12/);
+  assert.match(brief, /- fait texte/);
+  assert.doesNotMatch(brief, /object Object/);
+});

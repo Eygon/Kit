@@ -121,7 +121,10 @@ export const fillBriefs = (json, templates) => {
   const sharedNote = derived.shared.length ? `\n\n## Fichiers partages (ajout seulement)\n\n${derived.shared.map((p) => `- \`${p}\``).join("\n")} : tu peux y AJOUTER les entrees que les standards y rangent (config visuelle, textes...) ; ne modifie ni ne retire une entree existante.\n` : "";
   const acceptance = extractAcceptance(readFileSync(specPath, "utf8"), us);
   const list = (a) => (a && a.length ? a.join("\n") : "aucune");
-  const facts = json.facts && json.facts.length ? json.facts.map((f) => "- " + f).join("\n") : "Aucun fait transmis : recon.md fait foi.";
+  // Les workers rendent facts: [{fact, source}] ; recopies tels quels, ils sortaient en
+  // « [object Object] » (banc jeu : 22 faits perdus sur une feature entiere).
+  const factLine = (f) => (f && typeof f === "object" ? `${f.fact}${f.source ? ` — source: ${f.source}` : ""}` : String(f));
+  const facts = json.facts && json.facts.length ? json.facts.map((f) => "- " + factLine(f)).join("\n") : "Aucun fait transmis : recon.md fait foi.";
   // Standards : corps des standards de l US (alwaysInject + ancres de tasks.md + json.standards),
   // lus dans le depot de l US (standardsRoot : le slot front, ou le slot back pour une US back).
   const standardsRoot = json.standardsRoot || json.slot;

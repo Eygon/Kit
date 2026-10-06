@@ -143,6 +143,7 @@ Ce que le domaine a révélé, et ce qui a été corrigé dans le kit :
 - **Recette du RED par import paresseux** : un test sans `import` devient un script global, d'où des collisions TS2451 qui apparaissent ou non selon le cache `tsc`. Désormais : `export {};` en tête.
 - **Config partagée hors des chemins de l'US** (`visualConfig.ts`) : 2 ESCALATE de suite. Ajout d'une ligne `PARTAGE` dans recon.md : ces fichiers sont ouverts en ajout seul à toutes les US, et le reviewer le sait.
 - **Partie de fichier qu'un standard range ailleurs** (textures) : la prep la déclare maintenant en compagnon, et le test de ce compagnon rejoint la liste des tests du brief.
+- **Faits rendus en `[object Object]`** : les workers renvoient `facts: [{fact, source}]`, mais brief-fill ne savait afficher que du texte. Recopiés tels quels, les faits devenaient illisibles, et une feature entière en a perdu 22. Les deux formats sont maintenant acceptés, avec test.
 - **`main.ts` signalé « non monté »** à chaque US : un point d'entrée est maintenant la racine du montage.
 - Clarifications de prep : ordre d'écriture, `Monté dans:` pour la logique appelée, point d'entrée non rendable, interdits limités à un dossier.
 
