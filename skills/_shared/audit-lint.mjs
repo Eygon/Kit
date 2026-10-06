@@ -887,6 +887,26 @@ export const lintSpec = (dir, opts = {}) => {
   const at = (t) => `tasks.md:${t.line}`;
   const tid = (t) => t.id || `ligne ${t.line}`;
 
+  // Module cree sans note de montage, que seule une US ULTERIEURE lit (son nom dans une de ses
+  // taches, aucune tache de sa propre US) : livre sans lecteur, mount-check le dira UNMOUNTED en
+  // fin d US (banc Miro F2 : fetchUsers en US8, lu par le hook de US9).
+  for (const t of tasks) {
+    if (t.mounts.length || !t.story) continue;
+    for (const c of t.created) {
+      if (mountKind(c) || PURE_TYPE_FILE.test(c) || !/\.(?:[jt]sx?)$/.test(c)) continue;
+      const stem = basename(c).replace(/\.[^.]+$/, "");
+      const rx = new RegExp(`(?<![\\w/.])${stem}\\b`);
+      // Une tache qui MONTE son propre module dans c (« Monte dans: c ») le fournit, elle ne le lit pas.
+      const body = (o) => o.body.replace(/(?:Mont[ée]e?s?\s+dans|Mounted\s+in)\s*:[^—]*/gi, " ");
+      const reads = (o) => o.reusedOnly.has(c) || (!o.paths.includes(c) && rx.test(body(o).split(c).join(" ")));
+      const touches = (o) => o.paths.includes(c) && !o.mounts.some((m) => m.target === c);
+      const readers = tasks.filter((o) => o !== t && o.story && reads(o));
+      const sameStory = tasks.some((o) => o !== t && o.story === t.story && (touches(o) || reads(o)));
+      const later = readers.filter((o) => storyOrder.indexOf(o.story) > storyOrder.indexOf(t.story));
+      if (!sameStory && later.length)
+        add("medium", "mount-note-missing", `${tid(t)} cree ${basename(c)} sans lecteur dans ${t.story} ; ${later[0].story} (${tid(later[0])}) le lit : ajouter \`Monté dans: <fichier> (${later[0].story})\`, ou le creer dans ${later[0].story}`, at(t));
+    }
+  }
   for (const t of tasks) {
     for (const c of t.created) {
       const kind = mountKind(c);
