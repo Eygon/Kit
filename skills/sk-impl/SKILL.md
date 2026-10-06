@@ -157,9 +157,14 @@ l humain ne choisit pas.
 ## 3. GO humain AVANT tout Agent/Workflow
 
 D abord le linter du trio du slot, familles qui cassent un run seulement :
-  node "<SK_SHARED>/audit-lint.mjs" "<slot>/specs/<NNN>-<nom>" --ref HEAD --only mount,wire,story,recon,design-token,design-lib,design-class,design-section,task-without,task-needs,test-without
+  node "<SK_SHARED>/audit-lint.mjs" "<slot>/specs/<NNN>-<nom>" --ref HEAD --only mount,wire,story,recon,verified-fact,design-token,design-lib,design-class,design-section,task-without,task-needs,test-without
 (Bash, chemins a barres obliques entre guillemets ; `--ref HEAD` depuis le
 slot : les fichiers des US deja livrees n existent que sur sa branche.)
+`verified-fact-line-mismatch` = le code a bouge depuis la prep (une autre
+feature fusionnee) : AVANT le spawn, recale chaque ligne citee dans plan.md
+et recon.md (grep du symbole, une commande), sans la poser en question.
+Banc Miro : F3 preparee avant la fusion de F2 avait 7 faits decales, que
+chaque worker aurait relus faux.
 UN SEUL AskUserQuestion (jusqu a 4 questions) : US retenues si plusieurs
 restent, slot back si cross-repo, puis Lancer / Ajuster / Abandonner avec
 slot, branche, US, n, fichiers vises, et CHAQUE finding qui porte sur une

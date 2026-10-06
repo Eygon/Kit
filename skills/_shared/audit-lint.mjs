@@ -835,7 +835,13 @@ export const lintSpec = (dir, opts = {}) => {
         // 10 lines above: a fact that cites a line INSIDE a function names the function, declared above.
         const fromLine = Math.max(1, Number(lineRef[1]) - 10);
         const toLine = Number(lineRef[2] || lineRef[1]) + 3;
-        const all = (read(abs) || "").split(LF);
+        // Contenu a la ref d integration, pas le disque : le slot est souvent sur une branche plus
+        // ancienne, et une feature fusionnee depuis la prep decale les lignes (banc Miro F3 apres F2).
+        const factsRef = opts.ref || defaultRef(repoRoot);
+        const atRef = abs.startsWith(repoRoot)
+          ? factsRef && git(repoRoot, ["show", `${factsRef}:${rel}`])
+          : backRoot && git(backRoot, ["show", `${defaultRef(backRoot)}:${rel}`]);
+        const all = (atRef || read(abs) || "").split(LF);
         const slice = all.slice(fromLine - 1, toLine).join(LF);
         // Ligne citee DANS le corps d un composant ou d une classe declare plus haut (le JSX d un
         // header 60 lignes sous `export default function BoardPage`) : le symbole englobant compte.
