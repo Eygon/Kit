@@ -278,7 +278,10 @@ UN jeu de standards par US.
    cap. Pas de standard « au cas ou » : chaque ancre est du contexte injecte
    au Sonnet et au reviewer.
 2. UN appel, AVANT d ecrire tasks.md (les chemins et les noms des taches les
-   appliquent : placement, nommage, enums, structure des services) :
+   appliquent : placement, nommage, enums, structure des services ; et une
+   PARTIE de fichier qu un standard range ailleurs — textures, types,
+   helpers, Record d enum — devient un compagnon « and its <x> `chemin` »
+   de la tache : sinon le worker ne peut pas la placer et la revue escalade) :
      node "<SK_SHARED>/standards-pack.mjs" pack --root <depot> [--ref origin/<branche>] --ids <a,b,c>
    avec `--out "<FEATURE_DIR>/.standards-<depot>.md"` puis Read de ce
    fichier (le pack fait 30-40 Ko : sur stdout, Bash le tronque). Il rend
