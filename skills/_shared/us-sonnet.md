@@ -317,7 +317,11 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
   diff est le tien : corrige la prod, ou complete le mock du
   test existant que ton montage a casse, sans retirer
   d assertion (c est la seule edition permise hors de tes
-  fichiers de test).
+  fichiers de test). `related` ne voit PAS les tests qui chargent
+  un module par import paresseux (chemin en chaine, recette RED) :
+  ajoute-leur la liste `grep -rlE "<chemins de tes modules modifies,
+  sans extension, alias @/ compris>" src/__tests__` (banc jeu : un
+  toEqual de forme casse dans playerMotion.test.ts, invisible a related).
 Les trois partent dans UN appel en fin d US :
   node node_modules/eslint/bin/eslint.js <tes fichiers> && node node_modules/vitest/vitest.mjs related --run --coverage=false --testTimeout=20000 <tes fichiers prod> <tes fichiers de test> && <commande typecheck du Contexte>
 Classe CHAQUE erreur contre tasks.md du slot AVANT de
