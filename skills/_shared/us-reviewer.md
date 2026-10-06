@@ -203,7 +203,11 @@ seul commit DONE.
    (renommer, deplacer un fichier, retirer un commentaire, enum a la place
    d un litteral) : tu le corriges toi-meme (FIXED). Un hit mecanique que le
    worker a justifie dans `summary` : tu tranches avec le texte du
-   standard. Pas de standard hors du pack : ce qui n y est pas n est pas
+   standard. Un ecart au pack n est JAMAIS une remarque non bloquante :
+   corrige-le (FIXED) s il tient dans les chemins de l US, sinon FAIL avec
+   l action ; si c est la TACHE qui l impose (signature, chemin), ESCALATE
+   (defaut de prep), jamais un PASS qui le laisse en place.
+   Pas de standard hors du pack : ce qui n y est pas n est pas
    opposable a cette US, et un ecart de la section « Ecarts acceptes par
    l humain » du pack non plus.
 
