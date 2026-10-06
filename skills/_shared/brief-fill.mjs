@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import { extractAcceptance } from "./spec-ac.mjs";
 import { buildPack, idsOfStory } from "./standards-pack.mjs";
 import { extractDesign } from "./design-extract.mjs";
+import { readFacts, mergeFacts } from "./facts-add.mjs";
 
 const norm = (p) => String(p).replace(/\\/g, "/").replace(/^api:/, "").trim();
 
@@ -124,7 +125,9 @@ export const fillBriefs = (json, templates) => {
   // Les workers rendent facts: [{fact, source}] ; recopies tels quels, ils sortaient en
   // « [object Object] » (banc jeu : 22 faits perdus sur une feature entiere).
   const factLine = (f) => (f && typeof f === "object" ? `${f.fact}${f.source ? ` — source: ${f.source}` : ""}` : String(f));
-  const facts = json.facts && json.facts.length ? json.facts.map((f) => "- " + factLine(f)).join("\n") : "Aucun fait transmis : recon.md fait foi.";
+  // facts.json de la feature (verse par facts-add.mjs apres chaque worker) + faits du JSON.
+  const allFacts = mergeFacts(readFacts(dir), json.facts || []);
+  const facts = allFacts.length ? allFacts.map((f) => "- " + factLine(f)).join("\n") : "Aucun fait transmis : recon.md fait foi.";
   // Standards : corps des standards de l US (alwaysInject + ancres de tasks.md + json.standards),
   // lus dans le depot de l US (standardsRoot : le slot front, ou le slot back pour une US back).
   const standardsRoot = json.standardsRoot || json.slot;

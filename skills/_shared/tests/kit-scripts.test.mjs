@@ -190,3 +190,13 @@ test("brief-fill renders worker facts given as {fact, source} objects", async ()
   assert.match(brief, /- fait texte/);
   assert.doesNotMatch(brief, /object Object/);
 });
+
+test("facts-add merges worker facts by text, keeps the newest, and brief-fill injects facts.json", async () => {
+  const { mergeFacts, factsOfOutput, MAX_FACTS } = await import("../facts-add.mjs");
+  const a = mergeFacts([], [{ fact: "f1", source: "a" }, "f2"], "US1");
+  const b = mergeFacts(a, [{ fact: "f1", source: "b" }], "US2");
+  assert.deepEqual(b.map((f) => f.fact), ["f2", "f1"]);
+  assert.equal(b[1].source, "b");
+  assert.equal(mergeFacts([], Array.from({ length: MAX_FACTS + 5 }, (_, i) => `x${i}`)).length, MAX_FACTS);
+  assert.deepEqual(factsOfOutput('rapport\n```json\n{"stopped":false,"facts":[{"fact":"z","source":"s"}]}\n```\nfin').map((f) => f.fact), ["z"]);
+});

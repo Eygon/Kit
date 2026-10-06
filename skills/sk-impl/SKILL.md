@@ -241,15 +241,16 @@ Commit DONE en fin d US quand tout [X] ; WIP au plafond dur ~40 min.
 ## 4bis. Apres chaque US : recon.md s enrichit
 
 Le worker (et le fix) rendent `facts: [{fact, source}]` (0-5) : results[]
-en Workflow, sortie structuree en n==1. Pour CHAQUE fact :
-0. `Corrige recon.md : ...` -> REMPLACE la ligne que cite sa source.
-1. Deja dans recon.md (meme chemin ou meme regle) -> ignore.
-2. Sinon UNE ligne sous le bon des 5 titres, `- <fact> — source: <source>
-   (US<n>)` ; « X est interdit / n existe pas » -> une regex sous
-   « Interdits grep-ables ». 200 caracteres par ligne ; fichier < ~10 Ko
-   (au-dela, retire ou fusionne une ligne inutile aux US restantes).
-3. Copie recon.md du slot vers FEATURE_DIR du PRINCIPAL (pas de git add).
-Les facts du brief suivant citent recon.md au lieu de recopier.
+en Workflow, sortie structuree en n==1. Apres CHAQUE worker ou fix, UNE
+commande, sans relire ni recopier :
+  node "<SK_SHARED>/facts-add.mjs" "<FEATURE_DIR>" <sortie du worker .json | -> --us <US_ID>
+Elle verse les faits dans FEATURE_DIR/facts.json (dedup par texte, 40 au
+plus, les plus recents gardes) ; brief-fill les injecte dans tous les briefs
+suivants. Ne les recopie plus dans le JSON du brief. Seule exception : un
+fait `Corrige recon.md : ...` REMPLACE la ligne fausse que cite sa source
+(Edit), car recon.md ne doit pas contredire facts.json. Mesure (banc jeu) :
+recopier a la main perdait les faits ([object Object]) et coutait des
+tokens Opus a chaque US.
 
 ## Revue
 
