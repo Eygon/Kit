@@ -138,8 +138,10 @@ if (isMain) {
   const added = addedLines(git("diff", "-U0", "--no-color", range));
   if (!range.includes("..")) {
     for (const f of git("ls-files", "--others", "--exclude-standard").split(/\r?\n/).filter(Boolean)) {
-      const n = readFileSync(resolve(root, f), "utf8").split(/\r?\n/).length;
-      added.set(slash(f), new Set(Array.from({ length: n }, (_, i) => i + 1)));
+      // Fichier neuf, pas encore suivi : toutes ses lignes sont ajoutees, avec le meme filtre que le
+      // diff (banc Miro F4 : un worker a ecrit un test d Include pour des navigations EF `{ get; set; }`).
+      const lines = readFileSync(resolve(root, f), "utf8").split(/\r?\n/);
+      added.set(slash(f), new Set(lines.map((l, i) => (AUTO_PROPERTY.test(l) ? 0 : i + 1)).filter(Boolean)));
     }
   }
   const report = diffCover(added, parseLcov(readFileSync(findLcov(lcov), "utf8"), root));
