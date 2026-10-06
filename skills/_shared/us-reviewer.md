@@ -209,7 +209,8 @@ seul commit DONE.
    (defaut de prep), jamais un PASS qui le laisse en place.
    Pas de standard hors du pack : ce qui n y est pas n est pas
    opposable a cette US, et un ecart de la section « Ecarts acceptes par
-   l humain » du pack non plus.
+   l humain » du pack non plus, ni un arbitrage lib<->design de l extrait
+   design (§5, tranche par l humain) qui l impose explicitement : cite-le.
 
 ## Hors checks (PASS quand meme)
 
