@@ -232,7 +232,7 @@ Catalogue : `_shared/sk-audit-faults.md`.
 
 `audit-lint.mjs` sur le trio produit, sans agent et sans
 depense. Il applique les garde-fous que `/sk-prep` s impose
-a lui-meme : artefacts vides interdits, US <= ~5 fichiers
+a lui-meme : artefacts vides interdits, US <= ~6 fichiers
 prod et <= ~6 taches, jamais API+UI dans un `[USn]`, ancres
 `Design:` / `Legacy:` / `Code:` resolvables, chaque champ de
 `contracts/` avec sa source dans les Faits verifies, ids de

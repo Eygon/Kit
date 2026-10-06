@@ -7,8 +7,10 @@ const CR = String.fromCharCode(13);
 const LF = String.fromCharCode(10);
 const BOM = String.fromCharCode(65279);
 
-const MAX_PROD_FILES_PER_STORY = 5;
+const MAX_PROD_FILES_PER_STORY = 6;
 const MAX_TASKS_PER_STORY = 6;
+// Compagnons compris (« Create `hook.ts` and its key factory `keys.ts` ») : plafond dur.
+const MAX_FILES_WITH_COMPANIONS = 8;
 // Aligne sur sk-prep A.1 point 3 (2026-09-08) : « autant que le besoin l exige,
 // typiquement 3-5, jusqu a une dizaine si les US traversent plusieurs groupes ».
 // Le cap dur a 5 sortait un MEDIUM sur un trio L legitime (7 ancres, 2 US, 2 roots).
@@ -433,6 +435,12 @@ const parseTasks = (text) => {
     const codeSeg = matchAll(own, /(?:Code|Eviter|Avoid):\s*([^—]*)/g).map((x) => x[1]).join(" ");
     const rest = own.replace(/(?:Code|Eviter|Avoid):\s*[^—]*/g, " ");
     const reusedOnly = new Set(matchAll(codeSeg, PATH_TOKEN).map((x) => normPath(x[0])).filter((p) => !matchAll(rest, PATH_TOKEN).some((y) => normPath(y[0]) === p)));
+    // Compagnons : fichiers annonces « and its <x> `p` » / « et son|sa|ses <x> `p` » dans la tache
+    // de leur consommateur (cle de requete, props, type). sk-prep les range la ; ils ne comptent
+    // pas dans le plafond de fichiers (banc : 8 fichiers dont 2 key factories, livres en 2 min 24).
+    const companions = new Set(
+      matchAll(rest, /(?:\band (?:its|their)\b|\bet (?:son|sa|ses|leur|leurs)\b)([^—(]*)/gi).flatMap((x) => matchAll(x[1], PATH_TOKEN).map((y) => normPath(y[0]))),
+    );
     const lead = leadOf(body);
     const created = new Set(matchAll(body, CREATE_IN).map((x) => normPath(x[1])));
     const strong = CREATE_LEAD.test(lead);
@@ -457,6 +465,7 @@ const parseTasks = (text) => {
       parallel: /\[P\]/.test(body),
       paths,
       reusedOnly,
+      companions,
       mounts,
       created: [...created],
       createLead: strong ? "strong" : CREATE_WEAK_LEAD.test(lead) ? "weak" : null,
@@ -621,7 +630,13 @@ export const lintSpec = (dir, opts = {}) => {
     const prod = new Set();
     // The LOCALES files of a front repo are mandatory for any UI story (sk-prep recon.md): they
     // count as one file, not three, or every UI story with a label goes over the cap.
-    for (const t of list) for (const p of t.paths) if (isProdPath(p) && p.includes("/") && !t.reusedOnly.has(p) && !PURE_TYPE_FILE.test(p)) prod.add(LOCALE_FILE.test(p) ? "<locales>" : p);
+    const companionFiles = new Set();
+    for (const t of list) for (const p of t.paths) {
+      if (!isProdPath(p) || !p.includes("/") || t.reusedOnly.has(p) || PURE_TYPE_FILE.test(p)) continue;
+      if (t.companions.has(p)) companionFiles.add(p);
+      else prod.add(LOCALE_FILE.test(p) ? "<locales>" : p);
+    }
+    for (const p of prod) companionFiles.delete(p);
 
     if (list.length > MAX_TASKS_PER_STORY)
       add("high", "story-too-many-tasks", `${story} a ${list.length} taches (max ~${MAX_TASKS_PER_STORY}): recouper`, `tasks.md`);
@@ -629,6 +644,8 @@ export const lintSpec = (dir, opts = {}) => {
       // The counted files are listed: without them the parent read the linter's source to find
       // out what it counted (918 prep: 12 lint runs in 5 min, 4 reads of this file).
       add("high", "story-too-many-prod-files", `${story} touche ${prod.size} fichiers de production (max ~${MAX_PROD_FILES_PER_STORY}) : ${[...prod].join(", ")} — un chemin cite comme modele compte aussi, pas un chemin cite seulement en Code:`, `tasks.md`);
+    else if (prod.size + companionFiles.size > MAX_FILES_WITH_COMPANIONS)
+      add("high", "story-too-many-prod-files", `${story} touche ${prod.size + companionFiles.size} fichiers, compagnons compris (max ~${MAX_FILES_WITH_COMPANIONS}) : ${[...prod, ...companionFiles].join(", ")}`, `tasks.md`);
     if (prod.size === 1 && stories.size > 1)
       add("low", "story-too-thin", `${story} ne porte qu un fichier de production: fusionner si c est le meme livrable`, `tasks.md`);
 

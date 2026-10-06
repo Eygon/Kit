@@ -127,3 +127,23 @@ test("contractWrites flags a task that writes the frozen contract, not one that 
   assert.deepEqual(contractWrites(["- [ ] T040 [US7] Extend `specs/001-x/contracts/comments.yaml` `CommentDto` with `pinned`"]), ["specs/001-x/contracts/comments.yaml"]);
   assert.deepEqual(contractWrites(["- [ ] T012 [US3] Create `src/api/c.ts` (GET contracts/comments.yaml `getComments`) — Code: `specs/001-x/contracts/comments.yaml`"]), []);
 });
+
+test("audit-lint leaves the `and its` companions out of the file cap, up to 8 files", async () => {
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join, dirname } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const lint = join(dirname(fileURLToPath(import.meta.url)), "..", "audit-lint.mjs");
+  const run = (lines) => {
+    const d = mkdtempSync(join(tmpdir(), "lint-"));
+    writeFileSync(join(d, "tasks.md"), `# Tasks\n\n## [US1] X\n${lines.join("\n")}\n`);
+    writeFileSync(join(d, "spec.md"), "# s\n");
+    writeFileSync(join(d, "plan.md"), "# p\n");
+    try { return execFileSync("node", [lint, d], { encoding: "utf8" }); } catch (e) { return String(e.stdout); }
+  };
+  const t = (n, body) => `- [ ] T00${n} [US1] ${body} — Test: \`src/__tests__/t${n}.test.ts\``;
+  const base = [t(3, "Create `src/a/useC.ts`"), t(4, "Create `src/a/d.tsx`"), t(5, "Create `src/a/e.tsx`"), t(6, "Extend `src/a/page.tsx`")];
+  assert.doesNotMatch(run([t(1, "Create `src/a/useA.ts` and its key factory `src/k/aKeys.ts`"), t(2, "Create `src/a/useB.ts` and its key factory `src/k/bKeys.ts`"), ...base]), /story-too-many-prod-files/);
+  assert.match(run([t(1, "Create `src/a/useA.ts` and its key factory `src/k/aKeys.ts`, `src/k/a2.ts`"), t(2, "Create `src/a/useB.ts` and its key factory `src/k/bKeys.ts`, `src/k/b2.ts`"), ...base]), /compagnons compris/);
+});

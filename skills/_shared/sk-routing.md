@@ -22,7 +22,7 @@ Done = lint typecheck tests cibles.
 | Verifier un trio avant de l implementer | `/sk-audit specs/<NNN>-<nom>` |
 | Mesurer ou eprouver la chaine prep -> impl | `/sk-audit` |
 
-US : ~3-5 fichiers prod, jamais API+UI dans le meme [USn].
+US : ~3-6 fichiers prod, jamais API+UI dans le meme [USn].
 2 repos : US1 = contrat API. 1 tache = 1 fichier (pas 1 US = 1 fichier).
 
 ## Docs legacy-search / code-search dans /sk-prep

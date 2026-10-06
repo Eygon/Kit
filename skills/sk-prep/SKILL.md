@@ -190,7 +190,7 @@ que tu as prises (portee, cas limites, regles), a valider ou corriger —
 et, sans 0quater, les US retenues pour CE run (toutes par defaut ; deja
 tranchees en 0quater : ne les repose pas).
 AVANT de la poser, esquisse le decoupage (US -> fichiers de prod, LOCALES
-pour un, types purs pour zero) et confronte-le au cap (~5 fichiers, ~6
+pour un, types purs et compagnons « and its » pour zero) et confronte-le au cap (~6 fichiers, ~6
 taches, au plus 2 composants crees par US) : le
 decoupage propose fait partie de la question. Decouvrir le depassement au
 lint, apres clarify, forcait a re-decouper contre la reponse de l humain
@@ -201,7 +201,7 @@ sous `## Clarifications` (`### Session <date>`, une ligne `- Q: ... → A:
 
 **spec.md** (gabarit `<TPL>/spec.md`, ecrit UNE fois, apres clarify) — le QUOI, sans
 implementation. Une US = un livrable dont l Independent Test se joue SANS
-les US suivantes, ~3-5 fichiers de prod (~20-40 min worker), ~3-6 taches.
+les US suivantes, ~3-6 fichiers de prod (~20-40 min worker ; mesure : 6 fichiers = 2 a 5 min), ~3-6 taches.
 Pas 1 fichier par US, pas toute la feature dans une US ; une petite US qui
 reste un livrable a part (contrat, mapper, flag) se garde. Chaque US porte
 des **Acceptance Scenarios** Given/When/Then : recopies au worker, le
@@ -368,7 +368,7 @@ Elle nomme donc :
   props, effets) et que la tache reprend ou ecarte, et ce qu un composant
   reutilise active par defaut (918 T032 : epinglage livre inerte).
 Une tache pas prete est bloquante : corrige tasks.md, pas de validation 6.
-Chaque US reste finissable en ~40 min : ~3-5 fichiers de prod, ~6 taches,
+Chaque US reste finissable en ~40 min : ~3-6 fichiers de prod (compagnons « and its » non comptes, 8 au plus avec eux), ~6 taches,
 au plus 2 composants crees. Le lint fait le compte : un chemin cite hors
 `Code:` compte, un modele a imiter se cite donc en `Code:`.
 Signale ce que tu corriges, ne corrige pas en silence.
