@@ -244,6 +244,15 @@ Recommandation : un passage E2E (le cahier `sk-e2e.md` existe, mais aucune skill
 
 **Miro F7 (mini-carte et zoom regroupés, depuis une 2e maquette claude.ai/design, 3 pièges)** : la prep traite les 3 pièges de la maquette. Le token `--space-7` inexistant est demandé puis tranché à 4 px (sans le confondre avec le `--spacing-7` de la lib, qui fait 28 px). Les 14,5 px deviennent 14 px, en écart accepté. La variante b est exclue. Le zoom existant est étendu, sans second état. 2 US, front 489 tests. La review de US1 a corrigé une garde du worker qui rendait « Tout afficher » inerte sur un tracé de F6 parfaitement horizontal (interaction entre features). Côté kit : faux positif de brief-fill (un type TS `<HTMLElement | null>` pris pour un placeholder), recon des composants de la lib avec le type de leurs props, mode audit qui s'arrête proprement quand le projet design est introuvable (mon chemin de banc était faux, et le kit a refusé de deviner).
 
+**Non-régression des preps après toutes les règles de la nuit** (mêmes besoins que les bancs de référence, kit actuel) :
+
+| Prep | Référence | Kit de cette nuit |
+|---|---|---|
+| S (filtre statut) | 1,5–2,7 $ · 290–430 s | 2,11 $ · 279 s · 0 finding final |
+| M (ajout contact, 2 US) | 1,87–1,95 $ · 315–360 s | 2,09 $ · 302 s · 0 HIGH, 0 MEDIUM |
+
+Pas de régression : coût dans la fourchette (M +7 % au pire), durée meilleure. Les 4 frictions remontées sont corrigées : un chemin cité en prose (« lu dans dist/index.d.ts ») était pris pour un fait (seuls les chemins entre backticks comptent), un standard qui contredit le besoin se lit avant clarify, l'endpoint sans réponse de l'humain suit le dépôt, et la règle de montage tient en une ligne.
+
 Défauts du kit révélés par F1, et corrigés :
 - Le brief d'une US back renvoyait à `specs/...` en relatif, alors que le trio vit dans le dépôt front. Il donne maintenant le chemin absolu.
 - Les faits du back (SQLite, horloge figée) arrivaient dans les briefs front. Ils sont maintenant rangés par dépôt (`--slot`).
