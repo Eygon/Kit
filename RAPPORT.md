@@ -365,8 +365,10 @@ Défauts du kit révélés par F1, et corrigés :
 6. **Prévoir un passage E2E en mode lot** (`sk-e2e.md`) après chaque lot de 3 à 5 features. `/sk-test`, qui exécute le cahier, n'était pas dans le zip (le kit le cite : `sk-host.md` §7, `sk-routing.md`). Si tu l'as, reporte-y les sections « Oracles transverses » et « Mode lot » de `sk-e2e.md`, et le repli Playwright avec `e2e-oracles.mjs` quand Claude in Chrome manque.
 7. Les nouveaux scripts de `skills/_shared/` (`gate.mjs`, `e2e-oracles.mjs`, `cap-check.mjs`, `fact-lines.mjs`, `diff-cover.mjs`…) arrivent avec le dossier `skills/_shared/`. Recopie-le en entier dans `~/.claude/skills/_shared/` comme le reste du kit : les briefs les appellent par ce chemin.
 
-## Pistes suivantes (non testées)
-- **Alléger le TDD des workers grâce à `red-replay`.** La preuve RED est maintenant rejouée par le reviewer. On pourrait donc autoriser un seul RED et un seul GREEN par US, au lieu d'une empreinte par tâche. La moitié des workers le faisait déjà de fait. Gain attendu : 3 à 6 appels de moins par US. À mesurer sur un lot avant de l'adopter.
+## Pistes mesurées cette nuit
+- **TDD allégé (un seul RED et un seul GREEN par US), adossé à `red-replay`** : A/B sur la même US (F12 US1, même trio). Variante : 1,12 $ en 12 appels ; original : 1,07 $ en 11. **Aucun gain**, car les workers regroupent déjà leurs RED de fait, et la preuve RED est bonne dans les deux cas. Piste rejetée : le protocole actuel reste. Les deux runs ont oublié le même test (une tâche qui modifie un hook déjà testé). Seul le reviewer l'a vu : `red-replay` ne contrôle que les fichiers de test touchés, pas les tâches sans test.
+
+## Piste suivante
 - **`/sk-test` en mode lot**, avec repli Playwright (voir « À faire » n° 6).
 
 ## Limites du banc
