@@ -141,6 +141,15 @@ export const fillBriefs = (json, templates) => {
     derived.prod = derived.prod.filter((p) => !derived.shared.includes(p) || keep(p));
     derived.shared = derived.shared.filter(keep);
   }
+  // Classe C# etendue dont l interface existe (Services/Interfaces/IX.cs, Repositories/Interfaces/IX.cs) :
+  // une methode publique ajoutee s y declare, sinon rien ne compile (banc Miro F9 : le worker a du
+  // sortir de ses chemins). On l ouvre d office, elle ne compte pas dans le cap (type pur).
+  for (const p of [...derived.prod]) {
+    const m = /^(.*\/)(\w+)\.cs$/.exec(p);
+    if (!m || /\/Interfaces\/|Tests?\//.test(p)) continue;
+    const iface = `${m[1]}Interfaces/I${m[2]}.cs`;
+    if (!derived.prod.includes(iface) && existsSync(join(json.slot, iface))) derived.prod.push(iface);
+  }
   json.prod = [...new Set([...(json.prod || []).map(norm), ...derived.prod])];
   json.tests = [...new Set([...(json.tests || []).map(norm), ...derived.tests])];
   const sharedNote = derived.shared.length ? `\n\n## Fichiers partages (ajout seulement)\n\n${derived.shared.map((p) => `- \`${p}\``).join("\n")} : tu peux y AJOUTER les entrees que les standards y rangent (config visuelle, textes...) ; ne modifie ni ne retire une entree existante, SAUF celle que ton US rend morte (son dernier lecteur est dans tes chemins et ne la lit plus : retire-la, grep a l appui).\n` : "";
