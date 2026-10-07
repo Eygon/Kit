@@ -286,6 +286,15 @@ Ce que F9 a apporté au kit (vérifié en direct pendant le run) :
 | Impl, 2 voies | 2 US, 4 agents, 4,47 $. Back 303 tests, front 621. Reviews : 1 PASS par Sonnet (palier auto), 1 PASS par Opus |
 | **E2E réel (2 navigateurs)** | **7/7 sur 3 runs** : curseur au pixel près malgré des zooms différents (100 % contre 125 %), personne ne voit le sien, 23 envois/s, le Crayon trace à travers un curseur (`elementFromPoint` le traverse), estompé après 5 s, disparaît au départ, 0 erreur 5xx ni console |
 
+**Miro F11 (verrouiller un item, demande transverse)** : un verrou touche presque toutes les features précédentes (déplacer, éditer, supprimer, annuler, connecteurs, commentaires, synchro, export).
+
+| Étape | Mesure |
+|---|---|
+| Prep (4 US, 15 tâches) | 4,67 $ · 9 min · 0 finding. Chaque interaction est soit une AC (409 sur toute modification, connecteur et commentaire permis, verrou exporté, annulable), soit hors périmètre |
+| Impl, 2 voies | 4 US, 8 agents, 8,0 $ (~2 $ par US). Back 329 tests, front 671. Reviews : 1 PASS par Sonnet, 3 PASS par Opus |
+| **E2E réel** | **8/8 sur 3 runs, du premier coup** (script écrit avec `e2e-oracles.mjs`) : verrou posé par l'UI, cadenas en direct chez la lectrice, glisser sans aucun PATCH, 409 pour PATCH et DELETE, 201 pour connecteur et commentaire, verrou exporté puis réimporté, annuler qui déverrouille |
+| Défaut du kit trouvé en review | `US_BASE` (la plage de l'US) remontait jusqu'au `DONE(US1)` de la feature précédente, fusionnée en avance rapide. Corrigé : seuls les commits non poussés comptent |
+
 **Troisième test de bout en bout, en « mode lot » (F1 à F9 ensemble, nouveau contrat `sk-e2e.md`)** : 47 scénarios × 3 runs sur base fraîche, dont 7 scénarios « entre features ». **46 PASS, 1 FAIL, 0 réponse 5xx.**
 - Les états partagés tiennent. Avec GET members bloqué, la barre d'outils et Annuler/Rétablir passent ensemble en lecture seule, tandis que l'export et la présence continuent de marcher. Le défaut de rôle du 1er passage ne revient pas.
 - **Le FAIL est encore un croisement de features** (F6 × F7) : avec le Crayon actif, un clic dans le dock zoom/mini-carte crée un trait d'un point, qui entre dans l'historique. Le dock n'arrête que `click`, pas `pointerdown`. Règle de prep ajoutée : un widget posé sur le canevas arrête les événements pointer des modes existants, et une AC le teste avec l'outil le plus intrusif actif.

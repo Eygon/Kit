@@ -1,0 +1,126 @@
+openapi: 3.0.3
+info:
+  title: Board items - lock state (delta on the existing items API)
+  version: 1.0.0
+  description: >
+    Only the fields and responses this feature ADDS are described. Every other field of
+    BoardItemDto / UpdateBoardItemDto / BoardFileItemDto is unchanged (Tableau.DAL/Dtos on origin/dev).
+paths:
+  /api/v1/boards/{boardId}/items:
+    get:
+      summary: List the items of a board (unchanged route; each item now carries isLocked)
+      parameters:
+        - $ref: '#/components/parameters/BoardId'
+      responses:
+        '200':
+          description: Items of the board
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BoardItemDto'
+        '204':
+          description: No item
+  /api/v1/boards/{boardId}/items/{itemId}:
+    patch:
+      summary: Partial update. isLocked may only be changed by an editor or the owner (existing write check).
+      description: >
+        On a locked item, any supplied field other than isLocked (x, y, width, height, color,
+        content, zIndex, points, strokeWidth) is refused with 409, unless the same request sets
+        isLocked=false (the unlock applies first).
+      parameters:
+        - $ref: '#/components/parameters/BoardId'
+        - $ref: '#/components/parameters/ItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBoardItemDto'
+      responses:
+        '200':
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardItemDto'
+        '403':
+          description: Viewer or non-member (existing)
+        '409':
+          description: The item is locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    delete:
+      summary: Delete an item; refused with 409 while it is locked
+      parameters:
+        - $ref: '#/components/parameters/BoardId'
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '204':
+          description: Deleted
+        '409':
+          description: The item is locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /api/v1/boards/{boardId}/export:
+    get:
+      summary: Export (existing route); each file item now carries isLocked
+      parameters:
+        - $ref: '#/components/parameters/BoardId'
+      responses:
+        '200':
+          description: Board file
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BoardFileItemDto'
+components:
+  parameters:
+    BoardId:
+      name: boardId
+      in: path
+      required: true
+      schema: { type: integer }
+    ItemId:
+      name: itemId
+      in: path
+      required: true
+      schema: { type: integer }
+  schemas:
+    BoardItemDto:
+      type: object
+      properties:
+        isLocked:
+          type: boolean
+          default: false
+          description: True while the item is locked.
+    UpdateBoardItemDto:
+      type: object
+      properties:
+        isLocked:
+          type: boolean
+          nullable: true
+          description: New lock state; absent = unchanged.
+    BoardFileItemDto:
+      type: object
+      properties:
+        isLocked:
+          type: boolean
+          default: false
+          description: Lock state carried by the board file; absent on import = false.
+    ErrorBody:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Item 12 is locked. Unlock it before changing it.
