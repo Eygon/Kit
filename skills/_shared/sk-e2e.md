@@ -149,5 +149,8 @@ passage par feature : les defauts entre features n apparaissent qu ensemble.
   (concurrence), jamais un flake ; BLOQUE sur un run et PASS ailleurs = BLOQUE.
 - La limite « ~15 scenarios » vaut par feature ; en mode lot, une ligne par
   scenario deja joue, le detail seulement pour `## Entre features`.
+- Script : `<SK_SHARED>/e2e-oracles.mjs` donne `watch(page, { api, expectedConsole })`
+  (5xx et console inattendue par scenario) et `verdict(runs)` (regle des 3 runs) ;
+  ne les reecris pas.
 - Les FAIL deviennent des `/sk-xs` (1 comportement, 1 depot) ou un
   `/sk-impl` de correction ; le passage suivant rejoue tout le cahier.

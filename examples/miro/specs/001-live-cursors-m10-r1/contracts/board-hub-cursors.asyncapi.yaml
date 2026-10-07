@@ -1,0 +1,46 @@
+asyncapi: 2.6.0
+info:
+  title: Board hub - live cursors (extension of /hubs/board)
+  version: 1.0.0
+  description: >
+    Extends the existing SignalR hub BoardHub mapped at /hubs/board (F8). No new hub, no new connection.
+    The client must have called JoinBoard(boardId) on the same connection before MoveCursor has any effect.
+channels:
+  MoveCursor:
+    description: Client -> server hub method MoveCursor(boardId, x, y). Coordinates are board (world) coordinates, the same space as board items. Sender not joined to the board group = ignored silently (no HubException, nothing sent).
+    publish:
+      operationId: MoveCursor
+      message:
+        name: MoveCursorArguments
+        payload:
+          type: array
+          description: Positional SignalR arguments.
+          items:
+            - type: integer
+              description: boardId - board the pointer is on
+            - type: number
+              description: x - board coordinate
+            - type: number
+              description: y - board coordinate
+  CursorMoved:
+    description: Server -> OTHER members of group board-{boardId} (Clients.OthersInGroup), never to the caller connection.
+    subscribe:
+      operationId: CursorMoved
+      message:
+        name: CursorMoved
+        payload:
+          type: object
+          required: [userId, displayName, x, y]
+          properties:
+            userId:
+              type: integer
+              description: Id of the user who moved
+            displayName:
+              type: string
+              description: Display name of the user who moved
+            x:
+              type: number
+              description: Board coordinate, as sent to MoveCursor
+            y:
+              type: number
+              description: Board coordinate, as sent to MoveCursor

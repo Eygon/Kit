@@ -401,3 +401,19 @@ test("diff-cover: an inserted block sharing its last lines with the neighbour sl
   const [raw] = diffCover(added, new Map([["src/a.ts", cov]]));
   assert.equal(raw.status, "GAP");
 });
+
+test("e2e-oracles: 5xx and unexpected console are captured per take(), verdict needs PASS on every run", async () => {
+  const { watch, verdict } = await import("../e2e-oracles.mjs");
+  const { EventEmitter } = await import("node:events");
+  const page = new EventEmitter();
+  const w = watch(page, { api: "http://api", expectedConsole: [/negotiation/] });
+  page.emit("console", { type: () => "error", text: () => "Error: The connection was stopped during negotiation." });
+  page.emit("console", { type: () => "error", text: () => "TypeError: x is undefined" });
+  page.emit("response", { url: () => "http://api/boards", status: () => 500, request: () => ({ method: () => "GET" }) });
+  page.emit("response", { url: () => "http://front/app.js", status: () => 500, request: () => ({ method: () => "GET" }) });
+  const t = w.take();
+  assert.deepEqual(t.console, ["TypeError: x is undefined"]);
+  assert.deepEqual(t.fiveXX, [{ m: "GET", u: "/boards", s: 500 }]);
+  assert.equal(w.take().fiveXX.length, 0);
+  assert.deepEqual(verdict([["PASS", "PASS", "PASS"], ["PASS", "PASS", "FAIL"], ["PASS", "BLOQUE", "PASS"], ["PASS", "PASS"]], 3), ["PASS", "FAIL", "BLOQUE", "BLOQUE"]);
+});
