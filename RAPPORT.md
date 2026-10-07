@@ -14,7 +14,7 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 1. **Les tests unitaires et les reviews ne voient pas les défauts entre features ni entre dépôts.** Les 6 défauts trouvés par les E2E sont tous passés à travers des reviews vertes : rôle inconnu, concurrence SQLite, CORS SignalR, dock qui laisse passer le Crayon, id de connexion effacé par une course, erreur console en dev. D'où le contrat `sk-e2e.md` étoffé (oracles 5xx et console, mode lot, 3 runs, `e2e-oracles.mjs`). **Recommandation : un passage E2E en mode lot après chaque lot de 3 à 5 features.**
 2. **La règle « 2 sur 3 = FAIL » paie** : la course sur l'id de connexion ne sortait qu'1 fois sur 3. On l'aurait prise pour un flake.
 3. **Le palier de review Sonnet tient** : 13 reviews de petites US, toutes justes (3 contre-vérifiées par Opus). Les défauts de code trouvés en review l'ont tous été par Opus, sur des US que le routage lui envoyait. **Recommandation : activer `reviewTier: "auto"`.**
-4. **La prep ne régresse pas** malgré ~25 règles ajoutées : la prep S de référence coûte 2,01 $ pour 273 s (contre 1,5–2,7 $ et 290–430 s au départ).
+4. **La prep ne régresse pas** malgré ~25 règles ajoutées. Avec le kit final, la prep S de référence coûte 2,01 $ en 273 s (référence : 1,5–2,7 $, 290–430 s). La prep M coûte 2,15 $ en 302 s (référence : 1,87–1,95 $, 315–360 s) : +10 % de coût au pire, mais plus rapide.
 
 **Nouveaux outils du kit (tous dans `skills/_shared/`, testés)** :
 
