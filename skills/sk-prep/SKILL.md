@@ -185,7 +185,9 @@ donnees et leur source, parcours et etats (vide, erreur, chargement),
 regles et cas limites, contraintes non fonctionnelles, termes ambigus.
 Une valeur, une option ou une donnee que le besoin nomme et que le depot
 n a pas (enum sans la valeur, DTO sans le champ) : ni inventee, ni retiree
-en silence — c est une question. Garde les 1-3 questions dont la reponse CHANGE une US, une AC ou une tache
+en silence — c est une question ; sa recommandation n invente pas la
+valeur serveur : elle la marque « a confirmer » (item de checklist ouvert,
+cite en A.6), ce que le mode audit retient tel quel. Garde les 1-3 questions dont la reponse CHANGE une US, une AC ou une tache
 (au moins une, sauf spec deja entiere), chacune avec 2-4 options et ta
 recommandation en premier. Un manque decouvert APRES clarify, en ecrivant
 tasks.md (prop absente de la lib, endpoint manquant) : UNE question tardive
