@@ -262,6 +262,21 @@ Ce que F8 a apporté au kit :
 - Prep : les noms techniques imposés par l'humain (hub, méthode, en-tête) vont dans le contrat, pas dans la spec (la spec avait été réécrite, ~25 remplacements). Un standard d'identité ou de transport se lit avant clarify.
 - Worker : un choix que la tâche prescrit n'est pas un « écart ». Les 3 « écarts » déclarés sur F8 étaient prescrits, et le mot envoyait la review chez Opus pour rien.
 
+**Miro F9 (export / import JSON d'un tableau, back + front, piège de remappage des id)** : préparée et implémentée avec le kit mis à jour après F8.
+
+| Étape | Mesure |
+|---|---|
+| Prep (5 US, 25 tâches, contrat) | 5,88 $ · 11 min · 0 finding final. Coûteuse : 2 redécoupages, à cause du compte des compagnons et des mappers. Règles clarifiées depuis |
+| Impl, 2 voies (back US1-2 ∥ front US3-5) | 5 US, 10 agents, ~9,1 $ soit **~1,8 $ par US** (US plus grosses que F8). Back 293 tests, front 575, fusionné |
+| Reviews | 5 PASS (Opus) |
+| **E2E réel** | **7/7 sur 3 runs, du premier coup** : export téléchargé, réimport qui ouvre le nouveau tableau, connecteurs remappés vers les NOUVEAUX items, version inconnue et fichier de plus d'1 Mo refusés avec un toast traduit, 0 réponse 5xx |
+
+Ce que F9 a apporté au kit (vérifié en direct pendant le run) :
+- **gate.mjs + briefs par stack** : une US back reçoit `dotnet test --filter` et `dotnet build`, ni vitest, ni tsc, ni les fichiers de langue du front. Les 2 workers back de F9 ont appliqué les gates .NET sans tri.
+- **diff-cover : glissement des blocs ambigus**. Un bloc inséré qui finit comme son voisin (`catch { return null; }`) était aligné par git sur l'ancien code, d'où un faux GAP. Rejoué en review : `OK`.
+- **Interface C# ouverte d'office** : un service étendu avec une méthode publique doit la déclarer dans `Interfaces/IX.cs`, que la prep avait oublié dans les chemins.
+- Reste à traiter : en dev, le double montage React (StrictMode) coupe la première négociation SignalR et laisse une erreur console bénigne (vue en E2E F8 et F9).
+
 **Non-régression des preps après toutes les règles de la nuit** (mêmes besoins que les bancs de référence, kit actuel) :
 
 | Prep | Référence | Kit de cette nuit |
