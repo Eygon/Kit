@@ -270,6 +270,15 @@ fait `Corrige recon.md : ...` REMPLACE la ligne fausse que cite sa source
 recopier a la main perdait les faits ([object Object]) et coutait des
 tokens Opus a chaque US.
 
+## Worker perdu (session ou conteneur coupe en pleine US)
+
+Pas de sortie, arbre du slot sale : ce travail n est pas prouve (aucune gate
+vue verte). `git -C <slot> stash push -u -m "sk-lost-<US_ID>"` (consultable
+ensuite), cases [X] de l US remises a [ ] si non commitees, puis UN nouveau
+worker sur le meme brief, arbre propre. Un commit WIP de l US deja present
+reste : le worker repart de ses [ ]. Banc Miro : redemarrage du conteneur
+pendant F6-US4.
+
 ## Revue
 
 Checklist : le brief -review (`<SK_SHARED>/us-reviewer.md` rempli). Le
