@@ -224,7 +224,7 @@ export const fillBriefs = (json, templates) => {
   }
   // A placeholder left behind (`<PROD_PATHS>`) is a hole the agent fills by searching.
   for (const [name, text] of [["worker", worker], ["review", review], ["fix", fix]]) {
-    const left = [...new Set((text.match(/<(?:[A-Z][A-Z_]{2,}|fichier:lignes)[^>\n]*>/g) || []).filter((p) => !/^<(?:US_BASE|DONE|Tnnn|re\d)/.test(p)))];
+    const left = [...new Set((text.match(/<(?:[A-Z][A-Z_]{2,}(?=[ >])|fichier:lignes)[^>\n]*>/g) || []).filter((p) => !/^<(?:US_BASE|DONE|Tnnn|re\d)/.test(p)))];
     if (left.length) problems.push(`${name} : placeholder non rempli ${left.join(", ")}`);
   }
   return { worker, review, fix, tasks: tasks.length, acceptance: Boolean(acceptance), problems, pack: pack && !pack.error ? { path: packPath, text: pack.text, ids: pack.ids } : null, design: designExtract ? { path: json.designPath, text: designExtract.text } : null };
