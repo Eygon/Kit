@@ -15,6 +15,7 @@ Trios produits par `/sk-prep` (mode audit), puis implémentés par `/sk-impl` (w
 | 001-board-json-transfer-m9-r1 | export / import JSON (remappage des id de connecteurs) | L | 5 |
 | 001-live-cursors-m10-r1 | curseurs des autres en direct (hub F8 réutilisé, calque sans pointer-events) | L | 2 |
 | 001-lock-item-m11-r1 | verrouiller un item (demande transverse : F1, F3, F4, F5, F8, F9) | L | 4 |
+| 001-shortcuts-help-m12-r1 | aide des raccourcis depuis une 3e maquette claude.ai/design (3 pièges + 1 trouvé par la prep) | M (front + design) | 2 |
 
 `e2e/` : cahier et rapports des deux tests de bout en bout (Playwright, back et front lancés). Premier passage : 13 PASS sur 14. Second passage, après 2 corrections `/sk-xs` : 18 sur 18 sur 5 runs. Troisième passage en mode lot (F1 à F9) : 46 PASS sur 47, × 3 runs (`e2e-3-lot*.md`).
 

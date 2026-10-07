@@ -8,10 +8,10 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 ## Bilan de la nuit du 6 au 7 octobre (à lire en premier)
 
-**Ce qui a tourné** : 11 features du clone Miro, préparées et implémentées avec le kit (54 US, back .NET + front React, chaque US relue). Ensuite, 7 passages de bout en bout dans un vrai navigateur et 6 corrections par `/sk-xs`. Résultat : back 329 tests, front 671, et la validation finale de toute l'appli est verte : **62 scénarios E2E × 3 runs** (F1 à F9 en lot, plus F10 et F11), 0 FAIL, 0 réponse 5xx.
+**Ce qui a tourné** : 12 features du clone Miro, préparées et implémentées avec le kit (56 US, back .NET + front React, chaque US relue). Ensuite, 8 passages de bout en bout dans un vrai navigateur et 6 corrections par `/sk-xs`. Résultat : back 329 tests, front 727, et la validation finale de toute l'appli est verte : **62 scénarios E2E × 3 runs** (F1 à F9 en lot, plus F10 et F11), 0 FAIL, 0 réponse 5xx.
 
 **Ce que la nuit a appris** :
-1. **Les tests unitaires et les reviews ne voient pas les défauts entre features ni entre dépôts.** Les 6 défauts trouvés par les E2E sont tous passés à travers 54 reviews vertes : rôle inconnu, concurrence SQLite, CORS SignalR, dock qui laisse passer le Crayon, id de connexion effacé par une course, erreur console en dev. D'où le contrat `sk-e2e.md` étoffé (oracles 5xx et console, mode lot, 3 runs, `e2e-oracles.mjs`). **Recommandation : un passage E2E en mode lot après chaque lot de 3 à 5 features.**
+1. **Les tests unitaires et les reviews ne voient pas les défauts entre features ni entre dépôts.** Les 6 défauts trouvés par les E2E sont tous passés à travers des reviews vertes : rôle inconnu, concurrence SQLite, CORS SignalR, dock qui laisse passer le Crayon, id de connexion effacé par une course, erreur console en dev. D'où le contrat `sk-e2e.md` étoffé (oracles 5xx et console, mode lot, 3 runs, `e2e-oracles.mjs`). **Recommandation : un passage E2E en mode lot après chaque lot de 3 à 5 features.**
 2. **La règle « 2 sur 3 = FAIL » paie** : la course sur l'id de connexion ne sortait qu'1 fois sur 3. On l'aurait prise pour un flake.
 3. **Le palier de review Sonnet tient** : 13 reviews de petites US, toutes justes (3 contre-vérifiées par Opus). Les défauts de code trouvés en review l'ont tous été par Opus, sur des US que le routage lui envoyait. **Recommandation : activer `reviewTier: "auto"`.**
 4. **La prep ne régresse pas** malgré ~25 règles ajoutées : la prep S de référence coûte 2,01 $ pour 273 s (contre 1,5–2,7 $ et 290–430 s au départ).
@@ -320,6 +320,14 @@ Ce que F9 a apporté au kit (vérifié en direct pendant le run) :
 | Impl, 2 voies | 4 US, 8 agents, 8,0 $ (~2 $ par US). Back 329 tests, front 671. Reviews : 1 PASS par Sonnet, 3 PASS par Opus |
 | **E2E réel** | **8/8 sur 3 runs, du premier coup** (script écrit avec `e2e-oracles.mjs`) : verrou posé par l'UI, cadenas en direct chez la lectrice, glisser sans aucun PATCH, 409 pour PATCH et DELETE, 201 pour connecteur et commentaire, verrou exporté puis réimporté, annuler qui déverrouille |
 | Défaut du kit trouvé en review | `US_BASE` (la plage de l'US) remontait jusqu'au `DONE(US1)` de la feature précédente, fusionnée en avance rapide. Corrigé : seuls les commits non poussés comptent |
+
+**Miro F12 (aide des raccourcis clavier, depuis une 3e maquette claude.ai/design)** : le chemin design rejoué avec la clarify restructurée. La maquette tend 3 pièges : couleur `--orange-40` absente du système de design, largeur de 560 px impossible avec la Modal de la lib, raccourci « Dupliquer » qui n'existe pas dans l'app.
+
+| Étape | Mesure |
+|---|---|
+| Prep (2 US, 10 tâches, design.md) | 4,01 $ · 8 min · 0 finding. Les 3 pièges sont tranchés dans design.md §5. La prep en trouve un **4e** toute seule : les raccourcis de zoom de la maquette n'existent pas non plus. La liste vient d'une source unique, lue aussi par les hooks de raccourcis |
+| Impl | 2 US, 4,73 $. Front 727 tests. US1 : **FIXED** par Opus (la tâche « le hook de suppression lit le registre » n'avait aucun test qui l'aurait vue échouer ; test ajouté, vu rouge avec l'ancien code). US2 : PASS, design conforme sur les 5 ancres |
+| **E2E réel** | **7/7 sur 3 runs** : « ? » ouvre l'aide, ni Dupliquer ni zoom, touches en français, Échap et clic extérieur ferment, « ? » tapé dans un commentaire n'ouvre rien |
 
 **Troisième test de bout en bout, en « mode lot » (F1 à F9 ensemble, nouveau contrat `sk-e2e.md`)** : 47 scénarios × 3 runs sur base fraîche, dont 7 scénarios « entre features ». **46 PASS, 1 FAIL, 0 réponse 5xx.**
 - Les états partagés tiennent. Avec GET members bloqué, la barre d'outils et Annuler/Rétablir passent ensemble en lecture seule, tandis que l'export et la présence continuent de marcher. Le défaut de rôle du 1er passage ne revient pas.
