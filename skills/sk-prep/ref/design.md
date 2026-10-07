@@ -93,7 +93,8 @@ depuis les reponses = ligne §5 `pending`, pas de choix par
 defaut ». Mesure : 0,50 $ et 2 min, au lieu de ~2 $ inline, a
 qualite egale sur les valeurs. A son retour, relis seulement
 §2 et §5 : chaque `pending` part dans la question de clarify
-(A.2), et une zone que la feature exige sans qu elle soit dans
+(A.2) ; la reponse remplace la ligne `pending` par sa decision (Edit de la
+ligne §5, pas de reecriture de design.md), et une zone que la feature exige sans qu elle soit dans
 le mockup (point d entree, bouton d ouverture) recoit sa section
 `## C<n>`. Agent indisponible (Cursor sans sous-agent) : ecris-le
 toi-meme, memes regles.
@@ -114,7 +115,7 @@ et tu le deplaces dans FEATURE_DIR des sa creation. Structure :
    ne lisent que design.md), puis compare l identifiant du
    _ds importe (nom de son dossier, ex. a730067f : ce n est
    pas un hash a recalculer) a celui note dans
-   design-tokens.md : s il differe, relis colors_and_type.css et corrige la table
+   design-tokens.md (_ds importe sans dossier identifiant = « differe ») : s il differe, relis colors_and_type.css et corrige la table
    ICI (design.md) — et mets a jour design-tokens.md si
    la difference est durable.
    Variable non couverte : resous via le css du _ds et

@@ -300,7 +300,8 @@ pas plus tot : livree sans appelant, elle n est executee par aucun test
 en US2, appelee en US3).
 Rien a monter (utils purs, mapper, DTO, type, colonnes, route, controleur
 ASP.NET decouvert par MapControllers, service ou repository .NET
-auto-enregistre) : pas d annotation. Une query function ou une query key
+auto-enregistre ; extension d un hook, composant ou module DEJA monte) : pas
+d annotation. Une query function ou une query key
 creee sans son hook dans la meme US porte `Monté dans: <hook> (US<n>)` :
 mount-check la controle comme tout module (banc Miro F2 : `fetchUsers`
 livre sans lecteur). Une US qui ajoute une VARIANTE a un type deja consomme
