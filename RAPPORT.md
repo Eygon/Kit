@@ -277,6 +277,13 @@ Ce que F9 a apporté au kit (vérifié en direct pendant le run) :
 - **Interface C# ouverte d'office** : un service étendu avec une méthode publique doit la déclarer dans `Interfaces/IX.cs`, que la prep avait oublié dans les chemins.
 - Reste à traiter : en dev, le double montage React (StrictMode) coupe la première négociation SignalR et laisse une erreur console bénigne (vue en E2E F8 et F9).
 
+**Troisième test de bout en bout, en « mode lot » (F1 à F9 ensemble, nouveau contrat `sk-e2e.md`)** : 47 scénarios × 3 runs sur base fraîche, dont 7 scénarios « entre features ». **46 PASS, 1 FAIL, 0 réponse 5xx.**
+- Les états partagés tiennent. Avec GET members bloqué, la barre d'outils et Annuler/Rétablir passent ensemble en lecture seule, tandis que l'export et la présence continuent de marcher. Le défaut de rôle du 1er passage ne revient pas.
+- **Le FAIL est encore un croisement de features** (F6 × F7) : avec le Crayon actif, un clic dans le dock zoom/mini-carte crée un trait d'un point, qui entre dans l'historique. Le dock n'arrête que `click`, pas `pointerdown`. Règle de prep ajoutée : un widget posé sur le canevas arrête les événements pointer des modes existants, et une AC le teste avec l'outil le plus intrusif actif.
+- Les ambiguïtés du contrat E2E remontées par le passage sont corrigées : console « attendue » déclarée dans le cahier, panne simulée par un abort (pas par une 5xx), base fraîche par script, règle pour un BLOQUE sur 1 run sur 3.
+
+**`/sk-xs`, 3 nouveaux passages cette nuit** (CORS SignalR, erreur console en dev, dock) : chaque correction tient en 1 à 2 minutes, avec un test vu rouge. Pour l'erreur console, le skill a trouvé la vraie cause : le log venait de SignalR, pas du hook visé par le test que l'humain proposait, et ce test serait passé vert d'emblée. Règles ajoutées : un test vert d'emblée sur un défaut constaté ne touche pas la cause ; un test existant contredit par le besoin s'adapte dans le RED ; sans Azure DevOps, la publication s'arrête à la branche poussée.
+
 **Non-régression des preps après toutes les règles de la nuit** (mêmes besoins que les bancs de référence, kit actuel) :
 
 | Prep | Référence | Kit de cette nuit |
