@@ -335,7 +335,12 @@ ajoute le test qui l execute et l asserte, ou supprime la branche
 si aucune tache ne la demande. BRANCH (non bloquant) = une branche
 jamais prise sur une ligne ajoutee : teste-la si c est un cas du
 contrat ou d une AC (204, 404, liste vide, refus), sinon laisse (garde
-defensive). Banc Miro : le 204 de `Count == 0 ? NoContent() : Ok()`
+defensive). Une BRANCH dans un service, un repository, un controleur ou un
+hook metier est presumee cas metier (PATCH partiel qui garde les autres
+champs, role inconnu, liste vide) : teste-la, sauf garde evidente (`??` ou
+`?.` sur une valeur que le contrat garantit) que tu nommes dans ta sortie.
+Banc Miro : 4 BRANCH ecartees par le worker etaient des cas d AC trouves
+en revue. Banc Miro : le 204 de `Count == 0 ? NoContent() : Ok()`
 passait la couverture de ligne. Un cas du contrat que le seed
 n atteint pas (liste vide, 204) n est PAS inatteignable : substitue le
 service dans le test d API (`ConfigureTestServices` + substitut qui rend
