@@ -102,15 +102,49 @@ export function ranges(lines) {
   return out.map(([a, b]) => (a === b ? `${a}` : `${a}-${b}`)).join(",");
 }
 
-export function diffCover(added, coverage) {
+// Bloc ajoute ambigu : un bloc insere qui finit (ou commence) par les memes lignes que son voisin
+// peut etre aligne a plusieurs positions equivalentes (« slider » de diff). git choisit l une, et un
+// catch/return deja present mais jamais execute sortait en GAP (banc Miro F9). On essaie chaque
+// glissement valide d une plage et on garde celui qui laisse le moins de lignes non executees.
+export function slide(lines, text, cov) {
+  if (!text) return lines;
+  const out = new Set();
+  const sorted = [...lines].sort((a, b) => a - b);
+  const runs = [];
+  for (const n of sorted) {
+    const last = runs[runs.length - 1];
+    if (last && n === last[1] + 1) last[1] = n;
+    else runs.push([n, n]);
+  }
+  const missedOf = (a, b) => { let m = 0; for (let n = a; n <= b; n++) if (cov.get(n) === 0) m++; return m; };
+  for (const [a0, b0] of runs) {
+    let best = [a0, b0];
+    let bestMissed = missedOf(a0, b0);
+    for (const dir of [1, -1]) {
+      let a = a0, b = b0;
+      // Vers le bas : la premiere ligne du bloc egale celle qui suit le bloc ; vers le haut, l inverse.
+      while (dir > 0 ? text[a - 1] === text[b] && b < text.length : a > 1 && text[a - 2] === text[b - 1]) {
+        a += dir; b += dir;
+        const m = missedOf(a, b);
+        if (m < bestMissed) { best = [a, b]; bestMissed = m; }
+      }
+    }
+    for (let n = best[0]; n <= best[1]; n++) out.add(n);
+  }
+  return out;
+}
+
+export function diffCover(added, coverage, readText = () => null) {
   const report = [];
-  for (const [file, lines] of added) {
+  for (const [file, raw] of added) {
     if (!SOURCE.test(file) || TEST.test(file)) continue;
     const cov = coverage.get(file);
     if (!cov) {
       report.push({ file, status: "NOCOV", executable: 0, missed: [] });
       continue;
     }
+    const text = readText(file);
+    const lines = slide(raw, text ? text.split(/\r?\n/) : null, cov);
     const executable = [...lines].filter((n) => cov.has(n));
     const missed = executable.filter((n) => cov.get(n) === 0);
     const branches = executable.filter((n) => cov.get(n) > 0 && cov.get(`br:${n}`) > 0);
@@ -144,7 +178,9 @@ if (isMain) {
       added.set(slash(f), new Set(lines.map((l, i) => (AUTO_PROPERTY.test(l) ? 0 : i + 1)).filter(Boolean)));
     }
   }
-  const report = diffCover(added, parseLcov(readFileSync(findLcov(lcov), "utf8"), root));
+  const head = range.includes("..") ? range.split("..").pop() || "HEAD" : null;
+  const readText = (f) => { try { return head ? git("show", `${head}:${f}`) : readFileSync(resolve(root, f), "utf8"); } catch { return null; } };
+  const report = diffCover(added, parseLcov(readFileSync(findLcov(lcov), "utf8"), root), readText);
   let bad = 0;
   for (const r of report) {
     if (r.status === "NOCOV") {

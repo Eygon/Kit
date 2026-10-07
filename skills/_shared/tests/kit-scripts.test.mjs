@@ -388,3 +388,16 @@ test("gate: vitest for JS test files, dotnet test filtered by class for .cs, per
   assert.equal(runs[1].cmd, "dotnet");
   assert.ok(runs[1].args.includes("FullyQualifiedName~HubTests|FullyQualifiedName~OtherTests"));
 });
+
+test("diff-cover: an inserted block sharing its last lines with the neighbour slides to its covered position", async () => {
+  const { diffCover } = await import("../diff-cover.mjs");
+  // Fichier final : getById (catch jamais execute, lignes 3-4), puis exportBoard (catch couvert, 7-8).
+  const text = ["get() {", "  try { a(); }", "  catch {", "    return null; }", "export() {", "  try { b(); }", "  catch {", "    return null; }"].join("\n");
+  const cov = new Map([[1, 1], [2, 1], [3, 0], [4, 0], [5, 1], [6, 1], [7, 1], [8, 1]]);
+  // git a vu le bloc ajoute en 3-6 (alignement sur le catch existant) au lieu de 5-8.
+  const added = new Map([["src/a.ts", new Set([3, 4, 5, 6])]]);
+  const [r] = diffCover(added, new Map([["src/a.ts", cov]]), () => text);
+  assert.equal(r.status, "OK", JSON.stringify(r));
+  const [raw] = diffCover(added, new Map([["src/a.ts", cov]]));
+  assert.equal(raw.status, "GAP");
+});
