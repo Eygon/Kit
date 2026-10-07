@@ -98,9 +98,11 @@ const rs = await readable("canvas-item-1", "Define the goal"), rf = await readab
 check("#E2", rs.r >= 4.5 && rf.r >= 4.5, `post-it ${rs.c} sur ${rs.bg} = ${rs.r.toFixed(2)} ; forme ${rf.c} sur ${rf.bg} = ${rf.r.toFixed(2)}`);
 
 // #E3 oracle transverse « texte lisible » (sk-e2e.md) : tableau en sombre, puis liste en sombre
-const badBoard = await unreadable(page);
+// Contraste attendu : couleur choisie gardee telle quelle (US1-5, reponse Q2 « les autres couleurs choisies restent telles quelles »)
+const EXPECTED = { expected: [/^Texte rouge$/] };
+const badBoard = await unreadable(page, EXPECTED);
 await page.getByRole("button", { name: /Retour/ }).first().click(); await page.getByText("Sprint planning").first().waitFor(); await page.waitForTimeout(300);
-const badList = await unreadable(page);
+const badList = await unreadable(page, EXPECTED);
 check("#E3", !badBoard.length && !badList.length && (await theme(page)) === "dark", `tableau=${JSON.stringify(badBoard.map((x) => `${x.text}:${x.ratio}`))} liste=${JSON.stringify(badList.map((x) => `${x.text}:${x.ratio}`))} theme=${await theme(page)}`);
 
 // US2-3 choix sombre memorise, rechargement avec systeme clair -> sombre

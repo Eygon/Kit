@@ -136,6 +136,10 @@ etaient invisibles aux tests unitaires, qui mockent le transport.
   11/11 scenarios PASS, mais le texte des post-it etait clair sur jaune (1,02:1),
   vu seulement a la capture. Un texte deja sous le seuil sur la branche de base
   est preexistant : signale dans le rapport, pas un FAIL de la feature.
+  Une couleur que la spec ACCEPTE (contenu choisi par l utilisateur et garde tel
+  quel) va dans `## Contraste attendu` du cahier (option `expected`), avec l AC
+  ou la decision qui l accepte : sans cela l oracle la signale a tort (banc TK-3 :
+  texte rouge #dc2626 sur canevas sombre, 3,49:1, accepte par la reponse Q2).
 
 ## Mode lot (apres plusieurs features)
 

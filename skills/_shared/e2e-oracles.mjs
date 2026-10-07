@@ -61,8 +61,10 @@ export function contrast(a, b) {
 // (premier ancetre au fond opaque). Banc TK-3 (mode sombre) : 11/11 scenarios PASS, mais le texte
 // des post-it etait clair sur jaune (1,02:1) — vu seulement a la capture. A jouer sur chaque ecran
 // d une feature qui touche couleurs, theme ou jetons. Rend les textes sous le seuil.
-//   const bad = await unreadable(page);   // [{ text, color, bg, ratio }]
-export async function unreadable(page, { min = 4.5, minLarge = 3, limit = 20 } = {}) {
+// `expected` = la section « ## Contraste attendu » du cahier : textes dont la spec ACCEPTE la couleur
+// (couleur de contenu choisie par l utilisateur, gardee telle quelle) — comme « Console attendue ».
+//   const bad = await unreadable(page, { expected: [/Texte rouge/] });   // [{ text, color, bg, ratio }]
+export async function unreadable(page, { min = 4.5, minLarge = 3, limit = 20, expected = [] } = {}) {
   const found = await page.evaluate(() => {
     const out = [];
     const bgOf = (el) => { for (let e = el; e; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c && !/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(c)) return c; } return "rgb(255, 255, 255)"; };
@@ -77,5 +79,6 @@ export async function unreadable(page, { min = 4.5, minLarge = 3, limit = 20 } =
     return out;
   });
   return found.map((f) => ({ ...f, ratio: Number(contrast(f.color, f.bg).toFixed(2)) }))
-    .filter((f) => f.ratio < (f.size >= 24 || (f.bold && f.size >= 18.66) ? minLarge : min)).slice(0, limit);
+    .filter((f) => f.ratio < (f.size >= 24 || (f.bold && f.size >= 18.66) ? minLarge : min))
+    .filter((f) => !expected.some((rx) => rx.test(f.text))).slice(0, limit);
 }
