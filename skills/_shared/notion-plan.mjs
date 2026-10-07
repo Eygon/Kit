@@ -115,7 +115,8 @@ export function parseMessage(text) {
 }
 
 const opt = (q, rx) => q.options.find((o) => rx.test(o.label));
-const ALARM = /ESCALATE|\bFAIL\b|rouge|\bred\b|STOP|conflit|echec|échec/i;
+// Mots d alarme d une revue (jamais « RED » : c est le vocabulaire TDD, present dans tout run sain).
+const ALARM = /ESCALATE|\bFAIL\b|\brouge|\bSTOP\b|conflit|(?:^|[^a-z])[eé]checs?\b|review2/i; // « typecheck » contient « echec »
 
 // Que faire d une question : repondre seul (answer), laisser le modele trancher depuis le
 // detail de la tache (judge, repli relay), ou demander a l humain dans Notion (relay / plan).

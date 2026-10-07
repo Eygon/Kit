@@ -1,0 +1,42 @@
+// E2E TK-1 (passage Notion, Playwright faute de Claude in Chrome sur le banc). Back :5080, front :5173.
+import { chromium } from "/opt/node22/lib/node_modules/playwright/index.mjs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { watch } from "/home/user/Kit/skills/_shared/e2e-oracles.mjs";
+const E = new URL(".", import.meta.url).pathname;
+const TW = readFileSync(E + "tw.css", "utf8");
+const results = [];
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await ctx.addInitScript((css) => { document.addEventListener("DOMContentLoaded", () => { const s = document.createElement("style"); s.textContent = css; document.head.appendChild(s); }); }, TW);
+const page = await ctx.newPage();
+const w = watch(page, { api: "http://localhost:5080", expectedConsole: [/negotiation/i, /signalr/i, /WebSocket/i] });
+const check = (id, ok, detail) => { const t = w.take(); const bad = t.fiveXX.length || t.console.length; const v = ok && !bad; results.push({ id, ok: v, detail, fiveXX: t.fiveXX, console: t.console }); console.log(`${v ? "PASS" : "FAIL"} ${id} ${detail}${bad ? " | 5xx/console: " + JSON.stringify([t.fiveXX, t.console]).slice(0, 300) : ""}`); };
+await page.goto("http://localhost:5173/");
+await page.getByText("Sprint planning").first().click();
+await page.locator('[data-testid^="canvas-item-"]').first().waitFor({ timeout: 10000 });
+await page.waitForTimeout(800);
+const zoomBtn = page.getByRole("button", { name: "Réinitialiser le zoom" });
+const zin = page.getByRole("button", { name: "Zoom avant" });
+const z = async () => (await zoomBtn.innerText()).trim();
+await zin.click(); await zin.click();
+const before = await z();
+await page.mouse.click(700, 450);
+await page.keyboard.press("0");
+await page.waitForTimeout(300);
+check("#1.1", before !== "100 %" && (await z()) === "100 %", `avant=${before} apres=${await z()}`);
+await zin.click();
+const zoomed = await z();
+await page.locator('[data-testid="canvas-item-1"]').click();
+const commentsBtn = page.getByRole("button", { name: /Commentaires/ }).first();
+let typed = "";
+if (await commentsBtn.count()) { await commentsBtn.click(); const ta = page.locator("textarea").first(); if (await ta.count()) { await ta.click(); await page.keyboard.type("0"); typed = await ta.inputValue(); } }
+check("#1.2", typed.endsWith("0") && (await z()) === zoomed, `champ=${JSON.stringify(typed)} zoom ${zoomed} -> ${await z()}`);
+await page.keyboard.press("Escape"); await page.mouse.click(700, 450);
+const dialog = page.getByRole("dialog", { name: "Raccourcis clavier" });
+await page.keyboard.press("Shift+Slash");
+let open = await dialog.waitFor({ timeout: 3000 }).then(() => true).catch(() => false);
+if (!open) { await page.keyboard.type("?"); open = await dialog.waitFor({ timeout: 3000 }).then(() => true).catch(() => false); }
+const text = open ? await dialog.innerText() : "";
+check("#1.3", open && /Réinitialiser le zoom/.test(text) && /\b0\b/.test(text), JSON.stringify(text.slice(0, 220)));
+writeFileSync(E + `results-${process.argv[2] || 1}.json`, JSON.stringify(results, null, 1));
+await browser.close();

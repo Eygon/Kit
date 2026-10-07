@@ -1,0 +1,12 @@
+[SK-QUESTION] projet=front feature=001-duplicate-item skill=sk-prep slot=prep type=hypotheses
+Contexte :
+Besoin : Dupliquer un élément avec Ctrl+D (TK-2, besoin complet : /tmp/claude-0/-home-user-Kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/nbench/front/.sk/notion/TK-2.md). Avec un élément sélectionné, Ctrl+D (Cmd+D sur Mac) crée une copie décalée de 20 px vers la droite et le bas, avec le même contenu, la même couleur et la même taille. La copie devient la sélection.
+Clarify Q1/2 : le besoin cite post-it, texte et forme. Le canevas connaît aussi les tracés libres (BoardItemTypeEnum.FREEHAND, src/types/enums/boardItem/boardItemTypeEnum.ts:5).
+Un tracé se duplique par le même mécanisme : ses points sont relatifs à x/y (src/pages/board/utils/buildFreehandItem.ts:21), donc un décalage de x/y suffit.
+Piège back : POST /boards/{id}/items refuse points et strokeWidth sur un élément qui n est pas un tracé (Tableau.Business/Services/BoardItemService.cs:88-93, réponse 400). La copie ne les envoie donc que pour un tracé.
+Esquisse mesurée : 1 US, 6 tâches, 6 fichiers de prod, cap atteint sans le dépasser (cap-check OK) : canvasConstants.ts, buildDuplicateItem.ts (nouveau), boardShortcuts.ts, locales fr/en/es, useDuplicateShortcut.ts (nouveau), board.tsx.
+Trio : /tmp/claude-0/-home-user-Kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/nbench/front/specs/001-duplicate-item/
+Options :
+1. Dupliquer aussi les tracés libres (recommandé : même raccourci pour tout élément sélectionnable, sans fichier en plus)
+2. Limiter à post-it, texte et forme : Ctrl+D ne fait rien sur un tracé libre
+Reponse attendue : [SK-ANSWER] <n> — <motif>

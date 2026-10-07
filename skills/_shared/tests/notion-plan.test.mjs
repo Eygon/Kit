@@ -118,3 +118,16 @@ test("tick : une seule prep a la fois par depot, une XS passe a cote", () => {
   const b = tick([row(4, { Taille: "Feature" }), row(9, { Statut: STATUS.prep })], { runs: { p9: { phase: "prep", repo: "/repo/front", startedAt: NOW } } }, two, NOW).actions;
   assert.equal(b.find((x) => x.page === "p4").reason, "une prep tourne deja sur ce depot");
 });
+
+test("verdict : le vocabulaire TDD (RED/GREEN) n est pas une alarme, une revue rouge l est", () => {
+  const ok = parseMessage("[SK-QUESTION] type=verdict\nContexte :\n4 commits RED(1)/GREEN(1)/RED(2)/GREEN(2), gates vertes\nOptions :\n1. Publier\n2. Corriger d'abord\n3. Abandonner\n");
+  assert.equal(decideQuestion(ok).type, "e2e");
+  const ko = parseMessage("[SK-QUESTION] type=verdict\nContexte :\nreview2 FAIL sur US2\nOptions :\n1. Publier\n2. Corriger\n");
+  assert.equal(decideQuestion(ko).type, "relay");
+});
+
+test("verdict : « typecheck » n est pas un « echec »", () => {
+  const ok = parseMessage("[SK-QUESTION] type=verdict\nContexte :\nnpm run typecheck : 1 erreur preexistante hors diff\nOptions :\n1. Publier\n2. Corriger\n");
+  assert.equal(decideQuestion(ok).type, "e2e");
+  assert.equal(decideQuestion(parseMessage("[SK-QUESTION] type=verdict\nContexte :\nEchec du squash\nOptions :\n1. Publier\n")).type, "relay");
+});
