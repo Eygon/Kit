@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Board members (existing endpoint, consumed read-only by US3)
+  version: "1"
+paths:
+  /api/v1/boards/{boardId}/members:
+    get:
+      summary: Members of a board with their role (existing, BoardMembersController.GetAll)
+      parameters:
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: X-User-Id
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Members ordered Owner first then by display name
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BoardMemberDto" }
+        "204": { description: No member }
+        "401": { description: Unidentified user }
+        "403": { description: Current user is not a member of the board }
+        "404": { description: Board not found }
+components:
+  schemas:
+    BoardMemberDto:
+      type: object
+      required: [userId, displayName, role]
+      properties:
+        userId: { type: integer }
+        displayName: { type: string }
+        role:
+          type: string
+          enum: [Viewer, Editor, Owner]

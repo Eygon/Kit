@@ -1,0 +1,5 @@
+after: null
+parallel:
+  - [US1, US2, US3]
+  - [US4, US5, US6, US7, US8, US9]
+contract: specs/001-board-sharing-m2-r1/contracts/board-sharing.yaml

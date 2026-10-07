@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: Tableau — board item comments
+  version: 1.0.0
+  description: Contract written in prep (sk-prep). Identity via X-User-Id header (existing HeaderCurrentUserResolver). Errors use the existing middleware body { message }.
+paths:
+  /api/v1/boards/{boardId}/items/{itemId}/comments:
+    parameters:
+      - $ref: '#/components/parameters/BoardId'
+      - $ref: '#/components/parameters/ItemId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      operationId: getComments
+      summary: Comments of an item, sorted by createdAt ascending.
+      responses:
+        '200':
+          description: At least one comment.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CommentDto' }
+        '204': { description: No comment on this item. }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    post:
+      operationId: createComment
+      summary: Any board member posts a comment (body trimmed, 1-2000 chars).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCommentDto' }
+      responses:
+        '201':
+          description: Created; Location = /api/v1/boards/{boardId}/items/{itemId}/comments/{commentId}.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentDto' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/boards/{boardId}/items/{itemId}/comments/{commentId}:
+    parameters:
+      - $ref: '#/components/parameters/BoardId'
+      - $ref: '#/components/parameters/ItemId'
+      - $ref: '#/components/parameters/CommentId'
+      - $ref: '#/components/parameters/UserId'
+    patch:
+      operationId: updateComment
+      summary: Body (author only) and/or isResolved (any member). At least one field.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCommentDto' }
+      responses:
+        '200':
+          description: Updated comment.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentDto' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: deleteComment
+      summary: Author or board Owner.
+      responses:
+        '204': { description: Deleted. }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  parameters:
+    BoardId: { name: boardId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    ItemId: { name: itemId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    CommentId: { name: commentId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    UserId: { name: X-User-Id, in: header, required: true, schema: { type: integer, minimum: 1 } }
+  responses:
+    Error:
+      description: Domain error mapped by ExceptionHandlingMiddleware (401 carries the canonical unidentified-user message).
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+  schemas:
+    CommentDto:
+      type: object
+      required: [id, boardItemId, authorId, body, createdAt, updatedAt, isResolved]
+      properties:
+        id: { type: integer, description: 'Comments.Id (new table, US1)' }
+        boardItemId: { type: integer, description: 'Comments.BoardItemId -> BoardItems.Id' }
+        authorId: { type: integer, description: 'Comments.AuthorId = X-User-Id of the poster' }
+        body: { type: string, minLength: 1, maxLength: 2000, description: 'Comments.Body' }
+        createdAt: { type: string, format: date-time, description: 'Comments.CreatedAt (UTC, TimeProvider)' }
+        updatedAt: { type: string, format: date-time, description: 'Comments.UpdatedAt (UTC, TimeProvider)' }
+        isResolved: { type: boolean, description: 'Comments.IsResolved, default false' }
+    CreateCommentDto:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, maxLength: 2000, description: 'Trimmed server-side; empty after trim = 400' }
+    UpdateCommentDto:
+      type: object
+      properties:
+        body: { type: string, nullable: true, maxLength: 2000, description: 'Author only; absent = unchanged' }
+        isResolved: { type: boolean, nullable: true, description: 'Any member; absent = unchanged' }

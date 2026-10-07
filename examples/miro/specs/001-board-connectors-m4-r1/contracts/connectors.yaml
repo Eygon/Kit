@@ -1,0 +1,110 @@
+openapi: 3.0.3
+info:
+  title: Board connectors
+  version: 1.0.0
+  description: Connectors between two items of the same board. Caller identified by the X-User-Id header, like every other board endpoint.
+paths:
+  /api/v1/boards/{boardId}/connectors:
+    parameters:
+      - $ref: "#/components/parameters/BoardId"
+    get:
+      operationId: getConnectors
+      responses:
+        "200":
+          description: Connectors of the board, ordered by id.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConnectorDto"
+        "204": { description: The board has no connector. }
+        "401": { description: Caller not identified. }
+        "403": { description: Caller is not a member of the board. }
+        "404": { description: Board not found. }
+    post:
+      operationId: createConnector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConnectorDto"
+      responses:
+        "201":
+          description: Connector created. Location header = /api/v1/boards/{boardId}/connectors/{id}.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectorDto"
+        "400": { description: fromItemId equals toItemId, or one of them does not belong to the board. }
+        "401": { description: Caller not identified. }
+        "403": { description: Caller is a Viewer or not a member. }
+        "404": { description: Board not found. }
+  /api/v1/boards/{boardId}/connectors/{connectorId}:
+    parameters:
+      - $ref: "#/components/parameters/BoardId"
+      - $ref: "#/components/parameters/ConnectorId"
+    patch:
+      operationId: updateConnector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateConnectorDto"
+      responses:
+        "200":
+          description: Connector updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectorDto"
+        "400": { description: No style supplied. }
+        "401": { description: Caller not identified. }
+        "403": { description: Caller is a Viewer or not a member. }
+        "404": { description: Board or connector not found. }
+    delete:
+      operationId: deleteConnector
+      responses:
+        "204": { description: Connector deleted. }
+        "401": { description: Caller not identified. }
+        "403": { description: Caller is a Viewer or not a member. }
+        "404": { description: Board or connector not found. }
+components:
+  parameters:
+    BoardId:
+      name: boardId
+      in: path
+      required: true
+      schema: { type: integer }
+    ConnectorId:
+      name: connectorId
+      in: path
+      required: true
+      schema: { type: integer }
+  schemas:
+    ConnectorStyle:
+      type: string
+      enum: [Arrow, Line]
+    ConnectorDto:
+      type: object
+      required: [id, boardId, fromItemId, toItemId, style, createdBy]
+      properties:
+        id: { type: integer }
+        boardId: { type: integer }
+        fromItemId: { type: integer }
+        toItemId: { type: integer }
+        style: { $ref: "#/components/schemas/ConnectorStyle" }
+        createdBy: { type: integer, description: Id of the user who created the connector. }
+    CreateConnectorDto:
+      type: object
+      required: [fromItemId, toItemId, style]
+      properties:
+        fromItemId: { type: integer }
+        toItemId: { type: integer }
+        style: { $ref: "#/components/schemas/ConnectorStyle" }
+    UpdateConnectorDto:
+      type: object
+      properties:
+        style: { $ref: "#/components/schemas/ConnectorStyle" }

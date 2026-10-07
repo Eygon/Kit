@@ -1,0 +1,26 @@
+[
+ {
+  "fact": "Seed sans commentaire ; CommentsApiTests partage une base par classe et les items 1-4 du board 1 sont pris : pour un comptage deterministe, creer board et items via POST /api/v1/boards et POST /boards/{id}/items",
+  "source": "Tableau.Tests/Controllers/CommentsApiTests.cs (CreateBoardWithTwoItems)",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Comment.BoardItem est nullable : filtrer par board avec x.BoardItem!.BoardId (sinon CS8602)",
+  "source": "Tableau.DAL/Entities/Comment.cs:25",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Tests qui lisent des libelles i18n : renderWithProviders (I18nextProvider + QueryClient) ; render simple rend les cles brutes",
+  "source": "src/__tests__/utils/renderWithProviders.tsx:1-20",
+  "us": "US4",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m5/slot"
+ },
+ {
+  "fact": "Cles plurielles unresolvedBadge_one/_other : t(key,{count}) ; en fr 'one' couvre 0 et 1",
+  "source": "src/__tests__/components/elements/commentBadge/commentBadge.test.tsx",
+  "us": "US4",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m5/slot"
+ }
+]

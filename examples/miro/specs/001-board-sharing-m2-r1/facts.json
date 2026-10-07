@@ -1,0 +1,134 @@
+[
+ {
+  "fact": "Tests du mapper et de l enum : `export {};` en tete et import par chemin const ; vitest related les resout si on passe les fichiers de test explicitement",
+  "source": "src/__tests__/types/mappers/boardMember/boardMemberMapper.test.ts:1-5",
+  "us": "US4",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "BoardService : BOARD_X().replace(\"{boardId}\", id.toString()) ; 204/null -> liste vide ; erreur -> DisplayError une fois",
+  "source": "src/api/boards/boardService.ts:getMembers",
+  "us": "US4",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "DataSeeder.Seed sort tot si des Boards existent : la garde Users.Any() plus bas ne s execute que sur un magasin sans board",
+  "source": "Tableau.DAL/Seed/DataSeeder.cs:14-17",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Users.Id est ValueGeneratedNever (ids 1-3 du seed AliceId/BobId/CarolId) : un test qui insere un User fournit l Id",
+  "source": "Tableau.DAL/EntityTypeConfigurations/UserConfiguration.cs:12",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Refus d un User sans DisplayName : DisplayName = null! puis SaveChanges -> DbUpdateException (SQLite NOT NULL) ; string.Empty ne declenche pas le refus",
+  "source": "Tableau.Tests/Data/UserModelTests.cs:55-62",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Service, Repository et interfaces se branchent seuls dans le DI par suffixe (AddSuffixRegistrations) : aucun enregistrement manuel",
+  "source": "Tableau.Api/Program.cs:22",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Tableau.Tests a des usings globaux (NUnit, NSubstitute, Shouldly) : rien a ajouter dans les nouveaux tests",
+  "source": "Tableau.Tests/Services/UserServiceTests.cs",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "UserRepository.Exists n est execute par aucun test de US2 (GAP diff-cover) : le test API de POST members (US3) doit passer par lui",
+  "source": "Tableau.DAL/Repositories/UserRepository.cs:22",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Corrige recon.md : buildBoardMember n existe pas dans builders.ts ; les tests construisent les BoardMember en litteral (userId, displayName, role)",
+  "source": "src/__tests__/utils/builders.ts",
+  "us": "US5",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "vi.mock d un module de hook pas encore cree marche dans board.test.tsx (factory resolue paresseusement) : le RED de la page echoue par assertion",
+  "source": "src/__tests__/pages/board/board.test.tsx",
+  "us": "US5",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "Le stub BoardCanvas de board.test.tsx expose move-stub, edit-stub, create-stub relies a onMoveItem/onEditItem/onCreateAt ; le titre de Drawer 'Modifier le contenu' n est dans le DOM que pendant une edition",
+  "source": "src/__tests__/pages/board/board.test.tsx",
+  "us": "US5",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "Tests API qui mutent l etat partage (factory unique par fixture) : restaurer les membres en fin de test (Bob et Carol sur boards 1 et 2), sinon les tests suivants faussent",
+  "source": "Tableau.Tests/Controllers/BoardMembersApiTests.cs",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "BoardMember sans navigation vers User : DisplayName par Join(DbContext.Users) dans BoardMemberRepository.Project ; tri Owner d abord par OrderByDescending(Role == Owner).ThenBy(DisplayName)",
+  "source": "Tableau.DAL/Repositories/BoardMemberRepository.cs:14-60",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "DTO de requete en BoardRole (enum) : JsonStringEnumConverter rend 400 auto pour 'Admin' ; Owner et numeriques hors enum refuses par BoardMemberService.EnsureAssignable",
+  "source": "Tableau.Business/Services/BoardMemberService.cs",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Lib : Skeleton role=status data-testid=septeo-skeleton ; Modal = <dialog open> natif, titre h2, bouton fermer ghost de nom accessible '×' (sans aria-label) ; Avatar role=img aria-label=name",
+  "source": "packages/septeo-ui-components/dist/index.js:21-26,75-86,164-165",
+  "us": "US6",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "BOARD_ROLE_LABEL_KEYS (boardRoleEnum.ts) mappe chaque BoardRoleEnum vers pages.board.roles.* ; consommer par t(BOARD_ROLE_LABEL_KEYS[role]) ; Record<Enum> permis seulement dans ce fichier (check enums)",
+  "source": "src/types/enums/boardMember/boardRoleEnum.ts:10-14",
+  "us": "US6",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "Aucun test ne mockait septeoToast : vi.mock('@septeo/septeo-ui-components', async (importOriginal) => ({...await importOriginal(), septeoToast: { success: mocks.success }})) avec spy vi.hoisted ; texte fr du toast via la vraie i18n",
+  "source": "src/__tests__/pages/board/hooks/useUpdateBoardMemberRoleMutation.test.tsx:9-13",
+  "us": "US7",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "Changer d utilisateur courant par test : mocker @/config/apiConfig avec un getter CURRENT_USER_ID qui lit un mock vi.hoisted (la modale le lit au rendu)",
+  "source": "src/__tests__/pages/board/components/widgets/shareBoardModal/shareBoardModal.test.tsx:7-17",
+  "us": "US7",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "user.selectOptions marche sur le <select> natif par role combobox et nom aria-label ; Button avec icon + texte a pour nom accessible le texte",
+  "source": "src/__tests__/pages/board/components/widgets/shareBoardModal/shareBoardModal.test.tsx",
+  "us": "US7",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "Fin US8 : userQueryFunctions.ts (fetchUsers) UNMOUNTED ; le hook useUsersQuery de US9 le consomme",
+  "source": "mount-check --tasks tasks.md src/utils/queryFunctions/userQueryFunctions.ts",
+  "us": "US8",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "Modele User du contrat = { id: number; displayName: string } ; UserDto aux champs optionnels nullables, defauts 0 / ''",
+  "source": "src/types/models/user/user.ts ; src/types/dtos/user/userDto.ts",
+  "us": "US8",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ },
+ {
+  "fact": "Modal lib : prop footer ; pour cibler le select de role du footer, mocker les membres a l owner seul (sinon plusieurs combobox 'Role')",
+  "source": "src/__tests__/pages/board/components/widgets/shareBoardModal/shareBoardModal.test.tsx",
+  "us": "US9",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m2/slot"
+ }
+]

@@ -1,0 +1,50 @@
+[
+ {
+  "fact": "Les hooks de mutation passent par src/utils/queryFunctions/boardItemQueryFunctions.ts ; mutateAsync de useCreateBoardItemMutation rend le BoardItem cree (utile a remapBoardItemId)",
+  "source": "src/utils/queryFunctions/boardItemQueryFunctions.ts:5-10 ; src/pages/board/hooks/useCreateBoardItemMutation.ts:9",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m3/slot"
+ },
+ {
+  "fact": "Tests de page qui mockent les hooks de mutation : fournir aussi mutateAsync (useBoardHistory l appelle) ; les mutate de board.tsx portent un 2e argument { onSuccess } : toHaveBeenCalledWith(x, expect.anything()) ; simuler le succes en appelant options.onSuccess",
+  "source": "src/__tests__/pages/board/board.test.tsx (succeedWith)",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m3/slot"
+ },
+ {
+  "fact": "tsc elargit un litteral { kind: BoardActionKindEnum.MOVE } a tout l enum : annoter les builders et consts BoardAction/BoardHistory de leur type (sinon TS2345)",
+  "source": "src/__tests__/pages/board/utils/boardHistory.test.ts",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m3/slot"
+ },
+ {
+  "fact": "ESLint consistent-type-imports interdit les annotations import() dans les tests : importOriginal<Record<string, unknown>>() dans un vi.mock partiel",
+  "source": "src/__tests__/pages/board/hooks/useBoardHistory.test.tsx:24",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m3/slot"
+ },
+ {
+  "fact": "user.keyboard avec Control sur une page sans champ focalise envoie keydown sur document.body (capte par l ecouteur window) ; textarea cliquee d abord -> event.target = textarea, ignore",
+  "source": "src/__tests__/pages/board/board.test.tsx",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m3/slot"
+ },
+ {
+  "fact": "fireEvent.keyDown rend false si preventDefault a ete appele ; jsdom ne calcule pas isContentEditable : Object.defineProperty(el, 'isContentEditable', { value: true })",
+  "source": "src/__tests__/pages/board/hooks/useBoardHistoryShortcuts.test.ts",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m3/slot"
+ },
+ {
+  "fact": "Le triplet BoardMember (mapper/dto/model/enum + isBoardRole + BOARD_ROLE_LABEL_KEYS), BOARD_MEMBERS (apiURL.ts) et BoardService.getMembers / fetchBoardMembers (boardQueryFunctions.ts) existent deja (feature partage) ; le mapper rend Viewer pour un role inconnu",
+  "source": "src/types/mappers/boardMember/boardMemberMapper.ts:8 ; src/utils/queryFunctions/boardQueryFunctions.ts:8",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m3/slot"
+ },
+ {
+  "fact": "shareBoardModal consomme BoardMember.role non nul : ne pas rendre role nullable",
+  "source": "src/pages/board/components/widgets/shareBoardModal/shareBoardModal.tsx:28,87,91",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m3/slot"
+ }
+]

@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: Board items - freehand strokes
+  version: 1.0.0
+  description: >
+    Extension of the existing board item endpoints (Tableau.Api BoardItemsController,
+    route api/v1/boards/{boardId}/items). Only the fields added by this feature are new;
+    every other field and status code is unchanged. Enums are serialized as strings
+    (JsonStringEnumConverter).
+paths:
+  /api/v1/boards/{boardId}/items:
+    get:
+      summary: List the items of a board (unchanged route; items now carry points and strokeWidth)
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+      responses:
+        "200":
+          description: Items ordered by zIndex
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BoardItemDto"
+        "204":
+          description: No item on the board
+        "401": { description: Unidentified user }
+        "403": { description: No access to the board }
+        "404": { description: Board not found }
+    post:
+      summary: Add an item; Freehand items carry points and strokeWidth
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBoardItemDto"
+      responses:
+        "201":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardItemDto"
+        "400":
+          description: >
+            Width or height not positive; type Freehand without points; points or strokeWidth
+            supplied for a non-Freehand type; more than 2000 points; strokeWidth not in {2, 4, 8}.
+        "401": { description: Unidentified user }
+        "403": { description: Viewer or no access }
+        "404": { description: Board not found }
+  /api/v1/boards/{boardId}/items/{itemId}:
+    patch:
+      summary: Partial update; points and strokeWidth accepted only on a Freehand item
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBoardItemDto"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardItemDto"
+        "400":
+          description: >
+            No field supplied; width or height not positive; points or strokeWidth on a
+            non-Freehand item; empty points or more than 2000 points; strokeWidth not in {2, 4, 8}.
+        "401": { description: Unidentified user }
+        "403": { description: Viewer or no access }
+        "404": { description: Item not found on the board }
+components:
+  parameters:
+    BoardId:
+      name: boardId
+      in: path
+      required: true
+      schema: { type: integer }
+  schemas:
+    BoardItemType:
+      type: string
+      enum: [StickyNote, Shape, Text, Freehand]
+      description: Freehand is the value added by this feature.
+    StrokePointDto:
+      type: object
+      required: [x, y]
+      properties:
+        x: { type: number, description: Horizontal offset from the item origin, canvas units }
+        y: { type: number, description: Vertical offset from the item origin, canvas units }
+    StrokeWidth:
+      type: integer
+      enum: [2, 4, 8]
+    BoardItemDto:
+      type: object
+      properties:
+        id: { type: integer }
+        boardId: { type: integer }
+        type: { $ref: "#/components/schemas/BoardItemType" }
+        x: { type: number }
+        y: { type: number }
+        width: { type: number }
+        height: { type: number }
+        color: { type: string }
+        content: { type: string }
+        zIndex: { type: integer }
+        updatedAt: { type: string, format: date-time }
+        points:
+          type: array
+          nullable: true
+          maxItems: 2000
+          items: { $ref: "#/components/schemas/StrokePointDto" }
+          description: New. Non-null only for Freehand items.
+        strokeWidth:
+          allOf: [{ $ref: "#/components/schemas/StrokeWidth" }]
+          nullable: true
+          description: New. Non-null only for Freehand items.
+    CreateBoardItemDto:
+      type: object
+      required: [type, x, y, width, height]
+      properties:
+        type: { $ref: "#/components/schemas/BoardItemType" }
+        x: { type: number }
+        y: { type: number }
+        width: { type: number }
+        height: { type: number }
+        color: { type: string, maxLength: 32 }
+        content: { type: string, maxLength: 2000 }
+        points:
+          type: array
+          nullable: true
+          minItems: 1
+          maxItems: 2000
+          items: { $ref: "#/components/schemas/StrokePointDto" }
+          description: New. Required for Freehand, forbidden for other types.
+        strokeWidth:
+          allOf: [{ $ref: "#/components/schemas/StrokeWidth" }]
+          nullable: true
+          description: New. Required for Freehand, forbidden for other types.
+    UpdateBoardItemDto:
+      type: object
+      properties:
+        x: { type: number }
+        y: { type: number }
+        width: { type: number }
+        height: { type: number }
+        color: { type: string, maxLength: 32 }
+        content: { type: string, maxLength: 2000 }
+        zIndex: { type: integer }
+        points:
+          type: array
+          nullable: true
+          minItems: 1
+          maxItems: 2000
+          items: { $ref: "#/components/schemas/StrokePointDto" }
+          description: New. Accepted only on a Freehand item.
+        strokeWidth:
+          allOf: [{ $ref: "#/components/schemas/StrokeWidth" }]
+          nullable: true
+          description: New. Accepted only on a Freehand item.

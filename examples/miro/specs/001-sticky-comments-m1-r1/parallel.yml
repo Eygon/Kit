@@ -1,0 +1,5 @@
+after: null
+parallel:
+  - [US1, US2, US3]
+  - [US4, US5, US6, US7]
+contract: specs/001-sticky-comments-m1-r1/contracts/comments.yaml

@@ -1,0 +1,42 @@
+openapi: 3.0.3
+info:
+  title: Board unresolved comment counts
+  version: 1.0.0
+  description: >
+    Written during /sk-prep (clarify Q1). Same access rules as
+    GET /api/v1/boards/{boardId}/items/{itemId}/comments (any board member,
+    caller identified by the X-User-Id header).
+paths:
+  /api/v1/boards/{boardId}/comments/counts:
+    get:
+      operationId: getUnresolvedCommentCounts
+      parameters:
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: One entry per item of the board having at least one unresolved comment.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CommentCountDto" }
+        "204": { description: No item of the board has an unresolved comment. }
+        "401": { description: Caller not identified. }
+        "403": { description: Caller is not a member of the board. }
+        "404": { description: Board not found. }
+components:
+  schemas:
+    CommentCountDto:
+      type: object
+      required: [itemId, unresolved]
+      properties:
+        itemId:
+          type: integer
+          description: Board item id (Comments.BoardItemId, grouped).
+        unresolved:
+          type: integer
+          minimum: 1
+          description: Count of the item's comments where IsResolved = false.

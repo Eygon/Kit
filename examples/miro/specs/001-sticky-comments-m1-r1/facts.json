@@ -1,0 +1,116 @@
+[
+ {
+  "fact": "Sous jsdom/Node, Intl.RelativeTimeFormat avec numeric auto rend 'anteayer' (es, -2 jours) et 'il y a 5 minutes' (fr) ; les tests de date relative passent un `now` explicite.",
+  "source": "src/__tests__/utils/formatRelativeTime/formatRelativeTime.test.ts (vitest run vert)",
+  "us": "US4",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "formatRelativeTime(isoDate, locale, now) renvoie '' pour une date vide ; CommentService est une classe statique (default export) avec getAll/create/update/remove, sur le modele de BoardItemService.",
+  "source": "src/api/comments/commentService.ts ; src/utils/formatRelativeTime/formatRelativeTime.ts",
+  "us": "US4",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "Schema tests: SqliteConnection(\"DataSource=:memory:\") ouvert + EnsureCreated, puis SELECT name FROM pragma_table_info('Comments') ; Microsoft.Data.Sqlite vient transitivement de Tableau.DAL (pas de changement de csproj)",
+  "source": "Tableau.Tests/Data/CommentModelTests.cs",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "BaseDbContext/TableauContext n ont pas d OnModelCreating : les configurations EF se branchent uniquement par l attribut [EntityTypeConfiguration] sur l entite exposee en DbSet",
+  "source": "Tableau.DAL/TableauContext.cs ; Tableau.DAL/Entities/BoardItem.cs:6",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Lib Icon rend <i class={name} aria-hidden style={{fontSize:size}}> (size nombre, pas de className). Lib Skeleton rend role=status data-testid=septeo-skeleton. Ombre du Drawer lib : 0 0 24px rgba(0,0,0,0.15)",
+  "source": "node_modules/@septeo/septeo-ui-components/dist/index.js:5,21 ; dist/septeo.css:81",
+  "us": "US5",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "Pas de buildComment dans src/__tests__/utils/builders.ts : chaque test de commentaire definit son builder local",
+  "source": "src/__tests__/utils/builders.ts",
+  "us": "US5",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "jsdom fr, Date figee a 09:05Z : formatRelativeTime(09:00Z) = 'il y a 5 minutes' ; userEvent marche avec vi.useFakeTimers({toFake:['Date']})",
+  "source": "src/__tests__/pages/board/components/widgets/commentsPanel/commentItem/commentItem.test.tsx",
+  "us": "US5",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "Le test du panneau mocke CommentService (default export getAll/create/update/remove) et rend le vrai hook via renderWithProviders (retry false) ; getAll rejete une fois puis resolu prouve le retry de l ErrorBanner",
+  "source": "src/__tests__/pages/board/components/widgets/commentsPanel/commentsPanel.test.tsx",
+  "us": "US5",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "CommentsPanel est monte dans board.tsx par US6 ; le bouton de fermeture natif <button> est l ecart accepte (clarify Q3)",
+  "source": "src/pages/board/components/widgets/commentsPanel/commentsPanel.tsx",
+  "us": "US5",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "CommentsApiTests : la base SQLite memoire est partagee par les tests d une meme WebApplicationFactory et les POST persistent : chaque test qui lit des commentaires prend un item dedie (item 3 vide -> 204, item 4 tri, item 1 201)",
+  "source": "Tableau.Tests/Controllers/CommentsApiTests.cs",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Figer l horloge d un service : sous-classe privee de TimeProvider qui surcharge GetUtcNow (FixedClock) ; Microsoft.Extensions.TimeProvider.Testing n est pas reference",
+  "source": "Tableau.Tests/Services/CommentServiceTests.cs",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "CommentsController verifie l existence de l item avant la validation du corps (404 avant 400)",
+  "source": "Tableau.Api/Controllers/CommentsController.cs",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "board.test.tsx mocke useBoardQuery, useBoardItemsQuery, les mutations update/create/delete, BoardCanvas (boutons qui appellent onSelectItem) et CommentsPanel, et rend le vrai BoardPage via renderWithProviders",
+  "source": "src/__tests__/pages/board/board.test.tsx",
+  "us": "US6",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "Le bouton Commentaires de la toolbar ne s affiche que pour un post-it selectionne avec l outil SELECT ; supprimer l item du panneau ouvert ferme le panneau",
+  "source": "src/pages/board/board.tsx ; src/pages/board/hooks/useBoardInteractions.ts",
+  "us": "US6",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "Roles seed du board 1 : 1 = Owner, 2 = Editor, 3 = Viewer. Un Viewer peut poster, PATCH isResolved et supprimer ses propres commentaires (EnsureAccess requireWrite:false)",
+  "source": "Tableau.Business/Services/BoardService.cs:46-65 ; Tableau.Tests/Controllers/CommentsApiTests.cs",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Comment.ToCommentDto() (Tableau.DAL.Mappers) s utilise sur l entite suivie apres Apply : le service renvoie le commentaire a jour sans relire",
+  "source": "Tableau.DAL/Repositories/CommentRepository.cs ; Tableau.Business/Services/CommentService.cs",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Le toast d erreur d ecriture vient du service (DisplayError puis throw dans create/update/remove) ; les hooks n ont pas d onError toast, le rollback optimiste passe par onError et onSettled",
+  "source": "src/api/comments/commentService.ts:28-62",
+  "us": "US7",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "Test du panneau : le composer ajoute une 2e textarea ; une edition inline se cible par screen.getByDisplayValue(<corps>), pas getByRole('textbox')",
+  "source": "src/__tests__/pages/board/components/widgets/commentsPanel/commentsPanel.test.tsx",
+  "us": "US7",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ },
+ {
+  "fact": "CommentItem recoit isAuthor, onToggleResolved(isResolved), onSaveBody(trimmed), onDelete ; le composer est monte sous le corps du panneau dans tous les etats",
+  "source": "src/pages/board/types/commentItem.ts ; src/pages/board/components/widgets/commentsPanel/commentsPanel.tsx",
+  "us": "US7",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m1/slot"
+ }
+]

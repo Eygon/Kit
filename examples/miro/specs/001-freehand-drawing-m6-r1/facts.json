@@ -1,0 +1,56 @@
+[
+ {
+  "fact": "PRESET_BY_TYPE est as const : points: [] devient readonly [] (TS2322) ; ecrire [] as StrokePoint[]",
+  "source": "src/pages/board/utils/buildNewItem.ts",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m6/slot"
+ },
+ {
+  "fact": "Le test 'maps every field when all are present' fait toEqual sur tout le modele : tout nouveau champ de BoardItem doit y etre ajoute",
+  "source": "src/__tests__/types/mappers/boardItem/boardItemMapper.test.ts:20",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m6/slot"
+ },
+ {
+  "fact": "Points stockes en JSON camelCase (JsonSerializerDefaults.Web) via BoardItemMapper.SerializePoints / ToStrokePoints ; StrokePointDto record positionnel (X, Y)",
+  "source": "Tableau.DAL/Mappers/BoardItemMapper.cs",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "BoardItemService.ValidateStroke(isFreehand, points, strokeWidth, requireBoth) : requireBoth a la creation, PATCH valide ce qui est fourni (type lu depuis l item suivi) ; MaxStrokePoints=2000, AllowedStrokeWidths={2,4,8}",
+  "source": "Tableau.Business/Services/BoardItemService.cs",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Seed board 1 : editor Bob (2), viewer Carol (3), items 1-4 = StickyNote, StickyNote, Shape, Text",
+  "source": "Tableau.DAL/Seed/DataSeeder.cs:29-36",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Quand BoardCanvasProps gagne une prop requise : etendre le helper renderCanvas de boardCanvas.test.tsx ET le stub vi.mock de board.test.tsx (sinon tsc rouge)",
+  "source": "src/__tests__/pages/board/components/modules/boardCanvas/boardCanvas.test.tsx:15 ; src/__tests__/pages/board/board.test.tsx:57",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m6/slot"
+ },
+ {
+  "fact": "jsdom getBoundingClientRect = zeros : monde == client au viewport {0,0,1} ; tests de hook : faux evenement avec currentTarget.getBoundingClientRect",
+  "source": "src/__tests__/pages/board/hooks/useFreehandDrawing.test.ts:6",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m6/slot"
+ },
+ {
+  "fact": "Button de la lib : classes sep-button--<variant> et sep-button--<size> seulement (pas d aria-pressed) : choix actif asserte par toHaveClass('sep-button--primary')",
+  "source": "node_modules/@septeo/septeo-ui-components/dist/index.js:8-13",
+  "us": "US4",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m6/slot"
+ },
+ {
+  "fact": "Des objets imbriques sous pages.board.toolbar cassent les casts as Record<string,string> de localesParity.test.ts (TS2352) : as unknown as Record<string,string>",
+  "source": "src/__tests__/i18n/localesParity.test.ts:54,63,117",
+  "us": "US4",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m6/slot"
+ }
+]

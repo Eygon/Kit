@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: Tableau API - board sharing
+  version: 1.0.0
+  description: >
+    Members of a board and users directory. Caller identified by the X-User-Id header
+    (HeaderCurrentUserResolver). Errors use the existing body { message } from
+    ExceptionHandlingMiddleware. Enums are serialized as strings (JsonStringEnumConverter).
+servers:
+  - url: http://localhost:5080
+components:
+  parameters:
+    UserIdHeader:
+      name: X-User-Id
+      in: header
+      required: true
+      schema: { type: integer, minimum: 1 }
+    BoardId:
+      name: boardId
+      in: path
+      required: true
+      schema: { type: integer }
+    MemberUserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: integer }
+  schemas:
+    BoardRole:
+      type: string
+      enum: [Viewer, Editor, Owner]
+    AssignableBoardRole:
+      type: string
+      enum: [Viewer, Editor]
+    User:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: integer }
+        displayName: { type: string, maxLength: 100 }
+    BoardMember:
+      type: object
+      required: [userId, displayName, role]
+      properties:
+        userId: { type: integer }
+        displayName: { type: string }
+        role: { $ref: '#/components/schemas/BoardRole' }
+    AddBoardMember:
+      type: object
+      required: [userId, role]
+      properties:
+        userId: { type: integer }
+        role: { $ref: '#/components/schemas/AssignableBoardRole' }
+    UpdateBoardMember:
+      type: object
+      required: [role]
+      properties:
+        role: { $ref: '#/components/schemas/AssignableBoardRole' }
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+  responses:
+    Unauthorized: { description: Caller not identified }
+    Forbidden:
+      description: Caller is not a member, or not the owner for a write
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: Board, user or member not found
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    BadRequest:
+      description: Invalid role, user already member, or target is the owner
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+paths:
+  /api/v1/users:
+    get:
+      summary: List the users of the application, ordered by display name
+      parameters: [ { $ref: '#/components/parameters/UserIdHeader' } ]
+      responses:
+        '200':
+          description: Users
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } }
+        '204': { description: No user }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/boards/{boardId}/members:
+    get:
+      summary: List the members of a board (any member)
+      parameters: [ { $ref: '#/components/parameters/UserIdHeader' }, { $ref: '#/components/parameters/BoardId' } ]
+      responses:
+        '200':
+          description: Members, owner first then by display name
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/BoardMember' } } } }
+        '204': { description: No member }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      summary: Add a member (owner only)
+      parameters: [ { $ref: '#/components/parameters/UserIdHeader' }, { $ref: '#/components/parameters/BoardId' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AddBoardMember' } } }
+      responses:
+        '201':
+          description: Member added
+          content: { application/json: { schema: { $ref: '#/components/schemas/BoardMember' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/boards/{boardId}/members/{userId}:
+    patch:
+      summary: Change a member role (owner only, not on the owner)
+      parameters: [ { $ref: '#/components/parameters/UserIdHeader' }, { $ref: '#/components/parameters/BoardId' }, { $ref: '#/components/parameters/MemberUserId' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/UpdateBoardMember' } } }
+      responses:
+        '200':
+          description: Member updated
+          content: { application/json: { schema: { $ref: '#/components/schemas/BoardMember' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Remove a member (owner only, not the owner)
+      parameters: [ { $ref: '#/components/parameters/UserIdHeader' }, { $ref: '#/components/parameters/BoardId' }, { $ref: '#/components/parameters/MemberUserId' } ]
+      responses:
+        '204': { description: Member removed }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }

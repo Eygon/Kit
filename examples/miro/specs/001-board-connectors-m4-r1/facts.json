@@ -1,0 +1,110 @@
+[
+ {
+  "fact": "ZOOM_STEP 0.25 et MAX_ZOOM 3 : zoom 2 = 4 clics 'Zoom avant' ; item 1 du builder en (80,60), 180x140, centre (170,130)",
+  "source": "src/constants/canvasConstants.ts:3-5",
+  "us": "US4",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "vi.mock d un module pas encore cree + import statique du service dans le test du hook : tout le fichier tombe au collect (0 test) ; vi.hoisted pour le spy et import paresseux du module teste pour le RED, statique une fois GREEN",
+  "source": "src/__tests__/pages/board/hooks/useConnectorsQuery.test.tsx",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "Prettier n est pas installe dans ce depot (node_modules/prettier absent) : formatage verifie par eslint seulement",
+  "source": "node node_modules/prettier/bin/prettier.cjs -> MODULE_NOT_FOUND",
+  "us": "US2",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "Tests API : une base SQLite memoire par WebApplicationFactory ; un test qui supprime un item seede cree d abord le sien via POST /items, sinon il casse les tests voisins",
+  "source": "Tableau.Tests/Controllers/ConnectorsApiTests.cs",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Tests de modele qui ont besoin de BoardItems : seeder les Boards d abord (FK requise) ; helper Board avec Items = [new BoardItem { Id = .. }]",
+  "source": "Tableau.Tests/Data/ConnectorModelTests.cs SeedBoards",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "Controller de base du projet (ReadCurrentUserId, UnidentifiedUserMessage) : pas ControllerBase",
+  "source": "Tableau.Api/Controllers/BoardItemsController.cs:7-20",
+  "us": "US1",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/miro/back"
+ },
+ {
+  "fact": "rerender rendu par renderWithProviders garde le wrapper de providers : rerender(<X/>) marche pour les tests de changement de props",
+  "source": "src/__tests__/pages/board/components/modules/boardCanvas/connectorLayer.test.tsx",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "Le stub BoardCanvas de board.test.tsx prend une prop connectors et rend data-testid=connectors-stub ; toute nouvelle prop de BoardCanvas demande une mise a jour du stub",
+  "source": "src/__tests__/pages/board/board.test.tsx",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "ConnectorLayer : marker 'connector-arrow-head', ligne data-testid connector-<id>, svg absolute top-0 left-0 h-px w-px overflow-visible pointer-events-none, premier enfant de board-world",
+  "source": "src/pages/board/components/modules/boardCanvas/connectorLayer.tsx",
+  "us": "US3",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "Les libelles de la toolbar en test sont en francais (renderWithProviders en fr) : outil cherche par nom 'Connecteur'",
+  "source": "src/__tests__/components/widgets/toolbar/toolbar.test.tsx",
+  "us": "US5",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "Le stub BoardCanvas de board.test.tsx expose select-sticky (id 1), select-shape (id 2), select-none (null), create-stub : suffisant pour piloter le flux connecteur",
+  "source": "src/__tests__/pages/board/board.test.tsx",
+  "us": "US5",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "Props requises selectedConnectorId et onSelectConnector dans ConnectorLayerProps et BoardCanvasProps : tout test qui rend ces composants doit les passer (sinon tsc rouge)",
+  "source": "src/pages/board/types/connectorLayer.ts ; src/pages/board/types/boardCanvas.ts",
+  "us": "US6",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "Clic sur un connecteur en test : fireEvent.click sur connector-hit-<id> (ligne soeur dans <g>), pas connector-<id>",
+  "source": "src/pages/board/components/modules/boardCanvas/connectorLayer.tsx",
+  "us": "US6",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "Stub BoardCanvas de board.test.tsx : selected-item-stub, selected-connector-stub, boutons select-connector-7 et select-no-connector",
+  "source": "src/__tests__/pages/board/board.test.tsx",
+  "us": "US6",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "board.test.tsx mocke chaque hook de mutation de board.tsx : tout nouveau hook utilise par la page doit y etre mocke",
+  "source": "src/__tests__/pages/board/board.test.tsx:43-57",
+  "us": "US7",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "isTextFieldTarget (INPUT, TEXTAREA, SELECT, isContentEditable) : locale non exportee dans useBoardHistoryShortcuts, copie dans useDeleteShortcut",
+  "source": "src/pages/board/hooks/useBoardHistoryShortcuts.ts:11-15 ; src/pages/board/hooks/useDeleteShortcut.ts",
+  "us": "US7",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "IconButton de la lib exige onClick non optionnel : prop optionnelle passee via onClick={() => cb?.()}",
+  "source": "src/components/widgets/toolbar/toolbar.tsx:39",
+  "us": "US8",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ },
+ {
+  "fact": "useUpdateConnectorMutation(boardId).mutate({ connectorId, style }) : ecriture optimiste dans connectorKeys.list(boardId), rollback sur erreur, invalidate en onSettled",
+  "source": "src/pages/board/hooks/useUpdateConnectorMutation.ts",
+  "us": "US8",
+  "repo": "/tmp/claude-0/-home-user-kit/a9c6902d-2d75-5bd2-9427-2993629a2727/scratchpad/runs/m4/slot"
+ }
+]
