@@ -109,7 +109,8 @@ ci-dessous vrai : AUCUN agent (5 sessions XS sur 5, la recon inline a
 suffi ; chaque appel d outil coute 3,5-8 s).
 Fan-out SEULEMENT si (outil Agent indisponible, sous-agent ou Cursor : recon
 inline, memes questions, `agentSpawns: 0` au resultat) :
-  - 2 git roots (`backend` renseigne ET le besoin touche l API) ;
+  - 2 git roots (`backend` renseigne ET le besoin touche l API) ET les 2-3
+    greps n ont pas trouve les points d entree du back (sinon : inline) ;
   - la recon inline touche >= 2 pages (src/pages/<a> ET src/pages/<b>) ;
     une page plus un composant partage qu elle consomme reste UN
     sous-systeme ;
@@ -209,7 +210,8 @@ tasks.md (`## [USn] titre`, `- [ ] T001 [USn] Create \`a.ts\` and its DTO
 aussi l index des standards des depots touches (titres seulement) ; un
 titre qui touche le besoin ou un mecanisme que l intent impose (forms,
 error-handling, a11y, identite, transport) : lis son corps
-MAINTENANT (le meme Read sert en A.3). Un standard qui contredit le besoin
+MAINTENANT, fichier `agent-os/standards/<id>.md` directement (le pack d A.3
+le reprend apres clarify, une fois FEATURE_DIR cree). Un standard qui contredit le besoin
 (element semantique contre clic sur un trace SVG, toast contre erreur 409
 inline) devient une option de CETTE question, pas une question tardive. Confronte-le au cap (~6 fichiers dont
 chaque fichier existant ETENDU, config comprise ; 8 au plus compagnons
@@ -423,7 +425,8 @@ ligne avec sa source. Toi, ensuite (Edit) :
   brief-fill les ouvre a chaque US en ajout seul. Sans elle, chaque US qui
   y range une valeur sort de ses chemins et la revue escalade (banc jeu) ;
 - sous « Interdits grep-ables » : UNE regex par ligne, globale, rien
-  d autre. Un piege qu on ne peut pas grep va dans « Pieges verifies ». Un
+  d autre. Un piege qu on ne peut pas grep (« pas de second hub, pas de
+  seconde connexion ») va dans « Pieges verifies ». Un
   interdit limite a un dossier (three.js dans src/logic) est deja porte par
   les controles mecaniques des standards (`metadata.checks`) : ne le
   recopie pas.
