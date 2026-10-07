@@ -1,6 +1,6 @@
 ---
 name: sk-xs
-description: Variante RAPIDE hors spec-kit. Implémente une tâche XS (1 fichier / ~10-30 lignes / 1 comportement / pas d'écran / 0 décision d'archi) DANS UN SLOT DU POOL partagé wt-1..4 (même isolation que /sk-impl), SANS produire ni consommer de trio spec/plan/tasks. Pas de specify, pas de plan.md, pas de tasks.md, pas de Workflow, pas de flotte. L'agent écrit tests + code dans le slot, gate ciblée, typecheck+lint une fois en clôture, merge squash après GO humain. STOP si le besoin n'est plus un XS. Use when the user invokes /sk-xs or wants a quick isolated change without spec-kit.
+description: Variante RAPIDE hors spec-kit. Implémente une tâche XS (1 fichier / ~10-30 lignes / 1 comportement / pas d'écran / 0 décision d'archi) DANS UN SLOT DU POOL partagé wt-1..4 (même isolation que /sk-impl), SANS produire ni consommer de trio spec/plan/tasks. Pas de specify, pas de plan.md, pas de tasks.md, pas de Workflow, pas de flotte. L'agent écrit tests + code dans le slot, gate ciblée, typecheck+lint une fois en clôture, squash publié en PR après GO humain (plus de merge dans le principal). STOP si le besoin n'est plus un XS. Use when the user invokes /sk-xs or wants a quick isolated change without spec-kit.
 argument-hint: "<besoin>"
 disable-model-invocation: true
 allowed-tools: Agent Bash PowerShell Read Write Edit Glob Grep AskUserQuestion Skill ToolSearch EnterWorktree ExitWorktree ListAgents SendMessage mcp__azure
@@ -81,7 +81,7 @@ Un XS tient en **1–2 comportements**. Au-delà : arrête et propose `/sk-prep`
 
 Pour chaque comportement, **dans le slot** :
 
-1. **RED.** Écris **un seul** cas de test (un `it.each` sur les variantes d'UN même comportement compte pour un). Lance la gate ciblée (`--coverage=false`). Elle **doit** échouer par assertion (pas compile/import). Le test invoque le code réel (import paresseux si le symbole n'existe pas). Assertion entre deux littéraux sans appeler le code visé = interdite. Rouge compile → corrige le **test**, relance. Vert d'emblée → déjà couvert, passe au suivant.
+1. **RED.** Écris **un seul** cas de test (un `it.each` sur les variantes d'UN même comportement compte pour un). Lance la gate ciblée (`--coverage=false`). Elle **doit** échouer par assertion (pas compile/import). Le test invoque le code réel (import paresseux si le symbole n'existe pas). Assertion entre deux littéraux sans appeler le code visé = interdite. Rouge compile → corrige le **test**, relance. Vert d'emblée → déjà couvert, passe au suivant. Un test EXISTANT que le comportement demandé contredit (assertion exacte sur l'ancien appel) s'adapte dans ce même RED, nommé dans le rapport ; jamais après GREEN (banc Miro : `toHaveBeenCalledWith(url)` cassait forcément).
 2. Instantané du fichier de test (`Read`). Optionnel : `git add -A && git commit --no-verify -m "sk-xs RED(<cycle>)"`.
    L'import paresseux du RED repasse en import statique une fois GREEN (sinon `related` ne voit plus ce test).
 3. **GREEN.** Code de production **minimal**. Relance la gate ciblée. Rouge → corrige la prod (jamais le test), **2 tentatives** max puis stop + signaler. Re-`Read` le test vs instantané : différent → restaure, reprends GREEN.
