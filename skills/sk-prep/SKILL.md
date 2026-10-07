@@ -379,7 +379,10 @@ ligne avec sa source. Toi, ensuite (Edit) :
 - sous « Composants partages reutilisables » (« Modules existants » sur un
   depot sans JSX : meme regle) : GARDE seulement ceux qui
   repondent a un mot de la spec (grille, etat vide, erreur, skeleton,
-  modale, panneau, filtre, pastille...) ; supprime le reste ;
+  modale, panneau, filtre, pastille...) ; supprime le reste ; un composant
+  de la LIB s y cite avec le type de chaque prop utile, lu dans son .d.ts
+  (`Icon — name: string, size: number`) : un nom seul fait deviner
+  (banc Miro F7 : `size="sm"` -> tsc rouge) ;
 - sous « Helpers et hooks », « Pieges verifies », « Recettes de test » :
   ajoute ce que ta recon a etabli et qu un worker re-chercherait (source
   d une donnee transverse, format des nombres et son piege en test,
