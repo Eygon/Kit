@@ -455,3 +455,11 @@ test("applyConditions resolves nested blocks", async () => {
   assert.equal(applyConditions(t, { contract: true, back: false }), "a\nC\nz");
   assert.equal(applyConditions(t, { contract: true, back: true }), "a\nB\nC\nz");
 });
+
+test("e2e-oracles: contraste WCAG (noir/blanc 21, texte clair sur post-it jaune du banc TK-3 sous le seuil)", async () => {
+  const { contrast, luminance } = await import("../e2e-oracles.mjs");
+  assert.equal(Math.round(contrast("rgb(0, 0, 0)", "rgb(255, 255, 255)")), 21);
+  assert.equal(luminance("rgba(255, 255, 255, 1)"), 1);
+  assert.ok(contrast("rgb(230, 232, 238)", "rgb(253, 230, 138)") < 1.1);
+  assert.ok(contrast("rgb(17, 24, 39)", "rgb(253, 230, 138)") > 4.5);
+});

@@ -129,6 +129,13 @@ etaient invisibles aux tests unitaires, qui mockent le transport.
   (400/404 voulus, requete bloquee). Tout le reste est un FAIL.
 - **Requetes reelles en parallele** : ne jamais serialiser les appels pour
   « stabiliser » ; la concurrence est ce que le passage doit exercer.
+- **Texte lisible** (feature qui touche couleurs, theme, jetons CSS) : sur chaque
+  ecran du cahier et dans chaque theme, `unreadable(page)` de `e2e-oracles.mjs`
+  (contraste WCAG calcule dans le navigateur, 4,5:1 ; 3:1 grand texte) doit
+  rendre `[]`, et une capture de l ecran est REGARDEE. Banc TK-3 (mode sombre) :
+  11/11 scenarios PASS, mais le texte des post-it etait clair sur jaune (1,02:1),
+  vu seulement a la capture. Un texte deja sous le seuil sur la branche de base
+  est preexistant : signale dans le rapport, pas un FAIL de la feature.
 
 ## Mode lot (apres plusieurs features)
 

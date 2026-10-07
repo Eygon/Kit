@@ -45,3 +45,37 @@ export function watch(page, { api = "", expectedConsole = [] } = {}) {
 export function verdict(rows, runs = Math.max(0, ...rows.map((r) => r.length))) {
   return rows.map((v) => (v.length === runs && v.every((x) => x === "PASS") ? "PASS" : v.includes("FAIL") ? "FAIL" : "BLOQUE"));
 }
+
+// Contraste WCAG (texte normal >= 4.5, grand texte >= 3) entre deux couleurs CSS calculees.
+export function luminance(rgb) {
+  const [r, g, b] = (String(rgb).match(/[\d.]+/g) || []).slice(0, 3).map(Number)
+    .map((c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+export function contrast(a, b) {
+  const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m);
+  return (x + 0.05) / (y + 0.05);
+}
+
+// Oracle transverse « texte lisible » : chaque texte visible de l ecran contre son fond effectif
+// (premier ancetre au fond opaque). Banc TK-3 (mode sombre) : 11/11 scenarios PASS, mais le texte
+// des post-it etait clair sur jaune (1,02:1) — vu seulement a la capture. A jouer sur chaque ecran
+// d une feature qui touche couleurs, theme ou jetons. Rend les textes sous le seuil.
+//   const bad = await unreadable(page);   // [{ text, color, bg, ratio }]
+export async function unreadable(page, { min = 4.5, minLarge = 3, limit = 20 } = {}) {
+  const found = await page.evaluate(() => {
+    const out = [];
+    const bgOf = (el) => { for (let e = el; e; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c && !/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(c)) return c; } return "rgb(255, 255, 255)"; };
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const t = n.textContent.trim(); const el = n.parentElement;
+      if (!t || !el) continue;
+      const s = getComputedStyle(el); const r = el.getBoundingClientRect();
+      if (s.visibility === "hidden" || s.display === "none" || Number(s.opacity) === 0 || !r.width || !r.height || el.closest(".sr-only,[aria-hidden=true]")) continue;
+      out.push({ text: t.slice(0, 40), color: s.color, bg: bgOf(el), size: parseFloat(s.fontSize), bold: Number(s.fontWeight) >= 700 });
+    }
+    return out;
+  });
+  return found.map((f) => ({ ...f, ratio: Number(contrast(f.color, f.bg).toFixed(2)) }))
+    .filter((f) => f.ratio < (f.size >= 24 || (f.bold && f.size >= 18.66) ? minLarge : min)).slice(0, limit);
+}
