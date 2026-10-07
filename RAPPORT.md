@@ -8,7 +8,7 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 ## Bilan de la nuit du 6 au 7 octobre (à lire en premier)
 
-**Ce qui a tourné** : 12 features du clone Miro, préparées et implémentées avec le kit (56 US, back .NET + front React, chaque US relue). Ensuite, 8 passages de bout en bout dans un vrai navigateur et 6 corrections par `/sk-xs`. Résultat : back 329 tests, front 727, et la validation finale de toute l'appli est verte : **62 scénarios E2E × 3 runs** (F1 à F9 en lot, plus F10 et F11), 0 FAIL, 0 réponse 5xx.
+**Ce qui a tourné** : 12 features du clone Miro, préparées et implémentées avec le kit (56 US, back .NET + front React, chaque US relue). Ensuite, 8 passages de bout en bout dans un vrai navigateur et 6 corrections par `/sk-xs`. Résultat : back 329 tests, front 727, et la validation finale de toute l'appli est verte : **62 scénarios E2E × 3 runs** (F1 à F9 en lot, plus F10 et F11), puis F12 7/7 × 3 : 0 FAIL, 0 réponse 5xx.
 
 **Ce que la nuit a appris** :
 1. **Les tests unitaires et les reviews ne voient pas les défauts entre features ni entre dépôts.** Les 6 défauts trouvés par les E2E sont tous passés à travers des reviews vertes : rôle inconnu, concurrence SQLite, CORS SignalR, dock qui laisse passer le Crayon, id de connexion effacé par une course, erreur console en dev. D'où le contrat `sk-e2e.md` étoffé (oracles 5xx et console, mode lot, 3 runs, `e2e-oracles.mjs`). **Recommandation : un passage E2E en mode lot après chaque lot de 3 à 5 features.**
