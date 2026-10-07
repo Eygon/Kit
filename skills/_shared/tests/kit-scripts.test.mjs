@@ -431,3 +431,10 @@ test("red-replay: splitChanges keeps added/modified test files and prod sources,
   assert.deepEqual(tests, ["src/__tests__/b.test.ts", "Api.Tests/HubTests.cs"]);
   assert.deepEqual(prod, [{ path: "src/a.ts", added: false }, { path: "src/b.ts", added: true }, { path: "Api/Hub.cs", added: false }]);
 });
+
+test("red-replay: a ticked task whose Test: file the US never touched is reported", async () => {
+  const { untouchedTestTasks } = await import("../red-replay.mjs");
+  const tasks = "## [US1] X\n- [X] T001 [US1] Create `src/a.ts` — Test: `src/__tests__/a.test.ts`\n- [X] T002 [US1] Extend `src/b.ts` — Test: `src/__tests__/b.test.ts`\n- [X] T003 [US1] Keys — Test: `src/__tests__/i18n/localesParity.test.ts`\n## [US2] Y\n- [X] T004 [US2] Z — Test: `src/__tests__/z.test.ts`\n";
+  const out = untouchedTestTasks(tasks, "US1", new Set(["src/__tests__/a.test.ts"]));
+  assert.deepEqual(out.map((x) => x.task), ["T002"]);
+});

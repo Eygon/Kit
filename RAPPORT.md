@@ -26,7 +26,7 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 | `fact-lines.mjs` | Recale les numéros de ligne des faits vérifiés quand une autre feature a été fusionnée entre la prep et le GO |
 | `facts-add.mjs`, `lanes.mjs` | Faits des workers transmis aux US suivantes (rangés par dépôt) ; vagues d'US parallélisables |
 | `e2e-oracles.mjs` | Oracles 5xx et console, et verdict sur 3 runs pour les E2E scriptés |
-| `red-replay.mjs` | Preuve RED mécanique : rejoue les tests de l'US contre la prod d'avant l'US, dans un worktree temporaire (environ 8 s). Branché au check 4 du reviewer. Rejoué a posteriori sur 30 US front : 0 test qui ne prouve rien |
+| `red-replay.mjs` | Preuve RED mécanique : rejoue les tests de l'US contre la prod d'avant l'US, dans un worktree temporaire (environ 8 s). Signale aussi une tâche cochée dont le fichier de test n'a pas été touché (le cas raté par les 2 runs A/B de F12, sans faux positif sur F10 et F11). Branché au check 4 du reviewer. Rejoué a posteriori sur 30 US front : 0 test qui ne prouve rien |
 | `mount-check.mjs` (étendu) | Vérifie aussi qu'une classe C# annotée « Monté dans: Program.cs » y est citée |
 | `brief-fill.mjs` (étendu) | Ouvre d'office au worker les manifestes de dépendances, l'interface C# d'une classe étendue et les helpers de test partagés ; ne donne au back que ses propres fichiers |
 
@@ -275,7 +275,7 @@ Recommandation : un passage E2E (le cahier `sk-e2e.md` existe, mais aucune skill
 | Étape | Mesure |
 |---|---|
 | Prep (5 US, 19 tâches, contrat AsyncAPI) | 3,12 $ · 7,7 min · 0 finding final. Les dépendances sont des tâches explicites, avec SignalR.Client 8.0.* pour net8.0 |
-| Impl, 2 voies (back US1-2 ∥ front US3-5) | 5 US, 10 agents, 7,84 $ soit **~1,6 $ par US**. Back 244 tests, front 525, tout vert, fusionné |
+| Impl, 2 voies (back US1-2 ∥ front US3-5) | 5 US, 10 agents, 7,84 $ soit **~1,6 $ par US**. Back 245 tests, front 525, tout vert, fusionné |
 | Reviews | 5 PASS : 4 par Opus, 1 par Sonnet (palier auto) |
 | **E2E réel (2 navigateurs)** | **la présence ne marche pas**. Le CORS `AllowAnyOrigin` du back refuse la négociation SignalR, car le client JS envoie les credentials. Aucun test unitaire ou d'intégration ne pouvait le voir (le client est mocké, et le client .NET des tests ne passe pas par le CORS). L'appli se dégrade proprement : badge « Hors ligne », édition intacte |
 | Correction par `/sk-xs` | `withCredentials: false` côté client (1 ligne et 1 test vu rouge), en 1 min 40. **E2E rejoué : 7/7 sur 3 runs**. La présence apparaît et disparaît en direct, un post-it créé par un autre arrive sans recharger, et il n'y a aucune réponse 5xx |
@@ -377,4 +377,4 @@ Défauts du kit révélés par F1, et corrigés :
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 44 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 45 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.

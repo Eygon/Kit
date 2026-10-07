@@ -115,12 +115,15 @@ seul commit DONE.
      --tsBuildInfoFile "$(git rev-parse --git-dir)/sk-tsc.tsbuildinfo"
      -p tsconfig.json
    Puis la preuve RED, mecanique (ne crois pas le resume du worker) :
-     node "<SK_SHARED>/red-replay.mjs" --range "<US_BASE>..HEAD"
+     node "<SK_SHARED>/red-replay.mjs" --range "<US_BASE>..HEAD" --tasks "<TASKS_PATH>" --us <US_ID>
    Elle rejoue chaque fichier de test de l US contre la prod d AVANT l US,
    dans un worktree temporaire. PROUVE-RIEN = le fichier passe sans la
    prod : RED jamais vu, ou assertion qui n appelle pas le code vise. Defaut
    a corriger (test qui echoue sans la prod), sauf test de non-regression
    d un comportement INCHANGE que la tache demande : dis-le dans issues.
+   SANS-TEST Tnnn = tache cochee dont le fichier `Test:` n a pas ete touche :
+   si le comportement change, le test manque (banc Miro F12 : 2 runs sur 2
+   l avaient oublie, seul Opus l avait vu) ; ecris-le et vois-le rouge.
    NEUTRE (parite des langues) ne compte pas. Limite .NET : un projet de
    test unique qui ne compile pas sans la prod rend tout RED ; lis alors
    les tests ajoutes. Banc Miro : 2 workers sur 54 US avaient coche sans
