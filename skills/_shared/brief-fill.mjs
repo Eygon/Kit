@@ -132,6 +132,15 @@ export const fillBriefs = (json, templates) => {
   const reconPath = json.reconPath || (existsSync(join(dir, "recon.md")) ? join(dir, "recon.md") : "aucun");
   const tasks = tasksOfStory(readFileSync(tasksPath, "utf8"), us);
   const derived = derivePaths(tasks, reconPath !== "aucun" && existsSync(reconPath) ? readFileSync(reconPath, "utf8") : "");
+  // PARTAGE de recon.md = fichiers du depot front (langues, registres) : une US back (que du .cs)
+  // ne les recoit pas (banc Miro F8 : 3 fichiers de langue dans les chemins d une US de hub).
+  const ownCs = derived.prod.filter((p) => !derived.shared.includes(p)).some((p) => /\.cs$/.test(p));
+  const ownJs = derived.prod.filter((p) => !derived.shared.includes(p)).some((p) => /\.(?:[cm]?[jt]sx?|s?css)$/.test(p));
+  if (ownCs && !ownJs) {
+    const keep = (p) => /\.(?:cs|csproj|props|json)$/.test(p) && !/(?:locales|i18n|translations|lang)\//.test(p);
+    derived.prod = derived.prod.filter((p) => !derived.shared.includes(p) || keep(p));
+    derived.shared = derived.shared.filter(keep);
+  }
   json.prod = [...new Set([...(json.prod || []).map(norm), ...derived.prod])];
   json.tests = [...new Set([...(json.tests || []).map(norm), ...derived.tests])];
   const sharedNote = derived.shared.length ? `\n\n## Fichiers partages (ajout seulement)\n\n${derived.shared.map((p) => `- \`${p}\``).join("\n")} : tu peux y AJOUTER les entrees que les standards y rangent (config visuelle, textes...) ; ne modifie ni ne retire une entree existante, SAUF celle que ton US rend morte (son dernier lecteur est dans tes chemins et ne la lit plus : retire-la, grep a l appui).\n` : "";
@@ -189,6 +198,10 @@ export const fillBriefs = (json, templates) => {
   const isFront = prodAll.some((p) => /\.(?:[cm]?[jt]sx?|s?css)$/.test(p));
   const isBack = prodAll.some((p) => /\.cs$/.test(p));
   const conds = { design: Boolean(json.designPath), contract: Boolean(json.contractPath), front: isFront || !isBack, back: isBack || !isFront };
+  // Gate ciblee de la stack : vitest pour le front, gate.mjs (dotnet test --filter par classe) pour
+  // une US back. Banc Miro F8 : le brief back citait la gate vitest et tsc.
+  const gate = conds.front && !isBack ? "node node_modules/vitest/vitest.mjs run --coverage=false" : `node "${json.skShared}/gate.mjs"`;
+  common.push(["<GATE>", gate]);
   templates = {
     worker: applyConditions(templates.worker, conds),
     review: applyConditions(templates.review, conds),

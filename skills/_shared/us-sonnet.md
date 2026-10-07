@@ -36,12 +36,17 @@ personne ne repondra.
 - Chemins prod autorises : <PROD_PATHS>
 - Outils du kit : <SK_SHARED> (dossier _shared, chemin absolu)
 - Fichiers de test : <TEST_FILES>
-- Gate ciblee : node node_modules/vitest/vitest.mjs run --coverage=false <fichier>
+- Gate ciblee : <GATE> <fichier>
+<!-- if:front -->
 - Typecheck (stack TypeScript) : node node_modules/typescript/bin/tsc --noEmit --incremental --tsBuildInfoFile "$(git rev-parse --git-dir)/sk-tsc.tsbuildinfo" -p tsconfig.json
   TS2451 « Cannot redeclare » entre deux tests : l un des deux n a ni import
   ni export (ajoute `export {};`). Autre erreur restante sur un fichier que
   l US n a pas touche : relance UNE fois sans cache
   (`rm "$(git rev-parse --git-dir)/sk-tsc.tsbuildinfo"`) avant de conclure.
+<!-- /if:front -->
+<!-- if:back -->
+- Build (stack .NET, tient lieu de typecheck) : dotnet build --nologo -v q
+<!-- /if:back -->
 - Standards AgentOS (MUST) : <STANDARDS_PACK>
   Le CORPS des standards de cette US (alwaysInject du depot + ancres de
   l US), lus dans le depot de l US. Chaque fichier que tu ecris les
@@ -226,9 +231,10 @@ d un hook, regle d API, 409) ne se prouve bien qu isole.
 1. RED. Ecris les it/test/Fact de CETTE tache (tous, ou le
    lot que tu as choisi) dans le fichier cite. UNE gate sur CE fichier, qui prend
    aussi l empreinte du test, dans le MEME appel :
-     node node_modules/vitest/vitest.mjs run --coverage=false <test> ; cp <test> "$(git rev-parse --git-dir)/sk-snap-<Tnnn>"
+     <GATE> <test> ; cp <test> "$(git rev-parse --git-dir)/sk-snap-<Tnnn>"
    Doit echouer par assertion (pas une tautologie).
    Stack compilee : symbole absent (types reels) = RED valide.
+<!-- if:front -->
    Sinon import paresseux si le symbole n existe pas. Stack
    Vite/vitest : le chemin passe par une const,
      const M = "<alias/chemin>"; const { X } = await import(/* @vite-ignore */ M)
@@ -246,12 +252,13 @@ d un hook, regle d API, 409) ne se prouve bien qu isole.
    Date relative (« il y a 5 min ») avec userEvent :
    `vi.useFakeTimers({ toFake: ["Date"] })`, jamais les faux timers
    complets (userEvent attend un setTimeout et le test pend 5 s).
+<!-- /if:front -->
    Rouge compile (hors symbole manquant) : corrige le TEST.
    Vert d emblee : deja couvert, passe a la tache suivante.
 2. GREEN. Prod minimale de la tache. UNE gate, qui verifie
    que le test n a pas bouge et coche la case, dans le
    MEME appel :
-     cmp -s <test> "$(git rev-parse --git-dir)/sk-snap-<Tnnn>" && node node_modules/vitest/vitest.mjs run --coverage=false <test> && test -f <fichier prod> && sed -i 's/^- \[ \] <Tnnn> /- [X] <Tnnn> /' <tasks.md relatif au slot>
+     cmp -s <test> "$(git rev-parse --git-dir)/sk-snap-<Tnnn>" && <GATE> <test> && test -f <fichier prod> && sed -i 's/^- \[ \] <Tnnn> /- [X] <Tnnn> /' <tasks.md relatif au slot>
    cmp en echec = tu as modifie le test apres son RED :
    restaure-le (`cp` depuis l empreinte) et corrige la PROD.
    Rouge : corrige la PROD. Ne jamais affaiblir un test.
@@ -261,7 +268,7 @@ d un hook, regle d API, 409) ne se prouve bien qu isole.
    Tache decoupee en lots : un test ne fait que GRANDIR d un lot
    a l autre. Le RED d un lot suivant prend la place de celui du
    1 et refuse une ligne retiree ou modifiee :
-     diff "$(git rev-parse --git-dir)/sk-snap-<Tnnn>" <test> | grep '^<' && echo "TEST AFFAIBLI : restaure-le" || { node node_modules/vitest/vitest.mjs run --coverage=false <test> ; cp <test> "$(git rev-parse --git-dir)/sk-snap-<Tnnn>" ; }
+     diff "$(git rev-parse --git-dir)/sk-snap-<Tnnn>" <test> | grep '^<' && echo "TEST AFFAIBLI : restaure-le" || { <GATE> <test> ; cp <test> "$(git rev-parse --git-dir)/sk-snap-<Tnnn>" ; }
    Le GREEN d un lot intermediaire s arrete a `test -f <fichier
    prod>` ; seul celui du dernier lot porte le `sed` qui coche la
    case : une tache a moitie testee ne se coche pas.

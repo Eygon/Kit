@@ -376,3 +376,15 @@ test("derivePaths: a dependency task opens package.json, its lockfile and a .csp
   for (const p of ["package.json", "package-lock.json", "yarn.lock", "Tableau.Tests/Tableau.Tests.csproj"]) assert.ok(prod.includes(p), p);
   assert.ok(!prod.includes("@microsoft/signalr"));
 });
+
+test("gate: vitest for JS test files, dotnet test filtered by class for .cs, per nearest .csproj", async () => {
+  const { planGate } = await import("../gate.mjs");
+  const { resolve } = await import("node:path");
+  const proj = resolve("Api.Tests");
+  const exists = () => true;
+  const list = (d) => (d === proj ? ["Api.Tests.csproj"] : []);
+  const runs = planGate(["src/__tests__/a.test.ts", "Api.Tests/Hubs/HubTests.cs", "Api.Tests/X/OtherTests.cs"], exists, list);
+  assert.deepEqual(runs[0].args.slice(0, 3), ["node_modules/vitest/vitest.mjs", "run", "--coverage=false"]);
+  assert.equal(runs[1].cmd, "dotnet");
+  assert.ok(runs[1].args.includes("FullyQualifiedName~HubTests|FullyQualifiedName~OtherTests"));
+});
