@@ -277,6 +277,15 @@ Ce que F9 a apporté au kit (vérifié en direct pendant le run) :
 - **Interface C# ouverte d'office** : un service étendu avec une méthode publique doit la déclarer dans `Interfaces/IX.cs`, que la prep avait oublié dans les chemins.
 - Reste à traiter : en dev, le double montage React (StrictMode) coupe la première négociation SignalR et laisse une erreur console bénigne (vue en E2E F8 et F9).
 
+**Miro F10 (curseurs des autres en direct, back + front)** : une feature construite pour éprouver les règles de la nuit. Elle réutilise le hub F8 au lieu d'en créer un second, pose un calque sur le canevas qui ne doit rien capter, et envoie un flux haute fréquence à limiter.
+
+| Étape | Mesure |
+|---|---|
+| Prep (2 US, 8 tâches) | 2,79 $ · 6 min · 0 HIGH. Hub existant étendu, AC « tracer au Crayon à travers un curseur », throttle à 50 ms |
+| GO après le correctif du dock (`boardCanvas.tsx` modifié entre-temps) | lint + `fact-lines` : 0 fait à recaler |
+| Impl, 2 voies | 2 US, 4 agents, 4,47 $. Back 303 tests, front 621. Reviews : 1 PASS par Sonnet (palier auto), 1 PASS par Opus |
+| **E2E réel (2 navigateurs)** | **7/7 sur 3 runs** : curseur au pixel près malgré des zooms différents (100 % contre 125 %), personne ne voit le sien, 23 envois/s, le Crayon trace à travers un curseur (`elementFromPoint` le traverse), estompé après 5 s, disparaît au départ, 0 erreur 5xx ni console |
+
 **Troisième test de bout en bout, en « mode lot » (F1 à F9 ensemble, nouveau contrat `sk-e2e.md`)** : 47 scénarios × 3 runs sur base fraîche, dont 7 scénarios « entre features ». **46 PASS, 1 FAIL, 0 réponse 5xx.**
 - Les états partagés tiennent. Avec GET members bloqué, la barre d'outils et Annuler/Rétablir passent ensemble en lecture seule, tandis que l'export et la présence continuent de marcher. Le défaut de rôle du 1er passage ne revient pas.
 - **Le FAIL est encore un croisement de features** (F6 × F7) : avec le Crayon actif, un clic dans le dock zoom/mini-carte crée un trait d'un point, qui entre dans l'historique. Le dock n'arrête que `click`, pas `pointerdown`. Règle de prep ajoutée : un widget posé sur le canevas arrête les événements pointer des modes existants, et une AC le teste avec l'outil le plus intrusif actif.
