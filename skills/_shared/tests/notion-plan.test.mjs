@@ -197,3 +197,10 @@ test("tick : une reprise de prep (reclaim) occupe le depot, la nouvelle feature 
   assert.deepEqual(t.map((a) => a.type), ["reclaim", "queued"]);
   assert.match(t[1].reason, /prep/);
 });
+
+test("decideE2E dit qui a joue le cahier (Playwright en repli, Chrome sinon)", async () => {
+  const { decideE2E } = await import("../notion-plan.mjs");
+  const d = { publish: 1, fix: 2 };
+  assert.match(decideE2E("**PASS 12 · FAIL 0 · BLOQUE 0** — Playwright (Claude in Chrome absent du banc)", d).text, /E2E Playwright PASS 12/);
+  assert.match(decideE2E("PASS 3 · FAIL 0 · BLOQUE 0 — Claude in Chrome", d).text, /E2E Chrome PASS 3/);
+});

@@ -194,8 +194,10 @@ export function decideE2E(reportText, pending, round = 1, maxRounds = 2) {
   if (!m) return { type: "relay", reason: "rapport E2E sans ligne de synthese" };
   const [pass, fail, blocked] = m.slice(1).map(Number);
   const summary = `PASS ${pass} · FAIL ${fail} · BLOQUE ${blocked}`;
-  if (fail === 0 && blocked === 0 && pass > 0) return { type: "answer", summary, text: `[SK-ANSWER] ${pending.publish} — Publier · E2E Chrome ${summary}` , withPr: true };
-  if (fail > 0 && round < maxRounds) return { type: "answer", summary, text: `[SK-ANSWER] ${pending.fix} — Corriger · E2E Chrome ${summary}`, withFindings: true, nextRound: round + 1 };
+  // Le message dit qui a joue le cahier : Playwright (repli sans Claude in Chrome) n est pas Chrome.
+  const by = /Playwright/i.test(reportText) && !/Claude in Chrome\s*:/i.test(reportText) ? "Playwright" : "Chrome";
+  if (fail === 0 && blocked === 0 && pass > 0) return { type: "answer", summary, text: `[SK-ANSWER] ${pending.publish} — Publier · E2E ${by} ${summary}` , withPr: true };
+  if (fail > 0 && round < maxRounds) return { type: "answer", summary, text: `[SK-ANSWER] ${pending.fix} — Corriger · E2E ${by} ${summary}`, withFindings: true, nextRound: round + 1 };
   return { type: "relay", summary, reason: fail > 0 ? `${fail} scenario(s) FAIL apres ${round} passe(s) de correction` : `${blocked} scenario(s) BLOQUE : a verifier a la main` };
 }
 
