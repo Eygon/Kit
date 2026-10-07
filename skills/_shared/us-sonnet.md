@@ -469,7 +469,11 @@ commit : le SHA court de ton dernier commit
 (`git rev-parse --short HEAD`). filesTouched : les fichiers
 de ce commit (`git show --name-only --pretty= HEAD`).
 summary : 1 a 3 lignes — taches livrees, decision notable,
-ce que tu declares en ecart ou non monte. Si la review
+ce que tu declares en ecart ou non monte. Ce que la tache
+prescrit mot pour mot (constante dans le composant, mock du
+hook, lot RED unique) n est PAS un ecart : ne l y mets pas
+(le mot « ecart » envoie la review au palier Opus ; banc Miro
+F8 : 3 « ecarts » sur 3 etaient prescrits). Si la review
 echoue, la passe de fix part de ces trois champs au lieu de
 refaire ta recon.
 
