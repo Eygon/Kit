@@ -26,6 +26,7 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 | `fact-lines.mjs` | Recale les numéros de ligne des faits vérifiés quand une autre feature a été fusionnée entre la prep et le GO |
 | `facts-add.mjs`, `lanes.mjs` | Faits des workers transmis aux US suivantes (rangés par dépôt) ; vagues d'US parallélisables |
 | `e2e-oracles.mjs` | Oracles 5xx et console, et verdict sur 3 runs pour les E2E scriptés |
+| `red-replay.mjs` | Preuve RED mécanique : rejoue les tests de l'US contre la prod d'avant l'US, dans un worktree temporaire (environ 8 s). Branché au check 4 du reviewer. Rejoué a posteriori sur 30 US front : 0 test qui ne prouve rien |
 | `mount-check.mjs` (étendu) | Vérifie aussi qu'une classe C# annotée « Monté dans: Program.cs » y est citée |
 | `brief-fill.mjs` (étendu) | Ouvre d'office au worker les manifestes de dépendances, l'interface C# d'une classe étendue et les helpers de test partagés ; ne donne au back que ses propres fichiers |
 
