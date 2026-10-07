@@ -491,7 +491,7 @@ const isProdPath = (p) => !isTestPath(p) && !isDocPath(p);
 // Fichiers « type pur » : crees dans la tache de leur consommateur (sk-prep A.2), ils ne comptent
 // pas dans le cap de fichiers d une US. Sans eux, une US .NET en couches (interface de service et
 // de repository, DTO, entite, config EF) depassait le cap a chaque fois : 5 HIGH sur 5 US au banc L.
-const PURE_TYPE_FILE = /(?:^|\/)(?:Interfaces\/I[A-Z]\w*\.cs|[\w]*(?:Dto|Enum|Configuration)\.cs|Entities\/\w+\.cs|Enums\/\w+\.cs)$|(?:^|\/)(?:types|dtos|models)\/.*\.ts$|(?:Props|Dto|Model|Types?|Enum)\.ts$/;
+export const PURE_TYPE_FILE = /(?:^|\/)(?:Interfaces\/I[A-Z]\w*\.cs|[\w]*(?:Dto|Enum|Configuration)\.cs|Entities\/\w+\.cs|Enums\/\w+\.cs)$|(?:^|\/)(?:types|dtos|models)\/.*\.ts$|(?:Props|Dto|Model|Types?|Enum)\.ts$/;
 const LOCALE_FILE = /(?:^|\/)(?:locales|i18n|translations|lang)(?:\/[\w-]+)*\/[a-z]{2}(?:[-_][A-Za-z]{2})?\.json$/;
 
 // Ce que le cap d une US compte : fichiers de prod hors Code:, hors types purs, langues = un fichier ;

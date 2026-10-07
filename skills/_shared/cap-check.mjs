@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseTasks, countStory, MAX_CAP } from "./audit-lint.mjs";
+import { parseTasks, countStory, MAX_CAP, PURE_TYPE_FILE } from "./audit-lint.mjs";
 
 export const capReport = (text) => {
   const by = new Map();
@@ -16,7 +16,15 @@ export const capReport = (text) => {
   return [...by].map(([story, list]) => {
     const { prod, companionFiles } = countStory(list);
     const over = list.length > MAX_CAP.tasks || prod.size > MAX_CAP.prod || prod.size + companionFiles.size > MAX_CAP.withCompanions;
-    return { story, tasks: list.length, prod: [...prod], companions: [...companionFiles], over };
+    // Hors compte, montres pour que la prep voie POURQUOI un fichier ne compte pas (banc Miro F9 :
+    // 2 redecoupages faute de savoir si un mapper ou un util « and its » comptaient).
+    const pure = new Set(), reused = new Set();
+    for (const t of list) for (const p of t.paths) {
+      if (t.reusedOnly.has(p)) reused.add(p);
+      else if (PURE_TYPE_FILE.test(p)) pure.add(p);
+    }
+    for (const p of [...prod, ...companionFiles]) reused.delete(p);
+    return { story, tasks: list.length, prod: [...prod], companions: [...companionFiles], pure: [...pure], reused: [...reused], over };
   });
 };
 
@@ -29,5 +37,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const rows = capReport(readFileSync(file, "utf8"));
   for (const r of rows)
     console.log(`${r.over ? "TROP" : "OK  "} ${r.story} : ${r.tasks}/${MAX_CAP.tasks} taches, ${r.prod.length}/${MAX_CAP.prod} fichiers (+${r.companions.length} compagnons, ${MAX_CAP.withCompanions} max) : ${[...r.prod, ...r.companions.map((c) => c + " (compagnon)")].join(", ")}`);
+  for (const r of rows) {
+    if (r.pure.length || r.reused.length) console.log(`     hors compte ${r.story} : ${[...r.pure.map((p) => p + " (type pur)"), ...r.reused.map((p) => p + " (Code:)")].join(", ")}`);
+    if (r.over) console.log(`     pistes ${r.story} : une PARTIE de la meme tache -> « and its <x> \`chemin\` » (compagnon) ; une methode appelee seulement plus tard -> l US qui l appelle ; sinon couper l US en deux`);
+  }
   process.exit(rows.some((r) => r.over) ? 1 : 0);
 }
