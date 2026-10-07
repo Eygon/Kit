@@ -194,7 +194,9 @@ que tu as prises (portee, cas limites, regles), a valider ou corriger —
 et, sans 0quater, les US retenues pour CE run (toutes par defaut ; deja
 tranchees en 0quater : ne les repose pas).
 AVANT de la poser, esquisse le decoupage (US -> fichiers de prod, LOCALES
-pour un, types purs et compagnons « and its » pour zero ; ecris la triade
+pour un, types purs et compagnons « and its » pour zero — compagnon = tout
+fichier de la meme tache introduit par « and its <x> », util etendu compris ;
+un mapper sous `types/` est un type pur (0 fichier) mais sa tache compte ; ecris la triade
 model/dto/mapper et le fichier de props tels qu ils seront dans tasks.md,
 c est la que le compte se joue ; le lint ne compte PAS les types purs :
 `Interfaces/I*.cs`, `*Dto.cs`, `*Enum.cs`, `*Configuration.cs`, `Entities/`,
@@ -371,7 +373,9 @@ Index absent du depot d une US = trio non livrable pour cette US.
    au standard reste un defaut. Un standard qui cite un module absent du
    depot (helper, lib) : le depot prime, une ligne dans plan.md
    `## Standards` : `- Depot prime : @agent-os/standards/<id> — <module
-   absent> -> <equivalent du depot>`, sans question. SAUF si cet
+   absent> -> <equivalent du depot>`, sans question ; UNE ligne par
+   standard, pas une par point (un pack qui suppose une autre infra —
+   axios, TranslationCode, policies — tient en 2 lignes). SAUF si cet
    equivalent change un AC (autre controle, autre comportement) : alors
    c est une question de clarify, comme ci-dessus.
 ### A.4 Gate checklists

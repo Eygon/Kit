@@ -15,7 +15,8 @@ joignable : une ligne des Faits verifies (fichier d entite ou DTO cite, ou
 « donne par l humain, Q<n> ») suffit ; la Sanity 5 (base, table, volumetrie)
 ne s applique pas. Meme regle pour un champ DERIVE (projection d entite,
 etat en memoire, evenement temps reel) : sa source est le fichier qui le
-calcule. Contrat d evenements (SignalR, WebSocket) : format AsyncAPI, les
+calcule. Base SQLite en memoire seedee au demarrage : la source est le
+seed (fichier cite), sans volumetrie. Contrat d evenements (SignalR, WebSocket) : format AsyncAPI, les
 mots-cles de structure ne sont pas des champs. La verification en base
 (plus bas) ne s applique que si une base ou un backend est joignable.
 
