@@ -211,7 +211,17 @@ Ce que F2 et F3 ont apporté au kit :
 | Impl (3 US) | 4,30 $. Front 253 tests, tout vert, fusionné |
 | Dérive de structure | T008 demandait de « créer » des types livrés depuis par F2. Le worker s'est arrêté avec la preuve au lieu de casser un consommateur. Arbitrage : garder l'existant et supprimer un service en doublon. Nouvelle règle de lint `task-creates-existing`, vérifiée au GO |
 
-Prep F4 (connecteurs, 8 US, 37 tâches) : 4,03 $. Nouvel outil `cap-check.mjs` : il mesure l'esquisse de découpage AVANT clarify, avec le même compte que le lint. 3 preps sur 4 redécoupaient après la réponse de l'humain.
+**Miro F4 (connecteurs entre items, back + front)**, préparée avant la fusion de F3 :
+
+| Étape | Mesure |
+|---|---|
+| Prep (8 US, 37 tâches) | 4,03 $ · 10 min |
+| GO après la fusion de F3 | 3 faits décalés recalés par `fact-lines`, 0 tâche « Créer » sur un fichier existant |
+| Impl | 8 US, 16 agents, 8,98 $ soit **~1,1 $ par US**. Back 162 tests, front 346 |
+| **Voies parallèles dans un seul dépôt** | US4 ∥ US5, proposées par `lanes.mjs` : un worktree par US, puis fusion sans conflit, `tasks-merge` et `facts-add` de la voie (301 tests verts juste après la fusion) |
+| Reviews | 3 par Sonnet (palier auto) : 3 PASS. 5 par Opus : 5 PASS, dont 1 doublon de helper accepté (règle de prep ajoutée) |
+
+ Nouvel outil `cap-check.mjs` : il mesure l'esquisse de découpage AVANT clarify, avec le même compte que le lint. 3 preps sur 4 redécoupaient après la réponse de l'humain.
 
 Défauts du kit révélés par F1, et corrigés :
 - Le brief d'une US back renvoyait à `specs/...` en relatif, alors que le trio vit dans le dépôt front. Il donne maintenant le chemin absolu.
