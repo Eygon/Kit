@@ -201,8 +201,8 @@ c est la que le compte se joue ; le lint ne compte PAS les types purs :
 `Enums/`, `types|dtos|models/*.ts`, `*Props.ts` ; les fichiers de langue comptent pour un)
 et MESURE-le avant de poser la question : ecris l esquisse au format
 tasks.md (`## [USn] titre`, `- [ ] T001 [USn] Create \`a.ts\` and its DTO
-\`b.ts\` — Code: \`c.ts\``) dans `<slot>/.sk/sketch-tasks.md`, puis
-  node "<SK_SHARED>/cap-check.mjs" "<slot>/.sk/sketch-tasks.md"
+\`b.ts\` — Code: \`c.ts\``) dans `$(git rev-parse --git-dir)/sk-sketch-tasks.md` (hors arbre de travail : un `git add -A` de worker ne la ramasse pas), puis
+  node "<SK_SHARED>/cap-check.mjs" "$(git rev-parse --git-dir)/sk-sketch-tasks.md"
 (meme compte que le lint ; TROP = redecoupe avant la question). Survole
 aussi l index des standards des depots touches (titres seulement) : un
 standard qui contredit le besoin (element semantique contre clic sur un
