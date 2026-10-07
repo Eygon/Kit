@@ -733,6 +733,11 @@ export const lintSpec = (dir, opts = {}) => {
       "default", "minLength", "maxLength", "minimum", "maximum", "pattern",
       "oneOf", "anyOf", "allOf", "$ref", "components", "schemas", "openapi",
       "paths", "responses", "content", "schema", "in", "name",
+      // Mots-cles OpenAPI/JSON Schema restants (banc Miro F6 : minItems/maxItems pris pour des champs).
+      "minItems", "maxItems", "uniqueItems", "minProperties", "maxProperties", "exclusiveMinimum",
+      "exclusiveMaximum", "multipleOf", "readOnly", "writeOnly", "deprecated", "const", "not",
+      "discriminator", "parameters", "requestBody", "summary", "operationId", "tags", "info",
+      "version", "servers", "url", "security", "headers",
     ]);
     // MEDIUM, not HIGH: on a yaml that documents a whole existing DTO enriched with a few fields,
     // 21 of 23 findings were false positives (bench 2026-09-09) and 917 kept 17 HIGH through 4 runs,
