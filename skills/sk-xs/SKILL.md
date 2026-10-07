@@ -81,8 +81,9 @@ Un XS tient en **1–2 comportements**. Au-delà : arrête et propose `/sk-prep`
 
 Pour chaque comportement, **dans le slot** :
 
-1. **RED.** Écris **un seul** cas de test. Lance la gate ciblée (`--coverage=false`). Elle **doit** échouer par assertion (pas compile/import). Le test invoque le code réel (import paresseux si le symbole n'existe pas). Assertion entre deux littéraux sans appeler le code visé = interdite. Rouge compile → corrige le **test**, relance. Vert d'emblée → déjà couvert, passe au suivant.
+1. **RED.** Écris **un seul** cas de test (un `it.each` sur les variantes d'UN même comportement compte pour un). Lance la gate ciblée (`--coverage=false`). Elle **doit** échouer par assertion (pas compile/import). Le test invoque le code réel (import paresseux si le symbole n'existe pas). Assertion entre deux littéraux sans appeler le code visé = interdite. Rouge compile → corrige le **test**, relance. Vert d'emblée → déjà couvert, passe au suivant.
 2. Instantané du fichier de test (`Read`). Optionnel : `git add -A && git commit --no-verify -m "sk-xs RED(<cycle>)"`.
+   L'import paresseux du RED repasse en import statique une fois GREEN (sinon `related` ne voit plus ce test).
 3. **GREEN.** Code de production **minimal**. Relance la gate ciblée. Rouge → corrige la prod (jamais le test), **2 tentatives** max puis stop + signaler. Re-`Read` le test vs instantané : différent → restaure, reprends GREEN.
 4. Comportement suivant.
 
