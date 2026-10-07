@@ -5,14 +5,14 @@ import { tick, parseMessage, decideMessage, decideQuestion, matchAnswer, pickOrd
 
 const cfg = { session: "kit-9a", projects: { Tableau: "/repo/front" }, maxParallel: 1 };
 const NOW = "2026-10-07T10:00:00Z";
-const row = (n, extra = {}) => ({ url: `p${n}`, Num: n, "Tâche": `tache ${n}`, Statut: STATUS.todo, Projet: "Tableau", ...extra });
+const row = (n, extra = {}) => ({ url: `p${n}`, Num: String(n), "Tâche": `tache ${n}`, Statut: STATUS.todo, Projet: "Tableau", Taille: "Feature", ...extra });
 
 test("tick prend la tache la plus prioritaire, puis la plus ancienne, dans la limite de maxParallel", () => {
   const rows = [row(1, { "Priorité": "Basse" }), row(2, { "Priorité": "Urgente" }), row(3, { "Priorité": "Urgente" })];
   const { actions } = tick(rows, { runs: {} }, cfg, NOW);
   assert.deepEqual(actions.map((a) => [a.type, a.page]), [["claim", "p2"], ["queued", "p3"], ["queued", "p1"]]);
   assert.equal(actions[0].repo, "/repo/front");
-  assert.equal(actions[0].route, "judge");
+  assert.equal(actions[0].route, "feature");
 });
 
 test("tick : une tache qui attend l humain ne bloque pas la suivante", () => {
@@ -93,7 +93,7 @@ test("matchAnswer : chiffre, libelle, phrase sur un trio, texte libre, ambigu", 
 });
 
 test("pickOrder : priorite vide = Normale", () => {
-  assert.deepEqual(pickOrder([row(5), row(9, { "Priorité": "Haute" }), row(1, { "Priorité": "Basse" })]).map((r) => r.Num), [9, 5, 1]);
+  assert.deepEqual(pickOrder([row(5), row(9, { "Priorité": "Haute" }), row(1, { "Priorité": "Basse" })]).map((r) => Number(r.Num)), [9, 5, 1]);
 });
 
 test("verdict vert -> passage E2E Chrome ; synthese du rapport -> Publier, Corriger ou humain", async () => {
@@ -108,4 +108,13 @@ test("verdict vert -> passage E2E Chrome ; synthese du rapport -> Publier, Corri
   assert.equal(decideE2E("PASS 4 · FAIL 1 · BLOQUE 0", d, 2).type, "relay");
   assert.equal(decideE2E("PASS 5 · FAIL 0 · BLOQUE 1", d).type, "relay");
   assert.equal(decideE2E("rien", d).type, "relay");
+});
+
+test("tick : une seule prep a la fois par depot, une XS passe a cote", () => {
+  const two = { ...cfg, maxParallel: 3 };
+  const rows = [row(1, { Taille: "Feature" }), row(2, { Taille: "Auto" }), row(3, { Taille: "Petite (XS)" }), row(5)];
+  const a = tick(rows, { runs: {} }, two, NOW).actions;
+  assert.deepEqual(a.map((x) => [x.type, x.page]), [["claim", "p1"], ["size", "p2"], ["claim", "p3"], ["queued", "p5"]]);
+  const b = tick([row(4, { Taille: "Feature" }), row(9, { Statut: STATUS.prep })], { runs: { p9: { phase: "prep", repo: "/repo/front", startedAt: NOW } } }, two, NOW).actions;
+  assert.equal(b.find((x) => x.page === "p4").reason, "une prep tourne deja sur ce depot");
 });

@@ -24,7 +24,7 @@ const ageMin = (iso, now) => (iso ? (Date.parse(now) - Date.parse(iso)) / 60000 
 
 // Ordre de prise : priorite, puis numero (le plus ancien d abord).
 export function pickOrder(rows) {
-  return [...rows].sort((a, b) => (RANK[a["Priorité"]] ?? 2) - (RANK[b["Priorité"]] ?? 2) || (a.Num ?? 1e9) - (b.Num ?? 1e9));
+  return [...rows].sort((a, b) => (RANK[a["Priorité"]] ?? 2) - (RANK[b["Priorité"]] ?? 2) || (Number(a.Num) || 1e9) - (Number(b.Num) || 1e9));
 }
 
 export function route(row) {
@@ -74,7 +74,18 @@ export function tick(rows, state, config, now) {
       if (known.length === 1 && !row.Projet) { /* un seul projet : il va de soi */ }
       else { actions.push({ type: "block", page: row.url, reason: row.Projet ? `projet « ${row.Projet} » absent de notion.json` : `colonne Projet vide (${known.join(", ")})` }); continue; }
     }
+    // Taille Auto : le modele la tranche d abord et l ecrit dans Notion (visible, corrigeable
+    // par l humain), puis relance le tick. Sans ca une XS evidente attendait derriere une prep.
+    if (route(row) === "judge") { actions.push({ type: "size", page: row.url, num: row.Num, title: row["Tâche"] }); continue; }
     if (free <= 0) { actions.push({ type: "queued", page: row.url, num: row.Num }); continue; }
+    // Une seule prep par depot : .specify/feature.json est unique dans le principal, deux
+    // /sk-prep concurrents s y ecrasent.
+    const target = repo || Object.values(config.projects)[0];
+    if (route(row) !== "xs" && Object.values(runs).some((r) => !r.finished && r.phase === "prep" && r.repo === target) ||
+        route(row) !== "xs" && actions.some((a) => a.type === "claim" && a.route !== "xs" && a.repo === target)) {
+      actions.push({ type: "queued", page: row.url, num: row.Num, reason: "une prep tourne deja sur ce depot" });
+      continue;
+    }
     free--;
     actions.push({
       type: "claim", page: row.url, num: row.Num, title: row["Tâche"], project: row.Projet || Object.keys(config.projects)[0],
