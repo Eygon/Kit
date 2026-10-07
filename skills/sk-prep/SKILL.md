@@ -325,6 +325,13 @@ Nouvelle dependance (npm, NuGet) : une tache explicite qui cite le
 manifeste (`package.json` + lockfile, `.csproj`) et une version compatible
 avec la cible (net8.0 -> 8.0.*), avant toute tache qui l importe ; le brief
 ouvre ces fichiers au worker (banc Miro F8 : SignalR des deux cotes).
+Nouveau canal navigateur -> back (WebSocket, SignalR, SSE, cookies,
+upload) : lis la politique CORS du back (Program.cs `AddCors`) contre ce
+que le client envoie. `AllowAnyOrigin` + un client qui envoie les
+credentials (SignalR JS par defaut) = refus du navigateur, invisible aux
+tests unitaires et d integration. La tache du client fixe l option
+(`withCredentials: false` si l identite passe ailleurs) ou une tache back
+nomme les origines (banc Miro F8 : 5 US PASS, presence morte en E2E).
 `Slot : wt-N` nomme par l humain -> en-tete de plan.md.
 
 ### A.3 Standards AgentOS — appliques strictement, par depot, par US
