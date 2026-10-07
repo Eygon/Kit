@@ -107,7 +107,8 @@ les US n existent pas encore ; ce choix va dans la question de clarify A.2.)
 D ABORD 2-3 Grep/Glob inline. Point d entree trouve et aucun declencheur
 ci-dessous vrai : AUCUN agent (5 sessions XS sur 5, la recon inline a
 suffi ; chaque appel d outil coute 3,5-8 s).
-Fan-out SEULEMENT si :
+Fan-out SEULEMENT si (outil Agent indisponible, sous-agent ou Cursor : recon
+inline, memes questions, `agentSpawns: 0` au resultat) :
   - 2 git roots (`backend` renseigne ET le besoin touche l API) ;
   - la recon inline touche >= 2 pages (src/pages/<a> ET src/pages/<b>) ;
     une page plus un composant partage qu elle consomme reste UN
@@ -241,7 +242,7 @@ chemin comme symbole et lit tout « ligne N » / « line N » comme un numero :
 pas de numero en prose), les standards (A.3), la table des fichiers touches par US, les
 decisions. Artefacts conditionnels, fichiers vides INTERDITS : research.md
 (decision qui demande plus de 3 lignes), data-model.md (entite ou champ
-nouveau), contracts/ (interface qui change, chaque champ source),
+STOCKE nouveau ; un DTO derive non stocke, agregat ou projection, n en est pas), contracts/ (interface qui change, chaque champ source),
 quickstart.md (procedure manuelle non triviale).
 
 **tasks.md** — tout chemin cite dans une tache compte dans son cap, SAUF

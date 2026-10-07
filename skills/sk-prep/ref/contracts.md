@@ -54,7 +54,11 @@ Ecris dans les Faits verifies, par champ : base, table,
 colonne, volumetrie constatee. Table CREEE par la feature
 (migration d une tache de ce run) : la source est
 « cree par T<nnn> (migration) », sans volumetrie ; seuls les
-champs lus dans une table existante exigent la preuve en base.
+champs lus dans une table existante exigent la preuve en base. Champ
+DERIVE (agregat, compte, projection) de colonnes existantes : la source est
+« derive de <Table>.<Colonne> (<operation>) », avec l entite EF citee ; la
+volumetrie n est exigee que pour les colonnes lues, et un seed vide se
+dit tel quel (« aucune ligne au seed »), sans bloquer.
 Source introuvable -> le champ NE RENTRE PAS au contrat.
 Il devient une question de 0quater (retirer du perimetre,
 chercher la source ailleurs, livrer sans). Ne l ecris pas
