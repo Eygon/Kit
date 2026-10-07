@@ -742,8 +742,17 @@ export const lintSpec = (dir, opts = {}) => {
     // MEDIUM, not HIGH: on a yaml that documents a whole existing DTO enriched with a few fields,
     // 21 of 23 findings were false positives (bench 2026-09-09) and 917 kept 17 HIGH through 4 runs,
     // which made the severity unreadable while the real gap (a spec attribute with no field) passed.
+    // Champ deja servi par un DTO existant (back lie ou front) : il ne vient pas de cette feature,
+    // sa source est le code (banc Miro F6 : zIndex et updatedAt de BoardItemDto signales).
+    const lintRoot = findRepoRoot(dir);
+    const backLinked = lintRoot ? linkedBackendRoot(lintRoot) : null;
+    const inExistingDto = (f) =>
+      [lintRoot, backLinked].filter(Boolean).some((r) => {
+        const hit = git(r, ["grep", "-l", "-i", "-w", "-e", f, defaultRef(r) || "HEAD", "--", "*Dto*", "*dto*", "*dtos/*"]);
+        return Boolean(hit && hit.trim());
+      });
     const unsourced = contract.fields.filter(
-      (f) => !SCHEMA_KEYWORDS.has(f) && !/^[A-Z][A-Za-z0-9]*$/.test(f) && !planText.includes(f)
+      (f) => !SCHEMA_KEYWORDS.has(f) && !/^[A-Z][A-Za-z0-9]*$/.test(f) && !planText.includes(f) && !inExistingDto(f)
     );
     for (const f of unsourced.slice(0, 20))
       add("medium", "contract-field-without-source", `champ "${f}" du contrat n apparait pas dans plan.md (Faits verifies: base, table, colonne, volumetrie)`, "contracts/");
