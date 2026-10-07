@@ -353,7 +353,7 @@ Défauts du kit révélés par F1, et corrigés :
 4. Les gabarits `sk-prep/templates/` et les scripts `.ps1` de spec-kit : la sonde détecte la variante `ps1` ou `sh`, rien à faire sous Windows.
 5. **Décider `reviewTier: "auto"`** (recommandé : 13 reviews Sonnet justes sur 13, environ 0,5 $ économisé par petite US).
 6. **Prévoir un passage E2E en mode lot** (`sk-e2e.md`) après chaque lot de 3 à 5 features. Le cahier existe, mais aucune skill ne l'exécute encore : c'est le prochain chantier qui en vaut la peine.
-7. Les nouveaux scripts de `skills/_shared/` (`gate.mjs`, `e2e-oracles.mjs`, `cap-check.mjs`, `fact-lines.mjs`, `diff-cover.mjs`…) suivent le lien `link-sk.ps1` habituel : rien à copier à la main.
+7. Les nouveaux scripts de `skills/_shared/` (`gate.mjs`, `e2e-oracles.mjs`, `cap-check.mjs`, `fact-lines.mjs`, `diff-cover.mjs`…) arrivent avec le dossier `skills/_shared/`. Recopie-le en entier dans `~/.claude/skills/_shared/` comme le reste du kit : les briefs les appellent par ce chemin.
 
 ## Limites du banc
 - Je n'ai pas lancé de sessions `claude -p` imbriquées (refusées par les permissions de cet environnement). Les runs sont des sous-agents qui jouent les skills en mode audit, avec le prompt système de l'agent passé en texte. L'effet du conflit `tdd-dev` est donc sans doute **sous-estimé** ici.
