@@ -463,3 +463,20 @@ test("e2e-oracles: contraste WCAG (noir/blanc 21, texte clair sur post-it jaune 
   assert.ok(contrast("rgb(230, 232, 238)", "rgb(253, 230, 138)") < 1.1);
   assert.ok(contrast("rgb(17, 24, 39)", "rgb(253, 230, 138)") > 4.5);
 });
+
+test("ac-map: chaque AC doit pointer un test existant d un fichier touche par l US", async () => {
+  const { acNumbers, testTitles, checkMap } = await import("../ac-map.mjs");
+  const spec = "### User Story 1 - Dupliquer\n\n**Acceptance Scenarios**:\n\n1. **Given** a, **When** b, **Then** c.\n2. **Given** d, **When** e, **Then** f.\n3. **Given** g.\n\n### Edge Cases\n";
+  assert.deepEqual(acNumbers(spec, "US1"), [1, 2, 3]);
+  const src = 'it("copies a note", () => {});\nit.each([["a"]])("creates nothing for %s", () => {});\ntest(`undoes the copy`, () => {});';
+  assert.deepEqual(testTitles(src), ["copies a note", "creates nothing for %s", "undoes the copy"]);
+  const files = { "a.test.ts": src, "old.test.ts": 'it("legacy", () => {})' };
+  const r = checkMap({
+    acs: [1, 2, 3, 4],
+    map: [{ ac: 1, file: "a.test.ts", test: "copies" }, { ac: 2, file: "a.test.ts", test: "not there" }, { ac: 3, file: "old.test.ts", test: "legacy" }],
+    readFile: (f) => files[f] ?? null,
+    touched: new Set(["a.test.ts"]),
+  });
+  assert.deepEqual(r.lines.map((l) => l.status), ["OK", "INTROUVABLE", "HORS-US", "MANQUE"]);
+  assert.equal(r.ok, false);
+});

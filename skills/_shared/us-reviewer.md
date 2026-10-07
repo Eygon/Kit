@@ -138,6 +138,8 @@ seul commit DONE.
    preuve par tache.
 5. Le diff ne sort pas des chemins autorises.
 6. Les AC de la spec pour cette US sont couverts par un vrai test (pas une tautologie).
+   Carte du worker (si presente) : `node "<SK_SHARED>/ac-map.mjs" --spec "<SPEC_PATH>" --us <US_ID> --map "$(git rev-parse --git-dir)/sk-<US_ID>-acmap.json" --range <US_BASE>..HEAD`
+   — OK ne suffit pas : ouvre le test de chaque AC d effet (historique, selection, echec) et verifie qu il rougirait.
    ET chaque tache de prod [X] a son fichier de test dans
    `<US_BASE>..HEAD` : nomme les taches sans test.
    Y compris les AC sources "(source : <doc>#R<n>)" : la regle

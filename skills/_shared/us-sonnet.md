@@ -428,6 +428,19 @@ Reprise = les [ ] restants.
    test n a pas ete touche : si le comportement change, ecris le test qui
    l aurait vu (banc Miro : 3 FIXED sur 8 etaient un test manquant ou qui
    ne prouvait rien).
+3bis. Carte AC -> test, UNE commande. Ecris d abord, pour CHAQUE scenario
+   d acceptation de l US (numerotes dans « Criteres d acceptation »), le
+   test qui rougit s il est viole :
+     $(git rev-parse --git-dir)/sk-<US_ID>-acmap.json =
+     [{ "ac": 1, "file": "<fichier de test>", "test": "<titre du it/test>", "level": "page|unit" }, ...]
+   puis :
+     node "<SK_SHARED>/ac-map.mjs" --spec "<SPEC_PATH>" --us <US_ID> --map "$(git rev-parse --git-dir)/sk-<US_ID>-acmap.json" --range HEAD
+   MANQUE / INTROUVABLE = ecris ce test avant DONE. Un AC qui decrit un
+   EFFET apres l action (historique / annulation, selection, echec serveur,
+   etat garde) se prouve au niveau `page` (le composant qui monte la
+   logique), pas seulement par le test d un utilitaire : banc Haiku 5.5,
+   2 workers sur 2 ont laisse l annulation (AC6) et l echec sans test de
+   page, rattrapes par la revue.
 <!-- if:contract -->
 <!-- if:back -->
 4. Codes du contrat : chaque code de reponse des operations de tes taches
