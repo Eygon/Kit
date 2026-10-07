@@ -8,7 +8,12 @@ backend = null et l endpoint vient du besoin ou d une reponse : la source
 est l humain, citee dans les Faits verifies (« endpoint donne par l humain,
 clarify Q2 »). Confronte-le aux url-builders du depot (apiURL) : prefixe,
 casse, segments. Divergence = question de clarify (« ton endpoint ou celui du
-modele du depot ? »), jamais un choix silencieux. La verification en base
+modele du depot ? »), jamais un choix silencieux. Sans reponse (mode audit, humain absent) : le
+modele du depot prime (option recommandee, grounded=false), le yaml porte ce
+chemin-la et une ligne `Depot prime` le dit. Source d un champ sans base
+joignable : une ligne des Faits verifies (fichier d entite ou DTO cite, ou
+« donne par l humain, Q<n> ») suffit ; la Sanity 5 (base, table, volumetrie)
+ne s applique pas. La verification en base
 (plus bas) ne s applique que si une base ou un backend est joignable.
 
 ## Second depot (BACK_ROOT)

@@ -835,7 +835,12 @@ export const lintSpec = (dir, opts = {}) => {
     // (sans / ni \) n est pas une ancre : le plan le cite en rappel d un chemin
     // deja donne, ou pour dire qu il est absent (« no parallel.yml »).
     for (const line of factsSection.split(LF)) {
-      const paths = [...new Set(matchAll(line, PATH_TOKEN).map((x) => x[0]))].filter((x) => /[\/\\]/.test(x));
+      // Ligne au format prescrit (chemins entre backticks) : seuls ceux-la sont des faits ; un chemin
+      // en prose (« lu dans dist/index.d.ts ») n en est pas un (banc de non-regression, 1 HIGH faux).
+      const spans = matchAll(line, /`([^`]+)`/g).map((x) => x[1]);
+      const source = spans.some((x) => PATH_TOKEN.test(x) && (PATH_TOKEN.lastIndex = 0, true)) ? spans.join(" ") : line;
+      PATH_TOKEN.lastIndex = 0;
+      const paths = [...new Set(matchAll(source, PATH_TOKEN).map((x) => x[0]))].filter((x) => /[\/\\]/.test(x));
       if (!paths.length) continue;
       // `chemin:12-20` (format prescrit par sk-prep A.1) autant que « lignes 12-20 ».
       const lineRef = line.match(LINE_REF) || line.match(/\.[A-Za-z]{1,5}:(\d+)(?:\s*[-–]\s*(\d+))?\b/);

@@ -204,9 +204,11 @@ tasks.md (`## [USn] titre`, `- [ ] T001 [USn] Create \`a.ts\` and its DTO
 \`b.ts\` — Code: \`c.ts\``) dans `$(git rev-parse --git-dir)/sk-sketch-tasks.md` (hors arbre de travail : un `git add -A` de worker ne la ramasse pas), puis
   node "<SK_SHARED>/cap-check.mjs" "$(git rev-parse --git-dir)/sk-sketch-tasks.md"
 (meme compte que le lint ; TROP = redecoupe avant la question). Survole
-aussi l index des standards des depots touches (titres seulement) : un
-standard qui contredit le besoin (element semantique contre clic sur un
-trace SVG) devient une option de CETTE question, pas une question tardive. Confronte-le au cap (~6 fichiers dont
+aussi l index des standards des depots touches (titres seulement) ; un
+titre qui touche le besoin (forms, error-handling, a11y) : lis son corps
+MAINTENANT (le meme Read sert en A.3). Un standard qui contredit le besoin
+(element semantique contre clic sur un trace SVG, toast contre erreur 409
+inline) devient une option de CETTE question, pas une question tardive. Confronte-le au cap (~6 fichiers dont
 chaque fichier existant ETENDU, config comprise ; 8 au plus compagnons
 compris ; ~6 taches ; au plus 2 composants crees par US) : le
 decoupage propose fait partie de la question. Decouvrir le depassement au
@@ -303,6 +305,10 @@ Une methode que seule une US ULTERIEURE appelle se cree dans CETTE US-la,
 pas plus tot : livree sans appelant, elle n est executee par aucun test
 (diff-cover GAP) et sa forme se devine (banc Miro F2 : `UserRepository.Exists`
 en US2, appelee en US3).
+Montage, en une regle : annote `Monté dans:` ce que l US CREE et qui ne
+s execute que si un autre fichier l importe (composant, hook, query
+function/key sans son hook dans la meme US, provider, route front). Le
+reste, non. Detail :
 Rien a monter (utils purs, mapper, DTO, type, colonnes, route, controleur
 ASP.NET decouvert par MapControllers, service ou repository .NET
 auto-enregistre ; extension d un hook, composant ou module DEJA monte) : pas
