@@ -365,6 +365,10 @@ Défauts du kit révélés par F1, et corrigés :
 6. **Prévoir un passage E2E en mode lot** (`sk-e2e.md`) après chaque lot de 3 à 5 features. `/sk-test`, qui exécute le cahier, n'était pas dans le zip (le kit le cite : `sk-host.md` §7, `sk-routing.md`). Si tu l'as, reporte-y les sections « Oracles transverses » et « Mode lot » de `sk-e2e.md`, et le repli Playwright avec `e2e-oracles.mjs` quand Claude in Chrome manque.
 7. Les nouveaux scripts de `skills/_shared/` (`gate.mjs`, `e2e-oracles.mjs`, `cap-check.mjs`, `fact-lines.mjs`, `diff-cover.mjs`…) arrivent avec le dossier `skills/_shared/`. Recopie-le en entier dans `~/.claude/skills/_shared/` comme le reste du kit : les briefs les appellent par ce chemin.
 
+## Pistes suivantes (non testées)
+- **Alléger le TDD des workers grâce à `red-replay`.** La preuve RED est maintenant rejouée par le reviewer. On pourrait donc autoriser un seul RED et un seul GREEN par US, au lieu d'une empreinte par tâche. La moitié des workers le faisait déjà de fait. Gain attendu : 3 à 6 appels de moins par US. À mesurer sur un lot avant de l'adopter.
+- **`/sk-test` en mode lot**, avec repli Playwright (voir « À faire » n° 6).
+
 ## Limites du banc
 - Je n'ai pas lancé de sessions `claude -p` imbriquées (refusées par les permissions de cet environnement). Les runs sont des sous-agents qui jouent les skills en mode audit, avec le prompt système de l'agent passé en texte. L'effet du conflit `tdd-dev` est donc sans doute **sous-estimé** ici.
 - Les sous-agents ne peuvent pas relancer d'agents : le fan-out Explore de la prep n'a pas été mesuré (0 agent sur 15 preps, la recon inline a suffi). Le Workflow (n ≥ 2) a été rejoué à la main et ses moteurs testés hors modèle.
