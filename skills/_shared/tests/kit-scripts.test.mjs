@@ -417,3 +417,10 @@ test("e2e-oracles: 5xx and unexpected console are captured per take(), verdict n
   assert.equal(w.take().fiveXX.length, 0);
   assert.deepEqual(verdict([["PASS", "PASS", "PASS"], ["PASS", "PASS", "FAIL"], ["PASS", "BLOQUE", "PASS"], ["PASS", "PASS"]], 3), ["PASS", "FAIL", "BLOQUE", "BLOQUE"]);
 });
+
+test("derivePaths: a shared test helper cited after Test: joins tests[], not the prod cap", async () => {
+  const { derivePaths } = await import("../brief-fill.mjs");
+  const { prod, tests } = derivePaths(["- [ ] T001 [US1] Extend `src/a/x.ts` — Test: `src/__tests__/x.test.ts`, `src/__tests__/helpers/builders.ts`"], "");
+  assert.deepEqual(prod, ["src/a/x.ts"]);
+  assert.ok(tests.includes("src/__tests__/helpers/builders.ts"));
+});

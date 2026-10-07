@@ -95,6 +95,10 @@ export const derivePaths = (tasks, reconText) => {
   const tests = new Set();
   for (const line of tasks) {
     for (const m of line.matchAll(TEST_REF)) tests.add(norm(m[1]));
+    // Segment `Test:` entier : un helper de test partage a etendre (builders, fixtures) s y cite
+    // apres le test de la tache (sk-prep, banc Miro F11) ; il rejoint tests[], pas le cap prod.
+    for (const seg of line.matchAll(/Test:\s*([^—]*)/g))
+      for (const m of seg[1].matchAll(/`([\w./@-]+\.(?:[cm]?[jt]sx?|cs))`/g)) if (m[1].includes("/")) tests.add(norm(m[1]));
     for (const m of line.matchAll(MOUNT_REF)) if (!m[3]) prod.add(norm(m[1]));
     const body = line.replace(/(?:Code|Eviter|Avoid|Test):\s*[^—]*/g, " ").replace(MOUNT_REF, " ");
     for (const m of body.matchAll(/`([\w./@-]+\.(?:tsx?|jsx?|cs|json|s?css|csproj|props|lock|ya?ml))`/g)) {

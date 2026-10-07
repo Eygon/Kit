@@ -178,49 +178,50 @@ dossier qu il rend, VERIFIE qu il existe. Jamais de mkdir a la main.
 Hook after_specify : SKIPPED (il reecrit AGENTS.md hors specs/).
 
 **clarify + filet + US retenues : UNE AskUserQuestion, AVANT d ecrire
-spec.md** (jusqu a 4 questions dans le meme appel). La recon et le besoin
-suffisent a la poser : ecrire d abord la spec forcait a rediger des US et
-des AC qu une reponse retirait ensuite (PDF, TVA). Passe le besoin au crible : perimetre exclu,
-donnees et leur source, parcours et etats (vide, erreur, chargement),
-regles et cas limites, contraintes non fonctionnelles, termes ambigus.
-Une valeur, une option ou une donnee que le besoin nomme et que le depot
-n a pas (enum sans la valeur, DTO sans le champ) : ni inventee, ni retiree
-en silence — c est une question ; sa recommandation n invente pas la
-valeur serveur : elle la marque « a confirmer » (item de checklist ouvert,
-cite en A.6), ce que le mode audit retient tel quel. Garde les 1-3 questions dont la reponse CHANGE une US, une AC ou une tache
-(au moins une, sauf spec deja entiere), chacune avec 2-4 options et ta
-recommandation en premier. Un manque decouvert APRES clarify, en ecrivant
-tasks.md (prop absente de la lib, endpoint manquant) : UNE question tardive
-est permise, avant tasks.md, tracee dans `## Clarifications` ; la reponse
-corrige la spec avant d ecrire les taches. Derniere question : le filet — les hypotheses
-que tu as prises (portee, cas limites, regles), a valider ou corriger —
-et, sans 0quater, les US retenues pour CE run (toutes par defaut ; deja
-tranchees en 0quater : ne les repose pas).
-AVANT de la poser, esquisse le decoupage (US -> fichiers de prod, LOCALES
-pour un, types purs et compagnons « and its » pour zero — compagnon = tout
-fichier de la meme tache introduit par « and its <x> », util etendu compris ;
-un mapper sous `types/` est un type pur (0 fichier) mais sa tache compte ; ecris la triade
-model/dto/mapper et le fichier de props tels qu ils seront dans tasks.md,
-c est la que le compte se joue ; le lint ne compte PAS les types purs :
-`Interfaces/I*.cs`, `*Dto.cs`, `*Enum.cs`, `*Configuration.cs`, `Entities/`,
-`Enums/`, `types|dtos|models/*.ts`, `*Props.ts` ; les fichiers de langue comptent pour un)
-et MESURE-le avant de poser la question : ecris l esquisse au format
-tasks.md (`## [USn] titre`, `- [ ] T001 [USn] Create \`a.ts\` and its DTO
-\`b.ts\` — Code: \`c.ts\``) dans `$(git rev-parse --git-dir)/sk-sketch-tasks.md` (hors arbre de travail : un `git add -A` de worker ne la ramasse pas), puis
-  node "<SK_SHARED>/cap-check.mjs" "$(git rev-parse --git-dir)/sk-sketch-tasks.md"
-(meme compte que le lint ; TROP = redecoupe avant la question). Survole
-aussi l index des standards des depots touches (titres seulement) ; un
-titre qui touche le besoin ou un mecanisme que l intent impose (forms,
-error-handling, a11y, identite, transport) : lis son corps
-MAINTENANT, fichier `agent-os/standards/<id>.md` directement (le pack d A.3
-le reprend apres clarify, une fois FEATURE_DIR cree). Un standard qui contredit le besoin
-(element semantique contre clic sur un trace SVG, toast contre erreur 409
-inline) devient une option de CETTE question, pas une question tardive. Confronte-le au cap (~6 fichiers dont
-chaque fichier existant ETENDU, config comprise ; 8 au plus compagnons
-compris ; ~6 taches ; au plus 2 composants crees par US) : le
-decoupage propose fait partie de la question. Decouvrir le depassement au
-lint, apres clarify, forcait a re-decouper contre la reponse de l humain
-(banc, cycle 2 : 2 preps sur 5).
+spec.md** (jusqu a 4 questions dans le meme appel ; FEATURE_DIR existe deja,
+cree par l etape Dossier). Ecrire d abord la spec forcait a rediger des US et
+des AC qu une reponse retirait ensuite (PDF, TVA). Dans CET ordre :
+1. **Esquisse mesuree.** Decoupe (US -> fichiers de prod ; LOCALES pour un ;
+   types purs et compagnons « and its » pour zero — compagnon = tout fichier
+   de la meme tache introduit par « and its <x> », util etendu compris ; un
+   mapper sous `types/` est un type pur mais sa tache compte ; le lint ne
+   compte PAS `Interfaces/I*.cs`, `*Dto.cs`, `*Enum.cs`, `*Configuration.cs`,
+   `Entities/`, `Enums/`, `types|dtos|models/*.ts`, `*Props.ts`). Ecris-la au
+   format tasks.md (`## [USn] titre`, `- [ ] T001 [USn] Create \`a.ts\` and
+   its DTO \`b.ts\` — Code: \`c.ts\``), triade model/dto/mapper et props
+   tels qu ils seront, dans `$(git rev-parse --git-dir)/sk-sketch-tasks.md`
+   (hors arbre de travail : un `git add -A` de worker ne la ramasse pas), puis
+     node "<SK_SHARED>/cap-check.mjs" "$(git rev-parse --git-dir)/sk-sketch-tasks.md"
+   (meme compte que le lint ; il liste aussi ce qui est hors compte). TROP =
+   redecoupe maintenant : cap ~6 fichiers dont chaque fichier existant ETENDU,
+   config comprise ; 8 au plus compagnons compris ; ~6 taches ; au plus 2
+   composants crees par US. Le decouvrir au lint forcait a re-decouper
+   contre la reponse de l humain (banc, cycle 2 : 2 preps sur 5).
+2. **Standards qui touchent le besoin.** Survole l index des depots touches
+   (titres seulement) ; un titre qui touche le besoin ou un mecanisme que
+   l intent impose (forms, error-handling, a11y, identite, transport) : lis
+   son corps maintenant, fichier `agent-os/standards/<id>.md` directement
+   (le pack d A.3 le reprend ensuite). Un standard qui contredit le besoin
+   (element semantique contre clic sur un trace SVG, toast contre erreur 409
+   inline) devient une option de CETTE question, pas une question tardive.
+3. **La question.** Passe le besoin au crible : perimetre exclu, donnees et
+   leur source, parcours et etats (vide, erreur, chargement), regles et cas
+   limites, contraintes non fonctionnelles, termes ambigus. Une valeur, une
+   option ou une donnee que le besoin nomme et que le depot n a pas (enum
+   sans la valeur, DTO sans le champ) : ni inventee, ni retiree en silence —
+   c est une question ; sa recommandation n invente pas la valeur serveur :
+   elle la marque « a confirmer » (item de checklist ouvert, cite en A.6), ce
+   que le mode audit retient tel quel. Garde les 1-3 questions dont la
+   reponse CHANGE une US, une AC ou une tache (au moins une, sauf spec deja
+   entiere), chacune avec 2-4 options et ta recommandation en premier ; le
+   decoupage mesure fait partie de la question. Derniere question : le
+   filet — les hypotheses que tu as prises (portee, cas limites, regles), a
+   valider ou corriger — et, sans 0quater, les US retenues pour CE run
+   (toutes par defaut ; deja tranchees en 0quater : ne les repose pas).
+4. **Question tardive.** Un manque decouvert APRES clarify, en ecrivant
+   tasks.md (prop absente de la lib, endpoint manquant) : UNE question
+   tardive est permise, avant tasks.md, tracee dans `## Clarifications` ; la
+   reponse corrige la spec avant d ecrire les taches.
 Reponses -> elles faconnent la spec que tu ecris ensuite, et s y tracent
 sous `## Clarifications` (`### Session <date>`, une ligne `- Q: ... → A:
 ...` par question). Une US ecartee n est pas ecrite.
@@ -281,7 +282,9 @@ rituel RED, revue de diff, validation manuelle, verifier le design.
 Une ligne dit QUOI, OU et AVEC QUOI (fichier, signature, endpoint, source
 de la donnee, valeurs exigees) ; elle ne recopie pas le corps du code.
 `Code:` = ce que la tache reutilise sans le modifier (hors cap de
-fichiers). `Eviter: <symbole> (<raison>)` = un voisin qui ressemble mais ne
+fichiers). Un helper de TEST partage a etendre (builders, fixtures) se cite
+apres `Test:` avec le test de la tache : le worker peut l editer, et il ne
+compte pas dans le cap. `Eviter: <symbole> (<raison>)` = un voisin qui ressemble mais ne
 convient pas (ex. le formateur d affichage pour un export). MONTAGE (bloquant au sanity) : une tache qui CREE un composant,
 un hook, un service ou un module de logique/systeme appele ailleurs porte
 `Monté dans: <fichier>` (qui l importe et le rend ; sinon : qui l appelle),
@@ -384,7 +387,9 @@ Index absent du depot d une US = trio non livrable pour cette US.
    standard, pas une par point (un pack qui suppose une autre infra —
    axios, TranslationCode, policies — tient en 2 lignes). SAUF si cet
    equivalent change un AC (autre controle, autre comportement) : alors
-   c est une question de clarify, comme ci-dessus.
+   c est une question de clarify, comme ci-dessus. Etendre le motif du
+   standard (une exception de domaine de plus, mappee comme les autres) n est
+   ni un ecart ni un « Depot prime » : pas de ligne.
 ### A.4 Gate checklists
 
 Compte [ ] vs [X] dans FEATURE_DIR/checklists. Incomplete ->
