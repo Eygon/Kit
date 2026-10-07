@@ -8,7 +8,7 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 ## Bilan de la nuit du 6 au 7 octobre (à lire en premier)
 
-**Ce qui a tourné** : 11 features du clone Miro, préparées et implémentées avec le kit (54 US, back .NET + front React, chaque US relue). Ensuite, 6 passages de bout en bout dans un vrai navigateur et 6 corrections par `/sk-xs`. Résultat : back 329 tests, front 671, et la dernière validation complète est au vert (détail plus bas).
+**Ce qui a tourné** : 11 features du clone Miro, préparées et implémentées avec le kit (54 US, back .NET + front React, chaque US relue). Ensuite, 7 passages de bout en bout dans un vrai navigateur et 6 corrections par `/sk-xs`. Résultat : back 329 tests, front 671, et la dernière validation complète est au vert (détail plus bas).
 
 **Ce que la nuit a appris** :
 1. **Les tests unitaires et les reviews ne voient pas les défauts entre features ni entre dépôts.** Les 6 défauts trouvés par les E2E sont tous passés à travers 54 reviews vertes : rôle inconnu, concurrence SQLite, CORS SignalR, dock qui laisse passer le Crayon, id de connexion effacé par une course, erreur console en dev. D'où le contrat `sk-e2e.md` étoffé (oracles 5xx et console, mode lot, 3 runs, `e2e-oracles.mjs`). **Recommandation : un passage E2E en mode lot après chaque lot de 3 à 5 features.**
@@ -351,6 +351,9 @@ Défauts du kit révélés par F1, et corrigés :
 2. **Index front** : 4 standards existaient sans être indexés, donc n'étaient jamais appliqués : `api/multipart-upload`, `api/request-timeouts`, `react/grid-filters`, `react/paginated-grids`. Ils sont ajoutés dans `agent-os/front/standards/index.yml` du dépôt : à reporter dans MySepteoWeb.
 3. **Index back** : il n'avait pas de `_meta.alwaysInject`. J'en propose un, avec sealed, no-hardcoded-values, base classes et interfaces : à valider.
 4. Les gabarits `sk-prep/templates/` et les scripts `.ps1` de spec-kit : la sonde détecte la variante `ps1` ou `sh`, rien à faire sous Windows.
+5. **Décider `reviewTier: "auto"`** (recommandé : 13 reviews Sonnet justes sur 13, environ 0,5 $ économisé par petite US).
+6. **Prévoir un passage E2E en mode lot** (`sk-e2e.md`) après chaque lot de 3 à 5 features. Le cahier existe, mais aucune skill ne l'exécute encore : c'est le prochain chantier qui en vaut la peine.
+7. Les nouveaux scripts de `skills/_shared/` (`gate.mjs`, `e2e-oracles.mjs`, `cap-check.mjs`, `fact-lines.mjs`, `diff-cover.mjs`…) suivent le lien `link-sk.ps1` habituel : rien à copier à la main.
 
 ## Limites du banc
 - Je n'ai pas lancé de sessions `claude -p` imbriquées (refusées par les permissions de cet environnement). Les runs sont des sous-agents qui jouent les skills en mode audit, avec le prompt système de l'agent passé en texte. L'effet du conflit `tdd-dev` est donc sans doute **sous-estimé** ici.
