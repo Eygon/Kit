@@ -205,7 +205,8 @@ tasks.md (`## [USn] titre`, `- [ ] T001 [USn] Create \`a.ts\` and its DTO
   node "<SK_SHARED>/cap-check.mjs" "$(git rev-parse --git-dir)/sk-sketch-tasks.md"
 (meme compte que le lint ; TROP = redecoupe avant la question). Survole
 aussi l index des standards des depots touches (titres seulement) ; un
-titre qui touche le besoin (forms, error-handling, a11y) : lis son corps
+titre qui touche le besoin ou un mecanisme que l intent impose (forms,
+error-handling, a11y, identite, transport) : lis son corps
 MAINTENANT (le meme Read sert en A.3). Un standard qui contredit le besoin
 (element semantique contre clic sur un trace SVG, toast contre erreur 409
 inline) devient une option de CETTE question, pas une question tardive. Confronte-le au cap (~6 fichiers dont
@@ -369,6 +370,10 @@ AskUserQuestion : completer maintenant ou livrer en l etat. Recommande
 (en premier) « completer » sauf si l item ouvert n est pas verifiable
 depuis le code (valeur backend inconnue...) : alors « livrer en l etat »,
 l item reste ouvert et cite en A.6.
+Item « aucun detail d implementation » et noms techniques IMPOSES par
+l humain (chemin de hub, methode, en-tete) : ils vivent dans contracts/ et
+plan.md, la spec dit « selon le contrat » ; ne pas les recopier dans
+spec.md des A.2 evite de la reecrire ici (banc Miro F8 : ~25 remplacements).
 
 ### A.4bis recon.md
 

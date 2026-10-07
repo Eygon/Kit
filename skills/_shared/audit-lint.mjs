@@ -739,6 +739,9 @@ export const lintSpec = (dir, opts = {}) => {
       "exclusiveMaximum", "multipleOf", "readOnly", "writeOnly", "deprecated", "const", "not",
       "discriminator", "parameters", "requestBody", "summary", "operationId", "tags", "info",
       "version", "servers", "url", "security", "headers",
+      // AsyncAPI (contrat SignalR/WebSocket, banc Miro F8 : 8 MEDIUM sur la structure).
+      "asyncapi", "channels", "publish", "subscribe", "message", "messages", "payload",
+      "operations", "protocol", "bindings", "contentType", "address", "action", "traits",
     ]);
     // MEDIUM, not HIGH: on a yaml that documents a whole existing DTO enriched with a few fields,
     // 21 of 23 findings were false positives (bench 2026-09-09) and 917 kept 17 HIGH through 4 runs,

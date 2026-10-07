@@ -13,7 +13,10 @@ modele du depot prime (option recommandee, grounded=false), le yaml porte ce
 chemin-la et une ligne `Depot prime` le dit. Source d un champ sans base
 joignable : une ligne des Faits verifies (fichier d entite ou DTO cite, ou
 « donne par l humain, Q<n> ») suffit ; la Sanity 5 (base, table, volumetrie)
-ne s applique pas. La verification en base
+ne s applique pas. Meme regle pour un champ DERIVE (projection d entite,
+etat en memoire, evenement temps reel) : sa source est le fichier qui le
+calcule. Contrat d evenements (SignalR, WebSocket) : format AsyncAPI, les
+mots-cles de structure ne sont pas des champs. La verification en base
 (plus bas) ne s applique que si une base ou un backend est joignable.
 
 ## Second depot (BACK_ROOT)
