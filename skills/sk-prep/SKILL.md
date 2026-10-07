@@ -283,6 +283,11 @@ extrait et testable (`src/engine/gameApp.ts`). Une tache CSS prend en
 `Test:` le test du module qui pose les classes. Parent d une autre
 US ou pas encore cree : `Monté dans: <fichier> (US<n>)` ET, dans US<n>, une
 tache « Monter <Nom> dans `<fichier>` » avec son test, qui rend <fichier>.
+Un nouveau mode d interaction (outil de canevas, glisser, raccourci) dit
+dans un Edge Case ce qu il fait sur les elements EXISTANTS (appui sur un
+item, sur une selection) : sinon le comportement herite de l outil par
+defaut (banc Miro E2E : le Crayon deplacait l item touche au lieu de
+dessiner).
 Un droit ou un etat DERIVE deja calcule par une feature livree (role courant,
 lecture seule, droits) se REUTILISE : recon.md le cite (`chemin:ligne` de la
 derivation) et la tache le lit, au lieu de le recalculer. Un droit derive
