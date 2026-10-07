@@ -227,6 +227,11 @@ Ce que F2 et F3 ont apporté au kit :
 
 **Palier de review Sonnet (`reviewTier: "auto"`), bilan de la nuit** : 10 reviews de petites US sans écart déclaré, toutes PASS, à 0,21 $ en moyenne contre 0,70 $ pour Opus. 3 de ces US ont été relues par Opus en contre-vérification : 3 verdicts identiques. Tous les défauts trouvés en review (5 FIXED) l'ont été par Opus, sur des US que le routage lui envoyait (écart déclaré ou plus de 4 fichiers). Ma recommandation : activer `reviewTier: "auto"`. Il reste désactivé par défaut tant que tu ne l'as pas décidé.
 
+**Test de bout en bout de Miro après F1 à F4** (back et front lancés, Playwright, 14 scénarios tirés des critères d'acceptation des 4 spec.md) : 13 PASS, 1 FAIL. Le contrat back/front est conforme sur tous les appels exercés : URL, verbes, corps, 201 avec Location, 204, CORS. Deux défauts que les tests unitaires (qui mockent le transport) et les reviews ne pouvaient pas voir :
+- **Cohérence entre features** : le rôle courant est calculé deux fois. Si GET members échoue, le service renvoie une liste vide : F3 bloque alors l'historique, mais F2 laisse toute la barre d'outils à un lecteur. Règle de prep ajoutée : un état dérivé qui existe déjà se réutilise, et un droit dérivé traite l'état inconnu comme le plus restrictif.
+- **Concurrence côté back** (« database is locked » sur SQLite mémoire) : un défaut du socle de départ, pas des features. Les 3 lectures parallèles ajoutées à l'ouverture d'un tableau le rendent visible.
+Recommandation : un passage E2E (le cahier `sk-e2e.md` existe, mais aucune skill ne l'exécute) après chaque lot de features.
+
 Défauts du kit révélés par F1, et corrigés :
 - Le brief d'une US back renvoyait à `specs/...` en relatif, alors que le trio vit dans le dépôt front. Il donne maintenant le chemin absolu.
 - Les faits du back (SQLite, horloge figée) arrivaient dans les briefs front. Ils sont maintenant rangés par dépôt (`--slot`).
