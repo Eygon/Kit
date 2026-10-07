@@ -346,3 +346,23 @@ test("audit-lint: a path cited in prose next to backticked facts is not a fact",
   plan("- `src/missing.ts:1` `foo` — absent");
   assert.match(run(), /verified-fact-path-missing/);
 });
+
+test("mount-check: a C# class noted `Monté dans: Program.cs` must be cited there, unnoted C# stays SKIP", async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { checkMounts } = await import("../mount-check.mjs");
+  const root = mkdtempSync(join(tmpdir(), "mcs-"));
+  mkdirSync(join(root, "Api", "Hubs"), { recursive: true });
+  writeFileSync(join(root, "Api", "Hubs", "BoardHub.cs"), "public sealed class BoardHub : Hub {}\n");
+  writeFileSync(join(root, "Api", "Hubs", "Tracker.cs"), "public sealed class Tracker {}\n");
+  const tasks = "- [ ] T004 [US1] Create `Api/Hubs/BoardHub.cs` — Monté dans: `Api/Program.cs`\n- [ ] T003 [US1] Create `Api/Hubs/Tracker.cs`\n";
+  const files = ["Api/Hubs/BoardHub.cs", "Api/Hubs/Tracker.cs"];
+  writeFileSync(join(root, "Api", "Program.cs"), "app.MapControllers();\n");
+  let r = checkMounts({ root, files, tasksText: tasks });
+  assert.equal(r[0].status, "UNMOUNTED");
+  assert.equal(r[1].status, "SKIP");
+  writeFileSync(join(root, "Api", "Program.cs"), "app.MapHub<BoardHub>(\"/hubs/board\");\n");
+  r = checkMounts({ root, files, tasksText: tasks });
+  assert.equal(r[0].status, "MOUNTED");
+});

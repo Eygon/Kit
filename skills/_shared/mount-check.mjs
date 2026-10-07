@@ -20,6 +20,7 @@ import { mountKind } from "./audit-lint.mjs";
 const SOURCE = /\.(?:ts|tsx|js|jsx)$/;
 const TEST = /(^|\/)__tests__\/|\.(?:test|spec)\.[jt]sx?$/;
 const EXTENSIONS = ["", ".ts", ".tsx", ".js", ".jsx", "/index.ts", "/index.tsx", "/index.js", "/index.jsx"];
+const CS_MOUNT_NOTE = /(?:Mont[ée]e?s?\s+dans|Mounted\s+in)\s*:\s*`?([\w./@-]+\.cs)`?(?:\s*\((US\d+)\))?/i;
 const MOUNT_NOTE = /(?:Mont[ée]e?s?\s+dans|Mounted\s+in)\s*:\s*`?([\w./@-]+\.(?:tsx?|jsx?))`?(?:\s*\((US\d+)\))?/i;
 
 const slash = (p) => p.replace(/\\/g, "/");
@@ -196,6 +197,18 @@ export const checkMounts = ({ root, files, tasksText = null }) => {
     const text = readText(join(root, rel));
     // Hors JS/TS (C#, SQL...) : le montage passe par la DI et la decouverte des controllers, et se
     // prouve par un test d integration, pas par un import (banc L : 4 faux UNMOUNTED sur du .cs).
+    // Exception : une classe C# annotee `Monté dans: <x>.cs` doit etre citee par ce fichier (DI de
+    // Program.cs, MapHub) ; sans annotation, SKIP comme avant (banc Miro F8 : hub et tracker).
+    if (/\.cs$/.test(rel)) {
+      const csNote = taskLines.map((l) => (l.includes(basename(rel)) && l.indexOf(basename(rel)) < l.search(/Mont[ée]e?s?\s+dans|Mounted\s+in/i)) ? CS_MOUNT_NOTE.exec(l) : null).find(Boolean);
+      if (csNote && text !== null) {
+        const cls = basename(rel, ".cs");
+        const host = readText(join(root, csNote[1])) || "";
+        if (new RegExp(`\\b${cls}\\b`).test(host)) return { file: rel, kind: "class", status: "MOUNTED", consumers: [{ file: csNote[1], via: "cite la classe" }] };
+        if (csNote[2]) return { file: rel, kind: "class", status: "PLANNED", target: csNote[1], owner: csNote[2] };
+        return { file: rel, kind: "class", status: "UNMOUNTED", reason: `${csNote[1]} ne cite pas ${cls} (enregistrement DI / MapHub / appel attendu)` };
+      }
+    }
     if (!SOURCE.test(rel)) return { file: rel, kind: "other", status: "SKIP", reason: "hors JS/TS : montage prouve par le test d integration de l US" };
     if (text === null) return { file: rel, kind, status: "UNMOUNTED", reason: "fichier absent" };
     // Point d entree (charge par index.html ou nomme main/index a la racine de src) : c est la
@@ -236,7 +249,8 @@ const addedInRange = (root, range) => {
       // Tout module source ajoute, pas seulement composant/hook/service : sur une stack sans
       // React (banc jeu three.js), le filtre mountKind rendait NONE a chaque US. Types seuls
       // et point d entree sortent en SKIP plus loin.
-      .filter((f) => mountKind(f) || (/^src\/.*\.[jt]sx?$/.test(f) && !/(__tests__\/|\.(test|spec)\.|\.d\.ts$)/.test(f)));
+      .filter((f) => mountKind(f) || (/^src\/.*\.[jt]sx?$/.test(f) && !/(__tests__\/|\.(test|spec)\.|\.d\.ts$)/.test(f))
+        || (/\.cs$/.test(f) && !/(^|\/)[\w.]*Tests?\//.test(f) && !/Tests?\.cs$/.test(f)));
   } catch {
     return null;
   }

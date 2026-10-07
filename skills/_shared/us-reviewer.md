@@ -203,7 +203,8 @@ seul commit DONE.
 <!-- /if:contract -->
 10. Montage — mecanique, UNE commande pour tout ce que l US a ajoute :
      node "<SK_SHARED>/mount-check.mjs" --root "<SLOT_CWD>" --range "<US_BASE>..HEAD" --tasks "<TASKS_PATH>"
-   Elle classe chaque composant, hook ou service ajoute : MOUNTED
+   Elle classe chaque composant, hook ou service ajoute (et chaque classe
+   C# annotee `Monte dans: <x>.cs`, qui doit y etre citee) : MOUNTED
    (importe par valeur et utilise en code de prod, un hook appele),
    PLANNED (sa tache confie le montage a une autre US :
    `Monte dans: <fichier> (US<n>)`), UNMOUNTED. Un `import type` ou
