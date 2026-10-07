@@ -114,3 +114,32 @@ Captures sous `FEATURE_DIR/e2e/<US>-<n>.png` quand l outil `computer`
 telemetrie qui empechent `document_idle`) : le repli est une lecture DOM
 via `javascript_tool` ou `read_page`, consignee en clair dans « Observe ».
 Une preuve absente est dite absente.
+
+## Oracles transverses (tout scenario, sans les ecrire)
+
+Banc Miro (2 passages E2E apres 4 puis 6 features) : les 2 defauts trouves
+etaient invisibles aux tests unitaires, qui mockent le transport.
+- **Aucune reponse 5xx** pendant tout le passage (journal reseau ou
+  `page.on("response")`) : une 500 est un FAIL du scenario en cours, meme si
+  l ecran semble correct (17 x « database is locked » au passage 1, ecran
+  intact).
+- **Aucune erreur console** non attendue pendant l action.
+- **Requetes reelles en parallele** : ne jamais serialiser les appels pour
+  « stabiliser » ; la concurrence est ce que le passage doit exercer.
+
+## Mode lot (apres plusieurs features)
+
+Un passage par lot de 3-5 features fusionnees, en plus (ou a la place) du
+passage par feature : les defauts entre features n apparaissent qu ensemble.
+- Cahier = les AC de chaque spec.md du lot, plus une section
+  `## Entre features` : pour chaque etat derive partage (role courant,
+  selection, zoom, historique), un scenario ou sa source ECHOUE (requete
+  bloquee) et ou chaque feature qui le lit doit se comporter pareil
+  (banc : GET members en echec -> F3 bloquait l historique, F2 laissait la
+  barre d outils a un lecteur).
+- Execution scriptee quand Claude in Chrome est absent : un script Playwright
+  (Chromium du poste) par cahier, base fraiche a chaque run (back relance),
+  **3 runs** au moins : un scenario qui passe 2 fois sur 3 est un FAIL
+  (concurrence), jamais un flake.
+- Les FAIL deviennent des `/sk-xs` (1 comportement, 1 depot) ou un
+  `/sk-impl` de correction ; le passage suivant rejoue tout le cahier.
