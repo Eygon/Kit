@@ -55,6 +55,7 @@ Annonce la route en une phrase. Ne « n'essaie pas quand même ».
 
    - `$ARGUMENTS` entier est un kebab unique (`^[a-z0-9]+(-[a-z0-9]+)+$`, rien d'autre) → c'est le slug. Le besoin reste ce kebab (peu informatif : 2–3 `Grep` ensuite).
    - Sinon **`AskUserQuestion`** : « Nom court kebab-case (ex. `wrap-index`) ? Il nomme la branche `sk-xs-<slug>`. » Pas de renommage a posteriori.
+   - Slot deja pris pour CE besoin et deja sur une branche `sk-xs-<x>` (consigne du parent, reprise) → slug = `<x>`, sans question ni second slot (banc Miro : un second worktree cree a cote du premier).
 
 0bis. **Pool partagé** avec `/sk-impl` et `/sk-review`. Isolation : le working tree principal n'est **jamais** le lieu d'écriture. Chemins et format de `STATUS_FILE` : `~/.claude/skills/_shared/sk-config.md` — **même contrat que `/sk-impl`**. Essentiel :
 
@@ -96,7 +97,7 @@ REFACTOR léger seulement si évident, sous filet vert. « Rien à améliorer »
 3. Diff du slot : `git -C <slot> diff` / `git -C <slot> log --oneline -n 20`.
 4. **Verdict humain via `AskUserQuestion`** (Publier / Corriger d'abord / Abandonner) : diff, gates. Plus de merge dans le principal : la revue se fait sur Azure DevOps.
    - **Abandonner / Corriger** : `ExitWorktree { action: "keep" }` ; slot **reste `busy`**, avec `SKP -Action touch -Slot <slot> -Note "<où on en est>"`. Corriger **avec `findings=<chemin>`** (superviseur) : traite chaque ligne `- [ ]` du fichier comme une tâche (RED si testable, GREEN, gate), commit, puis repose le verdict — deux fois maximum.
-   - **Publier** : contrat `~/.claude/skills/_shared/sk-publish.md`, variante XS.
+   - **Publier** (« GO pour merge » d un humain = Publier : il n y a plus de merge local) : contrat `~/.claude/skills/_shared/sk-publish.md`, variante XS.
      1. Commit si sale : `git -C <slot> add -A && git -C <slot> commit -m "sk-xs: <FEATURE_SLUG>"`.
      2. `ExitWorktree { action: "keep" }`, puis dans le slot : `fetch origin <défaut>`, `checkout -B feature/xs-<FEATURE_SLUG> origin/<défaut>`, `merge --squash sk-xs-<FEATURE_SLUG>`, commit unique `<type>(<scope>): <besoin en une ligne>`, typecheck + lint, `push -u origin feature/xs-<FEATURE_SLUG>`. Présente la diff avant le push. Conflit, gate rouge, push refusé → **STOP**, jamais `--force`.
      3. PR **draft** vers `<défaut>` par **GUID** (`repo_get_repo_by_name_or_id`, jamais le nom), corps = `pr=<chemin>` reçu du superviseur, sinon : besoin, fichiers touchés, tests écrits, gates. Vérifier que la PR existe (`git ls-remote origin 'refs/pull/*'`). Work item lié si le besoin cite un id ADO.
