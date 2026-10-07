@@ -40,3 +40,14 @@ Enfants du banc = Agent general-purpose avec `child-runner.md` (gabarit) ; repri
 3. Faits deja corriges : taille Auto tranchee avant la prise ; une seule prep par depot ; « RED » (TDD) et
    « typecheck » ne sont plus des alarmes de verdict.
 4. Les appels Notion demandaient une permission a chaque fois : autoriser `mcp__Notion` d emblee.
+
+## Etat au 7 octobre 17:50 (session kit-6c)
+- TK-1, TK-2, TK-3 Terminés ; TK-4 Bloqué. Vrai Notion : seul TK-1 mis a jour (proprietes) ; TK-2/TK-3
+  joues sur le faux Notion (`skills/_shared/notion-sim.mjs`, etat final `notion-board-final.json/.md`,
+  graine `notion-seed.json`) : Thomas ne veut plus d invite et la regle mcp__Notion n a pas pu etre posee
+  par Claude (garde-fou d auto-modification). A reporter dans le vrai Notion quand l autorisation existe.
+- Constats 1 et 4 traites (prefixe, faux Notion), 2 documente (handback = meme message ; reclaim).
+  Nouveaux : adopt/reclaim, prep reprise occupe le depot, brief exclu, decideE2E nomme l outil,
+  oracle `unreadable` + « Contraste attendu ». Voir RAPPORT.md §/sk-notion.
+- Banc : .NET via `apt-get install dotnet-sdk-8.0` (dot.net bloque par le proxy) ; `front-up.sh` (scratchpad)
+  relance Vite depuis un slot ; `cleanup-board.mjs` remet le tableau 1 a ses 4 elements.

@@ -194,7 +194,9 @@ Constate au banc : un agent envoie parfois quand meme son `[SK-...]` par SendMes
 (handback) au lieu de son texte final ; c est le MEME message, traite-le pareil (§3),
 une seule fois. Un agent ne survit pas a un redemarrage du conteneur (`claude --bg`,
 oui) : la reprise passe alors par `reclaim` (prompt de reprise :
-`examples/miro/bench/mkresume.py`, historique questions/reponses inclus).
+`examples/miro/bench/mkresume.py`, historique questions/reponses inclus). Un agent n a pas l outil Agent : son
+« worker » et sa revue sont faits par lui-meme (revue moins independante qu en
+`bg`) — le lanceur `agent` sert au banc, pas a la production.
 
 ## Ce que tu ne fais jamais
 

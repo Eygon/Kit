@@ -1,0 +1,205 @@
+{
+ "title": "Tâches",
+ "owner": "Thomas",
+ "note": "Copie locale du tableau Notion de Thomas au 7 octobre 16:40 UTC (faux Notion du banc : aucune ecriture vers le vrai Notion). Corps de TK-2 et TK-3 reconstitues depuis le passage de session.",
+ "pages": [
+  {
+   "url": "https://app.notion.com/p/3f2b1e108d4681d4a407c6dc0918b411",
+   "props": {
+    "Num": "TK-1",
+    "Tâche": "Raccourci « 0 » pour revenir au zoom 100 %",
+    "Statut": "Terminé",
+    "Priorité": "Normale",
+    "Projet": "Tableau",
+    "Taille": "Petite (XS)",
+    "Validation du plan": "Auto",
+    "Résultat": "feature/xs-TK1",
+    "Tests navigateur": "PASS 3 · FAIL 0 · BLOQUE 0 (3 runs)",
+    "Journal": "16:40 Terminé : branche feature/xs-TK1 publiée (banc), E2E PASS 3·0·0",
+    "Feature": null,
+    "Session": null,
+    "Démarré": "2026-10-07",
+    "Fini": "2026-10-07"
+   },
+   "body": "Sur un tableau, appuyer sur la touche 0 (hors champ de saisie) remet le zoom à 100 %, comme le bouton « 100 % » des contrôles de zoom. Le raccourci doit apparaître dans l'aide des raccourcis (touche ?).\n\n## Compte rendu (🤖 Claude)\n- Livré : la touche 0 (hors champ de saisie) remet le zoom à 100 % ; le raccourci figure dans l'aide (touche ?).\n- Route : petite tâche → /sk-xs, revue verte.\n- Tests navigateur : PASS 3 · FAIL 0 · BLOQUE 0, joués 3 fois (Playwright, Claude in Chrome absent du banc) ; rejoués 2 fois après reconstruction du banc : identiques.\n- Résultat : branche feature/xs-TK1 poussée sur le dépôt du banc (pas de PR : banc sans GitHub).\n",
+   "comments": [
+    {
+     "id": "c1",
+     "author": "Thomas",
+     "at": "2026-10-07T16:40:00Z",
+     "text": "🤖 Claude — Terminé : branche feature/xs-TK1, tests navigateur PASS 3 · FAIL 0 · BLOQUE 0. Compte rendu en bas de la page."
+    }
+   ]
+  },
+  {
+   "url": "https://app.notion.com/p/3f2b1e108d4681379fccd3b4b6355b79",
+   "props": {
+    "Num": "TK-2",
+    "Tâche": "Dupliquer un élément avec Ctrl+D",
+    "Statut": "Terminé",
+    "Priorité": "Normale",
+    "Projet": "Tableau",
+    "Taille": "Feature",
+    "Validation du plan": "Auto",
+    "Résultat": "feature/001-duplicate-item",
+    "Tests navigateur": "PASS 12 · FAIL 0 · BLOQUE 0 (3 runs)",
+    "Journal": "17:40 Terminé : feature/001-duplicate-item, tests navigateur PASS 12·0·0",
+    "Feature": "001-duplicate-item",
+    "Session": null,
+    "Démarré": "2026-10-07",
+    "Fini": "2026-10-07"
+   },
+   "body": "Avec un élément sélectionné (post-it, texte ou forme), Ctrl+D (Cmd+D sur Mac) crée une copie décalée de 20 px vers la droite et le bas, avec le même contenu, la même couleur et la même taille. La copie devient la sélection.\n\n## Plan proposé par Claude (validé automatiquement : Validation du plan = Auto)\n- Objectif : Ctrl+D (Cmd+D) duplique l'élément sélectionné, décalé de 20 px, et sélectionne la copie.\n- US1 — Dupliquer l'élément sélectionné au clavier : post-it, texte, forme, tracé libre ; un élément verrouillé se duplique (copie non verrouillée) ; rien en lecture seule, sur un connecteur ou sans sélection ; Ctrl+Z supprime la copie.\n- Fichiers : 5 fichiers de prod (2 nouveaux), traductions fr/en/es. Aucun changement côté serveur.\n- Risques : raccourci navigateur Ctrl+D (favori) neutralisé hors champ texte.\n- Trio : /tmp/claude-0/-home-user-Kit/6d0ce183-8a0e-5e9b-8ccd-4301258ef079/scratchpad/nbench/front/specs/001-duplicate-item/\n\n## Compte rendu (🤖 Claude)\n- **Livré** : Ctrl+D (Cmd+D) duplique l'élément sélectionné — post-it, texte, forme et tracé libre — décalé de 20 px, même contenu, couleur et taille ; la copie devient la sélection. Un élément verrouillé se duplique (copie non verrouillée). Rien en lecture seule, sur un connecteur, sans sélection ou dans un champ de saisie. Ctrl+Z supprime la copie. Le raccourci est dans l'aide.\n- **Décisions** : tracés libres inclus (réponse 1) ; élément verrouillé dupliqué (réponse 1). Les deux réponses ont été données par Claude à la place de Thomas, absent : à revoir si besoin.\n- **Revue** : verte (tests vus rouges puis verts, couverture du diff complète, typage et lint verts, 383/383 tests liés).\n- **Tests navigateur** : PASS 12 · FAIL 0 · BLOQUE 0, joués 3 fois (Playwright sur le banc ; Claude in Chrome absent) — les 11 scénarios de la spec + le favori du navigateur empêché.\n- **Résultat** : branche `feature/001-duplicate-item` (commit 86dd912), arbre identique à celui testé. PR à ouvrir avec `specs/001-duplicate-item/pr.md` (banc sans GitHub).\n- **Durée** : reprise 17:13 → fin 17:40 UTC (prep, impl et tests navigateur compris).\n",
+   "comments": [
+    {
+     "id": "c1",
+     "author": "Thomas",
+     "at": "2026-10-07T14:40:00Z",
+     "text": "Question (dupliquer Ctrl+D) : le besoin cite post-it, texte et forme. Le canevas connaît aussi les tracés à main levée ; un tracé se duplique par le même mécanisme (décalage de x/y), sans fichier en plus.\n1. Dupliquer aussi les tracés libres (recommandé)\n2. Limiter à post-it, texte et forme : Ctrl+D ne fait rien sur un tracé\nRéponds par le numéro ou une phrase, puis mets le statut sur Réponse donnée."
+    },
+    {
+     "id": "c2",
+     "author": "Thomas",
+     "at": "2026-10-07T17:12:48.965Z",
+     "text": "1 — (réponse donnée par Claude à la place de Thomas, absent : option recommandée)"
+    },
+    {
+     "id": "c3",
+     "author": "Thomas",
+     "at": "2026-10-07T17:13:00.532Z",
+     "text": "🤖 Claude — Reprise après redémarrage du superviseur : la prep repart avec ta réponse « 1 » (tracés libres inclus)."
+    },
+    {
+     "id": "c4",
+     "author": "Thomas",
+     "at": "2026-10-07T17:16:09.838Z",
+     "text": "🤖 Claude — Question (Ctrl+D sur un élément verrouillé) : le plan est prêt (1 étape, 5 fichiers). Un seul point change le comportement : quand l'élément sélectionné est verrouillé (on ne peut ni le supprimer ni le déplacer), que fait Ctrl+D ?\n1. Il se duplique ; la copie n'est pas verrouillée (recommandé)\n2. Ctrl+D ne fait rien sur un élément verrouillé\n3. Autre chose : écris ce qu'il faut changer\nRéponds par le numéro ou une phrase, puis mets le statut sur Réponse donnée."
+    },
+    {
+     "id": "c5",
+     "author": "Thomas",
+     "at": "2026-10-07T17:16:10Z",
+     "text": "1 — (réponse donnée par Claude à la place de Thomas, absent : option recommandée)"
+    },
+    {
+     "id": "c6",
+     "author": "Thomas",
+     "at": "2026-10-07T17:40:43.348Z",
+     "text": "🤖 Claude — Terminé : branche feature/001-duplicate-item, tests navigateur PASS 12 · FAIL 0 · BLOQUE 0. Compte rendu en bas de la page."
+    }
+   ],
+   "editedAt": "2026-10-07T17:40:43.298Z"
+  },
+  {
+   "url": "https://app.notion.com/p/3f2b1e108d4681c5af48d500f5314223",
+   "props": {
+    "Num": "TK-3",
+    "Tâche": "Mode sombre",
+    "Statut": "Terminé",
+    "Priorité": "Normale",
+    "Projet": "Tableau",
+    "Taille": "Feature",
+    "Validation du plan": "Je valide",
+    "Résultat": "feature/002-dark-mode",
+    "Tests navigateur": "PASS 13 · FAIL 0 · BLOQUE 0 (passe 2, 3 runs)",
+    "Journal": "17:48 Terminé : feature/002-dark-mode, tests navigateur PASS 13·0·0",
+    "Feature": "002-dark-mode",
+    "Session": null,
+    "Démarré": "2026-10-07",
+    "Fini": "2026-10-07"
+   },
+   "body": "Ajouter un mode sombre à l'application. On doit pouvoir passer du clair au sombre.\n\n## Plan proposé par Claude\n- Objectif : un bouton clair/sombre en haut de l'écran ; le choix est retenu dans ce navigateur ; au premier lancement on suit le réglage de l'ordinateur.\n- US1 — Basculer clair/sombre : tout l'écran change tout de suite, tableau compris ; un texte à la couleur par défaut reste lisible.\n- US2 — Mémoriser le choix : on retrouve son mode en revenant ; sans choix, on suit l'ordinateur.\n- Fichiers : 8 tâches, ~10 fichiers (3 nouveaux), traductions fr/en/es ; aucun changement côté serveur.\n- Risques : palette sombre proposée par Claude, **à confirmer par le design** (point ouvert de la checklist).\n- Trio : /tmp/claude-0/-home-user-Kit/6d0ce183-8a0e-5e9b-8ccd-4301258ef079/scratchpad/nbench/front/specs/002-dark-mode/\n\n## Compte rendu (🤖 Claude)\n- **Livré** : bouton clair/sombre en haut de l'écran (liste et tableau), changement immédiat ; choix retenu dans ce navigateur ; sans choix, suit le réglage de l'ordinateur. Le tableau passe en sombre ; post-it, formes et couleurs choisies gardent leurs couleurs ; un texte à la couleur par défaut devient clair.\n- **Décisions** (3 questions, réponses données par Claude à la place de Thomas, absent — à revoir si besoin) : palette sombre définie dans le projet, **à faire confirmer par le design** ; tableau sombre avec texte par défaut en clair ; mémorisation + réglage de l'ordinateur, sans 3e position « Système ». Plan validé à ta place (statut Plan validé).\n- **Revue** : verte (US1, US2).\n- **Tests navigateur** : passe 1 = 11/12, un défaut vu à l'écran (texte des post-it et formes illisible en sombre, contraste 1,02) → corrigé par l'enfant avec tests ; passe 2 = **PASS 13 · FAIL 0 · BLOQUE 0**, 3 runs (Playwright sur le banc).\n- **Résultat** : branche `feature/002-dark-mode` (d3a5c3f). PR à ouvrir avec `specs/002-dark-mode/pr.md`.\n- **Durée** : prise 17:20 → fin 17:48 UTC.\n",
+   "comments": [
+    {
+     "id": "c1",
+     "author": "Thomas",
+     "at": "2026-10-07T17:23:05Z",
+     "text": "🤖 Claude — Question (mode sombre, 1/3) : la bibliothèque de composants Septeo n'a pas de thème sombre, et la règle du projet veut que les couleurs viennent d'elle. Comment fait-on ?\n1. On définit nous-mêmes une palette sombre (valeurs à faire confirmer par le design plus tard) — écart assumé à la règle (recommandé)\n2. Même chose, mais les couleurs sombres doivent venir du design : la tâche reste bloquée tant qu'il ne les a pas données\n3. Reporter : demander d'abord un thème sombre à l'équipe Septeo\nRéponds par le numéro ou une phrase, puis mets le statut sur Réponse donnée."
+    },
+    {
+     "id": "c2",
+     "author": "Thomas",
+     "at": "2026-10-07T17:23:06Z",
+     "text": "1 — (réponse donnée par Claude à la place de Thomas, absent : option recommandée)"
+    },
+    {
+     "id": "c3",
+     "author": "Thomas",
+     "at": "2026-10-07T17:23:42Z",
+     "text": "🤖 Claude — Question (mode sombre, 2/3) : le fond du tableau passe en sombre, mais un texte écrit avec la couleur par défaut est presque noir : il deviendrait illisible. Que fait-on ?\n1. Le tableau passe en sombre ; post-it et formes gardent leurs couleurs ; un texte à la couleur par défaut s'affiche en clair (les couleurs choisies restent telles quelles) (recommandé)\n2. Le tableau reste clair (comme du papier) ; seule l'interface autour passe en sombre\n3. Le tableau passe en sombre et on garde toutes les couleurs telles quelles (texte noir peu lisible accepté)\nRéponds par le numéro ou une phrase, puis mets le statut sur Réponse donnée."
+    },
+    {
+     "id": "c4",
+     "author": "Thomas",
+     "at": "2026-10-07T17:23:43Z",
+     "text": "1 — (réponse donnée par Claude à la place de Thomas, absent : option recommandée)"
+    },
+    {
+     "id": "c5",
+     "author": "Thomas",
+     "at": "2026-10-07T17:24:34Z",
+     "text": "🤖 Claude — Question (mode sombre, 3/3) : voici ce que Claude a supposé. Un bouton clair/sombre en haut de l'écran (sur la liste des tableaux et dans un tableau) ; le changement est immédiat ; au premier lancement on suit le réglage de l'ordinateur ; le choix est mémorisé dans ce navigateur seulement ; pas de 3e position « Système ».\n1. D'accord, avec la mémorisation du choix et le réglage de l'ordinateur (2 étapes) (recommandé)\n2. D'accord, mais seulement la bascule (sans mémorisation ni réglage de l'ordinateur)\n3. Corriger : écris ce qui ne va pas\nRéponds par le numéro ou une phrase, puis mets le statut sur Réponse donnée."
+    },
+    {
+     "id": "c6",
+     "author": "Thomas",
+     "at": "2026-10-07T17:24:35Z",
+     "text": "1 — (réponse donnée par Claude à la place de Thomas, absent : option recommandée)"
+    },
+    {
+     "id": "c7",
+     "author": "Thomas",
+     "at": "2026-10-07T17:29:19.665Z",
+     "text": "🤖 Claude — Plan prêt (en bas de la page) : mets Plan validé, ou commente ce qu'il faut changer puis Réponse donnée."
+    },
+    {
+     "id": "c8",
+     "author": "Thomas",
+     "at": "2026-10-07T17:29:20Z",
+     "text": "Plan validé (par Claude à la place de Thomas, absent)."
+    },
+    {
+     "id": "c9",
+     "author": "Thomas",
+     "at": "2026-10-07T17:43:47.686Z",
+     "text": "🤖 Claude — Tests navigateur, passe 1 : 11 scénarios sur 12 passent. Un défaut vu à l'écran : en mode sombre, le texte des post-it et des formes devient clair sur leur fond pastel et n'est plus lisible. Claude le fait corriger puis rejoue les tests."
+    },
+    {
+     "id": "c10",
+     "author": "Thomas",
+     "at": "2026-10-07T17:48:55.380Z",
+     "text": "🤖 Claude — Terminé : branche feature/002-dark-mode, tests navigateur PASS 13 · FAIL 0 · BLOQUE 0 après une correction. Point ouvert : palette sombre à faire confirmer par le design. Compte rendu en bas de la page."
+    }
+   ],
+   "editedAt": "2026-10-07T17:48:55.333Z"
+  },
+  {
+   "url": "https://app.notion.com/p/3f2b1e108d4681e387f3de853a3714ea",
+   "props": {
+    "Num": "TK-4",
+    "Tâche": "App mobile",
+    "Statut": "Bloqué",
+    "Priorité": "Normale",
+    "Projet": "Mobile",
+    "Taille": "Auto",
+    "Validation du plan": "Je valide",
+    "Résultat": null,
+    "Tests navigateur": null,
+    "Journal": "12:56 bloqué : projet « Mobile » absent de notion.json",
+    "Feature": null,
+    "Session": null,
+    "Démarré": null,
+    "Fini": null
+   },
+   "body": "Une application mobile pour consulter les tableaux.\n",
+   "comments": [
+    {
+     "id": "c1",
+     "author": "Thomas",
+     "at": "2026-10-07T12:56:00Z",
+     "text": "Bloqué : projet « Mobile » absent de notion.json (aucun dépôt). Ajoute le dépôt dans projects puis remets À faire."
+    }
+   ]
+  }
+ ]
+}

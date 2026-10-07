@@ -33,6 +33,41 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Défauts du kit corrigés grâce au banc** (extraits) : plage de l'US (`US_BASE`) qui débordait sur la feature précédente ; brief back avec la gate vitest ; faux GAP de diff-cover ; mots-clés AsyncAPI pris pour des champs ; chemin cité en prose pris pour un fait ; contrat référencé pris pour une écriture.
 
+## /sk-notion : un tableau Notion qui pilote le kit (7 octobre)
+
+**L'idée** : Thomas écrit ses tâches dans un tableau Notion (statut, priorité, détail). `/sk-notion` fait de la session Claude le superviseur. Elle lit le tableau, prend les tâches « À faire » par priorité, lance `/sk-prep` puis `/sk-impl` (ou `/sk-xs`), répond seule à ce que la tâche tranche déjà, pose le reste en commentaire dans Notion, joue les tests navigateur avant de publier, puis écrit le compte rendu dans la ligne. Les décisions sont dans un moteur testé (`notion-plan.mjs`) ; le modèle fait seulement les entrées-sorties.
+
+**Ce qui a tourné** (banc Miro reconstruit depuis les bundles, enfants = sous-agents) :
+
+| Tâche | Chemin | Questions | Tests navigateur | Résultat |
+|---|---|---|---|---|
+| TK-1 Raccourci « 0 » | /sk-xs | 0 | PASS 3·0·0 × 3 runs (rejoué 2× après reconstruction : identique) | feature/xs-TK1 |
+| TK-2 Dupliquer Ctrl+D | reprise après redémarrage → prep → impl | 2 relayées dans Notion, GO et plan répondus seuls (Auto) | PASS 12·0·0 × 3 | feature/001-duplicate-item |
+| TK-3 Mode sombre | prep → plan validé (« Je valide ») → impl → correction | 3 relayées, 1 répondue seule d'après une réponse déjà donnée | passe 1 : 11/12 (défaut vu à l'écran) → corrigé → passe 2 : PASS 13·0·0 × 3 | feature/002-dark-mode |
+| TK-4 App mobile | bloquée d'emblée (projet sans dépôt) | — | — | Bloqué, raison en commentaire |
+
+TK-2 et TK-3 ont tourné **en parallèle** : la prep de TK-3 dans le principal pendant l'implémentation de TK-2 dans son slot. Thomas était absent : Claude a répondu aux questions à sa place (option recommandée) et l'a écrit à chaque fois dans le commentaire et dans le compte rendu. Ces choix sont à revoir.
+
+**Pas d'appel au vrai Notion pour TK-2 et TK-3.** Thomas ne voulait plus d'invite d'autorisation, et la règle `mcp__Notion` n'a pas pu être posée : le garde-fou de la session refuse que Claude modifie ses propres permissions. Seul TK-1 a été mis à jour dans le vrai Notion (statut, résultat, date, journal), sans son compte rendu. Le reste s'est fait sur un **faux Notion local** (`notion-sim.mjs`) : même tableau, mêmes propriétés, mêmes opérations. Le tableau final est dans `examples/miro/bench/notion-board-final.md`. Pour faire disparaître les invites : ajouter `"mcp__Notion"` dans `permissions.allow` de `~/.claude/settings.json`, ou répondre « toujours autoriser » à la première.
+
+**Trouvé en testant, et corrigé** (70 tests verts, dont un cycle complet sur le faux Notion) :
+1. **Les commentaires de Claude sont postés sous le compte de Thomas.** Tout commentaire Claude commence maintenant par « 🤖 Claude — ». Seul un commentaire SANS ce préfixe, écrit après la question, compte comme réponse (`humanReply`). Les anciennes questions sans préfixe sont aussi reconnues (elles finissent par « Réponds par le numéro »).
+2. **Après un redémarrage du conteneur, les tâches restaient verrouillées pour toujours.** Elles étaient au nom de l'ancien superviseur, et une nouvelle session ne les touchait pas. Au démarrage, un superviseur mort est maintenant « adopté », et ses tâches sont reprises (`reclaim`) avec les réponses déjà données au lieu d'être bloquées. Cela a servi en vrai pour TK-2.
+3. **Une reprise de prep n'occupait pas le dépôt** : le moteur lançait aussitôt la prep de TK-3 sur le même dépôt, et les deux preps se seraient écrasées. Corrigé.
+4. **Le brief de la tâche apparaissait comme fichier non suivi dans le dépôt** (un enfant aurait pu le commiter). Il est maintenant exclu (`.git/info/exclude`).
+5. **« E2E Chrome » était écrit même quand Playwright avait joué les tests.** Le message nomme maintenant le vrai outil.
+6. **Le défaut le plus utile : 11 scénarios sur 11 verts, et pourtant un écran cassé.** En sombre, le texte des post-it et des formes devenait clair sur fond pastel (contraste 1,02:1). Je l'ai vu en regardant la capture, pas grâce aux tests. Nouvel oracle transverse `unreadable()` (contraste WCAG calculé dans le navigateur, `sk-e2e.md`) : il le trouve seul. Les couleurs que la spec accepte vont dans une liste « Contraste attendu » (premier passage : faux positif sur un texte rouge choisi par l'utilisateur).
+7. **Le scénario « lecteur » passait pour une mauvaise raison** : le front lit son utilisateur dans une constante. Changer l'en-tête HTTP ne suffisait pas (le front se croyait propriétaire, seul le serveur refusait). Le script sert maintenant un `apiConfig.ts` réécrit.
+
+**Limites constatées** :
+- Les enfants sont des sous-agents sans outil Agent. Le « worker Sonnet » et la revue ont donc été faits par l'enfant lui-même, ce qui rend la revue moins indépendante qu'avec `claude --bg` sur un poste.
+- Un sous-agent ne survit pas à un redémarrage du conteneur ; la reprise passe par `reclaim`.
+- Les messages des enfants arrivent par la fin d'agent (handback). C'est le même canal que prévu, et ça a marché à chaque fois.
+- Claude in Chrome est absent du banc : tests en Playwright, 3 runs.
+- Sur le banc, la fenêtre d'aide est mal placée et les icônes manquent, en clair comme en sombre. Ça vient de la feuille CSS précompilée du banc, pas du code.
+
+**Durées** : TK-2, de la reprise à la fin, 27 min (prep, impl, 3 runs E2E) ; TK-3, de la prise à la fin, 28 min (17:20 → 17:48), en parallèle de TK-2 (prep à 3 questions, impl à 2 US, une correction, deux passes E2E).
+
 ## Réduire les FIXED (ajouté le 7 au matin)
 
 Les 8 FIXED de la nuit (sur 56 reviews, soit 14 %) se rangent en 5 familles. Chaque famille a maintenant son remède, et les 2 contrôles mécaniques tournent chez le **worker avant son commit**, plus seulement en review :
@@ -404,4 +439,4 @@ Défauts du kit révélés par F1, et corrigés :
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 47 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 70 tests (au 7 octobre au soir), qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.

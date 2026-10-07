@@ -204,3 +204,35 @@ test("decideE2E dit qui a joue le cahier (Playwright en repli, Chrome sinon)", a
   assert.match(decideE2E("**PASS 12 · FAIL 0 · BLOQUE 0** — Playwright (Claude in Chrome absent du banc)", d).text, /E2E Playwright PASS 12/);
   assert.match(decideE2E("PASS 3 · FAIL 0 · BLOQUE 0 — Claude in Chrome", d).text, /E2E Chrome PASS 3/);
 });
+
+test("cycle complet sur le faux Notion : prise, question relayee, reponse humaine, plan Auto, verdict, fin", async () => {
+  const { tick, parseMessage, decideMessage, matchAnswer, decideE2E } = await import("../notion-plan.mjs");
+  const board = { pages: [{ url: "u1", props: { Num: "TK-9", "Tâche": "Dupliquer", Statut: "À faire", Projet: "Tableau", Taille: "Feature", "Validation du plan": "Auto" }, body: "detail", comments: [] }] };
+  const state = { runs: {} };
+  const c = { session: "sup", projects: { Tableau: "/r" }, maxParallel: 2 };
+  let a = tick(sim.view(board), state, c, NOW).actions;
+  assert.deepEqual(a.map((x) => x.type), ["claim"]);
+  sim.setProps(board, "TK-9", { Statut: "Claude prépare", Session: "sup" }, NOW);
+  state.runs.u1 = { child: "sk-prep-TK9", phase: "prep", startedAt: NOW };
+  // question produit -> relay : commentaire Claude, puis reponse humaine
+  const q = parseMessage("[SK-QUESTION] projet=f feature=009-x skill=sk-prep slot=prep type=hypotheses\nContexte :\nverrouille ?\nOptions :\n1. Oui\n2. Non\nReponse attendue : [SK-ANSWER] <n> — <motif>");
+  assert.equal(decideMessage(q, state.runs.u1, board.pages[0].props).type, "judge");
+  sim.addComment(board, "TK-9", "Question : 1. Oui 2. Non. Reponds par le numero.", { now: "2026-10-07T10:01:00Z" });
+  state.runs.u1.pending = { kind: "question", options: q.options, askedAt: "2026-10-07T10:01:00Z" };
+  sim.addComment(board, "TK-9", "2 parce que", { as: "human", now: "2026-10-07T10:02:00Z" });
+  sim.setProps(board, "TK-9", { Statut: "Réponse donnée" }, NOW);
+  a = tick(sim.view(board), state, c, NOW).actions;
+  assert.equal(a[0].type, "relay-answer");
+  assert.equal(matchAnswer(humanReply(board.pages[0].comments, a[0].pending.askedAt), a[0].pending), "[SK-ANSWER] 2 — parce que");
+  state.runs.u1.pending = null;
+  // trio en Auto -> repondu seul ; verdict vert -> E2E -> Publier ; SK-DONE -> done
+  const trio = parseMessage("[SK-QUESTION] projet=f feature=009-x skill=sk-prep slot=prep type=trio\nContexte :\nlint ok\nOptions :\n1. Approuver\n2. Editer\n3. Rejeter\n");
+  assert.equal(decideMessage(trio, state.runs.u1, board.pages[0].props).type, "answer");
+  const v = decideMessage(parseMessage("[SK-QUESTION] projet=f feature=009-x skill=sk-impl slot=s type=verdict\nContexte :\nRevue PASS\nOptions :\n1. Publier\n2. Corriger\n3. Abandonner\n"), state.runs.u1, {});
+  assert.equal(v.type, "e2e");
+  assert.equal(decideE2E("PASS 3 · FAIL 0 · BLOQUE 0 Playwright", v).withPr, true);
+  assert.equal(decideMessage(parseMessage("[SK-DONE] projet=f feature=009-x skill=sk-impl slot=s issue=published pr=aucun state=x motif=ok"), state.runs.u1, {}).type, "done");
+  sim.setProps(board, "TK-9", { Statut: "Terminé", Session: "" }, NOW);
+  state.runs.u1.finished = true;
+  assert.deepEqual(tick(sim.view(board), state, c, NOW).actions, []);
+});
