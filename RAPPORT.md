@@ -274,7 +274,7 @@ Recommandation : un passage E2E (le cahier `sk-e2e.md` existe, mais aucune skill
 | Étape | Mesure |
 |---|---|
 | Prep (5 US, 19 tâches, contrat AsyncAPI) | 3,12 $ · 7,7 min · 0 finding final. Les dépendances sont des tâches explicites, avec SignalR.Client 8.0.* pour net8.0 |
-| Impl, 2 voies (back US1-2 ∥ front US3-5) | 5 US, 10 agents, 7,84 $ soit **~1,6 $ par US**. Back 243 tests, front 525, tout vert, fusionné |
+| Impl, 2 voies (back US1-2 ∥ front US3-5) | 5 US, 10 agents, 7,84 $ soit **~1,6 $ par US**. Back 244 tests, front 525, tout vert, fusionné |
 | Reviews | 5 PASS : 4 par Opus, 1 par Sonnet (palier auto) |
 | **E2E réel (2 navigateurs)** | **la présence ne marche pas**. Le CORS `AllowAnyOrigin` du back refuse la négociation SignalR, car le client JS envoie les credentials. Aucun test unitaire ou d'intégration ne pouvait le voir (le client est mocké, et le client .NET des tests ne passe pas par le CORS). L'appli se dégrade proprement : badge « Hors ligne », édition intacte |
 | Correction par `/sk-xs` | `withCredentials: false` côté client (1 ligne et 1 test vu rouge), en 1 min 40. **E2E rejoué : 7/7 sur 3 runs**. La présence apparaît et disparaît en direct, un post-it créé par un autre arrive sans recharger, et il n'y a aucune réponse 5xx |
@@ -361,4 +361,4 @@ Défauts du kit révélés par F1, et corrigés :
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 43 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 44 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.

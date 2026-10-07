@@ -114,6 +114,17 @@ seul commit DONE.
    node node_modules/typescript/bin/tsc --noEmit --incremental
      --tsBuildInfoFile "$(git rev-parse --git-dir)/sk-tsc.tsbuildinfo"
      -p tsconfig.json
+   Puis la preuve RED, mecanique (ne crois pas le resume du worker) :
+     node "<SK_SHARED>/red-replay.mjs" --range "<US_BASE>..HEAD"
+   Elle rejoue chaque fichier de test de l US contre la prod d AVANT l US,
+   dans un worktree temporaire. PROUVE-RIEN = le fichier passe sans la
+   prod : RED jamais vu, ou assertion qui n appelle pas le code vise. Defaut
+   a corriger (test qui echoue sans la prod), sauf test de non-regression
+   d un comportement INCHANGE que la tache demande : dis-le dans issues.
+   NEUTRE (parite des langues) ne compte pas. Limite .NET : un projet de
+   test unique qui ne compile pas sans la prod rend tout RED ; lis alors
+   les tests ajoutes. Banc Miro : 2 workers sur 54 US avaient coche sans
+   preuve par tache.
 5. Le diff ne sort pas des chemins autorises.
 6. Les AC de la spec pour cette US sont couverts par un vrai test (pas une tautologie).
    ET chaque tache de prod [X] a son fichier de test dans

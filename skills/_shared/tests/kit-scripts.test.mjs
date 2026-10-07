@@ -424,3 +424,10 @@ test("derivePaths: a shared test helper cited after Test: joins tests[], not the
   assert.deepEqual(prod, ["src/a/x.ts"]);
   assert.ok(tests.includes("src/__tests__/helpers/builders.ts"));
 });
+
+test("red-replay: splitChanges keeps added/modified test files and prod sources, marks prod created by the US", async () => {
+  const { splitChanges } = await import("../red-replay.mjs");
+  const { tests, prod } = splitChanges(["M\tsrc/a.ts", "A\tsrc/b.ts", "A\tsrc/__tests__/b.test.ts", "D\tsrc/__tests__/old.test.ts", "M\tsrc/i18n/locales/fr.json", "A\tApi.Tests/HubTests.cs", "M\tApi/Hub.cs", "A\tsrc/__tests__/helpers/builders.ts"].join("\n"));
+  assert.deepEqual(tests, ["src/__tests__/b.test.ts", "Api.Tests/HubTests.cs"]);
+  assert.deepEqual(prod, [{ path: "src/a.ts", added: false }, { path: "src/b.ts", added: true }, { path: "Api/Hub.cs", added: false }]);
+});
