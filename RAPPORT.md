@@ -234,6 +234,12 @@ Recommandation : un passage E2E (le cahier `sk-e2e.md` existe, mais aucune skill
 
 **`/sk-xs` mis à l'épreuve sur les 2 défauts** (premier passage de cette skill sur le banc) : les 2 corrections sont faites en un commit chacune, avec un test vu rouge puis vert. Côté front, la lecture seule quand le rôle est inconnu (`it.each` sur 3 cas). Côté back, une connexion SQLite par DbContext, plus un test de 80 GET parallèles : 3 rouges sur 3 avant, 3 verts sur 3 après. Le skill n'était écrit que pour vitest : il a maintenant ses gates .NET, et rejoue les tests d'intégration quand un fichier transverse (Program.cs) est touché.
 
+**Miro F6 (dessin à main levée, extension de l'enum `BoardItemType` des deux côtés)** : prep 4,28 $ (4 US, 20 tâches). Impl 6,79 $, dont 0,94 $ perdus (un worker arrêté sur un brief refusé, un autre coupé par un redémarrage du conteneur). Back 206 tests, front 438.
+- **Brief refusé à tort** : brief-fill prenait une simple référence au contrat (« contract \`contracts/x.yaml\` ») pour une écriture, alors que le lint de prep ne faisait pas ce contrôle. Désormais, seule l'écriture compte (un verbe d'écriture devant le chemin), avec la même fonction côté lint (`task-writes-contract`).
+- **Worker perdu en pleine US** (redémarrage du conteneur) : nouvelle règle de reprise dans sk-impl. Le travail non commité part en stash, les cases sont remises à zéro, et l'on relance sur un arbre propre.
+- **BRANCH** : pour la 4e fois, une branche écartée par le worker était un cas métier trouvé en revue (déplacer un tracé doit garder ses points). Dans un service, un repository ou un hook, BRANCH est maintenant présumée cas métier.
+- Lint : mots-clés OpenAPI (`minItems`…) et champs déjà présents dans un DTO existant ne sont plus signalés comme champs de contrat sans source.
+
 Défauts du kit révélés par F1, et corrigés :
 - Le brief d'une US back renvoyait à `specs/...` en relatif, alors que le trio vit dans le dépôt front. Il donne maintenant le chemin absolu.
 - Les faits du back (SQLite, horloge figée) arrivaient dans les briefs front. Ils sont maintenant rangés par dépôt (`--slot`).
@@ -253,4 +259,4 @@ Défauts du kit révélés par F1, et corrigés :
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 35 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 36 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
