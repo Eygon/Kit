@@ -7,6 +7,8 @@
 //   node notion-plan.mjs tick --rows rows.json --state runs.json --config notion.json [--now ISO]
 //   node notion-plan.mjs message --text-file msg.txt --from <session> --state runs.json --rows rows.json --config notion.json
 //   node notion-plan.mjs answer --text-file reponse.txt --state runs.json --page <url>
+//   node notion-plan.mjs answer --comments-file comments.json --state runs.json --page <url>
+//     (comments.json = [{text, at}] de la page : prend les commentaires humains apres askedAt)
 // Sortie : JSON sur stdout ({ actions: [...] }).
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -15,8 +17,28 @@ import { fileURLToPath } from "node:url";
 export const STATUS = {
   todo: "À faire", prep: "Claude prépare", impl: "Claude implémente", question: "Question pour toi",
   answered: "Réponse donnée", plan: "Plan à valider", planOk: "Plan validé", done: "Terminé",
-  blocked: "Bloqué", draft: "Brouillon",
+  blocked: "Bloqué", draft: "Brouillon", test: "Claude teste",
 };
+// Statuts de la vue « File Claude » (Terminé et Bloqué en sortent : un run dont la ligne
+// disparait est annule par tick).
+export const ACTIVE = new Set(Object.values(STATUS).filter((s) => s !== STATUS.done && s !== STATUS.blocked));
+
+// Dans Notion, les commentaires du superviseur sont postes sous le compte de l humain :
+// seul ce prefixe les distingue. Tout commentaire Claude le porte ; une reponse humaine
+// est un commentaire SANS ce prefixe.
+export const CLAUDE_PREFIX = "🤖 Claude — ";
+// LEGACY : commentaires Claude d avant le prefixe (une question finit toujours par cette consigne).
+const LEGACY = /R[ée]ponds par le num[ée]ro/i;
+export const isClaude = (text) => String(text || "").trimStart().startsWith(CLAUDE_PREFIX.trim()) || LEGACY.test(text || "");
+export const claudeSays = (text) => (isClaude(text) ? text : CLAUDE_PREFIX + text);
+
+// Reponse humaine a une question posee a `since` : les commentaires humains posterieurs,
+// dans l ordre, joints (l humain peut repondre en deux fois). Rien -> null.
+export function humanReply(comments, since) {
+  const t = (comments || []).filter((c) => !isClaude(c.text) && (!since || (c.at || c.created_time || "") > since))
+    .map((c) => String(c.text).trim()).filter(Boolean);
+  return t.length ? t.join("\n") : null;
+}
 const RANK = { Urgente: 0, Haute: 1, Normale: 2, Basse: 3 };
 const WAITING = new Set([STATUS.question, STATUS.plan]);
 
@@ -58,15 +80,28 @@ export function tick(rows, state, config, now) {
       actions.push({ type: "check-alive", page: url, child: run.child, silentMin: Math.round(ageMin(run.lastMsgAt || run.startedAt, now)) });
   }
 
-  // 2. Lignes verrouillees par moi sans run en memoire (crash, compaction mal reprise).
+  // 2. Lignes verrouillees par moi (ou par un superviseur mort que j adopte : `adopt`, ecrit
+  // au demarrage depuis l ancien supervisor.json) sans run en memoire : redemarrage du
+  // conteneur, compaction mal reprise. L enfant est perdu, mais le brief et les reponses
+  // deja donnees (commentaires humains) suffisent a relancer la phase : `reclaim`. Seul
+  // `orphan` (Bloqué) reste quand rien ne permet de reprendre.
+  const mine = (s) => s === me || (config.adopt || []).includes(s);
   for (const row of rows) {
-    if (row.Session === me && !runs[row.url] && ![STATUS.done, STATUS.blocked, STATUS.todo, STATUS.draft].includes(row.Statut))
-      actions.push({ type: "orphan", page: row.url, num: row.Num, statut: row.Statut });
+    if (!mine(row.Session) || runs[row.url] || [STATUS.done, STATUS.blocked, STATUS.todo, STATUS.draft].includes(row.Statut)) continue;
+    const prepPhase = [STATUS.prep, STATUS.question, STATUS.answered, STATUS.plan, STATUS.planOk].includes(row.Statut);
+    const r = route(row);
+    if (r === "judge" || !(prepPhase || row.Feature)) { actions.push({ type: "orphan", page: row.url, num: row.Num, statut: row.Statut }); continue; }
+    if (free > 0) {
+      free--;
+      actions.push({ type: "reclaim", page: row.url, num: row.Num, title: row["Tâche"], statut: row.Statut, route: r,
+        phase: r === "xs" ? "xs" : prepPhase && !row.Feature ? "prep" : "impl", feature: row.Feature || null,
+        repo: config.projects?.[row.Projet] || Object.values(config.projects || {})[0], validation: row["Validation du plan"] || "Je valide" });
+    } else actions.push({ type: "queued", page: row.url, num: row.Num, reason: "reprise apres redemarrage en attente d une place" });
   }
 
   // 3. Nouvelles taches, par priorite, dans la limite de maxParallel.
   for (const row of pickOrder(rows.filter((r) => r.Statut === STATUS.todo && !runs[r.url]))) {
-    if (row.Session && row.Session !== me) continue; // prise par un autre superviseur
+    if (row.Session && !mine(row.Session)) continue; // prise par un autre superviseur
     if (!row["Tâche"] || !row["Tâche"].trim()) continue;
     const repo = config.projects?.[row.Projet];
     if (!repo) {
@@ -82,7 +117,7 @@ export function tick(rows, state, config, now) {
     // /sk-prep concurrents s y ecrasent.
     const target = repo || Object.values(config.projects)[0];
     if (route(row) !== "xs" && Object.values(runs).some((r) => !r.finished && r.phase === "prep" && r.repo === target) ||
-        route(row) !== "xs" && actions.some((a) => a.type === "claim" && a.route !== "xs" && a.repo === target)) {
+        route(row) !== "xs" && actions.some((a) => (a.type === "claim" && a.route !== "xs" || a.type === "reclaim" && a.phase === "prep") && a.repo === target)) {
       actions.push({ type: "queued", page: row.url, num: row.Num, reason: "une prep tourne deja sur ce depot" });
       continue;
     }
@@ -201,7 +236,8 @@ if (isMain) {
     out = { page: page || null, message: msg, decision: decideMessage(msg, page && state.runs[page], rows.find((r) => r.url === page)) };
   } else if (cmd === "answer") {
     const run = state.runs?.[o("--page")];
-    out = { answer: run?.pending ? matchAnswer(readFileSync(o("--text-file"), "utf8"), run.pending) : null };
+    const text = o("--comments-file") ? humanReply(json(o("--comments-file"), []), run?.pending?.askedAt) : readFileSync(o("--text-file"), "utf8");
+    out = { human: text, answer: run?.pending && text ? matchAnswer(text, run.pending) : null };
   } else { console.error("usage : node notion-plan.mjs tick|message|answer ..."); process.exit(2); }
   console.log(JSON.stringify(out, null, 2));
 }

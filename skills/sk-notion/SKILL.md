@@ -66,7 +66,10 @@ ne compte pas : elle ne bloque pas la suivante). `launcher` : `bg` (defaut,
    superviseur des enfants. Lis `<SUP>/runs.json` (memoire, cree vide sinon).
 2. Absent notion.json -> `setup` d abord.
 3. Un autre superviseur vivant (heartbeat < 30 min, autre nom) -> STOP : deux
-   superviseurs se voleraient les reponses.
+   superviseurs se voleraient les reponses. Un ancien supervisor.json MORT (heartbeat
+   > 30 min, autre nom : redemarrage du conteneur, nouvelle session) -> ajoute son nom a
+   `adopt` dans notion.json avant de l ecraser : ses taches deviennent les tiennes
+   (`reclaim`) au lieu de rester verrouillees a jamais.
 
 `stop` : supprime supervisor.json, annule le sommeil de fond, dis combien de
 runs restent vivants (ils retombent sur leurs questions locales). `status` :
@@ -88,18 +91,23 @@ une ligne par run de runs.json (tache, phase, attente, age).
 ## 2. Actions du tick
 
 Chaque ecriture Notion touche `Journal` (« HH:MM <quoi> »). Commentaires :
-`notion-create-comment` sur la page de la tache.
+`notion-create-comment` sur la page de la tache, **toujours prefixes `🤖 Claude — `**
+(`CLAUDE_PREFIX` de notion-plan.mjs). Dans Notion tes commentaires sont postes sous le
+compte de l humain : le prefixe est la seule facon de les distinguer. Une reponse
+humaine = un commentaire SANS ce prefixe, posterieur a la question (`humanReply`) ; ne
+lis jamais tes propres commentaires comme une reponse.
 
 | Action | Ce que tu fais |
 |---|---|
 | `claim` | `Statut` = `Claude prépare` (`Claude implémente` si route xs), `Session` = ton nom, `Démarré` = maintenant. Lis le corps de la page (`notion-fetch`) et les commentaires. Ecris `<repo>/.sk/notion/TK-<num>.md` : titre, detail integral, priorite, et « Reponses deja donnees » (vide). Route `judge` : XS si le detail tient en 1 fichier, ~10-30 lignes, 1 comportement, pas d ecran neuf, 0 decision d archi (critere de /sk-xs) ; sinon feature ; dis ton choix dans le Journal. Lance l enfant (§Lanceur) et ajoute le run : `{num, child, phase, repo, brief, startedAt, validation}`. |
 | `queued` | rien (Journal « en file, n devant » une seule fois) |
 | `block` | `Statut` = `Bloqué`, commentaire = la raison et quoi corriger |
-| `relay-answer` | lis les commentaires posterieurs a `pending.askedAt` ; le texte de l humain -> `notion-plan.mjs answer` ; `null` (ambigu) -> nouveau commentaire « je n ai pas compris : reponds par le numero » et `Statut` = `Question pour toi`. Sinon SendMessage a l enfant, ajoute la reponse au brief (« Reponses deja donnees »), `pending` = null, `Statut` = phase en cours. |
+| `relay-answer` | `notion-get-comments` -> `<SUP>/comments.json` (`[{text, at}]`) puis `notion-plan.mjs answer --comments-file <SUP>/comments.json --state ... --page <url>` (garde les commentaires humains posterieurs a `pending.askedAt`) ; aucun -> commentaire « je ne vois pas ta reponse : ecris-la en commentaire » ; `null` (ambigu) -> nouveau commentaire « je n ai pas compris : reponds par le numero » et `Statut` = `Question pour toi`. Sinon SendMessage a l enfant, ajoute la reponse au brief (« Reponses deja donnees »), `pending` = null, `Statut` = phase en cours. |
 | `send` | SendMessage `text` a l enfant, `Statut` = `status`, `pending` = null |
 | `cancel` | `claude stop <child>` (ou TaskStop en banc), run `finished`, `Session` vide, commentaire « arrete : <raison> » |
 | `check-alive` | `claude agents --json` : enfant absent -> `Bloqué` « session perdue » ; present et `claude logs <id>` finit sur « Do you want » -> `Question pour toi` : « autorisation a donner : `claude attach <id>` » ; sinon rien (travail long). |
-| `orphan` | `Bloqué` « reprise impossible apres redemarrage du superviseur : remets À faire pour relancer » |
+| `reclaim` | reprise apres redemarrage (l enfant est perdu, la ligne reste a toi ou a un superviseur mort adopte) : relis la page et les commentaires, ajoute au brief `<repo>/.sk/notion/TK-<num>.md` les reponses humaines deja donnees (`humanReply` sans date), `Session` = ton nom, `Statut` = `Claude prépare` (`Claude implémente` si `phase` impl ou xs), commentaire « reprise apres redemarrage : <phase> relancee avec tes reponses ». Relance l enfant : `phase` prep -> `/sk-prep` (il n a pas a reposer une question deja tranchee dans le brief), impl -> `/sk-impl <feature>` (reprend sur STATE.md). Run `reclaimed: true`. |
+| `orphan` | `Bloqué` « reprise impossible apres redemarrage du superviseur : remets À faire pour relancer » (taille non tranchee, ou phase impl sans `Feature`) |
 
 ## 3. Message d un enfant
 
@@ -150,6 +158,24 @@ ne se publie sans avoir ete VU fonctionner. `Statut` = `Claude teste`.
    - `relay` : la question de verdict part dans Notion (§3 relay) avec le
      resume des FAIL/BLOQUE et le lien du rapport.
 
+## Faux Notion (banc, poste sans connecteur, ou humain qui ne veut aucune invite)
+
+`notion.json` avec `"board": "<chemin>/board.json"` : tu ne fais AUCUN appel MCP Notion ;
+chaque operation passe par `node <SK_SHARED>/notion-sim.mjs` (meme tableau, memes
+proprietes, memes regles) :
+
+| MCP Notion | notion-sim.mjs |
+|---|---|
+| vue en mode view -> rows.json | `view --board B --out <SUP>/rows.json` |
+| `notion-fetch` d une tache | `fetch --board B --page TK-n` |
+| `notion-update-page` proprietes | `set --board B --page TK-n Statut="..." Journal="..."` |
+| section ajoutee en fin de page | `append --board B --page TK-n --file section.md` |
+| `notion-create-comment` | `comment --board B --page TK-n --file c.txt` (prefixe ajoute seul) |
+| `notion-get-comments` | `comments --board B --page TK-n` (sortie = comments.json) |
+
+`render --board B --out board.md` donne le tableau lisible pour l humain. Une reponse
+humaine s y ecrit avec `comment ... --as human` (sans prefixe).
+
 ## Lanceur
 
 `bg` (poste du developpeur) : depuis le depot du projet, **en PowerShell 7 sous
@@ -164,6 +190,11 @@ lis `<SK_HOME>/skills/sk-<x>/SKILL.md` et applique-le. Superviseur joignable :
 au lieu de SendMessage, TERMINE ton tour avec le message `[SK-...]` comme seul
 texte final ; tu seras relance avec la reponse. » La fin de l agent = un message
 d enfant (§3) ; repondre = SendMessage a l agent. Un agent ne parle qu a toi.
+Constate au banc : un agent envoie parfois quand meme son `[SK-...]` par SendMessage
+(handback) au lieu de son texte final ; c est le MEME message, traite-le pareil (§3),
+une seule fois. Un agent ne survit pas a un redemarrage du conteneur (`claude --bg`,
+oui) : la reprise passe alors par `reclaim` (prompt de reprise :
+`examples/miro/bench/mkresume.py`, historique questions/reponses inclus).
 
 ## Ce que tu ne fais jamais
 

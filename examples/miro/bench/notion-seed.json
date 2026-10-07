@@ -1,0 +1,112 @@
+{
+ "title": "Tâches",
+ "owner": "Thomas",
+ "note": "Copie locale du tableau Notion de Thomas au 7 octobre 16:40 UTC (faux Notion du banc : aucune ecriture vers le vrai Notion). Corps de TK-2 et TK-3 reconstitues depuis le passage de session.",
+ "pages": [
+  {
+   "url": "https://app.notion.com/p/3f2b1e108d4681d4a407c6dc0918b411",
+   "props": {
+    "Num": "TK-1",
+    "Tâche": "Raccourci « 0 » pour revenir au zoom 100 %",
+    "Statut": "Terminé",
+    "Priorité": "Normale",
+    "Projet": "Tableau",
+    "Taille": "Petite (XS)",
+    "Validation du plan": "Auto",
+    "Résultat": "feature/xs-TK1",
+    "Tests navigateur": "PASS 3 · FAIL 0 · BLOQUE 0 (3 runs)",
+    "Journal": "16:40 Terminé : branche feature/xs-TK1 publiée (banc), E2E PASS 3·0·0",
+    "Feature": null,
+    "Session": null,
+    "Démarré": "2026-10-07",
+    "Fini": "2026-10-07"
+   },
+   "body": "Sur un tableau, appuyer sur la touche 0 (hors champ de saisie) remet le zoom à 100 %, comme le bouton « 100 % » des contrôles de zoom. Le raccourci doit apparaître dans l'aide des raccourcis (touche ?).\n\n## Compte rendu (🤖 Claude)\n- Livré : la touche 0 (hors champ de saisie) remet le zoom à 100 % ; le raccourci figure dans l'aide (touche ?).\n- Route : petite tâche → /sk-xs, revue verte.\n- Tests navigateur : PASS 3 · FAIL 0 · BLOQUE 0, joués 3 fois (Playwright, Claude in Chrome absent du banc) ; rejoués 2 fois après reconstruction du banc : identiques.\n- Résultat : branche feature/xs-TK1 poussée sur le dépôt du banc (pas de PR : banc sans GitHub).\n",
+   "comments": [
+    {
+     "id": "c1",
+     "author": "Thomas",
+     "at": "2026-10-07T16:40:00Z",
+     "text": "🤖 Claude — Terminé : branche feature/xs-TK1, tests navigateur PASS 3 · FAIL 0 · BLOQUE 0. Compte rendu en bas de la page."
+    }
+   ]
+  },
+  {
+   "url": "https://app.notion.com/p/3f2b1e108d4681379fccd3b4b6355b79",
+   "props": {
+    "Num": "TK-2",
+    "Tâche": "Dupliquer un élément avec Ctrl+D",
+    "Statut": "Question pour toi",
+    "Priorité": "Normale",
+    "Projet": "Tableau",
+    "Taille": "Feature",
+    "Validation du plan": "Auto",
+    "Résultat": null,
+    "Tests navigateur": null,
+    "Journal": "14:40 question posée : tracés à main levée ?",
+    "Feature": null,
+    "Session": "kit-9a",
+    "Démarré": "2026-10-07",
+    "Fini": null
+   },
+   "body": "Avec un élément sélectionné (post-it, texte ou forme), Ctrl+D (Cmd+D sur Mac) crée une copie décalée de 20 px vers la droite et le bas, avec le même contenu, la même couleur et la même taille. La copie devient la sélection.\n",
+   "comments": [
+    {
+     "id": "c1",
+     "author": "Thomas",
+     "at": "2026-10-07T14:40:00Z",
+     "text": "Question (dupliquer Ctrl+D) : le besoin cite post-it, texte et forme. Le canevas connaît aussi les tracés à main levée ; un tracé se duplique par le même mécanisme (décalage de x/y), sans fichier en plus.\n1. Dupliquer aussi les tracés libres (recommandé)\n2. Limiter à post-it, texte et forme : Ctrl+D ne fait rien sur un tracé\nRéponds par le numéro ou une phrase, puis mets le statut sur Réponse donnée."
+    }
+   ]
+  },
+  {
+   "url": "https://app.notion.com/p/3f2b1e108d4681c5af48d500f5314223",
+   "props": {
+    "Num": "TK-3",
+    "Tâche": "Mode sombre",
+    "Statut": "À faire",
+    "Priorité": "Normale",
+    "Projet": "Tableau",
+    "Taille": "Feature",
+    "Validation du plan": "Je valide",
+    "Résultat": null,
+    "Tests navigateur": null,
+    "Journal": null,
+    "Feature": null,
+    "Session": null,
+    "Démarré": null,
+    "Fini": null
+   },
+   "body": "Ajouter un mode sombre à l'application. On doit pouvoir passer du clair au sombre.\n",
+   "comments": []
+  },
+  {
+   "url": "https://app.notion.com/p/3f2b1e108d4681e387f3de853a3714ea",
+   "props": {
+    "Num": "TK-4",
+    "Tâche": "App mobile",
+    "Statut": "Bloqué",
+    "Priorité": "Normale",
+    "Projet": "Mobile",
+    "Taille": "Auto",
+    "Validation du plan": "Je valide",
+    "Résultat": null,
+    "Tests navigateur": null,
+    "Journal": "12:56 bloqué : projet « Mobile » absent de notion.json",
+    "Feature": null,
+    "Session": null,
+    "Démarré": null,
+    "Fini": null
+   },
+   "body": "Une application mobile pour consulter les tableaux.\n",
+   "comments": [
+    {
+     "id": "c1",
+     "author": "Thomas",
+     "at": "2026-10-07T12:56:00Z",
+     "text": "Bloqué : projet « Mobile » absent de notion.json (aucun dépôt). Ajoute le dépôt dans projects puis remets À faire."
+    }
+   ]
+  }
+ ]
+}

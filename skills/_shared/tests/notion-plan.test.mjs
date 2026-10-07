@@ -131,3 +131,69 @@ test("verdict : « typecheck » n est pas un « echec »", () => {
   assert.equal(decideQuestion(ok).type, "e2e");
   assert.equal(decideQuestion(parseMessage("[SK-QUESTION] type=verdict\nContexte :\nEchec du squash\nOptions :\n1. Publier\n")).type, "relay");
 });
+
+// --- Constat banc : les commentaires Claude sont sous le compte de l humain dans Notion ---
+import { humanReply, isClaude, claudeSays, CLAUDE_PREFIX, ACTIVE } from "../notion-plan.mjs";
+import * as sim from "../notion-sim.mjs";
+
+test("humanReply ignore les commentaires prefixes Claude et ceux d avant la question", () => {
+  const c = [
+    { text: "vieux commentaire", at: "2026-10-07T09:00:00Z" },
+    { text: `${CLAUDE_PREFIX}Question : 1. A 2. B`, at: "2026-10-07T10:00:00Z" },
+    { text: "1", at: "2026-10-07T10:05:00Z" },
+    { text: "  🤖 Claude — je relance", at: "2026-10-07T10:06:00Z" },
+  ];
+  assert.equal(humanReply(c, "2026-10-07T10:00:00Z"), "1");
+  assert.equal(humanReply(c.slice(0, 2), "2026-10-07T09:30:00Z"), null);
+  assert.equal(humanReply([{ text: "2" }, { text: "parce que" }]), "2\nparce que");
+});
+
+test("claudeSays prefixe une seule fois ; isClaude reconnait le prefixe", () => {
+  assert.equal(claudeSays("Plan pret"), `${CLAUDE_PREFIX}Plan pret`);
+  assert.equal(claudeSays(claudeSays("x")), `${CLAUDE_PREFIX}x`);
+  assert.ok(isClaude(`${CLAUDE_PREFIX}x`) && !isClaude("Claude a raison"));
+});
+
+test("faux Notion : la vue sort Terminé/Bloqué, les commentaires Claude sont prefixes, l humain non", () => {
+  const b = { pages: [
+    { url: "u1", props: { Num: "TK-1", "Tâche": "a", Statut: "Terminé" }, body: "", comments: [] },
+    { url: "u2", props: { Num: "TK-2", "Tâche": "b", Statut: "Question pour toi" }, body: "", comments: [] },
+    { url: "u3", props: { Num: "TK-10", "Tâche": "c", Statut: "À faire" }, body: "", comments: [] },
+  ] };
+  assert.deepEqual(sim.view(b).map((r) => r.Num), ["TK-2", "TK-10"]);
+  assert.ok(ACTIVE.has("Claude teste") && !ACTIVE.has("Bloqué"));
+  sim.addComment(b, "TK-2", "Question", { now: "2026-10-07T10:00:00Z" });
+  sim.addComment(b, "2", "1", { as: "human", now: "2026-10-07T10:01:00Z" });
+  assert.equal(b.pages[1].comments[0].text, `${CLAUDE_PREFIX}Question`);
+  assert.equal(humanReply(b.pages[1].comments, "2026-10-07T10:00:00Z"), "1");
+  sim.setProps(b, "TK-2", { Statut: "Réponse donnée", Session: "" }, "t");
+  assert.equal(b.pages[1].props.Session, null);
+});
+
+test("tick : apres redemarrage, reprend les taches de l ancien superviseur (adopt) au lieu de les laisser verrouillees", () => {
+  const rows = [
+    row(2, { Statut: STATUS.question, Session: "kit-old" }),
+    row(3, { Statut: STATUS.impl, Session: "kit-old", Feature: "003-x" }),
+    row(4, { Statut: STATUS.impl, Session: "kit-old" }),
+    row(5, { Statut: STATUS.todo, Session: "autre-vivant" }),
+  ];
+  const sans = tick(rows, { runs: {} }, { ...cfg, maxParallel: 2 }, NOW).actions;
+  assert.deepEqual(sans, [], "sans adopt : verrou d un autre, on ne touche a rien");
+  const t = tick(rows, { runs: {} }, { ...cfg, maxParallel: 2, adopt: ["kit-old"] }, NOW).actions;
+  assert.deepEqual(t.map((a) => [a.type, a.page, a.phase]), [["reclaim", "p2", "prep"], ["reclaim", "p3", "impl"], ["orphan", "p4", undefined]]);
+  const plein = tick(rows.slice(0, 2), { runs: {} }, { ...cfg, maxParallel: 1, adopt: ["kit-old"] }, NOW).actions;
+  assert.deepEqual(plein.map((a) => a.type), ["reclaim", "queued"]);
+});
+
+test("humanReply : une question Claude d avant le prefixe n est pas prise pour la reponse (reprise sans askedAt)", () => {
+  const c = [{ text: "Question : 1. A 2. B\nRéponds par le numéro ou une phrase, puis mets le statut sur Réponse donnée.", at: "t1" }];
+  assert.equal(humanReply(c), null);
+  assert.equal(humanReply([...c, { text: "1", at: "t2" }]), "1");
+});
+
+test("tick : une reprise de prep (reclaim) occupe le depot, la nouvelle feature attend", () => {
+  const rows = [row(2, { Statut: STATUS.question, Session: "kit-old" }), row(3)];
+  const t = tick(rows, { runs: {} }, { ...cfg, maxParallel: 2, adopt: ["kit-old"] }, NOW).actions;
+  assert.deepEqual(t.map((a) => a.type), ["reclaim", "queued"]);
+  assert.match(t[1].reason, /prep/);
+});
