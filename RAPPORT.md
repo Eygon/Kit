@@ -352,7 +352,7 @@ Défauts du kit révélés par F1, et corrigés :
 3. **Index back** : il n'avait pas de `_meta.alwaysInject`. J'en propose un, avec sealed, no-hardcoded-values, base classes et interfaces : à valider.
 4. Les gabarits `sk-prep/templates/` et les scripts `.ps1` de spec-kit : la sonde détecte la variante `ps1` ou `sh`, rien à faire sous Windows.
 5. **Décider `reviewTier: "auto"`** (recommandé : 13 reviews Sonnet justes sur 13, environ 0,5 $ économisé par petite US).
-6. **Prévoir un passage E2E en mode lot** (`sk-e2e.md`) après chaque lot de 3 à 5 features. Le cahier existe, mais aucune skill ne l'exécute encore : c'est le prochain chantier qui en vaut la peine.
+6. **Prévoir un passage E2E en mode lot** (`sk-e2e.md`) après chaque lot de 3 à 5 features. `/sk-test`, qui exécute le cahier, n'était pas dans le zip (le kit le cite : `sk-host.md` §7, `sk-routing.md`). Si tu l'as, reporte-y les sections « Oracles transverses » et « Mode lot » de `sk-e2e.md`, et le repli Playwright avec `e2e-oracles.mjs` quand Claude in Chrome manque.
 7. Les nouveaux scripts de `skills/_shared/` (`gate.mjs`, `e2e-oracles.mjs`, `cap-check.mjs`, `fact-lines.mjs`, `diff-cover.mjs`…) arrivent avec le dossier `skills/_shared/`. Recopie-le en entier dans `~/.claude/skills/_shared/` comme le reste du kit : les briefs les appellent par ce chemin.
 
 ## Limites du banc
