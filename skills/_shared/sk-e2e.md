@@ -123,7 +123,10 @@ etaient invisibles aux tests unitaires, qui mockent le transport.
   `page.on("response")`) : une 500 est un FAIL du scenario en cours, meme si
   l ecran semble correct (17 x « database is locked » au passage 1, ecran
   intact).
-- **Aucune erreur console** non attendue pendant l action.
+- **Aucune erreur console** non attendue pendant l action. « Attendue » = listee
+  dans une section `## Console attendue` du cahier : le bruit connu du mode dev
+  (double montage StrictMode) et les erreurs que le scenario provoque lui-meme
+  (400/404 voulus, requete bloquee). Tout le reste est un FAIL.
 - **Requetes reelles en parallele** : ne jamais serialiser les appels pour
   « stabiliser » ; la concurrence est ce que le passage doit exercer.
 
@@ -137,9 +140,14 @@ passage par feature : les defauts entre features n apparaissent qu ensemble.
   bloquee) et ou chaque feature qui le lit doit se comporter pareil
   (banc : GET members en echec -> F3 bloquait l historique, F2 laissait la
   barre d outils a un lecteur).
+- La source qui ECHOUE se simule par un abort de la requete (`route.abort()`),
+  pas par une 5xx simulee (elle declencherait l oracle 5xx). L etat inconnu
+  attendu est celui de la spec ; a defaut, le plus restrictif.
 - Execution scriptee quand Claude in Chrome est absent : un script Playwright
-  (Chromium du poste) par cahier, base fraiche a chaque run (back relance),
-  **3 runs** au moins : un scenario qui passe 2 fois sur 3 est un FAIL
-  (concurrence), jamais un flake.
+  (Chromium du poste) par feature, base fraiche avant chaque script (back
+  relance), **3 runs** au moins : un scenario qui passe 2 fois sur 3 est un FAIL
+  (concurrence), jamais un flake ; BLOQUE sur un run et PASS ailleurs = BLOQUE.
+- La limite « ~15 scenarios » vaut par feature ; en mode lot, une ligne par
+  scenario deja joue, le detail seulement pour `## Entre features`.
 - Les FAIL deviennent des `/sk-xs` (1 comportement, 1 depot) ou un
   `/sk-impl` de correction ; le passage suivant rejoue tout le cahier.

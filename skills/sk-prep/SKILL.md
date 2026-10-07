@@ -292,7 +292,10 @@ Un nouveau mode d interaction (outil de canevas, glisser, raccourci) dit
 dans un Edge Case ce qu il fait sur les elements EXISTANTS (appui sur un
 item, sur une selection) : sinon le comportement herite de l outil par
 defaut (banc Miro E2E : le Crayon deplacait l item touche au lieu de
-dessiner).
+dessiner). Inversement, un widget POSE sur le canevas (dock, panneau,
+mini-carte) arrete les evenements pointer (pointerdown, pas seulement click)
+des modes existants, et une AC le teste avec l outil le plus intrusif actif
+(banc Miro E2E lot : Crayon actif + clic dans le dock = trait parasite).
 Un droit ou un etat DERIVE deja calcule par une feature livree (role courant,
 lecture seule, droits) se REUTILISE : recon.md le cite (`chemin:ligne` de la
 derivation) et la tache le lit, au lieu de le recalculer. Un droit derive
