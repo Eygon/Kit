@@ -323,3 +323,26 @@ test("contractWrites: a reference to the contract is not a write, an Extend/Mett
   assert.deepEqual(contractWrites(["- [ ] T003 Extend `a.cs` — contract `contracts/x.yaml` — Code: `b.cs`"]), []);
   assert.deepEqual(contractWrites(["- [ ] T009 Extend `contracts/x.yaml` with y", "- [ ] T010 Mettre à jour le contrat `contracts/x.yaml`"]), ["contracts/x.yaml", "contracts/x.yaml"]);
 });
+
+test("audit-lint: a path cited in prose next to backticked facts is not a fact", async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join, dirname } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const lint = join(dirname(fileURLToPath(import.meta.url)), "..", "audit-lint.mjs");
+  const repo = mkdtempSync(join(tmpdir(), "lintf-"));
+  const sh = (...a) => execFileSync("git", ["-C", repo, ...a], { encoding: "utf8" });
+  sh("init", "-q"); mkdirSync(join(repo, "src"));
+  writeFileSync(join(repo, "src", "a.ts"), "export function foo() {}\n");
+  sh("add", "-A"); sh("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i");
+  const d = join(repo, "specs", "001-x"); mkdirSync(d, { recursive: true });
+  writeFileSync(join(d, "spec.md"), "# s\n");
+  writeFileSync(join(d, "tasks.md"), "# Tasks\n\n## [US1] X\n- [ ] T001 [US1] Extend `src/a.ts` — Test: `src/__tests__/a.test.ts`\n");
+  const plan = (line) => writeFileSync(join(d, "plan.md"), `# p\n\n## Verified facts\n\n${line}\n`);
+  const run = () => { try { return execFileSync("node", [lint, d], { cwd: repo, encoding: "utf8" }); } catch (e) { return String(e.stdout); } };
+  plan("- `src/a.ts:1` `foo` — signature lue dans dist/index.d.ts de la lib");
+  assert.doesNotMatch(run(), /verified-fact-path-missing/);
+  plan("- `src/missing.ts:1` `foo` — absent");
+  assert.match(run(), /verified-fact-path-missing/);
+});
