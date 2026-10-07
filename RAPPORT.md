@@ -244,6 +244,23 @@ Recommandation : un passage E2E (le cahier `sk-e2e.md` existe, mais aucune skill
 
 **Miro F7 (mini-carte et zoom regroupés, depuis une 2e maquette claude.ai/design, 3 pièges)** : la prep traite les 3 pièges de la maquette. Le token `--space-7` inexistant est demandé puis tranché à 4 px (sans le confondre avec le `--spacing-7` de la lib, qui fait 28 px). Les 14,5 px deviennent 14 px, en écart accepté. La variante b est exclue. Le zoom existant est étendu, sans second état. 2 US, front 489 tests. La review de US1 a corrigé une garde du worker qui rendait « Tout afficher » inerte sur un tracé de F6 parfaitement horizontal (interaction entre features). Côté kit : faux positif de brief-fill (un type TS `<HTMLElement | null>` pris pour un placeholder), recon des composants de la lib avec le type de leurs props, mode audit qui s'arrête proprement quand le projet design est introuvable (mon chemin de banc était faux, et le kit a refusé de deviner).
 
+**Miro F8 (présence et synchro en temps réel par SignalR, back + front, 2 nouvelles dépendances)** : un chemin neuf pour le kit, avec un transport temps réel et des paquets npm et NuGet à ajouter.
+
+| Étape | Mesure |
+|---|---|
+| Prep (5 US, 19 tâches, contrat AsyncAPI) | 3,12 $ · 7,7 min · 0 finding final. Les dépendances sont des tâches explicites, avec SignalR.Client 8.0.* pour net8.0 |
+| Impl, 2 voies (back US1-2 ∥ front US3-5) | 5 US, 10 agents, 7,84 $ soit **~1,6 $ par US**. Back 242 tests, front 525, tout vert, fusionné |
+| Reviews | 5 PASS : 4 par Opus, 1 par Sonnet (palier auto) |
+| **E2E réel (2 navigateurs)** | **la présence ne marche pas**. Le CORS `AllowAnyOrigin` du back refuse la négociation SignalR, car le client JS envoie les credentials. Aucun test unitaire ou d'intégration ne pouvait le voir (le client est mocké, et le client .NET des tests ne passe pas par le CORS). L'appli se dégrade proprement : badge « Hors ligne », édition intacte |
+
+Ce que F8 a apporté au kit :
+- **Règle de prep CORS** : un nouveau canal navigateur → back (SignalR, WebSocket, SSE, cookies) confronte la politique CORS aux credentials du client.
+- **Dépendances** : brief-fill ouvre `package.json`, le lockfile et le `.csproj` au worker quand une tâche ajoute une dépendance. Les 2 reviewers avaient relevé l'oubli. Règle de prep associée.
+- **mount-check voit le C#** : une classe annotée « Monté dans: Program.cs » doit y être citée (DI, MapHub).
+- Lint : les mots-clés AsyncAPI (channels, publish, payload…) ne sont plus pris pour des champs de données (8 faux MEDIUM).
+- Prep : les noms techniques imposés par l'humain (hub, méthode, en-tête) vont dans le contrat, pas dans la spec (la spec avait été réécrite, ~25 remplacements). Un standard d'identité ou de transport se lit avant clarify.
+- Worker : un choix que la tâche prescrit n'est pas un « écart ». Les 3 « écarts » déclarés sur F8 étaient prescrits, et le mot envoyait la review chez Opus pour rien.
+
 **Non-régression des preps après toutes les règles de la nuit** (mêmes besoins que les bancs de référence, kit actuel) :
 
 | Prep | Référence | Kit de cette nuit |
