@@ -310,6 +310,12 @@ d une donnee chargee traite l etat inconnu (chargement, erreur, liste vide)
 comme le plus restrictif, et une AC le dit. Banc Miro (E2E apres 4
 features) : role calcule deux fois avec deux politiques ; GET members en
 echec -> liste vide -> un Viewer recevait toute la barre d outils.
+Etat lie au tableau ou a l ecran courant (historique, selection, curseurs,
+zoom) : un Edge Case dit ce qu il devient au CHANGEMENT de tableau. Et une
+AC teste au moins une valeur degeneree que les autres features produisent
+(trace horizontal = hauteur 0, liste vide, item verrouille). Banc Miro :
+2 FIXED sur 8 venaient de la (historique rejoue sur l autre tableau,
+« Tout afficher » inerte sur un trace plat).
 Un helper EXISTANT mais non exporte (fonction locale d un autre module) que
 l US reutilise : la tache etend ce module pour l exporter (il entre dans les
 chemins, et dans le cap), sinon le worker le recopie (banc Miro F4 :

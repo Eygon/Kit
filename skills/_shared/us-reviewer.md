@@ -124,7 +124,15 @@ seul commit DONE.
    SANS-TEST Tnnn = tache cochee dont le fichier `Test:` n a pas ete touche :
    si le comportement change, le test manque (banc Miro F12 : 2 runs sur 2
    l avaient oublie, seul Opus l avait vu) ; ecris-le et vois-le rouge.
-   NEUTRE (parite des langues) ne compte pas. Limite .NET : un projet de
+   NEUTRE (parite des langues) ne compte pas.
+<!-- if:contract -->
+<!-- if:back -->
+   Codes du contrat (mecanique) :
+     node "<SK_SHARED>/contract-cover.mjs" --contract "<CONTRACT_PATH>" --tasks "<TASKS_PATH>" --us <US_ID> --range "<US_BASE>..HEAD"
+   MANQUE = un code de reponse d une operation de l US sans test qui
+   l asserte : ecris-le (FIXED). DEJA = couvert par un test anterieur.
+<!-- /if:back -->
+<!-- /if:contract --> Limite .NET : un projet de
    test unique qui ne compile pas sans la prod rend tout RED ; lis alors
    les tests ajoutes. Banc Miro : 2 workers sur 54 US avaient coche sans
    preuve par tache.

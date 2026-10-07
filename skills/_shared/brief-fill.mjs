@@ -79,10 +79,15 @@ const replaceAll = (text, pairs) => pairs.reduce((t, [from, to]) => t.split(from
 // `<!-- if:design -->...<!-- /if:design -->` : kept (markers removed) when the condition holds,
 // dropped otherwise. A brief without design or contract no longer carries the ~5 KB of rules
 // that only apply to them, which every agent read in full and some applied anyway.
-export const applyConditions = (text, conds) =>
-  text
-    .replace(/<!-- if:(\w+) -->\n?([\s\S]*?)<!-- \/if:\1 -->\n?/g, (_, name, body) => (conds[name] ? body : ""))
-    .replace(/\n{3,}/g, "\n\n");
+// Repete jusqu a stabilite : un bloc peut en contenir un autre (if:contract > if:back).
+export const applyConditions = (text, conds) => {
+  let out = text, prev;
+  do {
+    prev = out;
+    out = out.replace(/<!-- if:(\w+) -->\n?([\s\S]*?)<!-- \/if:\1 -->\n?/g, (_, name, body) => (conds[name] ? body : ""));
+  } while (out !== prev);
+  return out.replace(/\n{3,}/g, "\n\n");
+};
 
 // prod[] et tests[] deduits des lignes de tache quand le parent ne les donne pas : chemins de la
 // ligne hors `Code:` / `Eviter:` / `Test:`, cibles `Monté dans:` sans (US<n>), fichiers LOCALES de

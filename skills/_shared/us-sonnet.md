@@ -420,9 +420,24 @@ Reprise = les [ ] restants.
    sinon. Jamais de grep du nom a la place : un `import type` ou
    un homonyme d une autre feature le trompent, et un grep sur
    tout src coute ~25 s par nom.
-3. Autant de fichiers de test touches que de taches de prod
-   livrees. Une tache [X] sans son test = tu ne la coches
-   pas, tu la finis.
+3. Preuve RED et taches sans test, UNE commande (arbre de travail, avant
+   le commit DONE) — le reviewer rejoue la meme :
+     node "<SK_SHARED>/red-replay.mjs" --range HEAD --tasks <tasks.md relatif au slot> --us <US_ID>
+   (Apres un commit WIP : `--range <premier WIP>~1`.) PROUVE-RIEN = ce fichier de test passe sans ta prod : il n appelle pas
+   le code vise, refais l assertion. SANS-TEST Tnnn = tache cochee dont le
+   test n a pas ete touche : si le comportement change, ecris le test qui
+   l aurait vu (banc Miro : 3 FIXED sur 8 etaient un test manquant ou qui
+   ne prouvait rien).
+<!-- if:contract -->
+<!-- if:back -->
+4. Codes du contrat : chaque code de reponse des operations de tes taches
+   est asserte par un de tes tests (methode + code dans le meme test) :
+     node "<SK_SHARED>/contract-cover.mjs" --contract "<CONTRACT_PATH>" --tasks <tasks.md relatif au slot> --us <US_ID> --range HEAD
+   MANQUE = ajoute le test (le 204 « liste vide » et le 403 « pas membre »
+   sont les plus oublies : 2 FIXED sur 8 du banc). DEJA = couvert par un
+   test existant, rien a faire.
+<!-- /if:back -->
+<!-- /if:contract -->
 
 ## Commit — DONE une fois en fin d US, WIP si budget
 

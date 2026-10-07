@@ -3,16 +3,17 @@
 // tache, et une review avait trouve un test tautologique. Un fichier de test qui PASSE sans la
 // prod de l US ne prouve rien : RED jamais vu, ou assertion qui n appelle pas le code vise.
 //
-// Usage : node red-replay.mjs --range <US_BASE>..HEAD [--root <slot>] [--tasks <tasks.md> --us <USn>]
+// Usage : node red-replay.mjs --range <US_BASE>..HEAD | <US_BASE> [--root <slot>] [--tasks <tasks.md> --us <USn>]
+// (`<US_BASE>` seul = arbre de travail, pour le worker avant son commit DONE)
 // Dans un worktree temporaire (le slot n est pas touche) : tests de HEAD, prod remise a US_BASE
 // (fichier cree par l US = supprime), puis un run par fichier de test.
 // Sortie : RED <test> (echoue sans la prod : bon) / PROUVE-RIEN <test> (passe sans la prod) /
 // ERREUR ; code 1 si un PROUVE-RIEN. Un test de non-regression d un comportement INCHANGE peut
 // passer legitimement : le reviewer tranche, la sortie lui donne le fichier.
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { planGate } from "./gate.mjs";
 
@@ -55,13 +56,16 @@ if (isMain) {
   const opt = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined; };
   const root = resolve(opt("--root") || ".");
   const range = opt("--range");
-  if (!range || !range.includes("..")) {
-    console.error("usage : node red-replay.mjs --range <US_BASE>..HEAD [--root <slot>]");
+  if (!range) {
+    console.error("usage : node red-replay.mjs --range <US_BASE>..HEAD | <US_BASE> [--root <slot>] [--tasks <tasks.md> --us <USn>]");
     process.exit(2);
   }
+  // `--range <base>` sans `..` : arbre de travail (worker avant son commit DONE), non suivis compris.
+  const worktreeMode = !range.includes("..");
   const [base] = range.split("..");
-  const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-  const nameStatus = git(root, "diff", "--name-status", "--no-renames", range);
+  const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 << 20 });
+  const untracked = worktreeMode ? git(root, "ls-files", "--others", "--exclude-standard").split(/\r?\n/).filter(Boolean) : [];
+  const nameStatus = git(root, "diff", "--name-status", "--no-renames", range) + untracked.map((f) => `A\t${f}`).join("\n");
   const { tests, prod } = splitChanges(nameStatus);
   const tasksPath = opt("--tasks"), us = opt("--us");
   let missing = 0;
@@ -77,6 +81,12 @@ if (isMain) {
   let bad = 0;
   try {
     git(root, "worktree", "add", "--detach", "--quiet", wt, "HEAD");
+    if (worktreeMode) {
+      // Reporte l arbre de travail du slot (modifs + non suivis) dans le worktree temporaire.
+      const patch = git(root, "diff", "HEAD", "--binary");
+      if (patch.trim()) execFileSync("git", ["-C", wt, "apply", "--whitespace=nowarn"], { input: patch });
+      for (const f of untracked) { mkdirSync(dirname(join(wt, f)), { recursive: true }); copyFileSync(join(root, f), join(wt, f)); }
+    }
     if (existsSync(join(root, "node_modules"))) symlinkSync(join(root, "node_modules"), join(wt, "node_modules"));
     for (const p of prod) {
       if (p.added) { if (existsSync(join(wt, p.path))) unlinkSync(join(wt, p.path)); }

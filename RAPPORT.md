@@ -26,11 +26,26 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 | `fact-lines.mjs` | Recale les numéros de ligne des faits vérifiés quand une autre feature a été fusionnée entre la prep et le GO |
 | `facts-add.mjs`, `lanes.mjs` | Faits des workers transmis aux US suivantes (rangés par dépôt) ; vagues d'US parallélisables |
 | `e2e-oracles.mjs` | Oracles 5xx et console, et verdict sur 3 runs pour les E2E scriptés |
+| `contract-cover.mjs` | Chaque code de réponse du contrat (204, 403…) des opérations de l'US est asserté par un test. Côté back, chez le worker et le reviewer |
 | `red-replay.mjs` | Preuve RED mécanique : rejoue les tests de l'US contre la prod d'avant l'US, dans un worktree temporaire (environ 8 s). Signale aussi une tâche cochée dont le fichier de test n'a pas été touché (le cas raté par les 2 runs A/B de F12, sans faux positif sur F10 et F11). Branché au check 4 du reviewer. Rejoué a posteriori sur 30 US front : 0 test qui ne prouve rien |
 | `mount-check.mjs` (étendu) | Vérifie aussi qu'une classe C# annotée « Monté dans: Program.cs » y est citée |
 | `brief-fill.mjs` (étendu) | Ouvre d'office au worker les manifestes de dépendances, l'interface C# d'une classe étendue et les helpers de test partagés ; ne donne au back que ses propres fichiers |
 
 **Défauts du kit corrigés grâce au banc** (extraits) : plage de l'US (`US_BASE`) qui débordait sur la feature précédente ; brief back avec la gate vitest ; faux GAP de diff-cover ; mots-clés AsyncAPI pris pour des champs ; chemin cité en prose pris pour un fait ; contrat référencé pris pour une écriture.
+
+## Réduire les FIXED (ajouté le 7 au matin)
+
+Les 8 FIXED de la nuit (sur 56 reviews, soit 14 %) se rangent en 5 familles. Chaque famille a maintenant son remède, et les 2 contrôles mécaniques tournent chez le **worker avant son commit**, plus seulement en review :
+
+| Famille (FIXED) | Exemple | Remède | Vérifié sur les vrais cas |
+|---|---|---|---|
+| Code de réponse du contrat jamais testé (2) | 204 « liste vide » de GET users, puis de GET members | `contract-cover.mjs` : chaque code des opérations de l'US doit être asserté par un test qui cite le verbe et le code. Côté back, au worker et au reviewer | Les 2 détectés avant review, disparus après. 0 faux positif bloquant sur F9, F10, F11 (un code déjà testé par une feature précédente sort en DEJA) |
+| Tâche sans test, ou test qui ne prouve rien (2) | « le hook lit le registre » coché sans test ; test tautologique | `red-replay.mjs` en mode arbre de travail : le worker le lance avant DONE (PROUVE-RIEN, SANS-TEST) | T004 de F12 détecté avant commit ; 0 faux positif sur F10 et F11 |
+| Cas métier sur une branche (1) | déplacer un tracé doit garder ses points | diff-cover BRANCH présumé cas métier dans service/hook (depuis F6) | plus aucun FIXED de ce type après F6 |
+| Interaction entre features (2) | historique rejoué sur l'autre tableau ; « Tout afficher » inerte sur un tracé plat | Règle de prep : état lié au tableau courant → Edge Case « changement de tableau » ; une AC sur une valeur dégénérée produite par une autre feature | règle de prep, à mesurer sur les prochaines features |
+| Écart de design déclaré à tort (1) | label décalé de 16 px « accepté » | règle existante (un écart atteignable se corrige, un inatteignable se prouve) | un seul cas, en F1 |
+
+Attendu : les 4 FIXED des 2 premières familles partent avant la review. On passerait d'environ 14 % à environ 7 % de FIXED, le reste relevant du jugement (interactions, design).
 
 ## Résultats en bref
 
@@ -275,7 +290,7 @@ Recommandation : un passage E2E (le cahier `sk-e2e.md` existe, mais aucune skill
 | Étape | Mesure |
 |---|---|
 | Prep (5 US, 19 tâches, contrat AsyncAPI) | 3,12 $ · 7,7 min · 0 finding final. Les dépendances sont des tâches explicites, avec SignalR.Client 8.0.* pour net8.0 |
-| Impl, 2 voies (back US1-2 ∥ front US3-5) | 5 US, 10 agents, 7,84 $ soit **~1,6 $ par US**. Back 245 tests, front 525, tout vert, fusionné |
+| Impl, 2 voies (back US1-2 ∥ front US3-5) | 5 US, 10 agents, 7,84 $ soit **~1,6 $ par US**. Back 247 tests, front 525, tout vert, fusionné |
 | Reviews | 5 PASS : 4 par Opus, 1 par Sonnet (palier auto) |
 | **E2E réel (2 navigateurs)** | **la présence ne marche pas**. Le CORS `AllowAnyOrigin` du back refuse la négociation SignalR, car le client JS envoie les credentials. Aucun test unitaire ou d'intégration ne pouvait le voir (le client est mocké, et le client .NET des tests ne passe pas par le CORS). L'appli se dégrade proprement : badge « Hors ligne », édition intacte |
 | Correction par `/sk-xs` | `withCredentials: false` côté client (1 ligne et 1 test vu rouge), en 1 min 40. **E2E rejoué : 7/7 sur 3 runs**. La présence apparaît et disparaît en direct, un post-it créé par un autre arrive sans recharger, et il n'y a aucune réponse 5xx |
@@ -377,4 +392,4 @@ Défauts du kit révélés par F1, et corrigés :
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 45 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 47 tests, qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.

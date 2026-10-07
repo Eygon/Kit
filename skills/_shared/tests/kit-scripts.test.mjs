@@ -438,3 +438,20 @@ test("red-replay: a ticked task whose Test: file the US never touched is reporte
   const out = untouchedTestTasks(tasks, "US1", new Set(["src/__tests__/a.test.ts"]));
   assert.deepEqual(out.map((x) => x.task), ["T002"]);
 });
+
+test("contract-cover: each response code of the story's operations needs a test naming the verb and the code", async () => {
+  const { contractOps, opsOfStory, contractCover } = await import("../contract-cover.mjs");
+  const yaml = "openapi: 3.0.3\npaths:\n  /api/v1/users:\n    get:\n      responses:\n        '200':\n          description: ok\n        '204':\n          description: empty\n  /api/v1/boards/import:\n    post:\n      responses:\n        '201':\n          description: c\n";
+  const ops = opsOfStory(contractOps(yaml), ["- [ ] T006 [US2] Create `UsersController.cs` — GET /api/v1/users -> 200 list, 204 empty"]);
+  assert.deepEqual(ops.map((o) => o.method + " " + o.path), ["GET /api/v1/users"]);
+  const tests = "+    [Test]\n+    public async Task Get_Returns200()\n+        var r = await c.GetAsync(\"/api/v1/users\");\n+        r.StatusCode.ShouldBe(HttpStatusCode.OK);\n+    [Test]\n+    public async Task Delete_Returns204()\n+        await c.GetAsync(\"/x\");\n+        r.StatusCode.ShouldBe(HttpStatusCode.NoContent);";
+  const rows = contractCover(ops, tests);
+  assert.deepEqual(rows.map((r) => `${r.code}:${r.ok}`), ["200:true", "204:false"]);
+});
+
+test("applyConditions resolves nested blocks", async () => {
+  const { applyConditions } = await import("../brief-fill.mjs");
+  const t = "a\n<!-- if:contract -->\n<!-- if:back -->\nB\n<!-- /if:back -->\nC\n<!-- /if:contract -->\nz";
+  assert.equal(applyConditions(t, { contract: true, back: false }), "a\nC\nz");
+  assert.equal(applyConditions(t, { contract: true, back: true }), "a\nB\nC\nz");
+});
