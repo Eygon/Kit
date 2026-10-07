@@ -1,6 +1,6 @@
 # /sk-prep — Design de reference (lu seulement si un lien Claude Design ou Figma est fourni)
 
-Ce module REMPLACE la section 0 du coeur. Il s applique AVANT la recon. Il ajoute aussi des regles aux etapes specify / plan / tasks / sanity, listees en fin de module.
+Ce module s AJOUTE a la section 0 du coeur (la sonde tourne quand meme, elle donne les chemins) et s applique AVANT la recon. Exception a « pas de recon avant 0quater » : les greps qui alimentent ses items (ecarts lib<->design 0.4, ce que l app branche deja) sont permis avant la question. Il ajoute aussi des regles aux etapes specify / plan / tasks / sanity, listees en fin de module.
 
 ## 0. Design de reference (conditionnel, AVANT la recon)
 

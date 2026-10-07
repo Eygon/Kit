@@ -1046,7 +1046,10 @@ export const lintSpec = (dir, opts = {}) => {
         const backRoot = inBack && repoRoot ? linkedBackendRoot(repoRoot) : null;
         // « ajoute buildX dans builders.ts » sur un fichier qu aucune tache ne touche : le worker ne
         // peut pas le faire sans sortir de ses chemins (banc Miro F2, builders.ts).
-        if (!inBack && /\b(?:add|ajoute[rz]?|create|cr[ée]e[rz]?|extend|etend[sre]*)\b/i.test(line))
+        // Verbe nie (« do not add », « ne pas creer », « never extend ») : une consigne de NE PAS
+        // editer, pas une edition (banc Miro F12, faux MEDIUM).
+        const edits = line.replace(/\b(?:do\s+not|don['’]t|never|no|ne\s+pas|ne|jamais|sans)\s+(?:\w+\s+)?(?:add|ajoute[rz]?|create|cr[ée]e[rz]?|extend|etend[sre]*)\b/gi, " ");
+        if (!inBack && /\b(?:add|ajoute[rz]?|create|cr[ée]e[rz]?|extend|etend[sre]*)\b/i.test(edits))
           for (const p of new Set(matchAll(line, RECON_PATH).flatMap((m) => expandBraces(m[1]).map(normPath))))
               if (!citedSet.has(p) && !p.includes("*") && !isDocPath(p) && /\.\w+$/.test(p))
                 add("medium", "recon-edit-outside-paths", `recon.md demande d editer \`${p}\`, qu aucune tache ne touche : ajoute-le aux chemins d une US, ou reformule (construire en local dans le test)`, `recon.md:${i + 1}`);
