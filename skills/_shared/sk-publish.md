@@ -49,6 +49,9 @@ d irreversible ne part sans lui : un brouillon se ferme d un clic.
    Puis **verifier** : `git -C <SLOT> ls-remote origin 'refs/pull/*'` ou
    `repo_list_pull_requests_by_repo_or_project` doit montrer la PR. Absente → le dire, ne
    pas re-creer en boucle (une seconde tentative maximum).
+   `origin` hors Azure DevOps (pas d URL dev.azure.com / visualstudio.com) ou outils
+   `mcp__azure__*` absents : pas de PR, statut `published-branch` (branche poussee, PR a
+   ouvrir par l humain, URL de la branche dans le rapport) ; on saute 5-6, pas 7-9.
 6. Work item : `mcp__azure__wit_link_work_item_to_pull_request` si `WORK_ITEM` resolu.
 7. Trio → principal (specs/ gitignore, toujours) : `Copy-Item -Recurse -Force
    <SLOT>\specs\<NNN>-<slug>` vers `<principal>\specs\`. **Interdit** : `git add -f specs`.
