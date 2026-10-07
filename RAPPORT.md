@@ -232,6 +232,8 @@ Ce que F2 et F3 ont apporté au kit :
 - **Concurrence côté back** (« database is locked » sur SQLite mémoire) : un défaut du socle de départ, pas des features. Les 3 lectures parallèles ajoutées à l'ouverture d'un tableau le rendent visible.
 Recommandation : un passage E2E (le cahier `sk-e2e.md` existe, mais aucune skill ne l'exécute) après chaque lot de features.
 
+**`/sk-xs` mis à l'épreuve sur les 2 défauts** (premier passage de cette skill sur le banc) : les 2 corrections sont faites en un commit chacune, avec un test vu rouge puis vert. Côté front, la lecture seule quand le rôle est inconnu (`it.each` sur 3 cas). Côté back, une connexion SQLite par DbContext, plus un test de 80 GET parallèles : 3 rouges sur 3 avant, 3 verts sur 3 après. Le skill n'était écrit que pour vitest : il a maintenant ses gates .NET, et rejoue les tests d'intégration quand un fichier transverse (Program.cs) est touché.
+
 Défauts du kit révélés par F1, et corrigés :
 - Le brief d'une US back renvoyait à `specs/...` en relatif, alors que le trio vit dans le dépôt front. Il donne maintenant le chemin absolu.
 - Les faits du back (SQLite, horloge figée) arrivaient dans les briefs front. Ils sont maintenant rangés par dépôt (`--slot`).
