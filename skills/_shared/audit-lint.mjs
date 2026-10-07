@@ -7,6 +7,7 @@ const CR = String.fromCharCode(13);
 const LF = String.fromCharCode(10);
 const BOM = String.fromCharCode(65279);
 
+import { contractWrites } from "./brief-fill.mjs";
 const MAX_PROD_FILES_PER_STORY = 6;
 const MAX_TASKS_PER_STORY = 6;
 // Compagnons compris (« Create `hook.ts` and its key factory `keys.ts` ») : plafond dur.
@@ -924,6 +925,11 @@ export const lintSpec = (dir, opts = {}) => {
   const at = (t) => `tasks.md:${t.line}`;
   const tid = (t) => t.id || `ligne ${t.line}`;
 
+  // Tache qui ECRIT le contrat : il est gele au lancement de /sk-impl, brief-fill refuserait le brief
+  // (meme fonction ici, pour que la prep et l impl jugent pareil).
+  for (const t of tasks)
+    for (const p of contractWrites([t.body]))
+      add("high", "task-writes-contract", `${t.id || "tache"} ecrit \`${p}\`, gele au lancement de /sk-impl : le contrat se complete en prep, la tache le cite en Code: ou en reference`, `tasks.md:${t.line}`);
   // Module cree sans note de montage, que seule une US ULTERIEURE lit (son nom dans une de ses
   // taches, aucune tache de sa propre US) : livre sans lecteur, mount-check le dira UNMOUNTED en
   // fin d US (banc Miro F2 : fetchUsers en US8, lu par le hook de US9).

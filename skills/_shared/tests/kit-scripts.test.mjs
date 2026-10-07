@@ -317,3 +317,9 @@ test("cap-check: a sketch is measured with the lint's own count (pure types and 
   assert.equal(a.over, false);
   assert.equal(b.over, true);
 });
+
+test("contractWrites: a reference to the contract is not a write, an Extend/Mettre a jour is", async () => {
+  const { contractWrites } = await import("../brief-fill.mjs");
+  assert.deepEqual(contractWrites(["- [ ] T003 Extend `a.cs` — contract `contracts/x.yaml` — Code: `b.cs`"]), []);
+  assert.deepEqual(contractWrites(["- [ ] T009 Extend `contracts/x.yaml` with y", "- [ ] T010 Mettre à jour le contrat `contracts/x.yaml`"]), ["contracts/x.yaml", "contracts/x.yaml"]);
+});

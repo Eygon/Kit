@@ -31,9 +31,13 @@ const norm = (p) => String(p).replace(/\\/g, "/").replace(/^api:/, "").trim();
 // heading (spec-kit's own layout). Matching the `## [USn]` heading only returned 0 tasks on a
 // tasks.md left in spec-kit's layout, and brief-fill then refused every brief.
 // Chemins de contrat (contracts/*.yaml|json) qu une tache ECRIT : hors Code:/Eviter:/Test:.
+// Ecrire = le chemin est l objet d un verbe d ecriture (« Extend `contracts/x.yaml` ») ; une simple
+// reference (« contract `contracts/x.yaml` », « per contracts/x.yaml ») n en est pas une (banc Miro F6 :
+// brief refuse sur une reference, que le lint de prep avait laissee passer).
+const CONTRACT_WRITE = /(?:Create|Extend|Modify|Update|Edit|Write|Add\s+to|Cr[ée]er|[ÉE]tendre|Modifier|[ÉE]crire|Mettre\s+[àa]\s+jour|Ajouter\s+[àa])\s+(?:the\s+|le\s+|la\s+)?(?:contract\s+|contrat\s+)?`([^`]*contracts\/[^`]+\.(?:ya?ml|json))`/gi;
 export const contractWrites = (tasks) =>
   tasks.flatMap((line) =>
-    [...line.replace(/(?:Code|Eviter|Avoid|Test):\s*[^—]*/g, " ").matchAll(/`([^`]*contracts\/[^`]+\.(?:ya?ml|json))`/g)].map((m) => m[1].replace(/\\/g, "/")),
+    [...line.replace(/(?:Code|Eviter|Avoid|Test):\s*[^—]*/g, " ").matchAll(CONTRACT_WRITE)].map((m) => m[1].replace(/\\/g, "/")),
   );
 
 export const tasksOfStory = (tasksText, us) => {
