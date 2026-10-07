@@ -79,9 +79,11 @@ Tes limites quand tu corriges :
 L US peut avoir des commits WIP avant son DONE. Sa base est le parent
 du premier commit de la suite de commits de l US qui finit a HEAD (une
 branche peut porter une autre feature qui a aussi une <US_ID>) :
-  US_BASE=$(git log --format='%H %s' HEAD | { b=; while read -r h s; do case "$s" in "sk-impl WIP(<US_ID>)"*|"sk-impl DONE(<US_ID>)"*|"sk-impl FIX(<US_ID>)"*|"sk-impl REVIEW(<US_ID>)"*) b=$h ;; *) break ;; esac; done; echo "${b:+$b~1}"; })
+  US_BASE=$(git log --format='%H %s' HEAD --not --remotes | { b=; while read -r h s; do case "$s" in "sk-impl WIP(<US_ID>)"*|"sk-impl DONE(<US_ID>)"*|"sk-impl FIX(<US_ID>)"*|"sk-impl REVIEW(<US_ID>)"*) b=$h ;; *) break ;; esac; done; echo "${b:+$b~1}"; })
 Vide = HEAD n est pas un commit de l US : ecart du check 1.
-Tout ce que l US a ajoute se lit sur `<US_BASE>..HEAD`, jamais sur le
+(`--not --remotes` : seuls les commits pas encore pousses ; sinon le
+`DONE(US1)` d une feature precedente fusionnee en avance rapide prolonge
+la plage, banc Miro F11.) Tout ce que l US a ajoute se lit sur `<US_BASE>..HEAD`, jamais sur le
 seul commit DONE.
 
 1. Le commit DONE de cette US existe.
