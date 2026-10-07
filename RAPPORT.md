@@ -225,7 +225,7 @@ Ce que F2 et F3 ont apporté au kit :
 
 **Miro F5 (demande piège : « commenter aussi les formes et textes + badge du nombre de commentaires »)** : le back acceptait déjà les commentaires sur tout type d'item. La prep l'a vérifié : la partie « formes et textes » est 1 seule US front, sans tâche back. Le badge passe par un endpoint de comptage, pas par N requêtes. Prep 3,36 $, impl 5 US pour 4,34 $ (~0,9 $ par US), front 374 tests. 5 reviews : 5 PASS.
 
-**Palier de review Sonnet (`reviewTier: "auto"`), bilan de la nuit** : 14 reviews de petites US sans écart déclaré, toutes PASS, à 0,21 $ en moyenne contre 0,70 $ pour Opus. 3 de ces US ont été relues par Opus en contre-vérification : 3 verdicts identiques. Tous les défauts trouvés en review (8 FIXED) l'ont été par Opus, sur des US que le routage lui envoyait (écart déclaré ou plus de 4 fichiers). Ma recommandation : activer `reviewTier: "auto"`. Il reste désactivé par défaut tant que tu ne l'as pas décidé.
+**Palier de review Sonnet (`reviewTier: "auto"`), bilan de la nuit** : 10 reviews de petites US sans écart déclaré, toutes PASS, à 0,21 $ en moyenne contre 0,70 $ pour Opus. 3 de ces US ont été relues par Opus en contre-vérification : 3 verdicts identiques. Tous les défauts trouvés en review (5 FIXED) l'ont été par Opus, sur des US que le routage lui envoyait (écart déclaré ou plus de 4 fichiers). Ma recommandation : activer `reviewTier: "auto"`. Il reste désactivé par défaut tant que tu ne l'as pas décidé.
 
 Défauts du kit révélés par F1, et corrigés :
 - Le brief d'une US back renvoyait à `specs/...` en relatif, alors que le trio vit dans le dépôt front. Il donne maintenant le chemin absolu.
