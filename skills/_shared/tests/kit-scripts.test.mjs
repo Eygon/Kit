@@ -366,3 +366,13 @@ test("mount-check: a C# class noted `Monté dans: Program.cs` must be cited ther
   r = checkMounts({ root, files, tasksText: tasks });
   assert.equal(r[0].status, "MOUNTED");
 });
+
+test("derivePaths: a dependency task opens package.json, its lockfile and a .csproj", async () => {
+  const { derivePaths } = await import("../brief-fill.mjs");
+  const { prod } = derivePaths([
+    "- [ ] T010 [US3] Add the npm dependency `@microsoft/signalr` to `package.json` and refresh `package-lock.json` — Test: `src/__tests__/a.test.ts`",
+    "- [ ] T001 [US1] Add the NuGet package to `Tableau.Tests/Tableau.Tests.csproj` — Test: `Tableau.Tests/Hubs/HubTests.cs`",
+  ], "");
+  for (const p of ["package.json", "package-lock.json", "yarn.lock", "Tableau.Tests/Tableau.Tests.csproj"]) assert.ok(prod.includes(p), p);
+  assert.ok(!prod.includes("@microsoft/signalr"));
+});

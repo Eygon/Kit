@@ -321,6 +321,10 @@ livre sans lecteur). Une US qui ajoute une VARIANTE a un type deja consomme
 l affiche ou la traite (HUD, director audio, switch), dans ses chemins ou
 par une tache ; sinon la variante sort avec le texte d une autre (banc
 jeu : invite de porte affichee comme un achat d arme). « Brancher / Cabler / Monter » cite le fichier cible.
+Nouvelle dependance (npm, NuGet) : une tache explicite qui cite le
+manifeste (`package.json` + lockfile, `.csproj`) et une version compatible
+avec la cible (net8.0 -> 8.0.*), avant toute tache qui l importe ; le brief
+ouvre ces fichiers au worker (banc Miro F8 : SignalR des deux cotes).
 `Slot : wt-N` nomme par l humain -> en-tete de plan.md.
 
 ### A.3 Standards AgentOS — appliques strictement, par depot, par US

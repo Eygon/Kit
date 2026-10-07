@@ -88,6 +88,8 @@ export const applyConditions = (text, conds) =>
 // ligne hors `Code:` / `Eviter:` / `Test:`, cibles `Monté dans:` sans (US<n>), fichiers LOCALES de
 // recon.md si une tache touche une langue ; `Test:` pour les tests. Le parent garde la main : ce
 // qu il donne s ajoute. (Banc : l orchestrateur passait ~3 min a recopier, et oubliait un fichier.)
+const MANIFEST = /(?:^|\/)(?:package(?:-lock)?\.json|yarn\.lock|pnpm-lock\.yaml|[\w.]+\.csproj|Directory\.(?:Build|Packages)\.props)$/;
+const LOCKFILES = ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"];
 export const derivePaths = (tasks, reconText) => {
   const prod = new Set();
   const tests = new Set();
@@ -95,8 +97,16 @@ export const derivePaths = (tasks, reconText) => {
     for (const m of line.matchAll(TEST_REF)) tests.add(norm(m[1]));
     for (const m of line.matchAll(MOUNT_REF)) if (!m[3]) prod.add(norm(m[1]));
     const body = line.replace(/(?:Code|Eviter|Avoid|Test):\s*[^—]*/g, " ").replace(MOUNT_REF, " ");
-    for (const m of body.matchAll(/`([\w./@-]+\.(?:tsx?|jsx?|cs|json|s?css))`/g)) {
+    for (const m of body.matchAll(/`([\w./@-]+\.(?:tsx?|jsx?|cs|json|s?css|csproj|props|lock|ya?ml))`/g)) {
       const p = norm(m[1]);
+      // Manifeste de dependances (tache « Add the npm/NuGet dependency ») : a la racine ou en .csproj,
+      // il echappait au filtre « contient un / » (banc Miro F8 : 2 reviewers sur 2 l ont releve).
+      if (MANIFEST.test(p)) {
+        prod.add(p);
+        if (/(^|\/)package\.json$/.test(p)) for (const lock of LOCKFILES) prod.add(p.replace(/package\.json$/, lock));
+        continue;
+      }
+      if (/\.(?:csproj|props|lock|ya?ml)$/.test(p)) continue;
       if (p.includes("/") && !/(^|\/)(?:__tests__|specs|contracts)\//.test(p) && !/\.(test|spec)\./.test(p)) prod.add(p);
       // Test d un compagnon cite dans le corps (« and its x `a.ts` (test `a.test.ts`) ») : banc jeu.
       else if (p.includes("/") && /\.(test|spec)\./.test(p)) tests.add(p);
