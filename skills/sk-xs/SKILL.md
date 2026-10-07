@@ -71,7 +71,7 @@ Annonce la route en une phrase. Ne « n'essaie pas quand même ».
 
 1. **Recon minimale** — 2–4 `Grep`/`Read` pour poser : fichier(s) de prod, fichier de test (miroir `src/__tests__/…` ou voisin existant), commande de gate ciblée. Pas de fan-out d'agents. Standards AgentOS : `agent-os/standards/index.yml` si présent, injection mentale seulement (rien n'est écrit sous `specs/`).
 
-2. **Gates.** Skill `running-quality-gates` du dépôt si elle existe, sinon scripts réels. Minimum : test **ciblé par chemin exact** (`node node_modules/vitest/vitest.mjs run --coverage=false <fichier>`) + typecheck. Lint en clôture. Pas de `yarn test`.
+2. **Gates.** Skill `running-quality-gates` du dépôt si elle existe, sinon scripts réels. Dépôt .NET : sanity = `dotnet build` du .sln, gate ciblée = `dotnet test <projet de test> --filter <Classe>`, typecheck = `dotnet build`, lint = `dotnet format --verify-no-changes` (pas de vitest, de jonction `node_modules` ni d import paresseux). Fichier transverse touché (Program.cs, point d entrée, DI, middleware) : la clôture rejoue aussi le dossier des tests d intégration qui le traversent (ex. `--filter FullyQualifiedName~Controllers`), jamais la suite complète. Minimum : test **ciblé par chemin exact** (`node node_modules/vitest/vitest.mjs run --coverage=false <fichier>`) + typecheck. Lint en clôture. Pas de `yarn test`.
 
 3. **Validation humaine via `AskUserQuestion`** (Lancer / Ajuster / Abandonner) : slot (chemin, branche `sk-xs-<FEATURE_SLUG>`, sanity), fichiers visés, **la liste exacte des tests qui vont être écrits**, commande de gate ciblée. Tant que ce n'est pas approuvé, n'écris rien.
 
