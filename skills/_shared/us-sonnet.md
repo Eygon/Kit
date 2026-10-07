@@ -329,30 +329,7 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
 Les trois partent dans UN appel en fin d US, suivis de la couverture du diff :
   node node_modules/eslint/bin/eslint.js <tes fichiers> && node node_modules/vitest/vitest.mjs related --run --coverage.enabled --coverage.reporter=lcov --coverage.reportsDirectory="$(git rev-parse --git-dir)/sk-cov" --testTimeout=20000 <tes fichiers prod> <tes fichiers de test> && <commande typecheck du Contexte>
   node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov" --range HEAD   (avant ton commit DONE : arbre de travail + fichiers non suivis)
-Chaque GAP est une ligne de prod que tu ajoutes et qu aucun test
-n execute (banc A/B : cylindre jamais construit, livre « vert ») :
-ajoute le test qui l execute et l asserte, ou supprime la branche
-si aucune tache ne la demande. BRANCH (non bloquant) = une branche
-jamais prise sur une ligne ajoutee : teste-la si c est un cas du
-contrat ou d une AC (204, 404, liste vide, refus), sinon laisse (garde
-defensive). Une BRANCH dans un service, un repository, un controleur ou un
-hook metier est presumee cas metier (PATCH partiel qui garde les autres
-champs, role inconnu, liste vide) : teste-la, sauf garde evidente (`??` ou
-`?.` sur une valeur que le contrat garantit) que tu nommes dans ta sortie.
-Banc Miro : 4 BRANCH ecartees par le worker etaient des cas d AC trouves
-en revue. Banc Miro : le 204 de `Count == 0 ? NoContent() : Ok()`
-passait la couverture de ligne. Un cas du contrat que le seed
-n atteint pas (liste vide, 204) n est PAS inatteignable : substitue le
-service dans le test d API (`ConfigureTestServices` + substitut qui rend
-une liste vide), comme les tests voisins (2 revues FIXED sur ce cas). Methode imposee par une tache mais
-appelee seulement par une US ulterieure, et que les standards de test
-interdisent de tester seule : garde-la, et declare l ecart dans ta
-sortie (le reviewer le juge). NOCOV informe seulement (fichier
-exclu de la couverture, ex. point d entree). Back .NET : meme
-outil sur un lcov coverlet (`dotnet test --collect:"XPlat Code
-Coverage" --results-directory "$(git rev-parse --git-dir)/sk-cov" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`).
-Projet de test sans `coverlet.collector` : diff-cover non applicable, dis-le
-dans ta sortie (n ajoute pas le paquet : hors de tes chemins).
+Back .NET : meme outil sur un lcov coverlet (voir le bloc back).
 <!-- /if:front -->
 <!-- if:back -->
 - Back .NET, fin d US, UN appel : `dotnet build --nologo -v q` (0 erreur,
@@ -361,11 +338,25 @@ dans ta sortie (n ajoute pas le paquet : hors de tes chemins).
   --results-directory "$(git rev-parse --git-dir)/sk-cov" --
   DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov`,
   puis `node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov" --range HEAD`.
-  Chaque GAP = une ligne ajoutee qu aucun test n execute : teste-la ou
-  retire-la. Projet de test sans `coverlet.collector` : diff-cover non
-  applicable, dis-le dans ta sortie (n ajoute pas le paquet).
   Pas d eslint, de vitest ni de tsc dans un depot .NET.
 <!-- /if:back -->
+Lecture de diff-cover (front et back) :
+- GAP = ligne ajoutee jamais executee : teste-la (execute ET asserte) ou
+  retire-la si aucune tache ne la demande (banc A/B : cylindre jamais
+  construit, livre « vert »).
+- BRANCH = branche jamais prise. Dans un service, un repository, un
+  controleur ou un hook metier, elle est presumee cas metier (PATCH
+  partiel qui garde les autres champs, role inconnu, liste vide, 204) :
+  teste-la, sauf garde evidente (`??` / `?.` sur une valeur que le contrat
+  garantit), nommee dans ta sortie. Ailleurs : teste-la si c est un cas du
+  contrat ou d une AC. Banc Miro : 4 BRANCH ecartees etaient des cas d AC.
+- Cas du contrat que le seed n atteint pas (liste vide, 204) : pas
+  inatteignable, substitue le service dans le test d API
+  (`ConfigureTestServices` + substitut), comme les tests voisins.
+- Methode imposee par une tache mais appelee seulement par une US
+  ulterieure, non testable seule : garde-la, declare l ecart.
+- NOCOV informe seulement. Projet sans `coverlet.collector` : diff-cover
+  non applicable, dis-le (n ajoute pas le paquet).
 Classe CHAQUE erreur contre tasks.md du slot AVANT de
 conclure :
 - fichier cite par une US ULTERIEURE -> « pas encore
