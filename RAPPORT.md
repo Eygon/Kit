@@ -47,6 +47,18 @@ Les 8 FIXED de la nuit (sur 56 reviews, soit 14 %) se rangent en 5 familles. Cha
 
 Attendu : les 4 FIXED des 2 premières familles partent avant la review. On passerait d'environ 14 % à environ 7 % de FIXED, le reste relevant du jugement (interactions, design).
 
+## sk-impl : temps de run (mesuré sur les durées réelles des agents)
+
+| | Kit reçu (v0) | Mi-parcours (banc jeu, 29 US) | Kit de la nuit (Miro, 56 US) |
+|---|---|---|---|
+| Worker (Sonnet) par US | 219 s (1 US mesurée) | 299 s en moyenne | **143 s** en moyenne (médiane 133 s) |
+| Review par US | 83 s (Opus) | 83 s (Opus), 35 reviews pour 29 US | 88 s par Opus, **35 s** par Sonnet (13 petites US) |
+| Passes de fix séparées | — | 7 (426 s cumulés) | 1 (56 s) : le reviewer corrige lui-même (FIXED) |
+| **Temps par US, worker + review + fix** | ~5 min | ~6 min 54 | **~3 min 40** |
+| Feature de 5 US (back + front) | en série | en série | 2 voies parallèles : F8 en ~12 min au lieu de 19 (−37 %) |
+
+Précautions : v0 n'a été mesuré que sur 1 US. Les US du jeu (3D) étaient plus grosses que celles de Miro. Le temps de l'orchestrateur n'est pas compté. Les nouveaux contrôles du worker coûtent peu : `red-replay` ~8 s, `contract-cover` moins d'1 s.
+
 ## Résultats en bref
 
 | Mesure | Avant (v0) | Après | Gain |
