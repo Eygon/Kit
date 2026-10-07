@@ -252,6 +252,7 @@ Recommandation : un passage E2E (le cahier `sk-e2e.md` existe, mais aucune skill
 | Impl, 2 voies (back US1-2 ∥ front US3-5) | 5 US, 10 agents, 7,84 $ soit **~1,6 $ par US**. Back 242 tests, front 525, tout vert, fusionné |
 | Reviews | 5 PASS : 4 par Opus, 1 par Sonnet (palier auto) |
 | **E2E réel (2 navigateurs)** | **la présence ne marche pas**. Le CORS `AllowAnyOrigin` du back refuse la négociation SignalR, car le client JS envoie les credentials. Aucun test unitaire ou d'intégration ne pouvait le voir (le client est mocké, et le client .NET des tests ne passe pas par le CORS). L'appli se dégrade proprement : badge « Hors ligne », édition intacte |
+| Correction par `/sk-xs` | `withCredentials: false` côté client (1 ligne et 1 test vu rouge), en 1 min 40. **E2E rejoué : 7/7 sur 3 runs**. La présence apparaît et disparaît en direct, un post-it créé par un autre arrive sans recharger, et il n'y a aucune réponse 5xx |
 
 Ce que F8 a apporté au kit :
 - **Règle de prep CORS** : un nouveau canal navigateur → back (SignalR, WebSocket, SSE, cookies) confronte la politique CORS aux credentials du client.
