@@ -283,6 +283,13 @@ extrait et testable (`src/engine/gameApp.ts`). Une tache CSS prend en
 `Test:` le test du module qui pose les classes. Parent d une autre
 US ou pas encore cree : `Monté dans: <fichier> (US<n>)` ET, dans US<n>, une
 tache « Monter <Nom> dans `<fichier>` » avec son test, qui rend <fichier>.
+Un droit ou un etat DERIVE deja calcule par une feature livree (role courant,
+lecture seule, droits) se REUTILISE : recon.md le cite (`chemin:ligne` de la
+derivation) et la tache le lit, au lieu de le recalculer. Un droit derive
+d une donnee chargee traite l etat inconnu (chargement, erreur, liste vide)
+comme le plus restrictif, et une AC le dit. Banc Miro (E2E apres 4
+features) : role calcule deux fois avec deux politiques ; GET members en
+echec -> liste vide -> un Viewer recevait toute la barre d outils.
 Un helper EXISTANT mais non exporte (fonction locale d un autre module) que
 l US reutilise : la tache etend ce module pour l exporter (il entre dans les
 chemins, et dans le cap), sinon le worker le recopie (banc Miro F4 :
