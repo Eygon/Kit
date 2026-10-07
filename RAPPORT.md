@@ -6,11 +6,36 @@ Ce rapport couvre 5 cycles de mesure sur de fausses US, faits sur deux bancs :
 
 Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode audit : Opus pour la prep et la revue, Sonnet pour le code. Les coûts sont estimés à partir des tokens réels (cache compris).
 
+## Bilan de la nuit du 6 au 7 octobre (à lire en premier)
+
+**Ce qui a tourné** : 11 features du clone Miro, préparées et implémentées avec le kit (54 US, back .NET + front React, chaque US relue). Ensuite, 6 passages de bout en bout dans un vrai navigateur et 6 corrections par `/sk-xs`. Résultat : back 329 tests, front 671, et la dernière validation complète est au vert (détail plus bas).
+
+**Ce que la nuit a appris** :
+1. **Les tests unitaires et les reviews ne voient pas les défauts entre features ni entre dépôts.** Les 6 défauts trouvés par les E2E sont tous passés à travers 54 reviews vertes : rôle inconnu, concurrence SQLite, CORS SignalR, dock qui laisse passer le Crayon, id de connexion effacé par une course, erreur console en dev. D'où le contrat `sk-e2e.md` étoffé (oracles 5xx et console, mode lot, 3 runs, `e2e-oracles.mjs`). **Recommandation : un passage E2E en mode lot après chaque lot de 3 à 5 features.**
+2. **La règle « 2 sur 3 = FAIL » paie** : la course sur l'id de connexion ne sortait qu'1 fois sur 3. On l'aurait prise pour un flake.
+3. **Le palier de review Sonnet tient** : 13 reviews de petites US, toutes justes (3 contre-vérifiées par Opus). Les défauts de code trouvés en review l'ont tous été par Opus, sur des US que le routage lui envoyait. **Recommandation : activer `reviewTier: "auto"`.**
+4. **La prep ne régresse pas** malgré ~25 règles ajoutées : la prep S de référence coûte 2,01 $ pour 273 s (contre 1,5–2,7 $ et 290–430 s au départ).
+
+**Nouveaux outils du kit (tous dans `skills/_shared/`, testés)** :
+
+| Outil | Rôle |
+|---|---|
+| `diff-cover.mjs` | Lignes de prod ajoutées qu'aucun test n'exécute (GAP), branches jamais prises (BRANCH). Gère coverlet et les blocs ambigus de git |
+| `gate.mjs` | Gate ciblée unique : vitest, ou `dotnet test --filter` par classe. Les briefs back ne parlent plus de vitest ni de tsc |
+| `cap-check.mjs` | Mesure le découpage AVANT la question de clarify, montre ce qui est hors compte et des pistes si une US déborde |
+| `fact-lines.mjs` | Recale les numéros de ligne des faits vérifiés quand une autre feature a été fusionnée entre la prep et le GO |
+| `facts-add.mjs`, `lanes.mjs` | Faits des workers transmis aux US suivantes (rangés par dépôt) ; vagues d'US parallélisables |
+| `e2e-oracles.mjs` | Oracles 5xx et console, et verdict sur 3 runs pour les E2E scriptés |
+| `mount-check.mjs` (étendu) | Vérifie aussi qu'une classe C# annotée « Monté dans: Program.cs » y est citée |
+| `brief-fill.mjs` (étendu) | Ouvre d'office au worker les manifestes de dépendances, l'interface C# d'une classe étendue et les helpers de test partagés ; ne donne au back que ses propres fichiers |
+
+**Défauts du kit corrigés grâce au banc** (extraits) : plage de l'US (`US_BASE`) qui débordait sur la feature précédente ; brief back avec la gate vitest ; faux GAP de diff-cover ; mots-clés AsyncAPI pris pour des champs ; chemin cité en prose pris pour un fait ; contrat référencé pris pour une écriture.
+
 ## Résultats en bref
 
 | Mesure | Avant (v0) | Après | Gain |
 |---|---|---|---|
-| `sk-prep/SKILL.md` lu à chaque tour | 50 Ko | 23 Ko + modules lus à la demande | −54 % |
+| `sk-prep/SKILL.md` lu à chaque tour | 50 Ko | 33 Ko + modules lus à la demande (23 Ko avant la nuit ; coût de prep inchangé) | −33 % |
 | `sk-impl/SKILL.md` | 36 Ko | 16 Ko + modules | −56 % |
 | Prep S (filtre statut) | 4,04 $ · 561 s | 1,5–2,7 $ · 290–430 s | ~−45 % |
 | Prep M (ajout contact) | 4,19 $ · 598 s | 1,87–1,95 $ · 315–360 s | ~−55 % |
