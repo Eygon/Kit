@@ -233,7 +233,9 @@ d un hook, regle d API, 409) ne se prouve bien qu isole.
    aussi l empreinte du test, dans le MEME appel :
      <GATE> <test> ; cp <test> "$(git rev-parse --git-dir)/sk-snap-<Tnnn>"
    Doit echouer par assertion (pas une tautologie).
-   Stack compilee : symbole absent (types reels) = RED valide.
+   Stack compilee : symbole absent (types reels) = RED valide, y compris
+   quand le projet de test unique (.NET) ne compile plus a cause du symbole
+   d une AUTRE tache de l US : n attends pas son GREEN pour ecrire ce test.
 <!-- if:front -->
    Sinon import paresseux si le symbole n existe pas. Stack
    Vite/vitest : le chemin passe par une const,
