@@ -1,0 +1,71 @@
+asyncapi: 2.6.0
+info:
+  title: Board realtime hub
+  version: 1.0.0
+  description: >
+    SignalR hub of the Tableau API. Written in prep; back US1/US2 implement it, front US3/US5 code against it.
+servers:
+  local:
+    url: http://localhost:5080
+    protocol: signalr
+channels:
+  /hubs/board:
+    description: >
+      Connection URL is `/hubs/board?userId=<id>` (the browser cannot set X-User-Id on a WebSocket).
+      The caller is resolved by ICurrentUserResolver (header X-User-Id first, then query `userId`).
+    publish:
+      summary: Client-to-server invocations
+      message:
+        oneOf:
+          - $ref: '#/components/messages/JoinBoard'
+    subscribe:
+      summary: Server-to-client events, sent to the group of the joined board
+      message:
+        oneOf:
+          - $ref: '#/components/messages/PresenceChanged'
+          - $ref: '#/components/messages/BoardChanged'
+components:
+  messages:
+    JoinBoard:
+      name: JoinBoard
+      summary: Join the group of a board. Refused with HubException "Unable to join this board." when the caller is unidentified, not a member, or the board does not exist (same message for all three).
+      payload:
+        type: object
+        required: [boardId]
+        properties:
+          boardId:
+            type: integer
+            minimum: 1
+    PresenceChanged:
+      name: PresenceChanged
+      summary: Full list of users connected to the board, sent to the group on every arrival and departure. A user with several connections appears once.
+      payload:
+        type: array
+        items:
+          $ref: '#/components/schemas/PresenceUser'
+    BoardChanged:
+      name: BoardChanged
+      summary: Sent to the group after a successful item or connector create/update/delete.
+      payload:
+        type: object
+        required: [boardId, connectionId]
+        properties:
+          boardId:
+            type: integer
+          connectionId:
+            type: string
+            nullable: true
+            description: Value of the X-Connection-Id header of the write request, null when absent.
+  schemas:
+    PresenceUser:
+      type: object
+      required: [userId, displayName]
+      properties:
+        userId:
+          type: integer
+        displayName:
+          type: string
+          maxLength: 100
+x-http-headers:
+  X-Connection-Id:
+    description: Sent by the front on every REST request once its hub connection is open; echoed as BoardChanged.connectionId.

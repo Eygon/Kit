@@ -1,0 +1,114 @@
+openapi: 3.0.3
+info:
+  title: Board JSON export / import
+  version: 1.0.0
+paths:
+  /api/v1/boards/{boardId}/export:
+    get:
+      operationId: exportBoard
+      parameters:
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: X-User-Id
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The board as a portable file. Any member, viewers included.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardFile" }
+        "204": { description: Board not found }
+        "401": { description: Caller not identified }
+        "403": { description: Caller is not a member of the board }
+  /api/v1/boards/import:
+    post:
+      operationId: importBoard
+      description: Creates a NEW board owned by the caller, named "<name> (import)". All or nothing. Body limited to 1 MB on this route only.
+      parameters:
+        - name: X-User-Id
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BoardFile" }
+      responses:
+        "201":
+          description: Board created; Location /api/v1/boards/{id}
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Board" }
+        "400":
+          description: Invalid JSON, unknown format or version, more than 2000 items, unknown item type, freehand stroke outside the limits, connector end missing from the file. Nothing is created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorMessage" }
+        "401": { description: Caller not identified }
+        "413": { description: Body larger than 1 MB. Nothing is created. }
+components:
+  schemas:
+    BoardFile:
+      type: object
+      required: [format, version, name, items, connectors]
+      properties:
+        format: { type: string, enum: [tableau] }
+        version: { type: integer, enum: [1] }
+        name: { type: string }
+        items:
+          type: array
+          maxItems: 2000
+          items: { $ref: "#/components/schemas/BoardFileItem" }
+        connectors:
+          type: array
+          items: { $ref: "#/components/schemas/BoardFileConnector" }
+    BoardFileItem:
+      type: object
+      required: [key, type, x, y, width, height, color, content]
+      properties:
+        key: { type: integer, description: File-local key; the exported item id. Only used to resolve connector ends. }
+        type: { type: string, enum: [StickyNote, Shape, Text, Freehand] }
+        x: { type: number }
+        y: { type: number }
+        width: { type: number }
+        height: { type: number }
+        color: { type: string }
+        content: { type: string }
+        points:
+          type: array
+          nullable: true
+          description: Freehand only, 1 to 2000 points
+          items: { $ref: "#/components/schemas/StrokePoint" }
+        strokeWidth: { type: integer, nullable: true, enum: [2, 4, 8], description: Freehand only }
+    StrokePoint:
+      type: object
+      required: [x, y]
+      properties:
+        x: { type: number }
+        y: { type: number }
+    BoardFileConnector:
+      type: object
+      required: [fromKey, toKey, style]
+      properties:
+        fromKey: { type: integer, description: key of an item of the same file }
+        toKey: { type: integer, description: key of an item of the same file }
+        style: { type: string, enum: [Arrow, Line] }
+    Board:
+      type: object
+      description: Existing BoardDto, unchanged
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        ownerId: { type: integer }
+        createdAt: { type: string, format: date-time }
+        memberCount: { type: integer }
+        itemCount: { type: integer }
+    ErrorMessage:
+      type: object
+      properties:
+        message: { type: string }

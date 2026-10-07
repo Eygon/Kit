@@ -1,0 +1,5 @@
+after: null
+parallel:
+  - [US1, US2]
+  - [US3, US4, US5]
+contract: specs/001-board-json-transfer-m9-r1/contracts/board-transfer.yaml
