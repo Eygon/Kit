@@ -1,0 +1,45 @@
+== TK3 F-tk3-h
+run 1: 13 PASS | KO:  
+run 2: 13 PASS | KO:  
+run 3: 13 PASS | KO:  
+== TK3 F-tk3-s
+run 1: 13 PASS | KO:  
+run 2: 13 PASS | KO:  
+run 3: 13 PASS | KO:  
+== TK1 X-tk1-h
+run 1: 3 PASS | KO:  
+run 2: 3 PASS | KO:  
+run 3: 3 PASS | KO:  
+== TK1 X-tk1-s
+run 1: 2 PASS | KO: FAIL #1.3 "Raccourcis clavier\n×\nÉDITION\nAnnuler\nCtrl\nZ\nRétablir\nCtrl\nMaj\nZ\nSupprimer la sélectio; 
+run 2: 2 PASS | KO: FAIL #1.3 "Raccourcis clavier\n×\nÉDITION\nAnnuler\nCtrl\nZ\nRétablir\nCtrl\nMaj\nZ\nSupprimer la sélectio; 
+run 3: 2 PASS | KO: FAIL #1.3 "Raccourcis clavier\n×\nÉDITION\nAnnuler\nCtrl\nZ\nRétablir\nCtrl\nMaj\nZ\nSupprimer la sélectio; 
+== TK2 H-tk2-hlow
+run 1: 12 PASS | KO:  
+run 2: 12 PASS | KO:  
+run 3: 12 PASS | KO:  
+== TK2 H-tk2-slow
+run 1: 12 PASS | KO:  
+run 2: 12 PASS | KO:  
+run 3: 12 PASS | KO:  
+== TK2 H-tk2-smed
+run 1: 12 PASS | KO:  
+run 2: 12 PASS | KO:  
+run 3: 12 PASS | KO:  
+== TK3 H-tk3-hlow
+run 1: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+run 2: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+run 3: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+== TK3 H-tk3-hhigh
+run 1: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+run 2: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+run 3: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+== TK3 H-tk3-slow
+run 1: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+run 2: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+run 3: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+== TK3 H-tk3-smed
+run 1: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+run 2: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+run 3: 8 PASS | KO: FAIL #E2 post-it rgb(230, 232, 238) sur rgb(253, 230, 138) = 1.02 ; forme rgb(230, 232, 238) sur rgb(191, 219,;FAIL #E3 tableau=["Define the goal:1.02","Split the stories:1.05","Backlog:1.16"] liste=[] theme=dark;FAIL #2.3 apres rechargement theme=light;FAIL #2.1 systeme sombre -> light;FAIL #2.4 valeur illisible, systeme sombre -> light; 
+FIN

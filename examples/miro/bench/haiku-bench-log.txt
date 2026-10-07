@@ -1,0 +1,49 @@
+worker tk3-s1 US1 sonnet tokens=103865 tools=16 ms=145130 commit=a43e147
+worker tk3-h1 US1 haiku tokens=143208 tools=42 ms=246281 commit=d527656 (note: trailers attribution ajoutes au commit)
+worker tk3-s1 US2 sonnet tokens=85172 tools=15 ms=243034 commit=1948bc7
+worker tk3-h1 US2 haiku tokens=109290 tools=24 ms=267223 commit=ab0d36e
+worker tk2-s1 US1 sonnet tokens=130607 tools=33 ms=665135 commit=ef473a9
+worker tk2-h1 US1 haiku tokens=210176 tools=73 ms=841968 commit=06b742d
+worker tk2-h2 US1 haiku tokens=176106 tools=62 ms=817571 commit=9806ed3
+review c0 haiku PASS tokens=113455 tools=33 ms=524190 | opus PASS tokens=100667 tools=15 ms=511062
+review d1 haiku FIXED(y) tokens=101568 tools=37 ms=496456 | opus FIXED(y) tokens=92298 tools=16 ms=671015
+review d2 haiku FIXED(garde+test) tokens=102079 tools=32 ms=604658 | opus ?
+review d3 haiku FAIL(mount; a fixe le montage+7 tests, restauration refusee par classifieur) tokens=111121 tools=38 ms=587512 | opus FAIL(mount+tests) a restaure le describe tokens=81938 tools=18 ms=600382
+review d4 haiku FIXED(strokeWidth) tokens=103860 tools=27 ms=593777 | opus FIXED tokens=90140 tools=20 ms=557167
+review d8 sonnet FIXED(constante+commentaire)
+  (d8 sonnet tokens=75151 tools=11 ms=207163)
+review d6 sonnet FIXED(repeat+test) tokens=70630 tools=11 ms=207552
+review d5 sonnet FIXED(record+test)
+review d2 opus FIXED(garde+3 cas)
+review d7 sonnet FIXED(swap+assertions)
+review d6 opus FIXED(repeat+test)
+review d7 haiku FIXED(swap+assertions, mutation testee)
+review d8 opus FIXED
+review d7 opus FIXED
+review d8 haiku FIXED tokens=96510 tools=22
+review d6 haiku FIXED(repeat+test)
+review d5 opus FIXED(record+test)
+review d5 haiku FIXED(record+test) tokens=119680 tools=30
+recon 6 questions (Explore) : haiku 6/6 format, 0 ligne fausse verifiee, 48-69k tokens, 21-40 s ; sonnet 6/6 format, q4 = 5 numeros de ligne inventes (useBoardHistory.ts:145 dans un fichier de 130 lignes), 42-50k tokens, 17-26 s
+fix tk3 F1 passe 1 : haiku ET sonnet STOP(preuve) correct : F1 hors perimetre du brief (stickyNote/shapeItem) ; 57-58k tokens, 18 s -> perimetre elargi par l orchestrateur
+fix tk3 F1 haiku commit=20538ac tokens=67245 tools=14 ms=131301 (DEFAULT_TEXT_COLOR en style)
+fix tk3 F1 sonnet commit=a810b98 tokens=62899 tools=11 ms=143060 (meme correctif DEFAULT_TEXT_COLOR)
+xs tk1 sonnet commit=2f5c7a7 tokens=85103 tools=23 ms=225649 (3 prod : hook + registre + boardCanvas)
+xs tk1 haiku commit=057583e tokens=112793 tools=45 ms=233052 (2 prod : registre + useViewport)
+qualite (opus, livraisons TK2) : s1 PASS (tests page 11 AC) ; h1 FIXED (+3 tests page : undo AC6, echec serveur, outil actif) ; h2 FIXED (+undo AC6, echec renforce) ; opus ~105k tokens, 3.5-4.3 min
+MATRICE worker tk3-slow US1 sonnet/low tokens=96038 tools=13 ms=155034 commit=5ea0f5b
+MATRICE worker tk3-smed US1 sonnet/medium tokens=95977 tools=14 ms=162035 commit=3ea8aed
+MATRICE worker tk3-hlow US1 haiku/low tokens=118357 tools=30 ms=224526 commit=b414ff8
+MATRICE worker tk2-slow US1 sonnet/low tokens=114589 tools=27 ms=350216 commit=8b98efc
+MATRICE worker tk3-hhigh US1 haiku/high tokens=184514 tools=53 ms=362503 commit=df9d2fc
+MATRICE worker tk2-smed US1 sonnet/medium tokens=122654 tools=31 ms=371780 commit=f00bf8d (a coche une tache gate rouge puis s est corrige)
+MATRICE worker tk2-hlow US1 haiku/low tokens=159947 tools=47 ms=388746 commit=e32c154
+MATRICE worker tk2-hhigh US1 haiku/high tokens=202235 tools=70 ms=453059 commit=4d52fbd
+QUALITE opus tk2-slow (sonnet/low) PASS
+QUALITE opus tk2-hlow (haiku/low) FIXED (AC6 undo, echec, outil actif sans test de page)
+QUALITE opus tk2-hhigh (haiku/high) PASS
+QUALITE opus tk3-hlow (haiku/low) FIXED (test palette 5/10 jetons ; import dynamique non type)
+QUALITE opus tk2-smed (sonnet/medium) FIXED (2 tests de page sans assertion createItem)
+AB acmap worker tk2-hac1 haiku/defaut commit=df6eee3 ac-map 11/11
+  (hac1 tokens=201995 tools=79 ms=461617 ; carte : AC6 au niveau page "undoes the duplicate on Ctrl+Z")
+AB acmap worker tk2-hac2 haiku/defaut commit=6b19ffe ac-map 11/11 tokens=198246 tools=68 ms=467554
