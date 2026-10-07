@@ -43,7 +43,7 @@ testFiles = fichiers de test cites par les taches, existants ou non.
    a rien : 4 sessions ont produit 4 formes incompatibles.
 6. Aucune interaction differee. Termine et rends l objet final.
 
-7. Garde-fou de taille (A.1bis) en audit : la question se resout par l intent (regle 1). Option 1 retenue = result.sk-prep.json outcome "stopped", stop.section "## A. 1bis Garde-fou de taille", dans cet ordre : bootstrap end, Write du result (featureDir null), closing start, closing end — 4 marques, pas de cycles. La valeur de stop.section est cette chaine exacte.
+7. Garde-fou de taille (A.1bis) en audit : la question se resout par l intent (regle 1). Option 1 retenue = result.sk-prep.json outcome "stopped", stop.section "### A.1bis Garde-fou de taille", dans cet ordre : bootstrap end, Write du result (featureDir null), closing start, closing end — 4 marques, pas de cycles. La valeur de stop.section est cette chaine exacte.
    Meme sequence pour tout arret AVANT FEATURE_DIR qui exigerait l humain sans option possible (projet design non partage, export introuvable) : stop.section = le titre de la section du module qui arrete (ex. « design.md §0.1 Import »), answers.jsonl trace le manque (grounded=false). Ne devine jamais un autre projet ou dossier.
 
 8. Numerotation :

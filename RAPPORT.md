@@ -345,6 +345,7 @@ Ce que F9 a apporté au kit (vérifié en direct pendant le run) :
 | S (filtre statut) | 1,5–2,7 $ · 290–430 s | 2,11 $ · 279 s · 0 finding final |
 | M (ajout contact, 2 US) | 1,87–1,95 $ · 315–360 s | 2,09 $ · 302 s · 0 HIGH, 0 MEDIUM |
 | S rejouée à 03h45, kit final (après F8 à F10) | 1,5–2,7 $ · 290–430 s | **2,01 $ · 273 s · 0 finding** |
+| M rejouée à 04h25, kit final (après F12) | 1,87–1,95 $ · 315–360 s | 2,15 $ · 302 s · 0 HIGH, 0 MEDIUM (+10 % de coût au pire, plus rapide) |
 
 Pas de régression : coût dans la fourchette (M +7 % au pire), durée meilleure. Les 4 frictions remontées sont corrigées : un chemin cité en prose (« lu dans dist/index.d.ts ») était pris pour un fait (seuls les chemins entre backticks comptent), un standard qui contredit le besoin se lit avant clarify, l'endpoint sans réponse de l'humain suit le dépôt, et la règle de montage tient en une ligne.
 

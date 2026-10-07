@@ -317,7 +317,9 @@ chemins, et dans le cap), sinon le worker le recopie (banc Miro F4 :
 Une methode que seule une US ULTERIEURE appelle se cree dans CETTE US-la,
 pas plus tot : livree sans appelant, elle n est executee par aucun test
 (diff-cover GAP) et sa forme se devine (banc Miro F2 : `UserRepository.Exists`
-en US2, appelee en US3).
+en US2, appelee en US3). Exception : un decoupage que l humain impose
+(« US1 = couche donnees, US2 = ecran ») prime ; la methode garde alors
+`Monté dans: <fichier> (US<n>)` et son test dans sa propre US.
 Montage, en une regle : annote `Monté dans:` ce que l US CREE et qui ne
 s execute que si un autre fichier l importe (composant, hook, query
 function/key sans son hook dans la meme US, provider, route front). Le
