@@ -268,6 +268,10 @@ Le worker (et le fix) rendent `facts: [{fact, source}]` (0-5) : results[]
 en Workflow, sortie structuree en n==1. Apres CHAQUE worker ou fix, UNE
 commande, sans relire ni recopier :
   node "<SK_SHARED>/facts-add.mjs" "<FEATURE_DIR>" <sortie du worker .json | -> --us <US_ID> --slot <SLOT_CWD de l US>
+Avec `--slot`, elle les verse AUSSI dans la memoire du depot
+(`<git common dir>/sk-facts.json`, 30 au plus, jamais commitee) : brief-fill
+les rend aux features suivantes, en taisant ceux dont le fichier source a
+disparu (banc : 10 workers sur 10 ont redecouvert le meme piege des tests).
 Elle verse les faits dans FEATURE_DIR/facts.json (dedup par texte, 40 au
 plus, les plus recents gardes) ; brief-fill les injecte dans tous les briefs
 suivants. Ne les recopie plus dans le JSON du brief. Seule exception : un

@@ -480,3 +480,41 @@ test("ac-map: chaque AC doit pointer un test existant d un fichier touche par l 
   assert.deepEqual(r.lines.map((l) => l.status), ["OK", "INTROUVABLE", "HORS-US", "MANQUE"]);
   assert.equal(r.ok, false);
 });
+
+test("facts : memoire du depot partagee entre worktrees et features, faits perimes tus, injectee par brief-fill", async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { addRepoFacts, readRepoFacts, liveFacts, repoFactsPath } = await import("../facts-add.mjs");
+  const { fillBriefs } = await import("../brief-fill.mjs");
+  const root = mkdtempSync(join(tmpdir(), "skfacts-"));
+  const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, ...a], { stdio: "ignore" });
+  const main = join(root, "main");
+  mkdirSync(join(main, "src"), { recursive: true });
+  writeFileSync(join(main, "src", "a.ts"), "export const a = 1;\n");
+  git(root, "init", "-q", main);
+  git(main, "-c", "user.email=t@t", "-c", "user.name=t", "add", "-A");
+  git(main, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init");
+  const wt = join(root, "wt1");
+  git(main, "worktree", "add", "-q", wt);
+  // Feature A, depuis un worktree : le fait atterrit dans le git common dir, visible du principal.
+  addRepoFacts(wt, [{ fact: "useShortcutsHelp avale le clic suivant", source: "src/a.ts:1" }, { fact: "fait perime", source: "src/gone.ts:3" }], "001-a");
+  assert.equal(repoFactsPath(wt), repoFactsPath(main));
+  assert.equal(readRepoFacts(main).length, 2);
+  assert.deepEqual(liveFacts(readRepoFacts(main), main).map((f) => f.fact), ["useShortcutsHelp avale le clic suivant"]);
+  addRepoFacts(main, [{ fact: "useShortcutsHelp avale le clic suivant", source: "src/a.ts:1" }], "002-b");
+  assert.equal(readRepoFacts(main).length, 2, "dedup par texte");
+  // Feature B : brief-fill injecte le fait du depot, pas le perime.
+  const fd = join(main, "specs", "002-b");
+  mkdirSync(fd, { recursive: true });
+  writeFileSync(join(fd, "spec.md"), "### User Story 1 - X\n\n**Acceptance Scenarios**:\n\n1. **Given** a, **When** b, **Then** c.\n");
+  writeFileSync(join(fd, "tasks.md"), "## [US1] X\n- [ ] T001 [US1] Modifier `src/a.ts` — Test: `src/__tests__/a.test.ts`\n");
+  writeFileSync(join(fd, "recon.md"), "# recon\n");
+  const r = fillBriefs({ featureDir: fd, slot: main, us: "US1", skShared: join(process.cwd(), "skills/_shared"), lecture: [], facts: [] }, {
+    worker: "FACTS:\n<FACTS>\n", review: "r", fix: "f",
+  });
+  assert.match(r.worker, /useShortcutsHelp avale le clic suivant .*memoire du depot, 002-b/);
+  assert.doesNotMatch(r.worker, /fait perime/);
+  rmSync(root, { recursive: true, force: true });
+});

@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import { extractAcceptance } from "./spec-ac.mjs";
 import { buildPack, idsOfStory } from "./standards-pack.mjs";
 import { extractDesign } from "./design-extract.mjs";
-import { readFacts, mergeFacts, factsForRepo, repoKey } from "./facts-add.mjs";
+import { readFacts, mergeFacts, factsForRepo, repoKey, readRepoFacts, liveFacts } from "./facts-add.mjs";
 const slash = (p) => p.replace(/\\/g, "/");
 
 const norm = (p) => String(p).replace(/\\/g, "/").replace(/^api:/, "").trim();
@@ -169,7 +169,10 @@ export const fillBriefs = (json, templates) => {
   const factLine = (f) => (f && typeof f === "object" ? `${f.fact}${f.source ? ` — source: ${f.source}` : ""}` : String(f));
   // facts.json de la feature (verse par facts-add.mjs apres chaque worker) + faits du JSON.
   const allFacts = factsForRepo(mergeFacts(readFacts(dir), json.facts || []), repoKey(json.slot));
-  const facts = allFacts.length ? allFacts.map((f) => "- " + factLine(f)).join("\n") : "Aucun fait transmis : recon.md fait foi.";
+  // + memoire du depot (features et runs precedents), sans doublon, les perimees tues, 15 au plus.
+  const repoFacts = liveFacts(readRepoFacts(json.slot), json.slot).filter((r) => !allFacts.some((f) => f.fact === r.fact)).slice(-15);
+  const factsLines = [...allFacts.map((f) => "- " + factLine(f)), ...repoFacts.map((f) => "- " + factLine(f) + ` (memoire du depot${f.feature ? `, ${f.feature}` : ""} : a verifier si le code le contredit)`)];
+  const facts = factsLines.length ? factsLines.join("\n") : "Aucun fait transmis : recon.md fait foi.";
   // Standards : corps des standards de l US (alwaysInject + ancres de tasks.md + json.standards),
   // lus dans le depot de l US (standardsRoot : le slot front, ou le slot back pour une US back).
   const standardsRoot = json.standardsRoot || json.slot;

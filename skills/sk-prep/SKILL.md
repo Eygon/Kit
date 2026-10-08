@@ -122,7 +122,13 @@ inline, memes questions, `agentSpawns: 0` au resultat) :
 
 Avant de repartir, ECRIS la liste des QUESTIONS de recon (point
 d insertion, montage du composant, source de la donnee, construction de la
-requete, existence d un test). UN agent = UNE question, jamais une zone
+requete, existence d un test). Besoin qui REDEFINIT des jetons partages
+(theme, palette, taille de police) : ajoute « quels composants lisent ces
+jetons sur un fond qui, lui, ne change pas (couleurs de contenu) ? » ; un
+`grep` du jeton suffit. Banc TK-3 (mode sombre) : `text-(--neutral-90)` sur
+le fond pastel des post-it et des formes, texte devenu illisible ;
+trouve seulement au passage navigateur, apres l impl, une passe de fix
+de plus. UN agent = UNE question, jamais une zone
 (« explore le front » n a pas de critere d arret). Deux questions sur le
 meme fichier = un agent. 4-6 agents au plus : au-dela, le perimetre est
 trop large. En parallele, en arriere-plan, synthetises avant le plan :

@@ -47,6 +47,49 @@ export const readFacts = (featureDir) => {
   }
 };
 
+// Memoire du DEPOT, entre features et entre runs : <git common dir>/sk-facts.json (commun a tous
+// les worktrees du pool, jamais commite). Banc Haiku/Sonnet du 7 octobre : les 10 workers de TK-2
+// ont chacun redecouvert le meme piege des tests du depot (listener click d useShortcutsHelp qui
+// avale le clic du test suivant), plusieurs minutes de bisection chacun, alors que le premier
+// l avait rendu dans ses facts. La memoire de feature (facts.json) ne survit pas a la feature.
+export const MAX_REPO_FACTS = 30;
+export const repoFactsPath = (slot) => {
+  if (!slot) return undefined;
+  try {
+    const dir = execFileSync("git", ["-C", slot, "rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return join(dir, "sk-facts.json");
+  } catch {
+    return undefined;
+  }
+};
+export const readRepoFacts = (slot) => {
+  const p = repoFactsPath(slot);
+  if (!p || !existsSync(p)) return [];
+  try {
+    const v = JSON.parse(readFileSync(p, "utf8"));
+    return Array.isArray(v) ? v.map((f) => ({ ...norm(f), ...(f.feature ? { feature: String(f.feature) } : {}) })).filter((f) => f.fact) : [];
+  } catch {
+    return [];
+  }
+};
+export const addRepoFacts = (slot, incoming, feature) => {
+  const p = repoFactsPath(slot);
+  if (!p) return 0;
+  const cur = readRepoFacts(slot);
+  const inc = incoming.map(norm).filter((f) => f.fact);
+  const out = cur.filter((f) => !inc.some((n) => n.fact === f.fact));
+  for (const n of inc) out.push({ fact: n.fact, ...(n.source ? { source: n.source } : {}), ...(feature ? { feature } : {}) });
+  const kept = out.slice(-MAX_REPO_FACTS);
+  writeFileSync(p, JSON.stringify(kept, null, 1) + "\n");
+  return kept.length;
+};
+// Un fait dont la source cite un fichier qui n existe plus dans le slot est perime : on le tait.
+export const liveFacts = (facts, slot) =>
+  facts.filter((f) => {
+    const m = String(f.source || "").match(/([\w@.-]+\/[\w./@-]+\.\w+)/);
+    return !m || !slot || existsSync(join(slot, m[1]));
+  });
+
 // Fusion : un fait au meme texte remplace l ancien (source a jour) et passe en fin ; les plus
 // anciens sortent au-dela de MAX_FACTS.
 export const mergeFacts = (current, incoming, us, repo) => {
@@ -85,5 +128,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const incoming = factsOfOutput(text);
   const merged = mergeFacts(readFacts(dir), incoming, us, repo);
   writeFileSync(join(dir, "facts.json"), JSON.stringify(merged, null, 1) + "\n");
-  console.log(`facts-add : +${incoming.length} -> ${merged.length} faits dans ${join(dir, "facts.json")}`);
+  const slot = slotIdx > 0 ? process.argv[slotIdx + 1] : undefined;
+  const nRepo = slot ? addRepoFacts(slot, incoming, resolve(dir).split(/[\\/]/).pop()) : 0;
+  console.log(`facts-add : +${incoming.length} -> ${merged.length} faits dans ${join(dir, "facts.json")}${slot ? ` ; ${nRepo} dans la memoire du depot` : ""}`);
 }
