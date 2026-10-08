@@ -33,6 +33,54 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Défauts du kit corrigés grâce au banc** (extraits) : plage de l'US (`US_BASE`) qui débordait sur la feature précédente ; brief back avec la gate vitest ; faux GAP de diff-cover ; mots-clés AsyncAPI pris pour des champs ; chemin cité en prose pris pour un fait ; contrat référencé pris pour une écriture.
 
+## Haiku 5.5 dans le kit (banc du 7 octobre au soir)
+
+Haiku 5.5 (`claude-haiku-5-5`) coûte 0,10 $ / 0,50 $ le million de tokens, contre 2 $ / 10 $ pour Sonnet 5.5 et 4 $ / 20 $ pour Opus 5.5 : **20 fois moins cher que Sonnet au token**. Banc : le clone Miro, deux vraies features du tableau Notion (TK-2 « dupliquer Ctrl+D », 1 US de 5 tâches ; TK-3 « mode sombre », 2 US), les mêmes briefs que `/sk-impl`, et trois juges : gates du kit, E2E Playwright 3 runs, revue Opus. Journal brut : `examples/miro/bench/haiku-bench-log.txt` et `haiku-bench-e2e.txt`.
+
+**Worker (le poste le plus cher de `/sk-impl`)**
+
+| Modèle / effort | TK-2 : tokens, durée | E2E TK-2 | Revue Opus TK-2 | TK-3 US1 : tokens, durée |
+|---|---|---|---|---|
+| Haiku low | 160k, 6,5 min | 12/12 ×3 | FIXED (tests de page manquants) | 118k, 3,7 min |
+| Haiku medium (défaut), 2 runs | 176-210k, 14 min | 12/12 ×3, ×2 | FIXED, FIXED (mêmes trous) | 143k, 4,1 min |
+| Haiku high | 202k, 7,6 min | 12/12 ×3 | **PASS** | 185k, 6,0 min |
+| Haiku medium + carte AC, 2 runs | 198-202k, 7,7 min | — | non relu (tests de page présents 2/2) | — |
+| Sonnet low | 115k, 5,8 min | 12/12 ×3 | **PASS** | 96k, 2,6 min |
+| Sonnet medium | 123k, 6,2 min | 12/12 ×3 | FIXED (2 tests de page sans assertion) | 96k, 2,7 min |
+| Sonnet high (défaut) | 131k, 11 min | 12/12 ×3 | **PASS** | 104k, 2,4 min |
+
+- Sur TK-3, toutes les livraisons (Haiku et Sonnet, tous efforts) ont le même défaut, hérité du plan (texte des post-it illisible en sombre) : le passage navigateur le voit, la revue non. Les scénarios d'US1 passent partout.
+- **Le défaut propre à Haiku** : en low ou medium, il teste le chemin nominal et les gardes, mais oublie les tests de page des **effets** (annulation de la copie, échec serveur, outil actif). 3 fois sur 3, la revue Opus a dû les ajouter. En high, plus de trou.
+- **Correctif mis dans le kit** : la carte AC → test (`ac-map.mjs`, étape 3bis du brief worker). Le worker relie chaque AC à un test réel avant DONE ; le script vérifie que le test existe dans un fichier touché. Haiku medium avec la carte : le test d'annulation au niveau page est là 2 fois sur 2, sans coût en plus.
+- Coût estimé (tokens × prix, ordre de grandeur) : un worker Haiku prend ~1,5× les tokens de Sonnet, soit **~7 % du coût Sonnet**. Les durées varient surtout avec la charge de la machine (jusqu'à 15 agents en parallèle sur 4 cœurs).
+- L'effort change peu Sonnet (96-104k sur TK-3). Pour Haiku, high = ~1,3× medium.
+
+**Revue : 9 livraisons piégées (1 propre + 8 défauts injectés, tests verts)**
+
+| Défaut caché | Haiku | Sonnet | Opus |
+|---|---|---|---|
+| d1 décalage y oublié, tests alignés sur le bug | ✓ | — | ✓ |
+| d2 garde lecteur retirée et son test supprimé | ✓ | — | ✓ |
+| d3 raccourci jamais monté | ✓ | — | ✓ |
+| d4 épaisseur du tracé perdue, assertion affaiblie | ✓ | — | ✓ |
+| d5 historique non enregistré (Ctrl+Z inopérant) | ✓ | ✓ | ✓ |
+| d6 répétition clavier non ignorée | ✓ | ✓ | ✓ |
+| d7 largeur/hauteur inversées, tests sans taille | ✓ | ✓ | ✓ |
+| d8 nombre magique et commentaire | ✓ | ✓ | ✓ |
+| c0 livraison propre | PASS ✓ | — | PASS ✓ |
+
+Haiku a tout trouvé et corrigé, test rouge à l'appui, pour ~100k tokens comme Opus, avec 1,5 à 2 fois plus d'appels d'outils. Une seule feature : c'est un signal, pas une preuve. Mis dans le kit en option : `reviewTier: "auto-haiku"` (première revue d'une petite US, la deuxième reste Opus).
+
+**Autres postes**
+- Passe de fix (F1 de TK-3) : Haiku et Sonnet ont fait exactement pareil, d'abord un STOP correct (fichiers hors périmètre), puis, périmètre élargi, le même correctif, 13/13 ×3. Le fix suit donc le modèle du worker.
+- Reconnaissance de prep (agents Explore, 6 questions) : Haiku 6/6 au format et **aucun numéro de ligne faux** ; Sonnet a inventé 5 lignes sur une question (ligne 145 d'un fichier de 130 lignes). Le choix actuel du kit (Explore en Haiku) est confirmé.
+- `/sk-xs` complet en session Haiku (TK-1) : livré, E2E 3/3 ×3. Sonnet aussi ; son seul FAIL venait de mon oracle trop strict (libellé exact).
+- À savoir : un agent Haiku lancé avec une consigne trop courte a deux fois fini sans rendre son rapport ; avec une consigne explicite (« ton rapport final = … »), jamais. Les briefs du kit le disent déjà.
+
+**Ce qui change dans le kit** (tout en option, les défauts ne bougent pas) : `workerModel: "haiku"` (effort high par défaut, fix compris) et `reviewTier: "auto-haiku"` dans le moteur `speckit-us-loop.js` ; `/sk-impl` n==1 en `haiku/high` documenté ; `/sk-xs` en session Haiku pour un vrai XS ; `/sk-notion` `xsModel: "haiku"` ; la carte AC pour tous les workers.
+
+**À confirmer avant d'en faire des défauts** : une revue Opus des deux livraisons « Haiku + carte AC » (attendu : PASS) et le même banc sur une US back (.NET), non testée ici.
+
 ## /sk-notion : un tableau Notion qui pilote le kit (7 octobre)
 
 **L'idée** : Thomas écrit ses tâches dans un tableau Notion (statut, priorité, détail). `/sk-notion` fait de la session Claude le superviseur. Elle lit le tableau, prend les tâches « À faire » par priorité, lance `/sk-prep` puis `/sk-impl` (ou `/sk-xs`), répond seule à ce que la tâche tranche déjà, pose le reste en commentaire dans Notion, joue les tests navigateur avant de publier, puis écrit le compte rendu dans la ligne. Les décisions sont dans un moteur testé (`notion-plan.mjs`) ; le modèle fait seulement les entrées-sorties.
@@ -439,4 +487,4 @@ Défauts du kit révélés par F1, et corrigés :
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 70 tests (au 7 octobre au soir), qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 72 tests (au 8 octobre), qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
