@@ -15,7 +15,12 @@ sections Gates / Standards / Visuel est a traiter (RED si
 testable, GREEN, gate cible), section Mineurs ignoree.
 Ce qui est plus court a faire qu a expliquer, fais-le
 toi-meme ; le reste part a UN Agent Sonnet sk-worker sur ce
-fichier, avec ce que tu as deja fait.
+fichier, avec ce que tu as deja fait. Un finding qui nomme un
+fichier hors des chemins prod de l US (« Observe : stickyNote.tsx:5 »,
+« Piste ») : AJOUTE ce fichier et son test au perimetre du fix dans le
+prompt (« perimetre elargi par l orchestrateur pour Fn : <fichiers> »),
+sinon le worker s arrete a juste titre sur sa regle 3 (banc TK-3 : Haiku et
+Sonnet ont tous deux rendu STOP perimetre, un aller-retour pour rien).
 Rejoue typecheck + lint + tests cibles, commit
 `fix(<slug>): address supervisor findings`, puis repose
 la question de verdict une seconde fois (contexte =
