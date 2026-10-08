@@ -148,13 +148,18 @@ function reviewHandoffOf(out) {
 const DEVIATION_WORDS = /ecart|écart|declar|déclar|faute de spec|module-level|duplique|dupliqué|deviation|contournement/i
 const TEST_PATH = /(^|\/)(__tests__|tests?)\/|\.(test|spec)\.[jt]sx?$|Tests?\.cs$/
 function reviewModelOf(label, handoff, usOut) {
-  if (!cfg || cfg.reviewTier !== 'auto' || label !== 'review') return 'opus'
+  if (!cfg || (cfg.reviewTier !== 'auto' && cfg.reviewTier !== 'auto-haiku') || label !== 'review') return 'opus'
   if (!usOut || typeof usOut !== 'object') return 'opus'
   const prod = (usOut.filesTouched || []).filter(function (f) { return !TEST_PATH.test(String(f)) })
   if (!prod.length || prod.length > 4) return 'opus'
   if (DEVIATION_WORDS.test(String(usOut.summary || '') + ' ' + String(usOut.reason || ''))) return 'opus'
   const gaps = (usOut.designConformance || []).filter(function (d) { return d && ((Array.isArray(d.gaps) && d.gaps.length) || !/^(ok|conforme|conform)$/i.test(String(d.status || ''))) })
-  return gaps.length ? 'opus' : 'sonnet'
+  if (gaps.length) return 'opus'
+  // 'auto-haiku' (experimental): banc Haiku 5.5 du 2026-10-07, 8 defauts injectes sur 8 trouves
+  // et corriges (decalage oublie avec tests alignes, garde lecteur retiree, hook non monte, assertion
+  // affaiblie, historique non enregistre, repetition clavier, test tautologique, nombre magique),
+  // 0 faux positif sur la livraison propre, comme Sonnet et Opus. Une seule feature : a confirmer.
+  return cfg.reviewTier === 'auto-haiku' ? 'haiku' : 'sonnet'
 }
 
 async function reviewOnce(g, id, label, handoff, usOut) {
@@ -212,7 +217,13 @@ function applyReview(row, out, verdict) {
 // Worker and fix effort. Measured on the 918 replay bench (same brief, same US, same reviewer):
 // Sonnet 5.5 medium passed 4 reviews out of 4 at 1.04 USD per US on average, high 4 out of 4 at
 // 1.49, low 1 out of 2. `args.workerEffort` overrides it for a run without editing the engine.
-const WORKER_EFFORT = (cfg && cfg.workerEffort) || 'medium'
+// Worker model. Sonnet by default. `args.workerModel: 'haiku'` (experimental, ~20x cheaper per token):
+// banc Haiku 5.5 du 2026-10-07 (TK-2, TK-3), code et E2E aussi verts que Sonnet a chaque run, mais en
+// effort low/medium la revue Opus a du ajouter des tests de page 3 fois sur 3 (annulation, echec
+// serveur) ; en high, PASS. D ou high par defaut pour Haiku. La carte AC (ac-map.mjs, brief worker
+// 3bis) a ramene ces tests en medium 2 fois sur 2. Haiku consomme ~1,5x les tokens de Sonnet.
+const WORKER_MODEL = (cfg && cfg.workerModel) || 'sonnet'
+const WORKER_EFFORT = (cfg && cfg.workerEffort) || (WORKER_MODEL === 'haiku' ? 'high' : 'medium')
 
 // Fix pass: the copied brief does not carry the "global gates once" rule.
 // Measured on 913: fix US9 = 3 typechecks (340 s), fix US14 = 4 lints (294 s).
@@ -275,16 +286,16 @@ async function runUs(g) {
     return row
   }
 
-  log('US ' + id + ' Sonnet start')
+  log('US ' + id + ' worker ' + WORKER_MODEL + ' start')
   const usOut = await agent(prompt, {
     label: 'us:' + id,
     phase: 'US',
-    model: 'sonnet',
+    model: WORKER_MODEL,
     effort: WORKER_EFFORT,
     agentType: 'sk-worker',
     schema: US_SCHEMA,
   })
-  log('US ' + id + ' Sonnet end')
+  log('US ' + id + ' worker ' + WORKER_MODEL + ' end')
   row.facts = (usOut && typeof usOut === 'object' && Array.isArray(usOut.facts)) ? usOut.facts : []
   if (usOut && typeof usOut === 'object') {
     if (usOut.commit) row.commit = String(usOut.commit)
@@ -338,7 +349,8 @@ async function runUs(g) {
   log('US ' + id + ' fix start')
   const fixBrief = fixPrompt + FIX_GATE_BUDGET + handoffOf(usOut, first.out) + '\n\nReprise apres review FAIL:\n' + formatNotes(row.issues)
   const fixOnce = function (label) {
-    return agent(fixBrief, { label: label + ':' + id, phase: 'US', model: 'sonnet', effort: WORKER_EFFORT, agentType: 'sk-worker', schema: US_SCHEMA })
+    // Fix : meme modele que le worker (banc : Haiku et Sonnet ont fait le meme STOP perimetre puis le meme correctif).
+    return agent(fixBrief, { label: label + ':' + id, phase: 'US', model: WORKER_MODEL, effort: WORKER_EFFORT, agentType: 'sk-worker', schema: US_SCHEMA })
   }
   // A fix agent that dies (null) is retried once, like a review; a real STOP is not.
   let fixOut = await fixOnce('fix')

@@ -230,6 +230,12 @@ Prompt de chaque agent, trois lignes : « Ton brief est dans
 entier en premier ; cwd du slot <SLOT_CWD> ».
 
 **n==1** : Agent({ subagent_type: "sk-worker", model: "sonnet", prompt }).
+Experimental, ~20x moins cher au token : `model: "haiku", effort: "high"`
+(n>=2 : `workerModel: "haiku"` dans les args du Workflow, high par defaut,
+fix compris). Banc du 7 octobre : code et E2E aussi verts que Sonnet ; en
+effort low/medium, tests de page d effet (annulation, echec serveur) oublies
+3 fois sur 3, rattrapes par la revue ; en high, PASS. La carte AC (brief
+3bis) les fait ecrire en medium. Haiku prend ~1,5x les tokens et le temps.
 Pas de Workflow, pas de champ effort (il n existe que dans agent()).
 Puis TOI (Opus parent) appliques le brief -review, « Qui corrige »
 compris : ce qui est plus court a faire qu a expliquer, tu le corriges,
@@ -290,7 +296,10 @@ donne la PREMIERE revue a Sonnet quand le worker touche au plus 4
 fichiers de prod et ne declare aucun ecart (retry et review2 restent
 Opus). Banc A/B : Sonnet + diff-cover + grep des imports paresseux a
 rattrape 3 defauts mecaniques sur 4, mais rate un ecart de conception
-non declare. A n activer que sur un run S/M sans fichier PARTAGE. Pas de `yarn typecheck` ni de suite complete en revue : la
+non declare. A n activer que sur un run S/M sans fichier PARTAGE. `reviewTier:
+"auto-haiku"` : meme regle, PREMIERE revue a Haiku 5.5 (banc du 7 octobre :
+8 defauts injectes sur 8 trouves et corriges, 0 faux positif, comme Sonnet
+et Opus, sur une seule feature). Pas de `yarn typecheck` ni de suite complete en revue : la
 cloture le fait.
 
 ## Cloture du run (une fois, apres toutes les US retenues)

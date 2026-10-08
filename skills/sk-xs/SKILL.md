@@ -10,6 +10,11 @@ allowed-tools: Agent Bash PowerShell Read Write Edit Glob Grep AskUserQuestion S
 
 Besoin : **$ARGUMENTS**
 
+Modele : une session Haiku 5.5 suffit pour un vrai XS (`claude --model haiku "/sk-xs ..."`,
+~20x moins cher au token). Banc du 7 octobre (TK-1, raccourci « 0 ») : livre et E2E 3/3 x 3
+runs, 113k tokens et 3,9 min contre 85k et 3,8 min en Sonnet ; il a reutilise le libelle
+existant du bouton. Au moindre doute sur la taille, garde la session par defaut.
+
 ## Ce que cette commande fait (et ne fait pas)
 
 Le trou du tableau : **pool `sk` + zéro Speckit**. Compare à `/sk-impl` (trio exigé, TDD Sonnet dans le pool) : ici **aucun trio**, branche `sk-xs-<FEATURE_SLUG>`.

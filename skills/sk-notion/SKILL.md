@@ -181,7 +181,9 @@ humaine s y ecrit avec `comment ... --as human` (sans prefixe).
 `bg` (poste du developpeur) : depuis le depot du projet, **en PowerShell 7 sous
 Windows** (piege MSYS2 de sk-supervisor.md) :
 `claude --bg -n sk-<prep|impl|xs>-TK<num> --permission-mode acceptEdits "/sk-prep <titre> — besoin complet : <chemin du brief>"`.
-Verifie au tick suivant que le nom apparait dans `ListAgents` ; sinon `Bloqué`
+Route xs : ajoute `--model haiku` si `notion.json` porte `"xsModel": "haiku"` (banc
+du 7 octobre : /sk-xs en Haiku 5.5 aussi bon que Sonnet sur TK-1). Les preps restent sur le
+modele par defaut (decisions produit, questions). Verifie au tick suivant que le nom apparait dans `ListAgents` ; sinon `Bloqué`
 « lancement echoue » avec la commande.
 
 `agent` (banc sans `claude --bg`) : Agent `general-purpose`, `run_in_background`,

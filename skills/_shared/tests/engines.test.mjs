@@ -137,3 +137,25 @@ test("loop: facts found by a worker reach the next workers of the same repo with
   assert.ok(!prompts["us:US2"].includes("sqlite"));
   assert.ok(prompts["us:US3"].includes("sqlite memoire partagee"));
 });
+
+test("loop: workerModel haiku runs worker and fix on Haiku at high effort; auto-haiku gives the small first review to Haiku", async () => {
+  const seen = {};
+  const body = load("speckit-us-loop.js");
+  const fn = new AsyncFunction("agent", "log", "args", "parallel", body);
+  const small = { stopped: false, commit: "abc1234", filesTouched: ["src/a.ts", "src/__tests__/a.test.ts"], summary: "ok" };
+  const agent = async (prompt, opts) => {
+    seen[opts.label] = `${opts.model}/${opts.effort}`;
+    if (opts.label.startsWith("us:") || opts.label.startsWith("fix:")) return small;
+    if (opts.label === "review:US1") return { verdict: "FAIL", issues: [{ text: "x" }] };
+    return { verdict: "PASS", issues: [] };
+  };
+  await fn(agent, () => {}, { workerModel: "haiku", reviewTier: "auto-haiku", groups: [g("US1")] }, (fns) => Promise.all(fns.map((f) => f())));
+  assert.equal(seen["us:US1"], "haiku/high");
+  assert.equal(seen["fix:US1"], "haiku/high");
+  assert.equal(seen["review:US1"], "haiku/medium");
+  assert.equal(seen["review2:US1"], "opus/medium");
+  const def = {};
+  await fn(async (p, o) => { def[o.label] = `${o.model}/${o.effort}`; return o.label.startsWith("us:") ? small : { verdict: "PASS", issues: [] }; }, () => {}, { groups: [g("US1")] }, (fns) => Promise.all(fns.map((f) => f())));
+  assert.equal(def["us:US1"], "sonnet/medium");
+  assert.equal(def["review:US1"], "opus/medium");
+});
