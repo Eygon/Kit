@@ -141,6 +141,15 @@ etaient invisibles aux tests unitaires, qui mockent le transport.
   ou la decision qui l accepte : sans cela l oracle la signale a tort (banc TK-3 :
   texte rouge #dc2626 sur canevas sombre, 3,49:1, accepte par la reponse Q2).
 
+## Oracles de texte : ce que la spec impose, rien de plus
+
+Un oracle sur un libelle visible (aide, bouton, toast) n exige un texte EXACT
+que si la spec ou l AC le cite. Sinon il verifie la presence de l element
+(ligne de l aide qui porte la touche, bouton au bon role) ou le libelle lu dans
+les locales par sa cle. Banc TK-1 : l oracle attendait « Reinitialiser le
+zoom » ; la livraison Sonnet affichait « Revenir a 100 % », conforme a la
+tache (« le raccourci apparait dans l aide ») : 3 FAIL a tort.
+
 ## Mode lot (apres plusieurs features)
 
 Un passage par lot de 3-5 features fusionnees, en plus (ou a la place) du

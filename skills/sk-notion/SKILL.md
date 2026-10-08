@@ -152,7 +152,8 @@ ne se publie sans avoir ete VU fonctionner. `Statut` = `Claude teste`.
    - `answer` + `withPr` : ecris `FEATURE_DIR/pr.md` (resume, scenarios verifies
      dans Chrome, findings de revue) et envoie `text` + ` · pr=<chemin pr.md>` ;
    - `answer` + `withFindings` : ecris `findings.md` (un FAIL = AC vise, observe,
-     attendu, preuve) et envoie `text` + ` · findings=<chemin>` ; `Statut` =
+     attendu, preuve, **fichiers** a toucher avec leur ligne : `/sk-impl` elargit
+     ainsi le perimetre du fix d emblee) et envoie `text` + ` · findings=<chemin>` ; `Statut` =
      `Claude implémente`, run `e2eRound` = nextRound. Le verdict suivant
      redeclenche ce §4.
    - `relay` : la question de verdict part dans Notion (§3 relay) avec le
