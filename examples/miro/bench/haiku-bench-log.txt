@@ -47,3 +47,6 @@ QUALITE opus tk2-smed (sonnet/medium) FIXED (2 tests de page sans assertion crea
 AB acmap worker tk2-hac1 haiku/defaut commit=df6eee3 ac-map 11/11
   (hac1 tokens=201995 tools=79 ms=461617 ; carte : AC6 au niveau page "undoes the duplicate on Ctrl+Z")
 AB acmap worker tk2-hac2 haiku/defaut commit=6b19ffe ac-map 11/11 tokens=198246 tools=68 ms=467554
+AB revue haiku hac2 (carte AC) PASS (rq non bloquante : outil actif)
+AB revue haiku h1 temoin (sans carte) FAIL : AC6 undo, echec serveur, membres isError (= trous trouves par Opus) tokens=106590
+AB revue haiku hac1 (carte AC) PASS tokens~105k

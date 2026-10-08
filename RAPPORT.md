@@ -44,14 +44,14 @@ Haiku 5.5 (`claude-haiku-5-5`) coûte 0,10 $ / 0,50 $ le million de tokens, cont
 | Haiku low | 160k, 6,5 min | 12/12 ×3 | FIXED (tests de page manquants) | 118k, 3,7 min |
 | Haiku medium (défaut), 2 runs | 176-210k, 14 min | 12/12 ×3, ×2 | FIXED, FIXED (mêmes trous) | 143k, 4,1 min |
 | Haiku high | 202k, 7,6 min | 12/12 ×3 | **PASS** | 185k, 6,0 min |
-| Haiku medium + carte AC, 2 runs | 198-202k, 7,7 min | — | non relu (tests de page présents 2/2) | — |
+| Haiku medium + carte AC, 2 runs | 198-202k, 7,7 min | — | **PASS, PASS** (revue Haiku, voir ci-dessous) | — |
 | Sonnet low | 115k, 5,8 min | 12/12 ×3 | **PASS** | 96k, 2,6 min |
 | Sonnet medium | 123k, 6,2 min | 12/12 ×3 | FIXED (2 tests de page sans assertion) | 96k, 2,7 min |
 | Sonnet high (défaut) | 131k, 11 min | 12/12 ×3 | **PASS** | 104k, 2,4 min |
 
 - Sur TK-3, toutes les livraisons (Haiku et Sonnet, tous efforts) ont le même défaut, hérité du plan (texte des post-it illisible en sombre) : le passage navigateur le voit, la revue non. Les scénarios d'US1 passent partout.
 - **Le défaut propre à Haiku** : en low ou medium, il teste le chemin nominal et les gardes, mais oublie les tests de page des **effets** (annulation de la copie, échec serveur, outil actif). 3 fois sur 3, la revue Opus a dû les ajouter. En high, plus de trou.
-- **Correctif mis dans le kit** : la carte AC → test (`ac-map.mjs`, étape 3bis du brief worker). Le worker relie chaque AC à un test réel avant DONE ; le script vérifie que le test existe dans un fichier touché. Haiku medium avec la carte : le test d'annulation au niveau page est là 2 fois sur 2, sans coût en plus.
+- **Correctif mis dans le kit** : la carte AC → test (`ac-map.mjs`, étape 3bis du brief worker). Le worker relie chaque AC à un test réel avant DONE ; le script vérifie que le test existe dans un fichier touché. Haiku medium avec la carte : le test d'annulation au niveau page est là 2 fois sur 2, sans coût en plus, et la revue rend PASS 2 fois sur 2. Cette revue a été faite par Haiku (40 fois moins cher qu'Opus), calibrée sur un témoin : sur une livraison Haiku sans carte, elle retrouve les mêmes trous qu'Opus (annulation, échec serveur), plus un cas « membres en erreur ».
 - Coût estimé (tokens × prix, ordre de grandeur) : un worker Haiku prend ~1,5× les tokens de Sonnet, soit **~7 % du coût Sonnet**. Les durées varient surtout avec la charge de la machine (jusqu'à 15 agents en parallèle sur 4 cœurs).
 - L'effort change peu Sonnet (96-104k sur TK-3). Pour Haiku, high = ~1,3× medium.
 
@@ -79,7 +79,7 @@ Haiku a tout trouvé et corrigé, test rouge à l'appui, pour ~100k tokens comme
 
 **Ce qui change dans le kit** (tout en option, les défauts ne bougent pas) : `workerModel: "haiku"` (effort high par défaut, fix compris) et `reviewTier: "auto-haiku"` dans le moteur `speckit-us-loop.js` ; `/sk-impl` n==1 en `haiku/high` documenté ; `/sk-xs` en session Haiku pour un vrai XS ; `/sk-notion` `xsModel: "haiku"` ; la carte AC pour tous les workers.
 
-**À confirmer avant d'en faire des défauts** : une revue Opus des deux livraisons « Haiku + carte AC » (attendu : PASS) et le même banc sur une US back (.NET), non testée ici.
+**À confirmer avant d'en faire des défauts** : le même banc sur une US back (.NET), non testée ici, et plus d'une feature par poste.
 
 ## /sk-notion : un tableau Notion qui pilote le kit (7 octobre)
 
