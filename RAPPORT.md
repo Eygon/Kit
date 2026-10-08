@@ -33,6 +33,18 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Défauts du kit corrigés grâce au banc** (extraits) : plage de l'US (`US_BASE`) qui débordait sur la feature précédente ; brief back avec la gate vitest ; faux GAP de diff-cover ; mots-clés AsyncAPI pris pour des champs ; chemin cité en prose pris pour un fait ; contrat référencé pris pour une écriture.
 
+## Accélérer : mémoire des faits par dépôt (8 octobre)
+
+Constat du banc : les 10 workers de TK-2 ont tous redécouvert le même piège des tests du dépôt (un écouteur qui avale le clic du test suivant), plusieurs minutes de recherche chacun, alors que le premier l'avait écrit dans ses faits. La mémoire de faits ne vivait que le temps d'une feature.
+
+Changement : `facts-add --slot` verse aussi les faits dans une mémoire du dépôt (`<git common dir>/sk-facts.json`, commune à tous les slots, 30 faits au plus, jamais commitée). `brief-fill` la rend aux features suivantes, en taisant un fait dont le fichier source a disparu ; `/sk-xs` la lit en recon.
+
+Mesure (même US, Sonnet medium, même brief + la mémoire) : **22 appels d'outils au lieu de 31 (−29 %)**, 116k tokens au lieu de 123k, 3,7 min au lieu de 6,2 (machine au repos cette fois, donc le temps est flatteur ; le nombre d'appels ne dépend pas de la charge). Livraison E2E 12/12 ×3. Le worker a placé ses tests au bon endroit d'emblée, sans bisection.
+
+Aussi : en prep, un besoin qui redéfinit des jetons partagés (thème) demande qui les lit sur un fond fixe. C'est ce qui aurait évité la passe de fix de TK-3.
+
+Non changé : le parallélisme. Le kit plafonne déjà à 4 voies (slots du pool) et `/sk-notion` à 2 workers ; la surcharge vue la veille venait du banc (15 agents à la fois sur 4 cœurs).
+
 ## Haiku 5.5 dans le kit (banc du 7 octobre au soir)
 
 Haiku 5.5 (`claude-haiku-5-5`) coûte 0,10 $ / 0,50 $ le million de tokens, contre 2 $ / 10 $ pour Sonnet 5.5 et 4 $ / 20 $ pour Opus 5.5 : **20 fois moins cher que Sonnet au token**. Banc : le clone Miro, deux vraies features du tableau Notion (TK-2 « dupliquer Ctrl+D », 1 US de 5 tâches ; TK-3 « mode sombre », 2 US), les mêmes briefs que `/sk-impl`, et trois juges : gates du kit, E2E Playwright 3 runs, revue Opus. Journal brut : `examples/miro/bench/haiku-bench-log.txt` et `haiku-bench-e2e.txt`.
@@ -487,4 +499,4 @@ Défauts du kit révélés par F1, et corrigés :
 - Les durées de runs lancés en parallèle peuvent être un peu gonflées. Les comparaisons s'appuient surtout sur les tokens, le coût et la qualité des trios.
 
 ## Tests du kit
-`node --test skills/_shared/tests/*.test.mjs` : 72 tests (au 8 octobre), qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.
+`node --test skills/_shared/tests/*.test.mjs` : 73 tests (au 8 octobre), qui couvrent brief-fill, la sonde, recon-seed, standards-pack, tasks-merge, design-extract et les deux moteurs Workflow.

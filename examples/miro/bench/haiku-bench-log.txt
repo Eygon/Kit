@@ -50,3 +50,4 @@ AB acmap worker tk2-hac2 haiku/defaut commit=6b19ffe ac-map 11/11 tokens=198246 
 AB revue haiku hac2 (carte AC) PASS (rq non bloquante : outil actif)
 AB revue haiku h1 temoin (sans carte) FAIL : AC6 undo, echec serveur, membres isError (= trous trouves par Opus) tokens=106590
 AB revue haiku hac1 (carte AC) PASS tokens~105k
+MEMOIRE DEPOT worker tk2-smem sonnet/medium tokens=115701 tools=22 ms=219441 commit=fb9c934 E2E 12/12 x3 (vs smed sans memoire : 122654 tokens, 31 outils, 371780 ms sous charge)
