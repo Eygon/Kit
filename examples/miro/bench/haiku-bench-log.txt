@@ -52,3 +52,5 @@ AB revue haiku h1 temoin (sans carte) FAIL : AC6 undo, echec serveur, membres is
 AB revue haiku hac1 (carte AC) PASS tokens~105k
 MEMOIRE DEPOT worker tk2-smem sonnet/medium tokens=115701 tools=22 ms=219441 commit=fb9c934 E2E 12/12 x3 (vs smed sans memoire : 122654 tokens, 31 outils, 371780 ms sous charge)
 EVENTAIL 10:58 lot 1 lance : solo h1, solo o, eventail f1a-d (Haiku)
+EVENTAIL f1b (Haiku loupe B) FAIL : d2 garde lecture seule, d6 repetition (2/2 de sa loupe, 0 faux positif)
+  (f1b tokens=83393 tools=10 ms=55508)
