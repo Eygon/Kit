@@ -33,6 +33,30 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Défauts du kit corrigés grâce au banc** (extraits) : plage de l'US (`US_BASE`) qui débordait sur la feature précédente ; brief back avec la gate vitest ; faux GAP de diff-cover ; mots-clés AsyncAPI pris pour des champs ; chemin cité en prose pris pour un fait ; contrat référencé pris pour une écriture.
 
+## Revue : un relecteur seul ou une revue en éventail ? (10 octobre)
+
+**La question** : Anthropic annonce qu'un workflow à plusieurs agents trouve bien plus de bugs qu'un agent seul (66 sur 70 contre 14 à 27). Le kit fait relire chaque US par **un** relecteur. Est-ce qu'un éventail (4 relecteurs Haiku, une loupe chacun : données, conditions, effets, tests) trouve plus ?
+
+**Banc** : une livraison TK-2 piégée, avec plusieurs défauts cachés sous des tests verts (tsc, eslint et gate verts), relue en mode « rapport seul » (personne ne corrige, on compte). Script : `examples/miro/bench/mkfan.sh` ; journal : `haiku-bench-log.txt`.
+- Lot 1 : 7 défauts que `tasks.md` décrit mot pour mot (y non décalé, taille inversée, épaisseur perdue, garde lecteur retirée, Ctrl+Z inopérant, répétition clavier, nombre magique).
+- Lot 2 : 6 défauts plus subtils (Ctrl+Z supprime l'**original**, élément verrouillé plus dupliqué, traduction es laissée en anglais, Ctrl+Shift+D cassé, favoris du navigateur plus bloqués sur touche maintenue, test de démontage supprimé).
+
+| Configuration | Lot 1 (7) | Lot 2 (6) | Fausses alertes | Durée (lot 2) | Tokens (lot 2) |
+|---|---|---|---|---|---|
+| Haiku seul | 7 | 5 | 0 | 5,5 min | 127k Haiku |
+| Sonnet seul | — | 5 | 0 | 2,1 min | 83k Sonnet |
+| Opus seul (défaut du kit) | 7 | 5 | 0 | 3,9 min | 93k Opus |
+| Éventail 4 Haiku | 7 (6/6/6/2) | **6** (5/2/4/5) | 0 | 4,8 min (en parallèle) | 405k Haiku |
+| Haiku seul + loupe « tests » | 7 | **6** | 0 | 5,5 min | 226k Haiku |
+
+- **Le seul défaut manqué par les relecteurs seuls** (Haiku, Sonnet, Opus) : un **test supprimé** (démontage de l'écouteur). Un relecteur seul lit le code ajouté et ne remarque pas ce qui manque. La loupe « tests », qui compare chaque test à la spec, l'a trouvé.
+- **Aucune fausse alerte**, dans aucune config. Le verificateur prévu pour l'éventail n'a donc rien eu à filtrer : je ne l'ai pas lancé.
+- Chaque loupe déborde de son périmètre (la loupe « données » trouve aussi des gardes) : c'est l'union qui fait le score, pas la spécialisation stricte.
+- **Coût** : l'éventail fait ~4× les tokens d'un Haiku seul. En prix, 405k Haiku ≈ 0,1 $, soit moins qu'un Opus seul (~0,6 $). En quota, c'est 4 agents au lieu d'un.
+- **Limite** : une seule feature, une livraison par lot. L'écart est d'un défaut sur 13. C'est un signal, pas une preuve.
+
+**Ce que j'en retiens pour le kit** : pas d'éventail complet par défaut (le gain tient en un défaut). Le meilleur rapport gain/coût est le **duo** : le relecteur habituel plus une loupe « tests » Haiku en parallèle (durée inchangée, +100k Haiku). Pas encore branché dans le moteur : à confirmer sur une 2e feature avant.
+
 ## Accélérer : mémoire des faits par dépôt (8 octobre)
 
 Constat du banc : les 10 workers de TK-2 ont tous redécouvert le même piège des tests du dépôt (un écouteur qui avale le clic du test suivant), plusieurs minutes de recherche chacun, alors que le premier l'avait écrit dans ses faits. La mémoire de faits ne vivait que le temps d'une feature.

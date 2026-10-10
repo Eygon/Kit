@@ -54,3 +54,43 @@ MEMOIRE DEPOT worker tk2-smem sonnet/medium tokens=115701 tools=22 ms=219441 com
 EVENTAIL 10:58 lot 1 lance : solo h1, solo o, eventail f1a-d (Haiku)
 EVENTAIL f1b (Haiku loupe B) FAIL : d2 garde lecture seule, d6 repetition (2/2 de sa loupe, 0 faux positif)
   (f1b tokens=83393 tools=10 ms=55508)
+
+== Banc revue en eventail (10 octobre) ==
+Livraison piegee R-mix (base r-c0 propre, 7 defauts, tests verts, tsc/eslint verts) :
+d1 y non decale (y: item.y), tests alignes sur le bug (unit + page)
+d2 garde lecture seule retiree (isReadOnly) + son test supprime
+d4 strokeWidth perdu pour le trait libre, assertions retirees
+d5 record(CREATE) retire : Ctrl+Z ne supprime pas la copie, test supprime
+d6 event.repeat non ignore, test supprime
+d7 width/height inverses, tests passes en objectContaining sans taille
+d8 nombre magique 20 au lieu de DUPLICATE_OFFSET_PX + commentaire
+Livraison piegee R-mix2 (base r-c0, 6 defauts subtils, gate verte 563 tests, tsc/eslint verts) :
+s1 repetition : return avant preventDefault -> Ctrl+D maintenu declenche l ajout aux favoris (edge case spec), test affaibli (defaultPrevented retire)
+s4 combo shift:false -> Ctrl+Shift+D ne duplique plus (T002), cas de test retire
+s5 record(CREATE, item: selectedItem) -> Ctrl+Z supprime l ORIGINAL au lieu de la copie, test affaibli (toHaveBeenCalledWith(77) retire)
+s7 test « removes the listener on unmount » supprime (T003 / edge changement de tableau)
+s8 es.json « Duplicate selection » (anglais) au lieu de « Duplicar la selección » (T005), test aligne
+s9 garde selectedItem.isLocked -> un element verrouille ne se duplique plus (T004 « l element verrouille se duplique »), test supprime
+EVENTAIL f1c (Haiku loupe C effets) FAIL : d1 d7 d4 d2 d5 d6 = 6/7 (manque d8), 0 faux positif
+  (f1c tokens=102958 tools=17 ms=95532) ; f1b : d2 d6, 83393 tok, 10 outils, 56 s
+EVENTAIL f1d (Haiku loupe D tests) FAIL : d1 d7 d4 d5 d2 d6 = 6/7 (manque d8) + 1 remarque (test d echec sans erreur serveur simulee, discutable) tokens=98617 tools=14 ms=104418
+EVENTAIL f1a (Haiku loupe A donnees) FAIL : d1 d7 d4 d8(x2) d2 d6 = 6/7 (manque d5), 0 faux positif. UNION eventail f1 = 7/7
+  (f1a tokens=87965 tools=16 ms=134078) ; eventail f1 total : ~373k tokens Haiku, mur 2,2 min
+SOLO opus FAIL : 7/7 (d1 d7 d4 d8 d2 d5 d6), 0 faux positif, + tests figes nommes
+  (opus tokens=91486 tools=14 ms=180384)
+SOLO haiku h1 FAIL : 7/7, 0 faux positif (1 detail faux : copie de copie 'attendu y:50')
+  (h1 tokens=110386 tools=26 ms=222375)
+LOT2 fb (Haiku loupe B) : s9 s1 = 2/6, 0 FP
+  (fb 85764 tok, 15 outils, 80 s)
+LOT2 solo sonnet : s9 s5 s8 s4 s1 = 5/6 (manque s7 test demontage), 0 FP
+  (sonnet 83212 tok, 11 outils, 124 s)
+LOT2 fd (Haiku loupe D tests) : s9 s5 s4 s1 s7 = 5/6 (manque s8 es), + remarque test d echec (vraie faiblesse, presente aussi dans c0), 0 FP
+  (fd 99565 tok, 17 outils, 177 s)
+LOT2 solo opus : s9 s5 s1 s4 s8 = 5/6 (manque s7 demontage), 0 FP
+  (opus 93259 tok, 15 outils, 235 s)
+LOT2 fc (Haiku loupe C effets) : s5 s9 s1 s4 = 4/6, 0 FP
+  (fc 112270 tok, 19 outils, 274 s)
+LOT2 fa (Haiku loupe A) : s5 s9 s4 s8 s1 = 5/6 (manque s7), 0 FP. UNION eventail lot2 = 6/6
+  (fa 107437 tok, 25 outils, 290 s) ; eventail lot2 total ~405k tok Haiku, mur 4,8 min
+LOT2 solo haiku h1 : s5 s9 s8 s4 s1 = 5/6 (manque s7), + AC5 cascade sans test page (vrai, deja dans c0), 0 FP. Combo h1+fd = 6/6
+  (h1 126593 tok, 31 outils, 329 s)
