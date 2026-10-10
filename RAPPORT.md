@@ -55,7 +55,9 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 - **Coût** : l'éventail fait ~4× les tokens d'un Haiku seul. En prix, 405k Haiku ≈ 0,1 $, soit moins qu'un Opus seul (~0,6 $). En quota, c'est 4 agents au lieu d'un.
 - **Limite** : une seule feature, une livraison par lot. L'écart est d'un défaut sur 13. C'est un signal, pas une preuve.
 
-**Ce que j'en retiens pour le kit** : pas d'éventail complet par défaut (le gain tient en un défaut). Le meilleur rapport gain/coût est le **duo** : le relecteur habituel plus une loupe « tests » Haiku en parallèle (durée inchangée, +100k Haiku). Pas encore branché dans le moteur : à confirmer sur une 2e feature avant.
+**Confirmation sur une 2e feature (TK-3, mode sombre)** : la loupe « tests » seule, sur deux livraisons déjà connues. Livraison Haiku low : elle retrouve le trou que la revue Opus avait trouvé (le test de la palette ne vérifie que 5 jetons sur 10). Livraison Sonnet low : elle signale qu'aucun test ne vérifie la couleur des post-it et des formes en sombre (AC5). C'est vrai, et c'est précisément là que TK-3 cachait son défaut (texte des post-it illisible), que seul le passage navigateur avait vu. 0 fausse alerte, 80 s et ~80k tokens Haiku chacune.
+
+**Branché dans le kit (par défaut)** : le moteur lance la loupe « tests » Haiku **en parallèle** de la revue. Si la revue rend FAIL, ses pistes s'ajoutent au fix. Si la revue rend PASS ou FIXED alors que la loupe a des pistes, une revue Opus `review-lens` les juge une par une (corrige les vraies, écarte les fausses). Coût : ~0,03 $ par US ; durée inchangée quand la loupe ne trouve rien. `reviewLens: false` la coupe. L'éventail complet n'est pas branché : il n'a rien trouvé de plus que le duo.
 
 ## Accélérer : mémoire des faits par dépôt (8 octobre)
 

@@ -1,6 +1,6 @@
 export const meta = {
   name: 'speckit-us-loop',
-  description: 'Par US : Sonnet sk-worker, puis reviewer Opus qui rend PASS, FIXED (il a corrige lui-meme), FAIL (passe de fix Sonnet puis review2) ou ESCALATE (arbitrage humain, chaine arretee). Revue sans verdict relancee une fois. Zero Haiku.',
+  description: 'Par US : Sonnet sk-worker, puis reviewer Opus qui rend PASS, FIXED (il a corrige lui-meme), FAIL (passe de fix Sonnet puis review2) ou ESCALATE (arbitrage humain, chaine arretee). Revue sans verdict relancee une fois. Loupe tests Haiku en parallele de la revue (reviewLens:false la coupe).',
   phases: [
     { title: 'US', detail: 'Sonnet medium RED GREEN REFACTOR + commit DONE', model: 'sonnet' },
     { title: 'Review', detail: 'Opus medium relit le commit contre la spec, corrige lui-meme ce qui est plus court a faire qu a expliquer', model: 'opus' },
@@ -173,6 +173,38 @@ async function reviewOnce(g, id, label, handoff, usOut) {
   })
 }
 
+// Loupe « tests » : un Haiku relit EN PARALLELE de la revue, en lecture seule, chaque attente de
+// test contre la spec et les taches. Banc du 2026-10-10 (13 defauts caches sous des tests verts,
+// 2 lots) : Haiku, Sonnet et Opus seuls ont tous rate un test supprime, la loupe l a trouve ;
+// 0 fausse alerte. Duree inchangee (elle finit avant la revue Opus), ~100k tokens Haiku par US.
+// Ses pistes vont au fix si la revue rend FAIL, sinon a une revue Opus qui les juge une par une.
+// `args.reviewLens: false` la coupe.
+const LENS_SCHEMA = {
+  type: 'object',
+  required: ['issues'],
+  properties: { issues: { type: 'array', items: NOTE_SCHEMA } },
+}
+const LENS_BRIEF = '\n\n## LOUPE TESTS — rapport seul (prime sur le brief et sur tes invariants)\n' +
+  'Un autre relecteur fait la revue complete en parallele. Toi, tu ne modifies AUCUN fichier, tu ne commites rien, ' +
+  'tu ne rends pas de verdict. Ta seule loupe : chaque attente de test comparee a la spec et aux taches (pas au code) ; ' +
+  'assertions partielles ou affaiblies ; AC, cas limite ou exigence de tache sans test qui rougirait sur le defaut. ' +
+  'Rejoue red-replay. Une issue = un defaut reel, prouve (ligne de spec ou de tache + ce que le test ne verifie pas), ' +
+  'jamais une preference ni ce qui sort de ta loupe.\n' +
+  'Sortie : { "issues": [ { "text": "attendu (spec/tache) vs trouve (test), action precise", "file": "chemin:ligne" } ] }, [] si rien.'
+function lensOn() { return !cfg || cfg.reviewLens !== false }
+async function lensOnce(g, id, handoff) {
+  if (!lensOn()) return []
+  const out = await agent(g.reviewPrompt + (handoff || '') + LENS_BRIEF, {
+    label: 'lens:' + id,
+    phase: 'Review',
+    model: 'haiku',
+    effort: 'medium',
+    agentType: 'sk-reviewer',
+    schema: LENS_SCHEMA,
+  })
+  return out && typeof out === 'object' ? notesOf(out.issues) : []
+}
+
 // A FAIL or an ESCALATE without a single issue gives nobody anything to act on:
 // an unreadable review, retried like one (916 US15: a network failure read as FAIL
 // paid a fix on an empty list, then a review2). A FIXED without a commit left its
@@ -327,15 +359,39 @@ async function runUs(g) {
   }
 
   log('US ' + id + ' review start')
-  const first = await reviewWithRetry(g, id, 'review', reviewHandoffOf(usOut), usOut)
+  const both = await Promise.all([reviewWithRetry(g, id, 'review', reviewHandoffOf(usOut), usOut), lensOnce(g, id, reviewHandoffOf(usOut))])
+  let first = both[0]
+  const lens = both[1]
   log('US ' + id + ' review ' + first.verdict)
+  if (lens.length) {
+    row.lensIssues = lens
+    log('US ' + id + ' loupe tests : ' + lens.length + ' piste(s)')
+  }
   if (first.verdict === 'ERROR') {
     row.review = 'ERROR'
     row.error = 'review'
     row.halt = true
     return row
   }
-  if (applyReview(row, first.out, first.verdict)) return row
+  if (applyReview(row, first.out, first.verdict)) {
+    if (!lens.length) return row
+    // The review passed but the lens saw tests the spec asks for: an Opus review judges each one,
+    // fixes the true ones itself (FIXED) or sets the false ones aside (PASS). A FAIL goes on to
+    // the usual fix + review2.
+    const lensNotes = '\n\n## Pistes de la loupe tests (Haiku, lecture seule) — verifie chacune : corrige celles qui sont vraies, ecarte les fausses en une ligne\n' + formatNotes(lens)
+    log('US ' + id + ' review-lens start')
+    first = await reviewWithRetry(g, id, 'review-lens', reviewHandoffOf(usOut) + lensNotes)
+    log('US ' + id + ' review-lens ' + first.verdict)
+    if (first.verdict === 'ERROR') {
+      row.review = 'ERROR'
+      row.error = 'review-lens'
+      row.halt = true
+      return row
+    }
+    if (applyReview(row, first.out, first.verdict)) return row
+  } else if (lens.length) {
+    row.issues = row.issues.concat(lens)
+  }
   if (row.review === 'ESCALATE') {
     row.escalated = true
     row.halt = true

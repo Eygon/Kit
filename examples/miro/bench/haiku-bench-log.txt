@@ -94,3 +94,5 @@ LOT2 fa (Haiku loupe A) : s5 s9 s4 s8 s1 = 5/6 (manque s7), 0 FP. UNION eventail
   (fa 107437 tok, 25 outils, 290 s) ; eventail lot2 total ~405k tok Haiku, mur 4,8 min
 LOT2 solo haiku h1 : s5 s9 s8 s4 s1 = 5/6 (manque s7), + AC5 cascade sans test page (vrai, deja dans c0), 0 FP. Combo h1+fd = 6/6
   (h1 126593 tok, 31 outils, 329 s)
+TK3 loupe tests hlow : trouve le trou connu (test palette 5/10 jetons, = Opus), 0 FP, 76860 tok, 80 s
+TK3 loupe tests slow : AC5 post-it/formes sans test (vrai : c est la que TK-3 cachait le texte illisible, vu seulement au navigateur), 0 FP, 83377 tok, 84 s

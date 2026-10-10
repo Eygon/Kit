@@ -303,7 +303,14 @@ rattrape 3 defauts mecaniques sur 4, mais rate un ecart de conception
 non declare. A n activer que sur un run S/M sans fichier PARTAGE. `reviewTier:
 "auto-haiku"` : meme regle, PREMIERE revue a Haiku 5.5 (banc du 7 octobre :
 8 defauts injectes sur 8 trouves et corriges, 0 faux positif, comme Sonnet
-et Opus, sur une seule feature). Pas de `yarn typecheck` ni de suite complete en revue : la
+et Opus, sur une seule feature). Loupe tests (par defaut, `reviewLens: false` la coupe) : le moteur lance
+EN PARALLELE de la revue un Haiku en lecture seule qui compare chaque test
+a la spec et aux taches. Ses pistes vont au fix si la revue rend FAIL,
+sinon a une revue Opus `review-lens` qui les juge. Banc du 10 octobre :
+Haiku, Sonnet et Opus seuls ont tous rate un test supprime, la loupe l a
+trouve ; sur TK-3 elle a vu les 2 trous de tests connus ; 0 fausse alerte
+en 4 runs. Duree inchangee, ~80-100k tokens Haiku par US. n==1 (toi) :
+lance-la aussi en sous-agent Haiku pendant ta revue. Pas de `yarn typecheck` ni de suite complete en revue : la
 cloture le fait.
 
 ## Cloture du run (une fois, apres toutes les US retenues)

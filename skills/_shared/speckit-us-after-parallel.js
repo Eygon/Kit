@@ -1,6 +1,6 @@
 export const meta = {
   name: 'speckit-us-after-parallel',
-  description: 'Barriere d abord, puis Promise.all sur le groupe parallel. Par US : Sonnet sk-worker, puis reviewer Opus qui rend PASS, FIXED (il a corrige lui-meme), FAIL (passe de fix Sonnet puis review2) ou ESCALATE (arbitrage humain). Revue sans verdict relancee une fois. Zero Haiku.',
+  description: 'Barriere d abord, puis Promise.all sur le groupe parallel. Par US : Sonnet sk-worker, puis reviewer Opus qui rend PASS, FIXED (il a corrige lui-meme), FAIL (passe de fix Sonnet puis review2) ou ESCALATE (arbitrage humain). Revue sans verdict relancee une fois. Loupe tests Haiku en parallele de la revue (reviewLens:false la coupe).',
   phases: [
     { title: 'US', detail: 'Sonnet medium RED GREEN REFACTOR + commit DONE', model: 'sonnet' },
     { title: 'Review', detail: 'Opus medium relit le commit contre la spec, corrige lui-meme ce qui est plus court a faire qu a expliquer', model: 'opus' },
@@ -173,13 +173,18 @@ function reviewHandoffOf(out) {
 const DEVIATION_WORDS = /ecart|écart|declar|déclar|faute de spec|module-level|duplique|dupliqué|deviation|contournement/i
 const TEST_PATH = /(^|\/)(__tests__|tests?)\/|\.(test|spec)\.[jt]sx?$|Tests?\.cs$/
 function reviewModelOf(label, handoff, usOut) {
-  if (!cfg || cfg.reviewTier !== 'auto' || label !== 'review') return 'opus'
+  if (!cfg || (cfg.reviewTier !== 'auto' && cfg.reviewTier !== 'auto-haiku') || label !== 'review') return 'opus'
   if (!usOut || typeof usOut !== 'object') return 'opus'
   const prod = (usOut.filesTouched || []).filter(function (f) { return !TEST_PATH.test(String(f)) })
   if (!prod.length || prod.length > 4) return 'opus'
   if (DEVIATION_WORDS.test(String(usOut.summary || '') + ' ' + String(usOut.reason || ''))) return 'opus'
   const gaps = (usOut.designConformance || []).filter(function (d) { return d && ((Array.isArray(d.gaps) && d.gaps.length) || !/^(ok|conforme|conform)$/i.test(String(d.status || ''))) })
-  return gaps.length ? 'opus' : 'sonnet'
+  if (gaps.length) return 'opus'
+  // 'auto-haiku' (experimental): banc Haiku 5.5 du 2026-10-07, 8 defauts injectes sur 8 trouves
+  // et corriges (decalage oublie avec tests alignes, garde lecteur retiree, hook non monte, assertion
+  // affaiblie, historique non enregistre, repetition clavier, test tautologique, nombre magique),
+  // 0 faux positif sur la livraison propre, comme Sonnet et Opus. Une seule feature : a confirmer.
+  return cfg.reviewTier === 'auto-haiku' ? 'haiku' : 'sonnet'
 }
 
 async function reviewOnce(g, id, label, handoff, usOut) {
@@ -191,6 +196,38 @@ async function reviewOnce(g, id, label, handoff, usOut) {
     agentType: 'sk-reviewer',
     schema: REVIEW_SCHEMA,
   })
+}
+
+// Loupe « tests » : un Haiku relit EN PARALLELE de la revue, en lecture seule, chaque attente de
+// test contre la spec et les taches. Banc du 2026-10-10 (13 defauts caches sous des tests verts,
+// 2 lots) : Haiku, Sonnet et Opus seuls ont tous rate un test supprime, la loupe l a trouve ;
+// 0 fausse alerte. Duree inchangee (elle finit avant la revue Opus), ~100k tokens Haiku par US.
+// Ses pistes vont au fix si la revue rend FAIL, sinon a une revue Opus qui les juge une par une.
+// `args.reviewLens: false` la coupe.
+const LENS_SCHEMA = {
+  type: 'object',
+  required: ['issues'],
+  properties: { issues: { type: 'array', items: NOTE_SCHEMA } },
+}
+const LENS_BRIEF = '\n\n## LOUPE TESTS — rapport seul (prime sur le brief et sur tes invariants)\n' +
+  'Un autre relecteur fait la revue complete en parallele. Toi, tu ne modifies AUCUN fichier, tu ne commites rien, ' +
+  'tu ne rends pas de verdict. Ta seule loupe : chaque attente de test comparee a la spec et aux taches (pas au code) ; ' +
+  'assertions partielles ou affaiblies ; AC, cas limite ou exigence de tache sans test qui rougirait sur le defaut. ' +
+  'Rejoue red-replay. Une issue = un defaut reel, prouve (ligne de spec ou de tache + ce que le test ne verifie pas), ' +
+  'jamais une preference ni ce qui sort de ta loupe.\n' +
+  'Sortie : { "issues": [ { "text": "attendu (spec/tache) vs trouve (test), action precise", "file": "chemin:ligne" } ] }, [] si rien.'
+function lensOn() { return !cfg || cfg.reviewLens !== false }
+async function lensOnce(g, id, handoff) {
+  if (!lensOn()) return []
+  const out = await agent(g.reviewPrompt + (handoff || '') + LENS_BRIEF, {
+    label: 'lens:' + id,
+    phase: 'Review',
+    model: 'haiku',
+    effort: 'medium',
+    agentType: 'sk-reviewer',
+    schema: LENS_SCHEMA,
+  })
+  return out && typeof out === 'object' ? notesOf(out.issues) : []
 }
 
 // A FAIL or an ESCALATE without a single issue gives nobody anything to act on:
@@ -237,7 +274,13 @@ function applyReview(row, out, verdict) {
 // Worker and fix effort. Measured on the 918 replay bench (same brief, same US, same reviewer):
 // Sonnet 5.5 medium passed 4 reviews out of 4 at 1.04 USD per US on average, high 4 out of 4 at
 // 1.49, low 1 out of 2. `args.workerEffort` overrides it for a run without editing the engine.
-const WORKER_EFFORT = (cfg && cfg.workerEffort) || 'medium'
+// Worker model. Sonnet by default. `args.workerModel: 'haiku'` (experimental, ~20x cheaper per token):
+// banc Haiku 5.5 du 2026-10-07 (TK-2, TK-3), code et E2E aussi verts que Sonnet a chaque run, mais en
+// effort low/medium la revue Opus a du ajouter des tests de page 3 fois sur 3 (annulation, echec
+// serveur) ; en high, PASS. D ou high par defaut pour Haiku. La carte AC (ac-map.mjs, brief worker
+// 3bis) a ramene ces tests en medium 2 fois sur 2. Haiku consomme ~1,5x les tokens de Sonnet.
+const WORKER_MODEL = (cfg && cfg.workerModel) || 'sonnet'
+const WORKER_EFFORT = (cfg && cfg.workerEffort) || (WORKER_MODEL === 'haiku' ? 'high' : 'medium')
 
 // Fix pass: the copied brief does not carry the "global gates once" rule.
 // Measured on 913: fix US9 = 3 typechecks (340 s), fix US14 = 4 lints (294 s).
@@ -300,16 +343,16 @@ async function runUs(g) {
     return row
   }
 
-  log('US ' + id + ' Sonnet start')
+  log('US ' + id + ' worker ' + WORKER_MODEL + ' start')
   const usOut = await agent(prompt, {
     label: 'us:' + id,
     phase: 'US',
-    model: 'sonnet',
+    model: WORKER_MODEL,
     effort: WORKER_EFFORT,
     agentType: 'sk-worker',
     schema: US_SCHEMA,
   })
-  log('US ' + id + ' Sonnet end')
+  log('US ' + id + ' worker ' + WORKER_MODEL + ' end')
   row.facts = (usOut && typeof usOut === 'object' && Array.isArray(usOut.facts)) ? usOut.facts : []
   if (usOut && typeof usOut === 'object') {
     if (usOut.commit) row.commit = String(usOut.commit)
@@ -341,15 +384,39 @@ async function runUs(g) {
   }
 
   log('US ' + id + ' review start')
-  const first = await reviewWithRetry(g, id, 'review', reviewHandoffOf(usOut), usOut)
+  const both = await Promise.all([reviewWithRetry(g, id, 'review', reviewHandoffOf(usOut), usOut), lensOnce(g, id, reviewHandoffOf(usOut))])
+  let first = both[0]
+  const lens = both[1]
   log('US ' + id + ' review ' + first.verdict)
+  if (lens.length) {
+    row.lensIssues = lens
+    log('US ' + id + ' loupe tests : ' + lens.length + ' piste(s)')
+  }
   if (first.verdict === 'ERROR') {
     row.review = 'ERROR'
     row.error = 'review'
     row.halt = true
     return row
   }
-  if (applyReview(row, first.out, first.verdict)) return row
+  if (applyReview(row, first.out, first.verdict)) {
+    if (!lens.length) return row
+    // The review passed but the lens saw tests the spec asks for: an Opus review judges each one,
+    // fixes the true ones itself (FIXED) or sets the false ones aside (PASS). A FAIL goes on to
+    // the usual fix + review2.
+    const lensNotes = '\n\n## Pistes de la loupe tests (Haiku, lecture seule) — verifie chacune : corrige celles qui sont vraies, ecarte les fausses en une ligne\n' + formatNotes(lens)
+    log('US ' + id + ' review-lens start')
+    first = await reviewWithRetry(g, id, 'review-lens', reviewHandoffOf(usOut) + lensNotes)
+    log('US ' + id + ' review-lens ' + first.verdict)
+    if (first.verdict === 'ERROR') {
+      row.review = 'ERROR'
+      row.error = 'review-lens'
+      row.halt = true
+      return row
+    }
+    if (applyReview(row, first.out, first.verdict)) return row
+  } else if (lens.length) {
+    row.issues = row.issues.concat(lens)
+  }
   if (row.review === 'ESCALATE') {
     row.escalated = true
     row.halt = true
@@ -363,7 +430,8 @@ async function runUs(g) {
   log('US ' + id + ' fix start')
   const fixBrief = fixPrompt + FIX_GATE_BUDGET + handoffOf(usOut, first.out) + '\n\nReprise apres review FAIL:\n' + formatNotes(row.issues)
   const fixOnce = function (label) {
-    return agent(fixBrief, { label: label + ':' + id, phase: 'US', model: 'sonnet', effort: WORKER_EFFORT, agentType: 'sk-worker', schema: US_SCHEMA })
+    // Fix : meme modele que le worker (banc : Haiku et Sonnet ont fait le meme STOP perimetre puis le meme correctif).
+    return agent(fixBrief, { label: label + ':' + id, phase: 'US', model: WORKER_MODEL, effort: WORKER_EFFORT, agentType: 'sk-worker', schema: US_SCHEMA })
   }
   // A fix agent that dies (null) is retried once, like a review; a real STOP is not.
   let fixOut = await fixOnce('fix')

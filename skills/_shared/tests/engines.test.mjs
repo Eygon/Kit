@@ -35,7 +35,37 @@ test("loop: PASS chains every story, FAIL pays one fix then review2", async () =
     return { verdict: "PASS", issues: [] };
   });
   assert.equal(result.ok, true);
-  assert.deepEqual(calls, ["us:US1", "review:US1", "us:US2", "review:US2", "fix:US2", "review2:US2"]);
+  assert.deepEqual(calls, ["us:US1", "review:US1", "lens:US1", "us:US2", "review:US2", "lens:US2", "fix:US2", "review2:US2"]);
+});
+
+test("loop: the tests lens runs on Haiku beside the review; its leads go to an Opus review-lens after a PASS, to the fix after a FAIL", async () => {
+  const seen = {};
+  const prompts = {};
+  const reply = (fail) => async (prompt, opts) => {
+    seen[opts.label] = `${opts.model}/${opts.effort}`;
+    prompts[opts.label] = prompt;
+    if (opts.label.startsWith("us:") || opts.label.startsWith("fix:")) return done;
+    if (opts.label.startsWith("lens:")) return { issues: [{ text: "AC6 sans test qui rougit", file: "src/__tests__/a.test.ts:12" }] };
+    if (fail && opts.label === "review:US1") return { verdict: "FAIL", issues: [{ text: "garde absente" }] };
+    return { verdict: "PASS", issues: [] };
+  };
+  const body = load("speckit-us-loop.js");
+  const fn = new AsyncFunction("agent", "log", "args", "parallel", body);
+  const fanOut = (fns) => Promise.all(fns.map((f) => f()));
+  let r = await fn(reply(false), () => {}, { groups: [g("US1")] }, fanOut);
+  assert.equal(r.ok, true);
+  assert.equal(seen["lens:US1"], "haiku/medium");
+  assert.equal(seen["review-lens:US1"], "opus/medium");
+  assert.ok(prompts["review-lens:US1"].includes("AC6 sans test qui rougit"));
+  assert.ok(prompts["lens:US1"].includes("LOUPE TESTS"));
+  for (const k of Object.keys(seen)) delete seen[k];
+  r = await fn(reply(true), () => {}, { groups: [g("US1")] }, fanOut);
+  assert.ok(prompts["fix:US1"].includes("garde absente") && prompts["fix:US1"].includes("AC6 sans test qui rougit"));
+  assert.equal(seen["review-lens:US1"], undefined);
+  assert.ok(prompts["review2:US1"].includes("AC6 sans test qui rougit"));
+  for (const k of Object.keys(seen)) delete seen[k];
+  await fn(reply(false), () => {}, { reviewLens: false, groups: [g("US1")] }, fanOut);
+  assert.deepEqual(Object.keys(seen), ["us:US1", "review:US1"]);
 });
 
 test("after-parallel: the barrier review's sha256 freezes the contract, no hash agent", async () => {
