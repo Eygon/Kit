@@ -251,7 +251,12 @@ Fix en STOP : pas de nouvelle revue, tu remontes.
 **n>=2** (hors parallel.md) : Workflow
 scriptPath `<SK_SHARED>/speckit-us-loop.js` (chemin absolu resolu),
 args.groups[] = [{id, prompt, reviewPrompt, fixPrompt, root}] dans l ordre de
-tasks.md (fixPrompt dans CHAQUE groupe ; root = SLOT_CWD de l US). Le moteur
+tasks.md (fixPrompt dans CHAQUE groupe ; root = SLOT_CWD de l US), et
+`reviewTier: "auto"` par defaut (la vitesse prime sur le prix : premiere revue
+Sonnet sur une petite US sans ecart declare, ~2 min contre ~4 pour Opus, meme
+score sur le banc piege du 10 octobre) ; `reviewTier: "opus"` si recon.md
+porte une ligne `- PARTAGE :` (fichier partage entre US : c est la que Sonnet
+a rate un ecart de conception). Le moteur
 transmet les faits d un worker aux workers et fix suivants du MEME root dans
 le run : les briefs etant remplis avant, sans lui US2 ignorait ce que US1
 venait d etablir. Boucle : worker -> revue. PASS /
@@ -295,12 +300,12 @@ Checklist : le brief -review (`<SK_SHARED>/us-reviewer.md` rempli). Le
 reviewer recoit recon.md, les tests et le MEME extrait design que le
 worker. n==1 : toi. n>=2 : sk-reviewer Opus medium dans le Workflow, qui
 doit pouvoir editer, committer et rendre le schema (ne restreins pas ses
-tools). Experimental : `reviewTier: "auto"` dans les args du Workflow
+tools). `reviewTier: "auto"` (par defaut via les args, voir n>=2)
 donne la PREMIERE revue a Sonnet quand le worker touche au plus 4
 fichiers de prod et ne declare aucun ecart (retry et review2 restent
 Opus). Banc A/B : Sonnet + diff-cover + grep des imports paresseux a
 rattrape 3 defauts mecaniques sur 4, mais rate un ecart de conception
-non declare. A n activer que sur un run S/M sans fichier PARTAGE. `reviewTier:
+non declare : d ou `"opus"` quand recon.md liste un fichier PARTAGE. `reviewTier:
 "auto-haiku"` : meme regle, PREMIERE revue a Haiku 5.5 (banc du 7 octobre :
 8 defauts injectes sur 8 trouves et corriges, 0 faux positif, comme Sonnet
 et Opus, sur une seule feature). Loupe tests (par defaut, `reviewLens: false` la coupe) : le moteur lance

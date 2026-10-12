@@ -59,6 +59,8 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Branché dans le kit (par défaut)** : le moteur lance la loupe « tests » Haiku **en parallèle** de la revue. Si la revue rend FAIL, ses pistes s'ajoutent au fix. Si la revue rend PASS ou FIXED alors que la loupe a des pistes, une revue Opus `review-lens` les juge une par une (corrige les vraies, écarte les fausses). Coût : ~0,03 $ par US ; durée inchangée quand la loupe ne trouve rien. `reviewLens: false` la coupe. L'éventail complet n'est pas branché : il n'a rien trouvé de plus que le duo.
 
+**Réglé pour la vitesse (12 octobre, choix de Thomas : la vitesse avant le prix)** : `/sk-impl` passe désormais `reviewTier: "auto"` par défaut. Une petite US sans écart déclaré a sa première revue en Sonnet (2,1 min contre 3,9 pour Opus sur le lot 2, même score 5/6, 6/6 avec la loupe). Opus reste pour les US plus grosses, les écarts déclarés, les review2, et dès que recon.md liste un fichier PARTAGE (là où Sonnet avait raté un écart de conception). Worker : Sonnet medium, inchangé (le plus rapide mesuré).
+
 ## Accélérer : mémoire des faits par dépôt (8 octobre)
 
 Constat du banc : les 10 workers de TK-2 ont tous redécouvert le même piège des tests du dépôt (un écouteur qui avale le clic du test suivant), plusieurs minutes de recherche chacun, alors que le premier l'avait écrit dans ses faits. La mémoire de faits ne vivait que le temps d'une feature.
