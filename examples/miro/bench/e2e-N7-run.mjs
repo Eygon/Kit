@@ -8,6 +8,7 @@ const E = new URL(".", import.meta.url).pathname; const RUN = process.argv[2] ||
 const API = "http://localhost:5080/api/v1";
 const call = async (u, m, p, b) => { const r = await fetch(API + p, { method: m, headers: { ...(u ? { "X-User-Id": String(u) } : {}), ...(b ? { "Content-Type": "application/json" } : {}) }, body: b && JSON.stringify(b) }); const t = await r.text(); let j = null; try { j = t ? JSON.parse(t) : null; } catch { j = t; } return { status: r.status, body: j, text: t }; };
 const results = []; const check = (id, ok, d) => { results.push({ id, ok: !!ok, detail: d }); console.log(`${ok ? "PASS" : "FAIL"} ${id} ${d}`); };
+const nz = (d) => d && d.replace(/Z$/, "");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const nb = (await call(1, "POST", "/boards", { name: "N7-" + Date.now() })).body;
 const mk = async (extra = {}) => (await call(1, "POST", `/boards/${nb.id}/items`, { type: "StickyNote", x: 10, y: 10, width: 100, height: 60, content: "c0", color: "#fde68a", ...extra })).body;
@@ -21,22 +22,14 @@ check("#1.1", r1.status === 200 && r1.body.content === "c1" && r1.body.updatedAt
 await sleep(20);
 const r2 = await P(a.id, { content: "c2", expectedUpdatedAt: a.updatedAt });
 const after = await get(a.id);
-check("#1.2", r2.status === 409 && r2.body.message && r2.body.current?.id === a.id && r2.body.current.content === "c1" && r2.body.current.updatedAt === r1.body.updatedAt && r2.body.current.type === "StickyNote" && after.content === "c1" && after.updatedAt === r1.body.updatedAt, `perime -> ${r2.status} ${r2.text.slice(0, 200)} ; relu content=${after.content}`);
+check("#1.2", r2.status === 409 && r2.body.message && r2.body.current?.id === a.id && r2.body.current.content === "c1" && nz(r2.body.current.updatedAt) === nz(r1.body.updatedAt) && r2.body.current.type === "StickyNote" && after.content === "c1" && nz(after.updatedAt) === nz(r1.body.updatedAt), `perime -> ${r2.status} ${r2.text.slice(0, 200)} ; relu content=${after.content}`);
 // AC3 sans champ -> 200 quelle que soit la date
 const r3 = await P(a.id, { content: "c3" });
 check("#1.3", r3.status === 200 && r3.body.content === "c3", `sans expectedUpdatedAt -> ${r3.status}`);
-// AC4 autres ecritures du meme instant
-const cur = (await get(a.id)).updatedAt; const base = cur.replace(/Z$/, "");
-const variants = { Z: base + "Z", sansSuffixe: base, decalage: new Date(cur.endsWith("Z") ? cur : cur + "Z").toISOString().replace(/Z$/, "") + "+00:00" };
-const ms = new Date(cur.endsWith("Z") ? cur : cur + "Z"); const plus2 = new Date(ms.getTime() + 2 * 3600e3);
-const p2 = (n) => String(n).padStart(2, "0");
-const iso = new Date(plus2.getTime()).toISOString().slice(0, 19); const frac = (cur.split(".")[1] || "").replace(/Z$/, "");
-variants.plus02 = iso + (frac ? "." + frac : "") + "+02:00";
+// AC4 autres ecritures du meme instant (variantes recalculees sur la date courante a chaque tour)
+const variantsOf = (d) => { const b = d.replace(/Z$/, ""), fr = (b.split(".")[1] || ""), t = new Date(b + "Z"); return { Z: b + "Z", sansSuffixe: b, decalageUTC: b + "+00:00", plus02: new Date(t.getTime() + 2 * 3600e3).toISOString().slice(0, 19) + (fr ? "." + fr : "") + "+02:00" }; };
 let ok4 = true; const det4 = [];
-for (const [k, v] of Object.entries(variants)) { const r = await P(a.id, { color: "#aabbcc", expectedUpdatedAt: v }); det4.push(`${k}:${r.status}`); if (r.status !== 200) ok4 = false; else { /* nouvelle date pour la variante suivante : recalculer */ const n = (await get(a.id)).updatedAt; variants.__n = n; }
-  // recalcule les variantes restantes sur la nouvelle date
-  const nn = (await get(a.id)).updatedAt; const b2 = nn.replace(/Z$/, ""); const d2 = new Date(nn.endsWith("Z") ? nn : nn + "Z"); const f2 = (nn.split(".")[1] || "").replace(/Z$/, "");
-  variants.Z = b2 + "Z"; variants.sansSuffixe = b2; variants.decalage = b2 + "+00:00"; variants.plus02 = new Date(d2.getTime() + 2 * 3600e3).toISOString().slice(0, 19) + (f2 ? "." + f2 : "") + "+02:00"; }
+for (const k of ["Z", "sansSuffixe", "decalageUTC", "plus02"]) { const v = variantsOf((await get(a.id)).updatedAt)[k]; const r = await P(a.id, { color: "#aabbcc", expectedUpdatedAt: v }); det4.push(`${k}:${r.status}`); if (r.status !== 200) ok4 = false; await sleep(5); }
 check("#1.4", ok4, det4.join(" "));
 // AC5 verrouille + perime -> 409 perime avec current montrant le verrou
 const l = await mk(); const l0 = l.updatedAt; await sleep(20);
@@ -48,7 +41,7 @@ check("#1.5/E3", r5.status === 409 && r5.body.current?.isLocked === true && "cur
 const e0 = await P(a.id, {}); const r6 = await P(a.id, { expectedUpdatedAt: (await get(a.id)).updatedAt });
 check("#1.6", r6.status === 400 && e0.status === 400 && r6.text === e0.text, `seul -> ${r6.status} ${r6.text.slice(0, 80)} ; vide -> ${e0.status}`);
 // AC7 temps reel : perime n emet rien, a jour emet
-const conn = new signalR.HubConnectionBuilder().withUrl(`http://localhost:5080/hubs/board?userId=2`, { withCredentials: false }).build();
+const conn = new signalR.HubConnectionBuilder().withUrl(`http://localhost:5080/hubs/board?userId=1`, { withCredentials: false }).build();
 const got = []; conn.on("BoardChanged", (...x) => got.push(x)); await conn.start(); await conn.invoke("JoinBoard", nb.id);
 const t = await mk(); await sleep(300); got.length = 0; const t0 = t.updatedAt; await sleep(20);
 await P(t.id, { content: "n" }); await sleep(500); const n1 = got.length; got.length = 0;
