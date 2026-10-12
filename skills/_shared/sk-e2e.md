@@ -141,6 +141,14 @@ etaient invisibles aux tests unitaires, qui mockent le transport.
   ou la decision qui l accepte : sans cela l oracle la signale a tort (banc TK-3 :
   texte rouge #dc2626 sur canevas sombre, 3,49:1, accepte par la reponse Q2).
 
+## Oracle de debordement (`overflowing`, e2e-oracles.mjs)
+
+Sur chaque ecran qui affiche une donnee saisie par l utilisateur (nom, titre, commentaire), joue UNE fois la valeur
+extreme permise par la spec (nom de 100 caracteres SANS espace, mot tres long, 120 caracteres) puis
+`overflowing(page)` : rend les textes qui sortent de leur boite ou de l ecran. jsdom ne calcule aucune geometrie :
+seul le navigateur le voit. Banc N3 (renommer un tableau) : un nom de 105 « L » sortait de sa carte, couvrait les
+cartes voisines et ecrasait le crayon a 0 px de large (le defaut existait deja sans le crayon).
+
 ## Oracles de texte : ce que la spec impose, rien de plus
 
 Un oracle sur un libelle visible (aide, bouton, toast) n exige un texte EXACT

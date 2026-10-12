@@ -82,3 +82,34 @@ export async function unreadable(page, { min = 4.5, minLarge = 3, limit = 20, ex
     .filter((f) => f.ratio < (f.size >= 24 || (f.bold && f.size >= 18.66) ? minLarge : min))
     .filter((f) => !expected.some((rx) => rx.test(f.text))).slice(0, limit);
 }
+
+// Oracle « debordement » : un texte qui sort de sa boite (carte, bouton, liste) ou une boite qui sort de l ecran.
+// Banc N3 : un nom de 105 caracteres sans espace sortait de sa carte, passait sur les cartes voisines et ecrasait le
+// bouton crayon a 0 px ; ni les tests unitaires (jsdom ne calcule aucune geometrie) ni les oracles 5xx / console / contraste ne le voient.
+// Rend les boites (bordure ou fond) dont un texte depasse de plus de `tolerance` px, et les textes hors viewport.
+// `expected` : regex sur le texte tolere (defaut connu de la base).
+export async function overflowing(page, { tolerance = 2, limit = 20, expected = [] } = {}) {
+  const found = await page.evaluate((tol) => {
+    const out = [];
+    const vw = document.documentElement.clientWidth;
+    const hasBox = (el) => { const s = getComputedStyle(el); return parseFloat(s.borderTopWidth) > 0 || parseFloat(s.borderLeftWidth) > 0 || !/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(s.backgroundColor); };
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const t = n.textContent.trim(); const el = n.parentElement;
+      if (!t || !el || el.closest(".sr-only,[aria-hidden=true]")) continue;
+      const range = document.createRange(); range.selectNodeContents(n);
+      const tr = range.getBoundingClientRect();
+      if (!tr.width || !tr.height) continue;
+      if (tr.right > vw + tol) out.push({ text: t.slice(0, 40), kind: "hors ecran", by: Math.round(tr.right - vw) });
+      for (let b = el; b && b !== document.body; b = b.parentElement) {
+        if (!hasBox(b)) continue;
+        const br = b.getBoundingClientRect();
+        if (!br.width) continue;
+        if (tr.right > br.right + tol || tr.left < br.left - tol) { out.push({ text: t.slice(0, 40), kind: "sort de sa boite", by: Math.round(Math.max(tr.right - br.right, br.left - tr.left)) }); }
+        break;
+      }
+    }
+    return out;
+  }, tolerance);
+  return found.filter((f) => !expected.some((rx) => rx.test(f.text))).slice(0, limit);
+}
