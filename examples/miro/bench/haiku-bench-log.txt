@@ -147,3 +147,16 @@ C3 c0 propre opus : 95745 tok, 177 s
 C3 mix2 opus : s5 s9 s8 s1 s4 = 5/6 (manque s7 encore), 0 FP, 93579 tok, 180 s
 TOTAL pieges (32 defauts sur 2 cycles x 3 livraisons) : sonnet 27/32, opus 30/32, loupe 30/32, duo sonnet+loupe 32/32, duo opus+loupe 32/32 ; 0 FP partout ; propres : PASS 4/4 ; loupe sur propre : 3 pistes 2/2
 REVIEW-LENS sonnet sur c0 propre (3 pistes) : FIXED, 3 tests ajoutes vus rouges, 86491 tok, 154 s -> +2,6 min par US quand la loupe a des pistes sur une revue PASS
+38:WORKER C2 tk3-slow2 (sonnet low) : DONE commit 4850d59, ac-map 6/6
+40:WORKER C2 tk3-smed2 (sonnet medium) : DONE commit 9d7188d, ac-map 6/6
+42:WORKER C2 tk2-slow2 (sonnet low) : DONE commit a969ec1, ac-map 11/11 (AC5 cascade au niveau unitaire seulement, declare)
+44:JUGE sonnet tk3-smed2 : PASS
+45:JUGE sonnet tk3-slow2 : PASS
+46:JUGE sonnet tk3-slow2 : PASS (79408 tok, 79 s)
+47:JUGE loupe tk3-smed2 : 2 pistes mineures (bloc CSS non borne, DEFAULT_TEXT_COLOR importee) -> notes
+48:WORKER C2 tk2-smed2 (sonnet medium) : DONE commit 4d74029, ac-map 11/11, AC5 cascade testee au niveau page (mieux que low) ; 118709 tok, 29 outils, 272 s
+49:JUGE loupe tk3-slow2 : 4 pistes (dont valeurs i18n T006 non assertees : seule la presence des cles, VRAI trou ; noms en/es non testes) vs 2 mineures pour medium
+50:JUGE sonnet tk2-smed2 : PASS
+51:JUGE sonnet tk2-slow2 : PASS
+52:JUGE loupe tk2-slow2 : 3 pistes (test d echec, cascade AC5 page [declare par le worker], trace plat partiel)
+53:JUGE loupe tk2-smed2 : 6 pistes (plus que low : le nombre de pistes ne mesure pas la qualite)

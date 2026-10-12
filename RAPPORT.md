@@ -49,6 +49,15 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 - **Opus n'apporte rien de plus avec la loupe**, et il est ~2× plus lent. Le choix « Sonnet + loupe » est confirmé.
 - **Coût en temps de la loupe** : sur une livraison propre, elle a toujours des pistes (de vrais trous de tests, mineurs). Les faire juger et corriger par une revue Sonnet coûte 2,6 min par US (mesuré : 3 tests ajoutés, vus rouges). Puisque la vitesse prime, le moteur garde désormais ces pistes **en notes** après un PASS (`reviewLens: "full"` pour les traiter). Après un FAIL, elles partent au fix comme avant, sans passe de plus.
 
+**Worker : Sonnet low ou medium ?** (même jour, 2 cycles sur TK-2 et TK-3 US1, jugés par Sonnet + loupe ; cycle 1 jugé par Opus le 7)
+
+| | TK-3 US1 (2 cycles) | TK-2 US1 (2 cycles) | Verdict de la revue |
+|---|---|---|---|
+| Sonnet low | 2,6 / 2,2 min | 5,8 / 3,8 min | PASS ×4 ; tests un peu plus minces (TK-3 : valeurs i18n non vérifiées ; TK-2 : copie de copie testée seulement en unitaire, déclaré) |
+| Sonnet medium (défaut) | 2,7 / 2,7 min | 6,2 / 4,5 min | PASS ×3, FIXED ×1 |
+
+- Low est ~15 % plus rapide (30 à 40 s par US) sur ces petites US front, sans FAIL. Mais sur le banc de rejeu du 18 septembre (vraies US plus grosses), low n'avait passé que 1 revue sur 2, contre 4/4 en medium. Un FAIL coûte un fix et une 2e revue, soit ~10 min : bien plus que les 40 s gagnées. **Je garde medium.** `workerEffort: "low"` reste possible pour un lot de petites US front.
+
 ## Revue : un relecteur seul ou une revue en éventail ? (10 octobre)
 
 **La question** : Anthropic annonce qu'un workflow à plusieurs agents trouve bien plus de bugs qu'un agent seul (66 sur 70 contre 14 à 27). Le kit fait relire chaque US par **un** relecteur. Est-ce qu'un éventail (4 relecteurs Haiku, une loupe chacun : données, conditions, effets, tests) trouve plus ?
