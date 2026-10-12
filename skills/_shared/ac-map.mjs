@@ -21,10 +21,12 @@ export function acNumbers(specText, us) {
   return [...String(block).matchAll(/^\s*(\d+)\.\s+/gm)].map((m) => Number(m[1]));
 }
 
-// Titres des tests d un fichier : it("..."), test("..."), it.each(...)("...").
+// Titres des tests d un fichier : it("..."), test("..."), it.each(...)("...") ; C# : le nom de la methode
+// qui porte [Test], [TestCase(...)], [Fact] ou [Theory] (banc N1, back : l outil rendait INTROUVABLE pour les 8 AC).
 export function testTitles(source) {
   const out = [];
   for (const m of source.matchAll(/\b(?:it|test)(?:\.each\([\s\S]*?\))?\(\s*(["'`])((?:\\.|(?!\1).)*)\1/g)) out.push(m[2]);
+  for (const m of source.matchAll(/\[(?:Test|TestCase|TestCaseSource|Fact|Theory)\b[^\]]*\](?:\s*\[[^\]]*\])*\s*public\s+(?:async\s+)?(?:Task|void)\s+(\w+)/g)) out.push(m[1]);
   return out;
 }
 

@@ -435,7 +435,8 @@ Reprise = les [ ] restants.
      [{ "ac": 1, "file": "<fichier de test>", "test": "<titre du it/test>", "level": "page|unit" }, ...]
    puis :
      node "<SK_SHARED>/ac-map.mjs" --spec "<SPEC_PATH>" --us <US_ID> --map "$(git rev-parse --git-dir)/sk-<US_ID>-acmap.json" --range HEAD
-   MANQUE / INTROUVABLE = ecris ce test avant DONE. Un AC qui decrit un
+   MANQUE / INTROUVABLE = ecris ce test avant DONE. Back C# : `test` = le nom
+   (ou le debut du nom) de la methode [Test] / [TestCase] / [Fact]. Un AC qui decrit un
    EFFET apres l action (historique / annulation, selection, echec serveur,
    etat garde) se prouve au niveau `page` (le composant qui monte la
    logique), pas seulement par le test d un utilitaire : banc Haiku 5.5,

@@ -479,6 +479,10 @@ test("ac-map: chaque AC doit pointer un test existant d un fichier touche par l 
   });
   assert.deepEqual(r.lines.map((l) => l.status), ["OK", "INTROUVABLE", "HORS-US", "MANQUE"]);
   assert.equal(r.ok, false);
+  const cs = '[TestFixture]\npublic sealed class BoardsApiTests\n{\n    [Test]\n    public async Task Delete_AsOwner_Returns204()\n    {\n    }\n\n    [TestCase(2)]\n    [TestCase(3)]\n    public async Task Delete_AsNonOwner_Returns403(int userId)\n    {\n    }\n\n    private async Task<int> Helper()\n    {\n        return 1;\n    }\n\n    [Test]\n    public void Sync_Case() { }\n}';
+  assert.deepEqual(testTitles(cs), ["Delete_AsOwner_Returns204", "Delete_AsNonOwner_Returns403", "Sync_Case"]);
+  const rc = checkMap({ acs: [1, 2], map: [{ ac: 1, file: "A.cs", test: "Delete_AsOwner" }, { ac: 2, file: "A.cs", test: "Delete_AsNonOwner_Returns403" }], readFile: () => cs, touched: new Set(["A.cs"]) });
+  assert.equal(rc.ok, true);
 });
 
 test("facts : memoire du depot partagee entre worktrees et features, faits perimes tus, injectee par brief-fill", async () => {
