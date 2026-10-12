@@ -65,6 +65,23 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Limites** : une revue Sonnet qui rend PASS en moins d'une minute n'a pas toujours tout lu : sans la loupe, 3 à 7 trous par US auraient été livrés. Le moteur `Workflow` complet (avec la loupe) n'a toujours pas tourné de bout en bout (les agents `sk-worker`/`sk-reviewer` ne sont pas installés ici) : validé par ses tests et par le même déroulé fait à la main.
 
+### Deux US de plus : N5 (front, la plus grosse) et N7 (back, la plus subtile)
+
+| US | Genre | Worker | Revue | Loupe | Vérification réelle |
+|---|---|---|---|---|---|
+| N5 Grille magnétique | front, 6 tâches / 6 fichiers, géométrie + persistance | 4,3 min | Opus PASS, Sonnet PASS (même verdict) | 5 pistes (2 retenues vues rouges, 3 écartées avec raison) | navigateur 11/11 ×3 (vraies glissades souris) |
+| N7 Concurrence optimiste sur la modification d'un élément | back, ordre des contrôles, dates et fuseaux, temps réel | **medium 3,0 min / high 4,7 min** | Sonnet PASS ×2 | 6 pistes (medium) / 3 (high), toutes vraies | API réelle 11/11 ×3 après correction |
+
+**N7 : le worker « high » n'apporte rien.** Même US, deux workers Sonnet (medium et high) : le code de production est quasi identique (même garde, même ordre), les tests équivalents, les deux passent 10/10 ×3 en réel. High coûte +55 % de temps (4,7 contre 3,0 min) et +12 % de tokens, pour zéro gain. Je garde medium ; je n'escalade pas le worker.
+
+**N7 : la revue a raté un vrai défaut, la loupe l'a vu.** La spec disait « la validation (400) passe avant le contrôle de fraîcheur (409) ». Les deux workers et les deux revues Sonnet ont laissé la fraîcheur AVANT la validation de trace (`tasks.md` disait « après la recherche de l'élément, avant le verrou » et se taisait sur la validation : le trou vient du trio, pas du worker). La loupe a relevé qu'aucun test ne jouait « date périmée + champ invalide ». Corrigé (code + 4 tests vus rouges). Autre trou réel : les tests de fuseau (date sans suffixe, `ToLocalTime`) **passaient même sans le code** sur une machine en UTC. Rendus discriminants (suite jouée en Europe/Paris, vus rouges par mutation).
+
+**Critère d'escalade, avec les données de N5 et N7** : monter le modèle ne change pas le résultat (N5 : Opus et Sonnet rendent PASS tous les deux ; N7 : high = medium). Ce qui change le résultat, c'est la **loupe** (5 puis 6 pistes vraies là où deux revues disaient PASS). Donc : worker medium, revue Sonnet (Opus au-delà de 4 fichiers de prod ou fichier partagé, par prudence), **loupe toujours**. Rien n'a justifié un modèle ou un effort plus élevé sur 7 US de 5 genres.
+
+**Règles ajoutées au kit** : `sk-prep` — `tasks.md` donne l'ordre complet des contrôles quand la spec impose un ordre ; `us-sonnet` 3ter — un test par paire « X avant Y » et des tests de date/fuseau discriminants hors UTC ; `us-reviewer` check 6 — mêmes deux points jugés.
+
+**À confirmer par Thomas** : (1) N7 a été corrigé pour que « verrouillé + champ invalide » réponde 400 au lieu de 409 (conforme à la spec, mais change un comportement existant que rien ne testait) ; (2) la correction de N7 a fait tourner **toute** la suite de tests sous `TZ=Europe/Paris` (`test.runsettings`) : c'est un choix de dépôt, à valider ou à remplacer par une preuve indépendante du fuseau.
+
 ## Revue : le choix éprouvé sur plusieurs cycles (12 octobre)
 
 **Pourquoi** : le choix « Sonnet + loupe » reposait sur une seule mesure. Je l'ai refait sur **3 livraisons piégées** de 3 US différentes (TK-2 duplication : 6 défauts ; TK-3 US1 mode sombre : 6 ; TK-3 US2 mémorisation : 4), **2 cycles chacune**, plus **2 livraisons propres** (faux positifs et temps). Sonnet et Opus tournaient dans le même lot, donc avec la même charge machine.
