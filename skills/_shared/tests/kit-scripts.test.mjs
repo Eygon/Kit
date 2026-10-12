@@ -449,6 +449,13 @@ test("contract-cover: each response code of the story's operations needs a test 
   assert.deepEqual(rows.map((r) => `${r.code}:${r.ok}`), ["200:true", "204:false"]);
 });
 
+test("contract-cover: une tache qui cite l attribut [HttpPost(\"{id:int}/duplicate\")] retient l operation POST /boards/{id}/duplicate (banc N10 : NONE)", async () => {
+  const { contractOps, opsOfStory } = await import("../contract-cover.mjs");
+  const yaml = "openapi: 3.0.3\npaths:\n  /api/v1/boards/{id}/duplicate:\n    post:\n      responses:\n        '201':\n          description: ok\n        '404':\n          description: absent\n";
+  const ops = opsOfStory(contractOps(yaml), ["- [ ] T003 [US1] Etendre `BoardsController.cs` avec l action `Duplicate` (`[HttpPost(\"{id:int}/duplicate\")]`, 201 + 404 de contracts/board-duplicate.yaml)"]);
+  assert.deepEqual(ops.map((o) => o.method + " " + o.path), ["POST /api/v1/boards/{id}/duplicate"]);
+});
+
 test("applyConditions resolves nested blocks", async () => {
   const { applyConditions } = await import("../brief-fill.mjs");
   const t = "a\n<!-- if:contract -->\n<!-- if:back -->\nB\n<!-- /if:back -->\nC\n<!-- /if:contract -->\nz";

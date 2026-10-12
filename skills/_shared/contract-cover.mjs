@@ -62,7 +62,8 @@ export function opsOfStory(ops, lines) {
     if (text.some((l) => l.includes(op.path) || l.includes(op.path.replace(/^\/api\/v\d+/, "")))) return true;
     const lit = op.path.split("/").filter((x) => x && !x.startsWith("{")).pop() || "";
     const stem = lit.replace(/s$/, "");
-    const rx = new RegExp(`\\b${op.method}\\b[^—]*\\b${stem}s?\\b|\\b${stem}s?\\b[^—]*\\b${op.method}\\b`);
+    const verb = `(?:${op.method}|Http${op.method[0]}${op.method.slice(1).toLowerCase()})`; // « POST » ou l attribut [HttpPost("...")]
+    const rx = new RegExp(`\\b${verb}\\b[^—]*\\b${stem}s?\\b|\\b${stem}s?\\b[^—]*\\b${verb}\\b`);
     return lit && text.some((l) => rx.test(l));
   });
 }
