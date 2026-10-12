@@ -5,6 +5,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { watch } from "/home/user/Kit/skills/_shared/e2e-oracles.mjs";
 const E = new URL(".", import.meta.url).pathname; const RUN = process.argv[2] || "1";
 const TW = readFileSync(E + (process.env.TW_CSS || "tw.css"), "utf8");
+const API = "http://localhost:5080/api/v1/boards/1";
+const api = async (m, p, b) => { const r = await fetch(API + p, { method: m, headers: { "X-User-Id": "1", ...(b ? { "Content-Type": "application/json" } : {}) }, body: b && JSON.stringify(b) }); const t = await r.text(); return t ? JSON.parse(t) : null; };
+const conn0 = await api("POST", "/connectors", { fromItemId: 1, toItemId: 2, style: "Arrow" });
 const results = []; const browser = await chromium.launch(); let cur;
 const check = (id, ok, detail) => { const t = cur.w.take(); const bad = t.fiveXX.length || t.console.length; const v = ok && !bad; results.push({ id, ok: v, detail }); console.log(`${v ? "PASS" : "FAIL"} ${id} ${detail}${bad ? " | 5xx/console: " + JSON.stringify([t.fiveXX, t.console]).slice(0, 250) : ""}`); };
 async function open({ members, locale } = {}) {
@@ -34,12 +37,26 @@ check("AC1", s0 && !(await anySel(page)), `selection avant=${s0}, apres Echap : 
 await page.keyboard.press("Escape"); await page.waitForTimeout(200);
 check("AC10", !(await anySel(page)), "Echap sans selection : rien ne change, aucune erreur console");
 // AC2 : connecteur selectionne
-const conn = page.locator("svg line, svg path").filter({ has: page.locator("xpath=.") });
-const sw = async () => page.evaluate(() => [...document.querySelectorAll("svg line, svg path")].filter((e) => (e.getAttribute("stroke") || "").includes("primary-60")).length);
-const connEl = page.locator('svg [stroke="var(--neutral-60)"]').first();
-if (await connEl.count()) { await connEl.click({ force: true }); await page.waitForTimeout(200); }
+const sw = async () => page.evaluate(() => [...document.querySelectorAll('[data-testid^="connector-"]:not([data-testid^="connector-hit"])')].filter((e) => (e.getAttribute("stroke") || "").includes("primary-60")).length);
+await page.locator(`[data-testid="connector-hit-${conn0.id}"]`).dispatchEvent("click"); await page.waitForTimeout(250);
 const selBefore = await sw(); await bodyFocus(page); await page.keyboard.press("Escape"); await page.waitForTimeout(200);
 check("AC2", selBefore >= 1 && (await sw()) === 0, `connecteur selectionne avant=${selBefore} apres Echap=${await sw()}`);
+// AC3 : outil Connecteur, origine choisie, Echap, clic sur un autre element -> aucun connecteur cree
+const nConn = async () => (await api("GET", "/connectors")).length;
+const c0 = await nConn();
+await page.getByRole("button", { name: /^Connecteur/ }).first().click(); await page.waitForTimeout(200);
+await item(page, 1).click({ position: { x: 8, y: 8 } }); await page.waitForTimeout(200);
+await bodyFocus(page); await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+await item(page, 3).click({ position: { x: 8, y: 8 } }); await page.waitForTimeout(500);
+const c1 = await nConn();
+check("AC3", c1 === c0, `connecteurs avant=${c0} apres (origine, Echap, clic sur un autre element)=${c1}`);
+// temoin : sans Echap, le meme enchainement cree bien un connecteur (le test discrimine)
+await item(page, 1).click({ position: { x: 8, y: 8 } }); await page.waitForTimeout(200);
+await item(page, 3).click({ position: { x: 8, y: 8 } }); await page.waitForTimeout(500);
+const c2 = await nConn();
+check("AC3-temoin", c2 === c0 + 1, `sans Echap : connecteurs ${c1} -> ${c2} (un connecteur cree)`);
+for (const k of await api("GET", "/connectors")) if (k.id !== conn0.id) await api("DELETE", `/connectors/${k.id}`);
+await page.getByRole("button", { name: /^Sélectionner/ }).first().click().catch(() => {});
 // AC5 : aide ouverte -> se ferme, l element reste selectionne
 await selectItem(page, 2); await helpBtn(page).click(); await page.waitForTimeout(300);
 const helpTitle = page.getByRole("dialog").filter({ hasText: /raccourcis/i }).first();
@@ -75,6 +92,6 @@ await cur.ctx.close();
 cur = await open({ members: [{ userId: 1, displayName: "Alice", role: "Viewer" }] }); page = cur.page;
 await selectItem(page, 1); const v0 = await sel(page, 1); await bodyFocus(page); await page.keyboard.press("Escape"); await page.waitForTimeout(200);
 check("AC9", v0 && !(await anySel(page)), `lecteur : selection avant=${v0}, apres Echap aucune selection=${!(await anySel(page))}`);
-await cur.ctx.close(); await browser.close();
+await cur.ctx.close(); await browser.close(); await fetch(API + `/connectors/${conn0.id}`, { method: "DELETE", headers: { "X-User-Id": "1" } });
 writeFileSync(E + `results-N9-${RUN}.json`, JSON.stringify(results, null, 1));
 console.log(`${results.filter((r) => r.ok).length}/${results.length}`);
