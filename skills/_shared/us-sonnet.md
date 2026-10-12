@@ -327,6 +327,11 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
 - clic qui declenche une demande : la garde « deja en cours » est SYNCHRONE (`useRef`
   pose dans le handler), jamais `isPending` lu au rendu : deux clics dans le meme tick
   (dblclick) passent tous les deux (banc N4 : 2 demandes au lieu d une).
+- effet de bord dans une fonction de requete (toast, log, compteur) : il part A CHAQUE tentative
+  quand le client de prod relance (`retry: 1` de src/config/queryClient.ts), alors que le
+  helper de test tourne en `retry: false`. « Un seul toast » se teste avec le retry de prod
+  (QueryClient retry:1, delai reduit) ; l effet unique vit sur l echec FINAL (hook, `errorUpdatedAt`),
+  pas dans le service (banc N8 : 2 toasts par echec, vu par la revue, la loupe et le navigateur, pas par les tests du worker).
 - lint : JAMAIS `yarn lint` (baseline de centaines
   d erreurs CRLF). Toujours
   `node node_modules/eslint/bin/eslint.js <tes fichiers>`,
