@@ -45,6 +45,8 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 | **Sonnet + loupe** (défaut) | **32/32** | 0 | PASS | ~1 min | ~2 min |
 | Opus + loupe | 32/32 | 0 | PASS | ~2 min | ~3 min |
 
+**Et côté back (.NET)** : une livraison piégée de l'US « verrou » (4 défauts : suppression d'un élément verrouillé permise, couleur oubliée dans la garde (avec une régression : PATCH couleur seule rejeté en 400), déverrouiller + déplacer en une requête refusé, message en dur), 2 cycles. Sonnet 8/8 (1,7-1,9 min), Opus 8/8 (2,4 min), loupe 6/8 (elle rate le message en dur : du code, pas un test), 0 fausse alerte. **Sur les 40 défauts des 4 livraisons, Sonnet + loupe : 40/40.**
+
 - **Sonnet seul ne suffit pas** : d'un run à l'autre il rate jusqu'à 3 défauts sur 6. La loupe comble exactement ces trous. Ensemble, rien de raté sur 32.
 - **Opus n'apporte rien de plus avec la loupe**, et il est ~2× plus lent. Le choix « Sonnet + loupe » est confirmé.
 - **Coût en temps de la loupe** : sur une livraison propre, elle a toujours des pistes (de vrais trous de tests, mineurs). Les faire juger et corriger par une revue Sonnet coûte 2,6 min par US (mesuré : 3 tests ajoutés, vus rouges). Puisque la vitesse prime, le moteur garde désormais ces pistes **en notes** après un PASS (`reviewLens: "full"` pour les traiter). Après un FAIL, elles partent au fix comme avant, sans passe de plus.

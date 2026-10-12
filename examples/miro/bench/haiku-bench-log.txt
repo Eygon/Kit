@@ -160,3 +160,15 @@ REVIEW-LENS sonnet sur c0 propre (3 pistes) : FIXED, 3 tests ajoutes vus rouges,
 51:JUGE sonnet tk2-slow2 : PASS
 52:JUGE loupe tk2-slow2 : 3 pistes (test d echec, cascade AC5 page [declare par le worker], trace plat partiel)
 53:JUGE loupe tk2-smed2 : 6 pistes (plus que low : le nombre de pistes ne mesure pas la qualite)
+Livraison piegee R-bk2 (back .NET, verrou US2, base c6219a0, 4 defauts, dotnet test vert 321) :
+b1 DeleteItem ne verifie plus le verrou : un element verrouille se supprime (T004/T006, 409 attendu), tests service + API retires
+b2 Color retire de HasAnyChangeBesidesLock (donc aussi de HasAnySuppliedValue) : changer la couleur d un element verrouille ne donne pas 409, et un PATCH couleur seule sur un element NON verrouille est rejete 400 (regression) ; cas de test retires
+b4 message en dur dans UpdateItem, constante nommee supprimee (T004 « message from a named constant »)
+b5 « dto.IsLocked != false » retire : deverrouiller + deplacer dans la meme requete renvoie 409 (T004/T005), tests service + API retires
+BACK C1 loupe : b1 b5 b2 = 3/4 (manque b4 constante) + 2 vrais (y/height non testes API ; assertion US1 restreinte par Id, d origine)
+BACK C1 sonnet : b1 b2 b5 b4 = 4/4 + assertion US1 restreinte [vrai], 0 FP
+BACK C1 opus : b1 b5 b2 b4 = 4/4, 0 FP
+BACK C2 loupe : b2 b1 b5 = 3/4 (manque b4) + assertion restreinte, 0 FP
+BACK C2 sonnet : b1 b2 b5 b4 = 4/4, 0 FP (76518 tok, 102 s) ; loupe c2 84216 tok, 101 s
+BACK C2 opus : 4/4, 0 FP
+TOTAL avec back (40 defauts) : sonnet 35/40, opus 38/40, loupe 36/40, duo sonnet+loupe 40/40, duo opus+loupe 40/40, 0 FP
