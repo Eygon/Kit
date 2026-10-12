@@ -65,6 +65,21 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Limites** : une revue Sonnet qui rend PASS en moins d'une minute n'a pas toujours tout lu : sans la loupe, 3 à 7 trous par US auraient été livrés. Le moteur `Workflow` complet (avec la loupe) n'a toujours pas tourné de bout en bout (les agents `sk-worker`/`sk-reviewer` ne sont pas installés ici) : validé par ses tests et par le même déroulé fait à la main.
 
+### Bilan : 11 US, 2 XS, 9 genres (12 octobre)
+
+**Ce qui se répète**
+1. **La revue dit PASS ou ESCALATE, la loupe trouve toujours quelque chose** : 1 à 7 pistes par US, ≈95 % vraies. Sur 11 US, seules 2 pistes étaient hors besoin (XS) ou déjà jugées acceptables par la revue (N9).
+2. **Ce que ni tests, ni revues, ni loupe ne voient, le passage réel le voit** : N3 et N4 (nom de 100 caractères sans espace qui écrase un bouton), N4 (deux clics instantanés = deux demandes), N8 (deux toasts par échec à cause de `retry: 1`). Chaque défaut est devenu une règle du brief du worker ; N9 et N10, ensuite, sont sortis sans défaut de production.
+3. **Un modèle ou un effort plus élevé ne change rien** : worker high = worker medium (N7, +55 % de temps) ; revue Opus = revue Sonnet (N5, N4) ; Haiku suffit pour un XS (code exact, tests minces). Ce qui change le résultat : la loupe et le passage réel.
+4. **Les pièges se gagnent en prep** : N10 (traits à main levée, empilement, limite de nom), N9 (Échap), N11 (champ inexistant) : la prep vérifie le besoin contre le code, nomme les pièges dans la spec, et le worker les teste. Une tâche muette (N7, ordre 400/409) ou un test en `retry: false` (N8) suffisent à laisser passer un défaut.
+5. **Le kit s'arrête quand il doit** : fausse prémisse (N11, abandon propre avant tout trio), conflit de standard (N8, remonté), comportement ajouté (N9, case ouverte pour Thomas), revue qui renvoie « à arbitrer » plutôt que de deviner (N8).
+
+**Défauts du kit corrigés pendant ces 11 US** (14) : lecture des tests C# par `ac-map`, `contract.sha256` jamais écrit, oracle de débordement, faux écarts de `standards-pack`, CSS Tailwind figé du banc, cas limites hors carte AC, genres de pistes récurrents (hygiène des tests), ordre complet des contrôles en prep, test par paire « X avant Y » et fuseaux, débordement de texte libre et garde de clic synchrone, effets de bord dans une requête avec relance, `contract-cover` qui ne lisait pas `[HttpPost(...)]`, loupe absente de `sk-xs`.
+
+**Temps typiques** (Sonnet medium) : prep Opus 6-10 min ; worker 1,7 à 6,3 min ; revue 1,5 à 3 min ; loupe ~2 min en parallèle ; correction de la loupe 1 à 4,5 min (en parallèle du passage réel) ; passage réel 1 à 3 min.
+
+**À confirmer par Thomas** (toutes les questions de prep ont été tranchées par moi, options recommandées) : `react/forms` (N3) ; verrouillé + champ invalide = 400 et suite jouée en Europe/Paris (N7) ; écart à `api/error-handling` pour `BoardService.getAll` (N8) ; Échap ferme aussi Partage et Édition (N9) ; N11 : à reformuler (back + front).
+
 ### Deux US de plus : N5 (front, la plus grosse) et N7 (back, la plus subtile)
 
 | US | Genre | Worker | Revue | Loupe | Vérification réelle |
