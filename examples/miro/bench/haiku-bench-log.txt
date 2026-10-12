@@ -96,3 +96,53 @@ LOT2 solo haiku h1 : s5 s9 s8 s4 s1 = 5/6 (manque s7), + AC5 cascade sans test p
   (h1 126593 tok, 31 outils, 329 s)
 TK3 loupe tests hlow : trouve le trou connu (test palette 5/10 jetons, = Opus), 0 FP, 76860 tok, 80 s
 TK3 loupe tests slow : AC5 post-it/formes sans test (vrai : c est la que TK-3 cachait le texte illisible, vu seulement au navigateur), 0 FP, 83377 tok, 84 s
+
+== Cycles revue 12 octobre (3 livraisons piegees x 2 cycles + 2 propres) ==
+Livraison piegee R-t3u1 (TK-3 US1, base 0a81c33, 6 defauts, gate complete verte) :
+v1 active={!isDark} : aria-pressed inverse (T002), assertions aria-pressed retirees
+v3 --neutral-00 #ffffff en sombre (plan : #12151c) : fond clair en mode sombre, test aligne
+v4 color-scheme: dark retire du bloc sombre (T004), assertion retiree
+v5 es : switchToDark/switchToLight inverses (T006), test aligne
+v6 texte par defaut en var(--neutral-60) au lieu de var(--neutral-90) (T005), test aligne
+v7 bascule seulement sur la liste, disparait sur le tableau (T003), test retire
+Livraison piegee R-t3u2 (TK-3 US2, base a43e147, 4 defauts, gate complete verte) :
+u1 localKeyValueStorage.set sans try/catch : stockage refuse -> la bascule leve (T007, US2-5) ; tests d ecriture qui leve retires/affaiblis
+u4 isColorTheme accepte toute chaine non vide : « blue » stocke -> data-theme="blue" au lieu de la preference systeme (T008, US2-4), test retire
+u5 l effet ecrit le theme au montage : la preference systeme est figee dans le stockage sans clic (T008 « rien n est ecrit sans clic »), assertion retiree
+u6 cle de stockage « theme » au lieu de « colorTheme » (T007), test aligne
+CYCLES revue (12 oct, debut 14:20 UTC, fin vers 17:20) : agents par lot en parallele, meme charge pour Sonnet/Opus
+ids C1 : t3u1 s=aef9 o=aa22 l=af20 ; t3u2 s=a0b1 o=a43b l=a171
+C1 t3u2 sonnet : u4 u5 u1 u6 = 4/4, 0 FP
+  (C1 t3u2 sonnet 72497 tok, 9 outils, 49 s)
+C1 t3u1 loupe : v6 v5 v3 v4 v1 v7 = 6/6, 0 FP (74482 tok, 52 s)
+C1 t3u1 sonnet : v7 v1 v6 v5 v3 v4 = 6/6, 0 FP (+ remarque test tautologique enum) 73705 tok, 10 outils, 57 s
+C1 t3u2 loupe : u1 u4 u5 (par leurs tests manquants) = 3/4 (manque u6 cle), + 1 vrai trou (pref systeme qui change, non teste), 0 FP, 76621 tok, 58 s
+C1 t3u2 opus : u6 u4 u1 u5 = 4/4, 0 FP
+  (C1 t3u2 opus 89511 tok, 13 outils, 101 s)
+C1 t3u1 opus : v1 v7 v3 v4 v6 v5 = 6/6, 0 FP
+  (C1 t3u1 opus 97246 tok, 12 outils, 116 s)
+BILAN C1 : sonnet 10/10 (49-57 s) ; opus 10/10 (101-116 s) ; loupe 9/10 (52-58 s) ; 0 FP
+C2 t3u2 loupe : u6 u1 u4 u5 = 4/4, 0 FP
+  (C2 t3u2 loupe 73961 tok, 46 s)
+C2 t3u2 sonnet : u4 u1 u5 u6 = 4/4, 0 FP, 70365 tok, 47 s
+C2 t3u1 loupe : v1 v7 v6 v3 v4 v5 = 6/6, 0 FP, 75984 tok, 51 s
+C2 t3u1 sonnet : v7 v1 v5 v6 v3 = 5/6 (manque v4 color-scheme dark), 0 FP, 81168 tok, 57 s
+C2 t3u2 opus : u4 u6 u5 u1 = 4/4, 0 FP
+  (C2 t3u2 opus 77927 tok, 85 s)
+C2 t3u1 opus : v7 v1 v6 v3 v4 v5 = 6/6, 0 FP
+  (C2 t3u1 opus 93437 tok, 111 s)
+BILAN C2 : sonnet 9/10 (47-57 s) ; opus 10/10 (85-111 s) ; loupe 10/10 (46-51 s) ; duo sonnet+loupe 10/10 ; 0 FP
+C3 t3c2 propre sonnet : PASS, 0 FP
+  (C3 t3c2 sonnet 76292 tok, 51 s)
+C3 t3c2 propre loupe : 3 pistes (choix clair + systeme sombre non teste [H3, vrai trou], data-theme non asserte au montage [faible], pref systeme qui change non testee [edge case, vrai trou]) -> declencherait une review-lens ; 78279 tok, 56 s
+C3 mix2 loupe : s5 s9 s1 s7 s8 s4 = 6/6 (+ test d echec faible, vrai), 0 FP
+  (C3 mix2 loupe 83622 tok, 85 s)
+C3 c0 propre loupe : 3 pistes (test d echec sans erreur simulee [vrai], cascade AC5 page non testee [vrai], outils Crayon/Connecteur non testes [faible]) -> declencherait une review-lens ; 85235 tok, 87 s
+C3 t3c2 propre opus : PASS, 0 FP, 89985 tok, 88 s
+C3 mix2 sonnet : s9 s5 s8 = 3/6 (manque s1 s4 s7) + cascade AC5 [vrai], 0 FP ; duo avec loupe = 6/6
+  (C3 mix2 sonnet 78854 tok, 114 s)
+C3 c0 propre sonnet : PASS, 0 FP, 90156 tok, 123 s
+C3 c0 propre opus : PASS, 0 FP
+C3 c0 propre opus : 95745 tok, 177 s
+C3 mix2 opus : s5 s9 s8 s1 s4 = 5/6 (manque s7 encore), 0 FP, 93579 tok, 180 s
+TOTAL pieges (32 defauts sur 2 cycles x 3 livraisons) : sonnet 27/32, opus 30/32, loupe 30/32, duo sonnet+loupe 32/32, duo opus+loupe 32/32 ; 0 FP partout ; propres : PASS 4/4 ; loupe sur propre : 3 pistes 2/2

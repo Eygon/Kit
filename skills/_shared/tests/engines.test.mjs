@@ -66,6 +66,16 @@ test("loop: the tests lens runs on Haiku beside the review; its leads go to an O
   for (const k of Object.keys(seen)) delete seen[k];
   await fn(reply(false), () => {}, { reviewLens: false, groups: [g("US1")] }, fanOut);
   assert.deepEqual(Object.keys(seen), ["us:US1", "review:US1"]);
+  for (const k of Object.keys(seen)) delete seen[k];
+  const small = async (prompt, opts) => {
+    seen[opts.label] = opts.model;
+    if (opts.label.startsWith("us:")) return { stopped: false, commit: "abc1234", filesTouched: ["src/a.ts"], summary: "ok" };
+    if (opts.label.startsWith("lens:")) return { issues: [{ text: "piste" }] };
+    return { verdict: "PASS", issues: [] };
+  };
+  await fn(small, () => {}, { reviewTier: "auto", groups: [g("US1")] }, fanOut);
+  assert.equal(seen["review:US1"], "sonnet");
+  assert.equal(seen["review-lens:US1"], "sonnet");
 });
 
 test("after-parallel: the barrier review's sha256 freezes the contract, no hash agent", async () => {

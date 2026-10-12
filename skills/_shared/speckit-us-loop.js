@@ -148,7 +148,7 @@ function reviewHandoffOf(out) {
 const DEVIATION_WORDS = /ecart|écart|declar|déclar|faute de spec|module-level|duplique|dupliqué|deviation|contournement/i
 const TEST_PATH = /(^|\/)(__tests__|tests?)\/|\.(test|spec)\.[jt]sx?$|Tests?\.cs$/
 function reviewModelOf(label, handoff, usOut) {
-  if (!cfg || (cfg.reviewTier !== 'auto' && cfg.reviewTier !== 'auto-haiku') || label !== 'review') return 'opus'
+  if (!cfg || (cfg.reviewTier !== 'auto' && cfg.reviewTier !== 'auto-haiku') || (label !== 'review' && label !== 'review-lens')) return 'opus'
   if (!usOut || typeof usOut !== 'object') return 'opus'
   const prod = (usOut.filesTouched || []).filter(function (f) { return !TEST_PATH.test(String(f)) })
   if (!prod.length || prod.length > 4) return 'opus'
@@ -375,12 +375,13 @@ async function runUs(g) {
   }
   if (applyReview(row, first.out, first.verdict)) {
     if (!lens.length) return row
-    // The review passed but the lens saw tests the spec asks for: an Opus review judges each one,
+    // The review passed but the lens saw tests the spec asks for: a review (same tier as the first one:
+    // Sonnet on a small US under reviewTier auto, Opus otherwise) judges each one,
     // fixes the true ones itself (FIXED) or sets the false ones aside (PASS). A FAIL goes on to
     // the usual fix + review2.
     const lensNotes = '\n\n## Pistes de la loupe tests (Haiku, lecture seule) — verifie chacune : corrige celles qui sont vraies, ecarte les fausses en une ligne\n' + formatNotes(lens)
     log('US ' + id + ' review-lens start')
-    first = await reviewWithRetry(g, id, 'review-lens', reviewHandoffOf(usOut) + lensNotes)
+    first = await reviewWithRetry(g, id, 'review-lens', reviewHandoffOf(usOut) + lensNotes, usOut)
     log('US ' + id + ' review-lens ' + first.verdict)
     if (first.verdict === 'ERROR') {
       row.review = 'ERROR'
