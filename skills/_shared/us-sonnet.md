@@ -447,6 +447,20 @@ Reprise = les [ ] restants.
    logique), pas seulement par le test d un utilitaire : banc Haiku 5.5,
    2 workers sur 2 ont laisse l annulation (AC6) et l echec sans test de
    page, rattrapes par la revue.
+3ter. Hygiene des tests (les 5 pistes qui reviennent a chaque US, banc N1-N6 : la
+   loupe tests en a sorti 3 a 7 par US, de ces cinq genres) :
+   - un test ne passe jamais par la mauvaise raison : une etape de mise en place
+     (POST d un membre, d un element, d un commentaire) dont tu n asserte pas le
+     statut peut echouer et laisser le test vert par un autre chemin ;
+   - la donnee « piege » est discriminante : l element d un AUTRE tableau est plus
+     recent que ceux du tien, le compteur attendu n est pas 0 par defaut, deux roles
+     n ont pas le meme message ; sinon un filtre retire ne fait rien rougir ;
+   - quand l AC dit « meme reponse », « seul X change », « n est pas modifie » : compare
+     l objet ENTIER (tous les champs, avant/apres), pas trois champs ;
+   - un message d erreur s asserte non vide (ou son texte), jamais `ShouldContain("message")` /
+     `toHaveTextContent` partiel ;
+   - une limite se joue a la valeur extreme APRES normalisation (trim, casse) : 100 + espaces,
+     101 + espaces, 0 et -1 pour un identifiant.
 <!-- if:contract -->
 <!-- if:back -->
 4. Codes du contrat : chaque code de reponse des operations de tes taches
