@@ -140,6 +140,9 @@ seul commit DONE.
 6. Les AC de la spec pour cette US sont couverts par un vrai test (pas une tautologie).
    Carte du worker (si presente) : `node "<SK_SHARED>/ac-map.mjs" --spec "<SPEC_PATH>" --us <US_ID> --map "$(git rev-parse --git-dir)/sk-<US_ID>-acmap.json" --range <US_BASE>..HEAD`
    — OK ne suffit pas : ouvre le test de chaque AC d effet (historique, selection, echec) et verifie qu il rougirait.
+   La carte porte aussi les cas limites de la spec (E1, E2...) : chaque ligne SKIP est un
+   ecart a juger (raison valable : autre depot, autre US, absence de comportement ; sinon
+   ecart « cas limite sans test »), et un cas limite relie a un test trop faible est un ecart.
    ET chaque tache de prod [X] a son fichier de test dans
    `<US_BASE>..HEAD` : nomme les taches sans test.
    Y compris les AC sources "(source : <doc>#R<n>)" : la regle

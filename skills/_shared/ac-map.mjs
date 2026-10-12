@@ -21,6 +21,31 @@ export function acNumbers(specText, us) {
   return [...String(block).matchAll(/^\s*(\d+)\.\s+/gm)].map((m) => Number(m[1]));
 }
 
+// Cas limites (« Edge Cases ») de l US : E1, E2... dans l ordre. Banc N1-N3 (12 oct) : la loupe tests a trouve a chaque US des cas
+// limites de la spec sans test (ligature, retour d ecran, rechargement, saisie avec espaces, tableau vide) : 3 a 7 pistes par US.
+// La section appartient a l US dont le titre la precede ; une section placee avant toute US ou apres la derniere vaut pour toutes.
+export function edgeCases(specText, us) {
+  const n = String(us).replace(/^US/i, "");
+  const lines = String(specText).split(/\r?\n/);
+  const storyRe = /^#{2,4}\s+(?:User Story\s+(\d+)\b|\[US(\d+)\])/i;
+  let current = null; const sections = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(storyRe);
+    if (m) { current = m[1] || m[2]; continue; }
+    if (/^#{2,4}\s+Edge Cases/i.test(lines[i])) {
+      const items = []; let j = i + 1;
+      for (; j < lines.length && !/^#{1,4}\s/.test(lines[j]); j++) {
+        if (/^\s*[-*]\s+/.test(lines[j])) items.push(lines[j].replace(/^\s*[-*]\s+/, "").trim());
+        else if (items.length && lines[j].trim() && /^\s{2,}/.test(lines[j])) items[items.length - 1] += " " + lines[j].trim();
+      }
+      sections.push({ us: current, items });
+    }
+  }
+  const mine = sections.filter((x) => x.us === n);
+  const use = mine.length ? mine : sections.filter((x) => x.us === null || x.us === String(Math.max(...lines.map((l) => Number((l.match(storyRe) || [])[1] || (l.match(storyRe) || [])[2] || 0)))));
+  return use.flatMap((x) => x.items).map((text, i) => ({ id: `E${i + 1}`, text }));
+}
+
 // Titres des tests d un fichier : it("..."), test("..."), it.each(...)("...") ; C# : le nom de la methode
 // qui porte [Test], [TestCase(...)], [Fact] ou [Theory] (banc N1, back : l outil rendait INTROUVABLE pour les 8 AC).
 export function testTitles(source) {
@@ -33,8 +58,14 @@ export function testTitles(source) {
 export function checkMap({ acs, map, readFile, touched }) {
   const lines = [];
   for (const n of acs) {
-    const entries = map.filter((e) => Number(e.ac) === n);
+    const entries = map.filter((e) => String(e.ac) === String(n));
     if (!entries.length) { lines.push({ ac: n, status: "MANQUE", detail: "aucun test declare" }); continue; }
+    const skip = entries.find((e) => e.skip);
+    if (skip) {
+      const why = String(skip.skip).trim();
+      lines.push(why.length >= 15 ? { ac: n, status: "SKIP", detail: why } : { ac: n, status: "MANQUE", detail: "skip sans raison (15 caracteres minimum)" });
+      continue;
+    }
     let ok = null, last = "";
     for (const e of entries) {
       const src = readFile(e.file);
@@ -48,8 +79,8 @@ export function checkMap({ acs, map, readFile, touched }) {
     if (ok) lines.push({ ac: n, status: "OK", detail: `${ok.file} — ${ok.test}${ok.level ? ` (${ok.level})` : ""}` });
     else lines.push({ ac: n, status: /non touche/.test(last) ? "HORS-US" : "INTROUVABLE", detail: last });
   }
-  const extra = map.filter((e) => !acs.includes(Number(e.ac))).map((e) => e.ac);
-  return { lines, extra, ok: lines.every((l) => l.status === "OK") };
+  const extra = map.filter((e) => !acs.map(String).includes(String(e.ac))).map((e) => e.ac);
+  return { lines, extra, ok: lines.every((l) => l.status === "OK" || l.status === "SKIP") };
 }
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -57,8 +88,10 @@ if (isMain) {
   const a = process.argv.slice(2);
   const o = (n) => { const i = a.indexOf(n); return i >= 0 ? a[i + 1] : undefined; };
   const root = o("--root") || process.cwd();
-  const acs = acNumbers(readFileSync(o("--spec"), "utf8"), o("--us"));
-  if (!acs.length) { console.error("aucun scenario d acceptation trouve pour " + o("--us")); process.exit(2); }
+  const specText = readFileSync(o("--spec"), "utf8");
+  const edges = a.includes("--no-edge") ? [] : edgeCases(specText, o("--us"));
+  const acs = [...acNumbers(specText, o("--us")), ...edges.map((e) => e.id)];
+  if (!acNumbers(specText, o("--us")).length) { console.error("aucun scenario d acceptation trouve pour " + o("--us")); process.exit(2); }
   let map;
   try { map = JSON.parse(readFileSync(o("--map"), "utf8")); } catch (e) { console.error("carte illisible : " + e.message); process.exit(2); }
   let touched = null;
@@ -69,8 +102,9 @@ if (isMain) {
   }
   const readFile = (f) => { const p = join(root, f); return existsSync(p) ? readFileSync(p, "utf8") : null; };
   const r = checkMap({ acs, map, readFile, touched });
-  for (const l of r.lines) console.log(`AC${l.ac} ${l.status} ${l.detail}`);
+  for (const l of r.lines) console.log(`${typeof l.ac === "number" ? "AC" + l.ac : l.ac} ${l.status} ${l.detail}${typeof l.ac === "string" ? " | " + (edges.find((e) => e.id === l.ac)?.text || "").slice(0, 80) : ""}`);
   if (r.extra.length) console.log(`(AC hors US ignores : ${r.extra.join(", ")})`);
-  console.log(r.ok ? `ac-map OK : ${acs.length}/${acs.length} AC relies a un test` : `ac-map KO : ${r.lines.filter((l) => l.status !== "OK").length} AC sans test verifiable`);
+  const skips = r.lines.filter((l) => l.status === "SKIP").length;
+console.log(r.ok ? `ac-map OK : ${acs.length}/${acs.length} AC et cas limites relies (${edges.length} cas limites, ${skips} ecartes avec raison : le relecteur les juge)` : `ac-map KO : ${r.lines.filter((l) => l.status !== "OK" && l.status !== "SKIP").length} AC ou cas limites sans test verifiable`);
   process.exit(r.ok ? 0 : 1);
 }

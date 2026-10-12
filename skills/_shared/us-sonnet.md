@@ -429,8 +429,13 @@ Reprise = les [ ] restants.
    l aurait vu (banc Miro : 3 FIXED sur 8 etaient un test manquant ou qui
    ne prouvait rien).
 3bis. Carte AC -> test, UNE commande. Ecris d abord, pour CHAQUE scenario
-   d acceptation de l US (numerotes dans « Criteres d acceptation »), le
-   test qui rougit s il est viole :
+   d acceptation de l US (numerotes dans « Criteres d acceptation ») ET pour
+   CHAQUE cas limite de la spec (« Edge Cases », ids E1, E2... : la commande
+   les liste), le test qui rougit s il est viole. Un cas limite que cette US
+   ne porte pas (autre depot, autre US, absence de comportement) :
+   { "ac": "E3", "skip": "<raison de 15 caracteres au moins>" } ; le
+   relecteur juge chaque skip. Banc N1-N3 : 3 a 7 cas limites par US sans
+   test, tous trouves apres coup par la loupe :
      $(git rev-parse --git-dir)/sk-<US_ID>-acmap.json =
      [{ "ac": 1, "file": "<fichier de test>", "test": "<titre du it/test>", "level": "page|unit" }, ...]
    puis :

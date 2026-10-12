@@ -489,6 +489,16 @@ test("ac-map: chaque AC doit pointer un test existant d un fichier touche par l 
   });
   assert.deepEqual(r.lines.map((l) => l.status), ["OK", "INTROUVABLE", "HORS-US", "MANQUE"]);
   assert.equal(r.ok, false);
+  const { edgeCases } = await import("../ac-map.mjs");
+  const spec2 = "### User Story 1 - A\n\n**Acceptance Scenarios**:\n\n1. **Given** a.\n\n### Edge Cases\n\n- Cas un\n  suite du cas un\n- Cas deux\n\n### User Story 2 - B\n\n**Acceptance Scenarios**:\n\n1. **Given** b.\n\n### Edge Cases\n\n- Cas B\n";
+  assert.deepEqual(edgeCases(spec2, "US1"), [{ id: "E1", text: "Cas un suite du cas un" }, { id: "E2", text: "Cas deux" }]);
+  assert.deepEqual(edgeCases(spec2, "US2"), [{ id: "E1", text: "Cas B" }]);
+  const specGlobal = "### User Story 1 - A\n\n**Acceptance Scenarios**:\n\n1. **Given** a.\n\n### User Story 2 - B\n\n**Acceptance Scenarios**:\n\n1. **Given** b.\n\n### Edge Cases\n\n- Cas global\n";
+  assert.equal(edgeCases(specGlobal, "US1").length, 1);
+  assert.equal(edgeCases(specGlobal, "US2").length, 1);
+  const rs = checkMap({ acs: [1, "E1", "E2", "E3"], map: [{ ac: 1, file: "a.test.ts", test: "copies" }, { ac: "E1", file: "a.test.ts", test: "creates nothing" }, { ac: "E2", skip: "front : hors perimetre de cette US back" }, { ac: "E3", skip: "non" }], readFile: (f) => files[f] ?? null, touched: new Set(["a.test.ts"]) });
+  assert.deepEqual(rs.lines.map((l) => l.status), ["OK", "OK", "SKIP", "MANQUE"]);
+  assert.equal(rs.ok, false);
   const cs = '[TestFixture]\npublic sealed class BoardsApiTests\n{\n    [Test]\n    public async Task Delete_AsOwner_Returns204()\n    {\n    }\n\n    [TestCase(2)]\n    [TestCase(3)]\n    public async Task Delete_AsNonOwner_Returns403(int userId)\n    {\n    }\n\n    private async Task<int> Helper()\n    {\n        return 1;\n    }\n\n    [Test]\n    public void Sync_Case() { }\n}';
   assert.deepEqual(testTitles(cs), ["Delete_AsOwner_Returns204", "Delete_AsNonOwner_Returns403", "Sync_Case"]);
   const rc = checkMap({ acs: [1, 2], map: [{ ac: 1, file: "A.cs", test: "Delete_AsOwner" }, { ac: 2, file: "A.cs", test: "Delete_AsNonOwner_Returns403" }], readFile: () => cs, touched: new Set(["A.cs"]) });
