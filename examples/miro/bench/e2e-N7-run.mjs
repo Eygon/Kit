@@ -60,6 +60,10 @@ const rt = await P(k.id, { content: "t", expectedUpdatedAt: trunc });
 const rn = await P(k.id, { content: "t", expectedUpdatedAt: null });
 const rinv = await P(k.id, { content: "t", expectedUpdatedAt: "pas-une-date" });
 check("#E.tick/null/invalide", (fr && fr.length > 3 && /[1-9]/.test(fr.slice(3)) ? rt.status === 409 : true) && rn.status === 200 && rinv.status === 400, `tronque ms (${trunc}) -> ${rt.status} (ticks=${fr}) ; null -> ${rn.status} ; invalide -> ${rinv.status} ${rinv.text.slice(0, 60)}`);
+// FR-006 : validation 400 avant fraicheur (points sur un element non trace, date perimee)
+const v = await mk(); const v0 = v.updatedAt; await sleep(20); await P(v.id, { content: "v1" });
+const rv = await P(v.id, { points: [{ x: 1, y: 1 }], expectedUpdatedAt: v0 });
+check("#FR006", rv.status === 400, `perime + points sur un post-it -> ${rv.status} ${rv.text.slice(0, 80)}`);
 // E : perime ne bouge pas la date, et verrou seul reste 409 verrouille
 const kk = await mk(); const kdate = kk.updatedAt; await sleep(20); await P(kk.id, { content: "y" }); const d1 = (await get(kk.id)).updatedAt;
 await P(kk.id, { content: "bad", expectedUpdatedAt: kdate }); const d2 = (await get(kk.id)).updatedAt;

@@ -273,6 +273,11 @@ brief-fill.mjs, audit-lint.mjs et mount-check.mjs lisent :
   - [ ] T002 [US1] Etendre `src/api/a/aService.ts` (`createB`, POST /b de contracts/b.yaml) — Code: `src/api/a/aService.ts#getAll` — Test: `src/__tests__/api/a/aService.test.ts`
   - [ ] T003 [US1] Ajouter les cles `pages.x.*` dans `src/i18n/locales/fr.json`, `src/i18n/locales/en.json`, `src/i18n/locales/es.json` — <cle = fr / en / es> — Test: `<test de parite de recon.md>`
 
+Quand la spec impose un ordre de controles (FR « X passe avant Y », 400 avant 409...),
+la tache qui insere le nouveau controle ecrit l ORDRE COMPLET de la fonction
+(controles existants + nouveau, validation de saisie comprise), pas « apres A avant B » :
+banc N7, une tache muette sur la validation a fait inverser 400/409 par 2 workers sur 2.
+
 Une tache = une ligne = une action = UN fichier de prod + son `Test:`,
 sauf les fichiers LOCALES : UNE tache pour toutes les langues (le lint les
 compte pour un fichier), et un fichier de type pur (DTO, props, model,

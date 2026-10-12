@@ -461,6 +461,12 @@ Reprise = les [ ] restants.
      `toHaveTextContent` partiel ;
    - une limite se joue a la valeur extreme APRES normalisation (trim, casse) : 100 + espaces,
      101 + espaces, 0 et -1 pour un identifiant.
+   - la spec dit « X passe avant Y » (400 avant 409, droits avant fraicheur...) : UN test par
+     paire, avec les deux conditions vraies en meme temps, qui attend la reponse de X ;
+   - une date, un fuseau, un format d ecriture (Z, sans suffixe, +02:00, ToLocalTime) : sur une
+     machine en UTC la conversion est l identite, le test passe meme sans le code. Joue-le
+     sous un fuseau non UTC (TZ / runsettings du projet de tests) ou saute-le explicitement
+     (Assume) quand la zone est UTC ; verifie-le rouge en retirant la conversion.
 <!-- if:contract -->
 <!-- if:back -->
 4. Codes du contrat : chaque code de reponse des operations de tes taches

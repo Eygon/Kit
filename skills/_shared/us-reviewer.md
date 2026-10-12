@@ -143,6 +143,8 @@ seul commit DONE.
    La carte porte aussi les cas limites de la spec (E1, E2...) : chaque ligne SKIP est un
    ecart a juger (raison valable : autre depot, autre US, absence de comportement ; sinon
    ecart « cas limite sans test »), et un cas limite relie a un test trop faible est un ecart.
+   Les FR « X avant Y » (ordre des controles) ont un test par paire ; un test de date/fuseau
+   qui reste vert machine en UTC sans la conversion ne prouve rien (ecart).
    ET chaque tache de prod [X] a son fichier de test dans
    `<US_BASE>..HEAD` : nomme les taches sans test.
    Y compris les AC sources "(source : <doc>#R<n>)" : la regle
