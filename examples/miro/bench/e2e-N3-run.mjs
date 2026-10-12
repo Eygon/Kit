@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { watch, overflowing } from "/home/user/Kit/skills/_shared/e2e-oracles.mjs";
 const E = new URL(".", import.meta.url).pathname;
 const RUN = process.argv[2] || "1";
-const TW = readFileSync(E + "tw.css", "utf8");
+const TW = readFileSync(E + (process.env.TW_CSS || "tw.css"), "utf8");
 const API = "http://localhost:5080/api/v1";
 const api = async (user, method, path, body) => {
   const r = await fetch(API + path, { method, headers: { "X-User-Id": String(user), ...(body ? { "Content-Type": "application/json" } : {}) }, body: body && JSON.stringify(body) });

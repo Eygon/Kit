@@ -227,20 +227,40 @@ const addedLines = (root, mode) => {
   return res;
 };
 
-export const runChecks = (root, packText, mode) => {
+// Ecarts acceptes par l humain (section du pack) : « @agent-os/standards/<id> ... `fichier.ext` ... ». Un hit du meme
+// standard sur un fichier cite n est plus un ecart : le relecteur n a pas a le re-juger (banc N3 : 2 hits sur un <button>
+// natif preexistant, declare « depot prime », signales a chaque revue).
+export const acceptedDeviations = (packText) => {
+  const sec = packText.split(/^## Ecarts acceptes par l humain[^\n]*\n/m)[1] || "";
+  const out = [];
+  for (const line of sec.split("\n")) {
+    const id = line.match(/@agent-os\/standards\/([\w/-]+)/)?.[1];
+    const files = [...line.matchAll(/`([^`\s]+\.[A-Za-z]{1,5})`/g)].map((m) => m[1].split("/").pop());
+    if (id && files.length) out.push({ id, files });
+  }
+  return out;
+};
+export const isAccepted = (hit, accepted) => accepted.some((a) => a.id === hit.id && a.files.some((f) => hit.file.endsWith(f)));
+
+export const runChecksDetailed = (root, packText, mode) => {
   const m = packText.match(/## Controles mecaniques\s*\n+```json\n([\s\S]*?)\n```/);
   if (!m) return [];
   const checks = JSON.parse("[" + m[1].trim().replace(/^\[|\]$/g, "") + "]").flat();
-  const hits = [];
+  const accepted = acceptedDeviations(packText);
+  const hits = [], tolerated = [];
   for (const a of addedLines(root, mode)) {
     for (const c of checks) {
       if (c.files && !new RegExp(c.files).test(a.file)) continue;
       if (c.skip && new RegExp(c.skip).test(a.file)) continue;
-      if (new RegExp(c.re).test(a.text)) hits.push(`${a.file}:${a.line} ${c.id} — ${c.msg || c.re} — ${a.text.trim().slice(0, 100)}`);
+      if (new RegExp(c.re).test(a.text)) {
+        const line = `${a.file}:${a.line} ${c.id} — ${c.msg || c.re} — ${a.text.trim().slice(0, 100)}`;
+        (isAccepted({ id: c.id, file: a.file }, accepted) ? tolerated : hits).push(line);
+      }
     }
   }
-  return hits;
+  return { hits, tolerated };
 };
+export const runChecks = (root, packText, mode) => runChecksDetailed(root, packText, mode).hits;
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [cmd, ...args] = process.argv.slice(2);
@@ -269,8 +289,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       console.error("standards-pack check : --pack <fichier> requis");
       process.exit(2);
     }
-    const hits = runChecks(root, readFileSync(pack, "utf8"), { range: opt("range"), staged: args.includes("--staged") });
+    const { hits, tolerated } = runChecksDetailed(root, readFileSync(pack, "utf8"), { range: opt("range"), staged: args.includes("--staged") });
     for (const h of hits) console.log(h);
+    for (const t of tolerated) console.log(`(ecart accepte, non compte) ${t}`);
     console.log(hits.length ? `${hits.length} ecart(s) aux standards` : "standards : 0 ecart mecanique");
     process.exit(hits.length ? 1 : 0);
   } else {

@@ -1,0 +1,20 @@
+== Nouvelles US (12 oct soir, kit actuel, 1 chose a la fois) ==
+N2 filtrer les tableaux (front seul, 3 taches) : prep opus 3 questions (SK-ANSWER 1,1,approuve) ~6 min 148k tok ; worker sonnet medium 138af12 143 s 93k tok 16 outils (gates vertes, ac-map 6/6) ; revue sonnet : PASS
+  N2 loupe (Haiku, 94 s, 85k tok) : 7 pistes vraies sur une livraison PASS (ligature, saisie trimee, quitter l ecran, refetch, position du champ, assertion partielle, status vide) ; review-lens sonnet EN PARALLELE de l E2E : FIXED 5579958 en 59 s (+5 tests vus rouges) -> cout temps ~0 car masque par l E2E
+  N2 E2E playwright 14/14 x3 (AC1-6 + 5 limites + oracle lisible) ; constats de BASE (pas N2) : (a) BoardService.getAll avale l erreur -> bandeau d erreur de la liste inatteignable ; (b) contraste lib 4,44 < 4,5 (sous-titre, EmptyState)
+  N2 total : prep ~6 min + worker 2,4 min + revue 0,6 min + review-lens 1 min (parallele E2E) ; standards-pack 0 ecart ; gates vertes (75 tests, tsc, eslint)
+  N1 worker sonnet medium f4b3586 : voir duree ci-apres
+  N1 constat kit : ac-map.mjs ne lisait pas les tests C# (INTROUVABLE x8) -> corrige (methodes [Test]/[TestCase]/[Fact]/[Theory]), 8/8 OK sur N1 ; worker N1 205 s 105k tok 18 outils
+  N1 revue sonnet : PASS (relit les 8 AC lui-meme)
+  N1 loupe haiku : 4 pistes vraies sur un PASS
+  N1 review-lens sonnet en parallele de la verif API : FIXED 9b5361c en ~3 min (4 pistes : 3 retenues, 1 partiellement ecartee avec preuve) ; verif API reelle 11/11 x3 (8 AC + limites + cascade + BoardChanged signalr) ; constat kit : ac-map ne lisait pas C# -> corrige
+  N3 US1 back worker c920941 (voir duree) : ac-map 9/9, contract-cover OK
+  N3 US1 back revue sonnet : PASS (GAP diff-cover accepte, declare)
+  N3 US1 back loupe : 3 pistes vraies (dont un test qui pouvait passer pour la mauvaise raison) -> review-lens en parallele du worker front
+  N3 US2 front worker 9c8d322 (voir duree) : ac-map 12/12, 2 hits septeo-library-first (bouton natif de boardCard, preexistant)
+  N3 US1 back review-lens : FIXED 884cb7b (3 pistes vraies, 1 test vu rouge, 1 garde <=0 de la prod inatteignable = code mort releve)
+  N3 US2 front revue sonnet : PASS (ecart bouton natif accepte, depot prime)
+  N3 US2 front loupe : 5 pistes vraies (trim avant limite, nom affiche apres renommage non teste, avatar, changement de page, dblClick au lieu de click) -> review-lens en parallele de l E2E
+  N3 US2 front review-lens : FIXED 0b28da9 (3 pistes retenues, 2 ecartees avec raison, fixture jugee legitime) ; E2E : defaut visuel F1 (nom de 105 car. sans espace deborde de sa carte et ecrase le crayon a 0 px) trouve par le nouvel oracle overflowing
+  N3 fullstack (renommer un tableau, 2 US back||front, contrat gele) : workers sonnet medium back 142 s / front 310 s en parallele ; revues sonnet PASS x2 ; loupes : 3 + 5 pistes vraies -> review-lens sonnet 120 s / 118 s (en parallele de l autre worker / de l E2E) ; E2E navigateur+API reelle 14/14 x3 apres correctif ; defaut visuel F1 (nom 105 car. sans espace) trouve par oracle overflowing, corrige en 45 s (1bb1e25) ; back 351 tests, front 768, contrat intact, tasks 9/9
+  Constats kit N3 : (1) contract.sha256 jamais ecrit par la prep -> ecrit au GO ; (2) oracle overflowing ajoute ; (3) tw.css du banc perime (classes de la feature absentes) -> mktw.mjs ; (4) standards-pack comptait comme ecart les hits couverts par un ecart accepte -> tolere

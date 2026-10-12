@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { watch, unreadable } from "/home/user/Kit/skills/_shared/e2e-oracles.mjs";
 const E = new URL(".", import.meta.url).pathname;
 const RUN = process.argv[2] || "1";
-const TW = readFileSync(E + "tw.css", "utf8");
+const TW = readFileSync(E + (process.env.TW_CSS || "tw.css"), "utf8");
 const results = [];
 const browser = await chromium.launch();
 const SEARCH = (p) => p.getByRole("textbox", { name: "Rechercher un tableau" });

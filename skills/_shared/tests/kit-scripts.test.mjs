@@ -464,6 +464,16 @@ test("e2e-oracles: contraste WCAG (noir/blanc 21, texte clair sur post-it jaune 
   assert.ok(contrast("rgb(17, 24, 39)", "rgb(253, 230, 138)") > 4.5);
 });
 
+test("standards-pack: un hit couvert par un ecart accepte (meme standard, fichier cite) n est plus un ecart", async () => {
+  const { acceptedDeviations, isAccepted } = await import("../standards-pack.mjs");
+  const pack = "# Standards\n\n## Ecarts acceptes par l humain (non opposables)\n\n- Depot prime : @agent-os/standards/septeo-library-first — la carte reste un `<button>` natif (existant, `boardCard.tsx`)\n- Ecart accepte : @agent-os/standards/react/forms — champ unique\n";
+  const acc = acceptedDeviations(pack);
+  assert.deepEqual(acc, [{ id: "septeo-library-first", files: ["boardCard.tsx"] }]);
+  assert.equal(isAccepted({ id: "septeo-library-first", file: "src/components/elements/boardCard/boardCard.tsx" }, acc), true);
+  assert.equal(isAccepted({ id: "septeo-library-first", file: "src/pages/boards/boards.tsx" }, acc), false);
+  assert.equal(isAccepted({ id: "no-comments", file: "src/components/elements/boardCard/boardCard.tsx" }, acc), false);
+});
+
 test("ac-map: chaque AC doit pointer un test existant d un fichier touche par l US", async () => {
   const { acNumbers, testTitles, checkMap } = await import("../ac-map.mjs");
   const spec = "### User Story 1 - Dupliquer\n\n**Acceptance Scenarios**:\n\n1. **Given** a, **When** b, **Then** c.\n2. **Given** d, **When** e, **Then** f.\n3. **Given** g.\n\n### Edge Cases\n";
