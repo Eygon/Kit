@@ -319,6 +319,14 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
   vert peut casser le typecheck. Ne l annonce vert qu apres
   l avoir lance.
 <!-- if:front -->
+- texte libre (nom, titre) affiche dans une carte ou une ligne flex : `min-w-0` sur le
+  conteneur flex, `break-words` sur le texte, `shrink-0` sur l action a cote (bouton,
+  icone). Sans cela un nom de 100 caracteres sans espace deborde et ecrase le bouton
+  a 0 px (banc N3 puis N4, meme carte : ni tests, ni revue, ni loupe ne le voient ; seul
+  le navigateur reel).
+- clic qui declenche une demande : la garde « deja en cours » est SYNCHRONE (`useRef`
+  pose dans le handler), jamais `isPending` lu au rendu : deux clics dans le meme tick
+  (dblclick) passent tous les deux (banc N4 : 2 demandes au lieu d une).
 - lint : JAMAIS `yarn lint` (baseline de centaines
   d erreurs CRLF). Toujours
   `node node_modules/eslint/bin/eslint.js <tes fichiers>`,

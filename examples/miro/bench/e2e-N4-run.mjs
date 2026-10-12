@@ -88,20 +88,25 @@ cur = await open(async (route) => { await new Promise((r) => setTimeout(r, 700))
 await pin(page, "C", false).dblclick();
 await page.waitForTimeout(150);
 const pressedNow = await pin(page, "C", true).getAttribute("aria-pressed").catch(() => null);
-const url0 = page.url();
 await page.waitForTimeout(1500);
 const ord3 = (await listNames(page)).slice(0, 3);
 const reqs = cur.sent.filter((s) => s.startsWith("POST")).length;
-chk("UI.AC3/AC8/AC5", pressedNow === "true" && reqs === 1 && ord3[0] === N("C") && url0 === page.url() && !/\/board\//.test(page.url()), `immediat pressed=${pressedNow} ; demandes=${reqs} ; ordre ${JSON.stringify(ord3)} ; url ${page.url()}`);
+chk("UI.AC3/AC8/AC5", pressedNow === "true" && reqs === 1 && ord3[0] === N("C") && (await card(page, "C").count()) === 1, `immediat pressed=${pressedNow} ; demandes=${reqs} ; ordre ${JSON.stringify(ord3)} ; liste toujours affichee=${(await card(page, "C").count()) === 1}`);
+// AC8 realiste : deux clics espaces de 40 ms pendant l envoi (reponse retardee)
+await cur.ctx.close(); await unpinAll();
+cur = await open(async (route) => { await new Promise((r) => setTimeout(r, 700)); return route.continue(); }); page = cur.page;
+await pin(page, "B", false).click(); await page.waitForTimeout(40); await pin(page, "B", true).click({ timeout: 2000 }).catch(() => {});
+await page.waitForTimeout(1500);
+chk("UI.AC8-espaces", cur.sent.length === 1, `deux clics a 40 ms -> demandes envoyees : ${JSON.stringify(cur.sent)}`);
 // AC4 : desepingler
-await cur.ctx.close(); cur = await open(); page = cur.page;
+await cur.ctx.close(); await unpinAll(); await api(1, "POST", `/boards/${boards.C.id}/pin`); cur = await open(); page = cur.page;
 await pin(page, "C", true).click(); await page.waitForTimeout(800);
 const ord4 = await listNames(page); const pr4 = await pin(page, "C", false).getAttribute("aria-pressed");
 chk("UI.AC4", pr4 === "false" && JSON.stringify(ord4) === JSON.stringify(sorted(ord4)), `desepingle : pressed=${pr4} ; ordre trie ${JSON.stringify(ord4.slice(0, 3))}`);
 // clic sur la carte ouvre le tableau
 await card(page, "A").getByRole("button", { name: new RegExp(N("A")) }).first().click().catch(() => {});
 await page.waitForTimeout(600);
-chk("UI.AC5b", /\/board\/|boards\/\d+/.test(page.url()), `clic sur la carte -> ${page.url()}`);
+chk("UI.AC5b", (await page.getByRole("listitem").filter({ hasText: N("A") }).count()) === 0, `clic sur la carte -> la liste a laisse la place au tableau`);
 // AC6 : limite, message une seule fois, retour arriere ; AC9 rechargement
 await cur.ctx.close();
 for (const k of ["A", "B", "C", "D", "E"]) await api(1, "POST", `/boards/${boards[k].id}/pin`);
