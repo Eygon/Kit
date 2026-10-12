@@ -33,6 +33,22 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Défauts du kit corrigés grâce au banc** (extraits) : plage de l'US (`US_BASE`) qui débordait sur la feature précédente ; brief back avec la gate vitest ; faux GAP de diff-cover ; mots-clés AsyncAPI pris pour des champs ; chemin cité en prose pris pour un fait ; contrat référencé pris pour une écriture.
 
+## Revue : le choix éprouvé sur plusieurs cycles (12 octobre)
+
+**Pourquoi** : le choix « Sonnet + loupe » reposait sur une seule mesure. Je l'ai refait sur **3 livraisons piégées** de 3 US différentes (TK-2 duplication : 6 défauts ; TK-3 US1 mode sombre : 6 ; TK-3 US2 mémorisation : 4), **2 cycles chacune**, plus **2 livraisons propres** (faux positifs et temps). Sonnet et Opus tournaient dans le même lot, donc avec la même charge machine.
+
+| | Défauts trouvés (32 = 16 × 2 cycles) | Fausses alertes | Livraisons propres | Durée TK-3 | Durée TK-2 |
+|---|---|---|---|---|---|
+| Sonnet seul | 27/32 (de 3/6 à 6/6 selon le run) | 0 | PASS 2/2 | 47-57 s | 114-123 s |
+| Opus seul | 30/32 (rate 2 fois le test supprimé) | 0 | PASS 2/2 | 85-116 s | 176-180 s |
+| Loupe tests Haiku seule | 30/32 | 0 | 3 pistes à chaque fois | 46-58 s | 85-87 s |
+| **Sonnet + loupe** (défaut) | **32/32** | 0 | PASS | ~1 min | ~2 min |
+| Opus + loupe | 32/32 | 0 | PASS | ~2 min | ~3 min |
+
+- **Sonnet seul ne suffit pas** : d'un run à l'autre il rate jusqu'à 3 défauts sur 6. La loupe comble exactement ces trous. Ensemble, rien de raté sur 32.
+- **Opus n'apporte rien de plus avec la loupe**, et il est ~2× plus lent. Le choix « Sonnet + loupe » est confirmé.
+- **Coût en temps de la loupe** : sur une livraison propre, elle a toujours des pistes (de vrais trous de tests, mineurs). Les faire juger et corriger par une revue Sonnet coûte 2,6 min par US (mesuré : 3 tests ajoutés, vus rouges). Puisque la vitesse prime, le moteur garde désormais ces pistes **en notes** après un PASS (`reviewLens: "full"` pour les traiter). Après un FAIL, elles partent au fix comme avant, sans passe de plus.
+
 ## Revue : un relecteur seul ou une revue en éventail ? (10 octobre)
 
 **La question** : Anthropic annonce qu'un workflow à plusieurs agents trouve bien plus de bugs qu'un agent seul (66 sur 70 contre 14 à 27). Le kit fait relire chaque US par **un** relecteur. Est-ce qu'un éventail (4 relecteurs Haiku, une loupe chacun : données, conditions, effets, tests) trouve plus ?

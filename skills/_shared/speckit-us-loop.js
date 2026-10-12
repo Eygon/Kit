@@ -177,8 +177,8 @@ async function reviewOnce(g, id, label, handoff, usOut) {
 // test contre la spec et les taches. Banc du 2026-10-10 (13 defauts caches sous des tests verts,
 // 2 lots) : Haiku, Sonnet et Opus seuls ont tous rate un test supprime, la loupe l a trouve ;
 // 0 fausse alerte. Duree inchangee (elle finit avant la revue Opus), ~100k tokens Haiku par US.
-// Ses pistes vont au fix si la revue rend FAIL, sinon a une revue Opus qui les juge une par une.
-// `args.reviewLens: false` la coupe.
+// Ses pistes vont au fix si la revue rend FAIL ; apres un PASS elles restent en notes (reviewLens: 'full' :
+// une revue les juge). `args.reviewLens: false` la coupe.
 const LENS_SCHEMA = {
   type: 'object',
   required: ['issues'],
@@ -192,6 +192,7 @@ const LENS_BRIEF = '\n\n## LOUPE TESTS — rapport seul (prime sur le brief et s
   'jamais une preference ni ce qui sort de ta loupe.\n' +
   'Sortie : { "issues": [ { "text": "attendu (spec/tache) vs trouve (test), action precise", "file": "chemin:ligne" } ] }, [] si rien.'
 function lensOn() { return !cfg || cfg.reviewLens !== false }
+const LENS_MODE = (cfg && cfg.reviewLens === 'full') ? 'full' : 'fail-only'
 async function lensOnce(g, id, handoff) {
   if (!lensOn()) return []
   const out = await agent(g.reviewPrompt + (handoff || '') + LENS_BRIEF, {
@@ -374,7 +375,11 @@ async function runUs(g) {
     return row
   }
   if (applyReview(row, first.out, first.verdict)) {
-    if (!lens.length) return row
+    // Default 'fail-only': after a PASS the leads stay as notes, no extra pass (12 Oct cycles: on clean
+    // deliveries the lens always had leads, real but minor, and judging them cost 2.6 min per US).
+    // `reviewLens: 'full'` has a review judge them.
+    if (lens.length && LENS_MODE !== 'full') row.notes = (row.notes || []).concat(lens)
+    if (!lens.length || LENS_MODE !== 'full') return row
     // The review passed but the lens saw tests the spec asks for: a review (same tier as the first one:
     // Sonnet on a small US under reviewTier auto, Opus otherwise) judges each one,
     // fixes the true ones itself (FIXED) or sets the false ones aside (PASS). A FAIL goes on to

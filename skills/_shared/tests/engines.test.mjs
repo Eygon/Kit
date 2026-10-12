@@ -54,6 +54,11 @@ test("loop: the tests lens runs on Haiku beside the review; its leads go to an O
   const fanOut = (fns) => Promise.all(fns.map((f) => f()));
   let r = await fn(reply(false), () => {}, { groups: [g("US1")] }, fanOut);
   assert.equal(r.ok, true);
+  assert.equal(seen["review-lens:US1"], undefined);
+  assert.ok(JSON.stringify(r.results[0].notes).includes("AC6 sans test qui rougit"));
+  for (const k of Object.keys(seen)) delete seen[k];
+  r = await fn(reply(false), () => {}, { reviewLens: "full", groups: [g("US1")] }, fanOut);
+  assert.equal(r.ok, true);
   assert.equal(seen["lens:US1"], "haiku/medium");
   assert.equal(seen["review-lens:US1"], "opus/medium");
   assert.ok(prompts["review-lens:US1"].includes("AC6 sans test qui rougit"));
@@ -73,7 +78,7 @@ test("loop: the tests lens runs on Haiku beside the review; its leads go to an O
     if (opts.label.startsWith("lens:")) return { issues: [{ text: "piste" }] };
     return { verdict: "PASS", issues: [] };
   };
-  await fn(small, () => {}, { reviewTier: "auto", groups: [g("US1")] }, fanOut);
+  await fn(small, () => {}, { reviewTier: "auto", reviewLens: "full", groups: [g("US1")] }, fanOut);
   assert.equal(seen["review:US1"], "sonnet");
   assert.equal(seen["review-lens:US1"], "sonnet");
 });
