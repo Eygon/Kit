@@ -311,10 +311,14 @@ non declare : d ou `"opus"` quand recon.md liste un fichier PARTAGE. `reviewTier
 et Opus, sur une seule feature). Loupe tests (par defaut, `reviewLens: false` la coupe) : le moteur lance
 EN PARALLELE de la revue un Haiku en lecture seule qui compare chaque test
 a la spec et aux taches. Ses pistes vont au fix si la revue rend FAIL ;
-apres un PASS elles restent en notes (`notes` du resultat : a citer dans
-le rapport de publication), sans passe en plus. `reviewLens: "full"` : une
-revue `review-lens` (meme niveau que la premiere) les juge et ajoute les
-tests, +2,6 min par US mesure. Cycles du 12 octobre (3 livraisons piegees,
+apres un PASS elles sortent dans `lensIssues` (et en `notes`) : lance
+alors UN agent Sonnet `review-lens` EN ARRIERE-PLAN (brief -review + les
+pistes ; il corrige les vraies, ecarte les fausses, commite `sk-impl
+REVIEW(<US>)`) PENDANT le passage E2E, donc sans attente en plus : banc N2
+(filtre des tableaux), 7 pistes vraies sur un PASS de Sonnet, 5 tests
+ajoutes en 59 s pendant l E2E. Rejoue la gate ciblee avant de publier.
+`reviewLens: "full"` : le moteur les fait juger avant de rendre la main
+(+2,6 min mesure, a eviter). Cycles du 12 octobre (3 livraisons piegees,
 2 cycles) : Sonnet seul 27/32 defauts, Opus seul 30/32, Sonnet + loupe et
 Opus + loupe 32/32, 0 fausse alerte ; Sonnet ~2x plus rapide qu Opus. Banc du 10 octobre :
 Haiku, Sonnet et Opus seuls ont tous rate un test supprime, la loupe l a
