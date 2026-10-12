@@ -33,6 +33,38 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Défauts du kit corrigés grâce au banc** (extraits) : plage de l'US (`US_BASE`) qui débordait sur la feature précédente ; brief back avec la gate vitest ; faux GAP de diff-cover ; mots-clés AsyncAPI pris pour des champs ; chemin cité en prose pris pour un fait ; contrat référencé pris pour une écriture.
 
+## Le kit éprouvé sur de nouvelles US (12 octobre soir, 4 US, 3 genres)
+
+**Protocole** : de vraies US neuves, préparées avec `/sk-prep` (Opus, questions posées au superviseur et tranchées par moi au nom de Thomas, absent : à confirmer par lui), puis implémentées avec le kit actuel (worker Sonnet medium, revue Sonnet + loupe tests Haiku, correction de ce que la loupe trouve), puis jouées pour de bon : Playwright sur le front réel, requêtes réelles sur le back réel.
+
+| US | Genre | Prep | Worker | Revue | Loupe (pistes vraies) | Vérification réelle |
+|---|---|---|---|---|---|---|
+| N2 Filtrer la liste des tableaux | front seul, 3 tâches | 6 min | 2,4 min | PASS (38 s) | 7 | navigateur 14/14 ×3 |
+| N1 Supprimer un tableau | back seul, autorisation + cascade | 7 min | 3,4 min | PASS (77 s) | 4 | API réelle 11/11 ×3 |
+| N3 Renommer un tableau | back + front en parallèle, contrat gelé | 11 min | 2,4 min (back) / 5,2 min (front) | PASS ×2 | 3 + 5 | navigateur + API 14/14 ×3 |
+| N6 Statistiques d'un tableau | back seul, lecture / agrégat | 6 min | 3 min | PASS (57 s) | 4 | API réelle 10/10 ×3 |
+
+**Ce qui se répète**
+1. **La revue rend PASS, la loupe trouve 3 à 7 trous de tests réels, à chaque US** (4 sur 4, vrais à ~95 % : sur 28 pistes, 3 écartées avec une preuve par le relecteur). Traiter ces pistes par un Sonnet **pendant** le passage navigateur ne coûte rien en temps (59 à 138 s, masqués). Règle inscrite dans `sk-impl`.
+2. **Les pistes sont de 5 genres** : cas limite de la spec sans test (ligature, retour d'écran, rechargement, tableau vide), étape de mise en place non vérifiée (le test pouvait passer par la mauvaise raison), donnée « piège » non discriminante (l'élément d'un autre tableau n'était pas plus récent), assertion partielle (3 champs au lieu de l'objet entier, `ShouldContain("message")`), limite jouée sans la valeur extrême après trim. Remontés dans le brief du worker (`us-sonnet.md` 3ter).
+3. **Les cas limites de la spec n'étaient pas reliés à des tests** : la carte AC → test ne portait que les critères d'acceptation. Elle porte maintenant aussi les « Edge Cases » (E1, E2…, avec un `skip` motivé jugé par le relecteur). Sur N6, premier US avec ce brief : 0 piste « cas limite sans test » (contre 5 sur 7 pour N2) ; les 4 pistes restantes étaient des assertions incomplètes.
+4. **Le passage navigateur reste indispensable** : il a trouvé un défaut que ni tests, ni revue, ni loupe ne pouvaient voir (N3 : un nom de 105 caractères sans espace sortait de sa carte et écrasait le bouton crayon à 0 px). D'où l'oracle `overflowing`.
+
+**Défauts du kit trouvés et corrigés pendant ces US** (7)
+- `ac-map.mjs` ne lisait pas les tests C# : tous les critères rendus INTROUVABLE côté back.
+- `contract.sha256` n'était écrit par aucune étape alors que `parallel.md` le suppose : écrit au GO.
+- Pas d'oracle de débordement : ajouté (`overflowing`), avec la règle « jouer la valeur extrême permise ».
+- `standards-pack check` comptait comme écart les hits couverts par un écart accepté (2 faux avertissements à chaque revue) : toléré avec trace.
+- Le CSS Tailwind figé du banc ne contenait pas les classes de la feature : `mktw.mjs` le régénère.
+- Les cas limites hors carte (voir 3).
+- Les 5 genres de pistes hors brief (voir 2).
+
+**Standards** : ils sont bien injectés. Chaque brief contient le corps de chaque standard (4 à 7 toujours injectés, 3 à 7 ciblés par la tâche), les contrôles mécaniques, et les « écarts acceptés » (le dépôt prime). Les relecteurs les ont tous appliqués ; aucun n'a jugé un écart déjà accepté. Un point à confirmer par Thomas : l'écart `react/forms` de N3 (formulaire d'un champ sans react-hook-form ni zod, comme `CreateBoardModal`).
+
+**Constats sur l'application du banc** (hors kit) : le bandeau d'erreur de la liste des tableaux est inatteignable (`BoardService.getAll` avale l'erreur) ; le contraste du texte de la bibliothèque est à 4,44 pour 4,5 (AA) ; un nom de tableau très long sans espace débordait de sa carte (corrigé avec N3).
+
+**Limites** : une revue Sonnet qui rend PASS en moins d'une minute n'a pas toujours tout lu : sans la loupe, 3 à 7 trous par US auraient été livrés. Le moteur `Workflow` complet (avec la loupe) n'a toujours pas tourné de bout en bout (les agents `sk-worker`/`sk-reviewer` ne sont pas installés ici) : validé par ses tests et par le même déroulé fait à la main.
+
 ## Revue : le choix éprouvé sur plusieurs cycles (12 octobre)
 
 **Pourquoi** : le choix « Sonnet + loupe » reposait sur une seule mesure. Je l'ai refait sur **3 livraisons piégées** de 3 US différentes (TK-2 duplication : 6 défauts ; TK-3 US1 mode sombre : 6 ; TK-3 US2 mémorisation : 4), **2 cycles chacune**, plus **2 livraisons propres** (faux positifs et temps). Sonnet et Opus tournaient dans le même lot, donc avec la même charge machine.
