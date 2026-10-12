@@ -23,3 +23,10 @@ N2 filtrer les tableaux (front seul, 3 taches) : prep opus 3 questions (SK-ANSWE
   N6 revue sonnet : PASS
   N6 loupe : 4 pistes vraies mais d un autre genre : plus de cas limite sans test (la carte les a tous) ; des assertions incompletes (LastItemUpdatedAt non assertee dans 2 tests, comparaison owner/viewer partielle, non-modification non prouvee)
   N6 review-lens sonnet : FIXED c6901d9 (4 pistes retenues, piste 2 vue rouge : la date n etait pas bornee au tableau si on retirait le filtre) ; verif API reelle 10/10 x3 ; back tests ci-dessous
+== N5 (front, grille magnetique : geometrie + persistance, 6 taches / 6 fichiers prod : US plus grosse) ==
+  N5 prep opus 3 min x2 questions ~6,5 min 176k tok ; worker sonnet medium 6d8a23a : ac-map 19/19 (AC1-10 + 9 cas limites, 2 ecartes E3 E7 motives)
+  N5 revue sonnet (rapport seul, comparaison) : PASS
+  N5 revue opus (US 6 fichiers, regle d escalade) : PASS, skips E3/E7 acceptes avec raison
+  N5 loupe : 5 pistes (role proprietaire non teste, deplacements distants, outils actifs, tooltip, E3/E7 contestes) malgre carte des cas limites + hygiene ; 0 faux
+  N5 review-lens sonnet : FIXED 72c9554 (2 pistes retenues vues rouges : role proprietaire, 6 outils ; 3 ecartees avec raison : deplacements distants = tautologie, E3/E7 hors US, tooltip de la lib) ; E2E navigateur (vraies glisses souris, positions relues serveur) 11/11 x3 (+2 passes ; 1er essai FAIL transitoire sans cause trouvee, #1.5 position inchangee, non reproduit sur 5 essais) ; front 775 tests
+  N5 critere d escalade (US > 4 fichiers de prod -> revue Opus) : Opus PASS, Sonnet PASS (rapport seul), memes verdicts, la loupe a fait la difference (5 pistes dont 2 retenues) ; 1 seul point de donnee
