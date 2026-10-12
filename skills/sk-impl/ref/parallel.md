@@ -45,7 +45,9 @@ Le script : barrier d abord (Sonnet -> Opus review
 Barriere en STOP, FAIL non resolu ou ESCALATE = ne pas lancer le Promise.all. ok agrege les workers parallel (un ko => ok false, siblings vont au bout).
 Hash du contrat, une seule source de verite :
 - barrier null (contrat ecrit et gele par la prep, cas courant) :
-  CONTRACT_HASH = contract.sha256 dans tous les briefs, expectedHash
+  contract.sha256 est ecrit par TOI au GO s il manque (la prep ne l ecrit
+  pas : banc N3) : `sha256sum <contrat> | cut -d" " -f1 > FEATURE_DIR/contract.sha256`,
+  copie dans le trio de chaque slot. CONTRACT_HASH = contract.sha256 dans tous les briefs, expectedHash
   dans args ; le moteur ne lance aucun agent de hash
   (`hashCheckedBy: "parent"`). Au retour du Workflow, TU recalcules
   `sha256sum` du contrat : different de contract.sha256 = STOP, pas
