@@ -322,6 +322,12 @@ pistes ; il corrige les vraies, ecarte les fausses, commite `sk-impl
 REVIEW(<US>)`) PENDANT le passage E2E, donc sans attente en plus : banc N2
 (filtre des tableaux), 7 pistes vraies sur un PASS de Sonnet, 5 tests
 ajoutes en 59 s pendant l E2E. Rejoue la gate ciblee avant de publier.
+ATTENTION (banc N15, 13 octobre) : le review-lens MUTE temporairement la prod pour voir
+ses tests rouges ; si l E2E sert le MEME dossier (Vite), il joue sur du code mute et
+echoue au hasard (1 passe sur 12 en rouge, 8 suivantes toutes vertes une fois l agent
+fini). Le review-lens travaille dans une COPIE (`git worktree add <slot>-lens`, sa
+branche, puis ses commits sont ramenes dans le slot par `git cherry-pick`) ou l E2E est
+servi depuis un instantane fige ; jamais l un et l autre sur le meme arbre de travail.
 `reviewLens: "full"` : le moteur les fait juger avant de rendre la main
 (+2,6 min mesure, a eviter). Cycles du 12 octobre (3 livraisons piegees,
 2 cycles) : Sonnet seul 27/32 defauts, Opus seul 30/32, Sonnet + loupe et

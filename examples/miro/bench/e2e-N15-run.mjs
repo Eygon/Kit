@@ -38,7 +38,7 @@ await type(page, "retro équipe"); check("US2.AC2", /1 tableau sur 12/.test(awai
 await type(page, ""); check("US2.AC3", (await count.count()) === 0 && (await clear.count()) === 0, `sans recherche : compteur=${await count.count()} bouton=${await clear.count()}`);
 await type(page, "  Zèbre  ");
 const noMatch = page.getByText(/Aucun tableau ne correspond/); const nm = await noMatch.innerText().catch(() => "");
-check("US2.AC4", /Aucun tableau ne correspond à .Zèbre./.test(nm) && /0 tableau sur 12/.test(await count.innerText()) && (await clear.count()) === 1 && (await cards(page)).length === 0, `message « ${nm} » ; compteur « ${await count.innerText()} » ; Effacer=${await clear.count()} ; cartes=${(await cards(page)).length}`);
+check("US2.AC4", /Aucun tableau ne correspond à\s*«\s*Zèbre\s*»/.test(nm) && /0 tableau sur 12/.test(await count.innerText()) && (await clear.count()) === 1 && (await cards(page)).length === 0, `message « ${nm} » ; compteur « ${await count.innerText()} » ; Effacer=${await clear.count()} ; cartes=${(await cards(page)).length}`);
 await clear.click(); await page.waitForTimeout(250);
 check("US2.AC5", (await SEARCH(page).inputValue()) === "" && (await cards(page)).length === 12 && (await count.count()) === 0 && (await noMatch.count()) === 0 && (await clear.count()) === 0, `Effacer -> champ vide, ${(await cards(page)).length} cartes, compteur/bouton/message absents`);
 await type(page, "sprint");
