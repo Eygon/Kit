@@ -21,14 +21,16 @@ export function watch(page, { api = "", expectedConsole = [] } = {}) {
     if (!expectedConsole.some((rx) => rx.test(text))) buf.console.push(text);
   });
   page.on("pageerror", (e) => buf.console.push("pageerror: " + e.message));
+  const answered = new WeakSet(); // requete deja repondue : un ERR_ABORTED tardif (corps annule, 204) n est pas un echec
   page.on("response", (r) => {
     if (!fromApi(r.url())) return;
+    answered.add(r.request());
     const x = { m: r.request().method(), u: r.url().slice(api.length), s: r.status() };
     buf.net.push(x);
     if (r.status() >= 500) buf.fiveXX.push(x);
   });
   page.on("requestfailed", (r) => {
-    if (fromApi(r.url())) buf.net.push({ m: r.method(), u: r.url().slice(api.length), s: "FAILED " + (r.failure()?.errorText || "") });
+    if (fromApi(r.url()) && !answered.has(r)) buf.net.push({ m: r.method(), u: r.url().slice(api.length), s: "FAILED " + (r.failure()?.errorText || "") });
   });
   return {
     take() {
@@ -133,7 +135,7 @@ export async function unreachable(page, { limit = 20, expected = [] } = {}) {
       const r = el.getBoundingClientRect();
       if (!r.width || !r.height) continue;
       if (r.width <= 2 && r.height <= 2) continue; // texte masque visuellement (sr-only, bouton « Rejeter » des tiroirs de la lib) : pas une cible
-      if (r.top >= 0 && r.bottom <= vh + 1 && r.left >= 0 && r.right <= vw + 1) continue;
+      if (r.top >= -2 && r.bottom <= vh + 2 && r.left >= -2 && r.right <= vw + 2) continue; // 2 px de tolerance : select natif masque de la lib (HeroUI), decale de 1 px
       let reachable = false, fixed = false;
       for (let a = el.parentElement; a; a = a.parentElement) {
         if (getComputedStyle(a).position === "fixed") fixed = true;
