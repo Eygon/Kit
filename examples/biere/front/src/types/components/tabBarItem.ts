@@ -5,4 +5,5 @@ export type TabBarItemProps = Readonly<{
   to: RoutePathEnum;
   label: string;
   icon: SvgIcon;
+  activePaths?: readonly RoutePathEnum[];
 }>;

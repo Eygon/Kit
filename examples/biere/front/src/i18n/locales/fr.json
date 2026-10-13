@@ -2,6 +2,10 @@
   "app": {
     "name": "Mousse"
   },
+  "common": {
+    "retry": "Réessayer",
+    "close": "Fermer"
+  },
   "nav": {
     "label": "Navigation principale",
     "encyclopedia": "Encyclopédie",
@@ -17,12 +21,161 @@
       "loaded": "Mousse, le houblon mascotte, sac à dos chargé de badges"
     }
   },
+  "beer": {
+    "families": {
+      "lager": "Lager",
+      "pilsner": "Pilsner",
+      "paleAle": "Pale Ale",
+      "ipa": "IPA",
+      "blonde": "Blonde",
+      "amber": "Ambrée",
+      "brown": "Brune",
+      "stout": "Stout",
+      "porter": "Porter",
+      "witbier": "Blanche",
+      "weizen": "Weizen",
+      "saison": "Saison",
+      "trappist": "Trappiste",
+      "abbey": "Abbaye",
+      "belgianStrong": "Forte belge",
+      "sourLambic": "Sour / Lambic",
+      "fruit": "Fruitée",
+      "nonAlcoholic": "Sans alcool"
+    },
+    "aromas": {
+      "fruity": "Fruité",
+      "citrus": "Agrumes",
+      "hoppy": "Houblonné",
+      "floral": "Floral",
+      "spicy": "Épicé",
+      "caramel": "Caramel",
+      "malty": "Malté",
+      "roasted": "Torréfié",
+      "coffee": "Café",
+      "chocolate": "Chocolat",
+      "honey": "Miel",
+      "banana": "Banane",
+      "clove": "Clou de girofle",
+      "sour": "Acidulé",
+      "woody": "Boisé",
+      "herbal": "Herbacé",
+      "smoky": "Fumé",
+      "biscuit": "Biscuit"
+    },
+    "formats": {
+      "bottle": "Bouteille",
+      "can": "Canette",
+      "draft": "Pression"
+    },
+    "sorts": {
+      "name": "Nom",
+      "abv": "Degré",
+      "brewery": "Brasserie"
+    },
+    "statuses": {
+      "drunk": "Bues",
+      "wishlist": "À goûter",
+      "untasted": "Jamais goûtées"
+    }
+  },
   "pages": {
     "encyclopedia": {
       "title": "Encyclopédie",
-      "subtitle": "Toutes les bières, styles et brasseries.",
-      "emptyTitle": "Aucune bière pour l'instant",
-      "emptyDescription": "Les fiches des bières apparaîtront ici."
+      "emptyTitle": "Aucune bière ne correspond",
+      "emptyDescription": "Essayez une autre recherche ou retirez des filtres.",
+      "errorTitle": "Impossible de charger les bières.",
+      "loadMore": "Voir plus",
+      "card": {
+        "unknownLabel": "???",
+        "notTasted": "Pas encore goûtée",
+        "stamp": "Bue le {{date}}",
+        "stampWithoutDate": "Bue"
+      },
+      "progress": {
+        "label": "{{discovered}} / {{total}} découvertes",
+        "ringLabel": "Progression du Pokédex",
+        "errorTitle": "Progression indisponible."
+      },
+      "resultCount_one": "{{count}} résultat",
+      "resultCount_other": "{{count}} résultats",
+      "search": {
+        "label": "Rechercher une bière ou une brasserie",
+        "clear": "Effacer la recherche"
+      },
+      "families": {
+        "label": "Familles",
+        "all": "Toutes",
+        "chip": "{{label}} ({{count}})"
+      },
+      "filters": {
+        "title": "Filtres",
+        "activeCount_one": "{{count}} filtre actif",
+        "activeCount_other": "{{count}} filtres actifs",
+        "abv": "Degré",
+        "abvRange": "{{min}} à {{max}} %",
+        "status": "Statut",
+        "allStatuses": "Toutes",
+        "family": "Famille",
+        "styles": "Styles",
+        "stylesError": "Impossible de charger les styles.",
+        "countries": "Pays",
+        "formats": "Format",
+        "sort": "Trier par",
+        "reset": "Réinitialiser",
+        "apply_one": "Voir {{count}} bière",
+        "apply_other": "Voir {{count}} bières",
+        "applyUnknown": "Voir les bières",
+        "facetOption": "{{label}} ({{count}})"
+      }
+    },
+    "beerDetail": {
+      "back": "Retour",
+      "brewery": "Brasserie",
+      "country": "Pays",
+      "style": "Style",
+      "abv": "Degré",
+      "aromas": "Arômes",
+      "formats": "Formats",
+      "description": "Description",
+      "unknownTitle": "Bière inconnue",
+      "unknownDescription": "Cette bière n'est pas dans l'encyclopédie.",
+      "backToEncyclopedia": "Retour à l'Encyclopédie",
+      "errorTitle": "Impossible de charger cette bière.",
+      "wishlist": {
+        "toggle": "À goûter",
+        "added": "Ajoutée à vos envies.",
+        "removed": "Retirée de vos envies."
+      },
+      "history": {
+        "title": "Mon historique",
+        "empty": "Pas encore de dégustation : appuyez sur « Je l'ai bue ».",
+        "errorTitle": "Impossible de charger votre historique.",
+        "loadMore": "Voir plus",
+        "rating": "★ {{rating}}",
+        "ratingLabel": "Note : {{rating}} sur 5"
+      },
+      "checkin": {
+        "open": "Je l'ai bue",
+        "title": "Je l'ai bue : {{name}}",
+        "drankAt": "Date et heure",
+        "drankAtRequired": "Indiquez la date et l'heure.",
+        "drankAtFuture": "La date ne peut pas être dans le futur.",
+        "place": "Lieu",
+        "placeRequired": "Indiquez le lieu.",
+        "rating": "Note",
+        "noRating": "Sans note",
+        "ratingValue": "{{rating}} / 5",
+        "aromas": "Arômes ressentis (5 au plus)",
+        "format": "Format",
+        "formatRequired": "Choisissez un format.",
+        "price": "Prix",
+        "comment": "Commentaire",
+        "commentCount": "{{count}} / 500",
+        "submit": "Enregistrer",
+        "saved": "Dégustation enregistrée.",
+        "capturedTitle": "Nouvelle bière capturée !",
+        "capturedDescription": "{{name}} rejoint votre Pokédex."
+      }
     },
     "map": {
       "title": "Carte",

@@ -1,6 +1,7 @@
 import { Toast } from "@heroui/react";
 import { Navigate, Route, Routes } from "react-router";
 import { BottomTabBar } from "@/components/widgets/bottomTabBar/bottomTabBar";
+import { BeerDetailPage } from "@/pages/beerDetail/beerDetail";
 import { EncyclopediaPage } from "@/pages/encyclopedia/encyclopedia";
 import { JournalPage } from "@/pages/journal/journal";
 import { MapPage } from "@/pages/map/map";
@@ -15,6 +16,7 @@ export const App = () => (
         <Route path={RoutePathEnum.MAP} element={<MapPage />} />
         <Route path={RoutePathEnum.JOURNAL} element={<JournalPage />} />
         <Route path={RoutePathEnum.PROFILE} element={<ProfilePage />} />
+        <Route path={RoutePathEnum.BEER_DETAIL} element={<BeerDetailPage />} />
         <Route path="*" element={<Navigate to={RoutePathEnum.ENCYCLOPEDIA} replace />} />
       </Routes>
     </main>

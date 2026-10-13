@@ -8,7 +8,7 @@ import { UsersService } from "@/modules/users/users.service";
 const ALICE: UserDto = { id: 1, displayName: "Alice", avatarColor: "#F59E0B" };
 
 describe("UsersService", () => {
-  const repository = { findAll: vi.fn(), findById: vi.fn() };
+  const repository = { findAll: vi.fn(), findById: vi.fn(), existsById: vi.fn() };
   let service: UsersService;
 
   beforeEach(async () => {
@@ -30,6 +30,13 @@ describe("UsersService", () => {
 
     expect(await service.getUser(1)).toBe(ALICE);
     expect(repository.findById).toHaveBeenCalledWith(1);
+  });
+
+  it.each([true, false])("answers %s to isKnownUser from the repository existence check", async (exists) => {
+    repository.existsById.mockResolvedValue(exists);
+
+    expect(await service.isKnownUser(7)).toBe(exists);
+    expect(repository.existsById).toHaveBeenCalledWith(7);
   });
 
   it("throws 404 for an unknown user", async () => {

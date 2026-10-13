@@ -10,6 +10,10 @@ export class UsersService {
     return this.usersRepository.findAll();
   }
 
+  isKnownUser(userId: number): Promise<boolean> {
+    return this.usersRepository.existsById(userId);
+  }
+
   async getUser(userId: number): Promise<UserDto> {
     const user = await this.usersRepository.findById(userId);
     if (user === null) {

@@ -1,0 +1,77 @@
+import { HttpStatus, ParseIntPipe } from "@nestjs/common";
+import { HTTP_CODE_METADATA, ROUTE_ARGS_METADATA } from "@nestjs/common/constants";
+import { RouteParamtypes } from "@nestjs/common/enums/route-paramtypes.enum";
+import { Test } from "@nestjs/testing";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { BeersController } from "@/modules/beers/beers.controller";
+import { BeersService } from "@/modules/beers/beers.service";
+import type { CatalogBeerDto } from "@/modules/beers/dtos/catalog-beer.dto";
+import type { BeerPageDto } from "@/modules/beers/dtos/beer-page.dto";
+import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
+import { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
+
+const ALICE = 1;
+
+const CHIMAY: CatalogBeerDto = {
+  id: 1,
+  name: "Chimay Rouge",
+  breweryName: "Bières de Chimay",
+  country: "BE",
+  styleId: 2,
+  styleName: "Dubbel trappiste",
+  family: BeerFamilyEnum.TRAPPIST,
+  abv: 7,
+  aromas: [],
+  formats: [],
+  description: "Trappiste.",
+  drunk: true,
+  checkinCount: 2,
+  inWishlist: false,
+};
+
+describe("BeersController", () => {
+  const service = { getBeers: vi.fn(), getBeerForUser: vi.fn() };
+  let controller: BeersController;
+
+  beforeEach(async () => {
+    vi.resetAllMocks();
+    const moduleRef = await Test.createTestingModule({
+      controllers: [BeersController],
+      providers: [{ provide: BeersService, useValue: service }],
+    }).compile();
+    controller = moduleRef.get(BeersController);
+  });
+
+  it("returns the page the service builds for the query", async () => {
+    const page: BeerPageDto = {
+      items: [CHIMAY],
+      total: 1,
+      page: 2,
+      size: 5,
+      facets: { families: [], countries: [], formats: [] },
+    };
+    const query = { q: "chimay", sort: BeerSortEnum.ABV, page: 2, size: 5 };
+    service.getBeers.mockResolvedValue(page);
+
+    expect(await controller.getAll(ALICE, query)).toBe(page);
+    expect(service.getBeers).toHaveBeenCalledExactlyOnceWith(ALICE, query);
+  });
+
+  it("returns one beer with the state of the current user", async () => {
+    service.getBeerForUser.mockResolvedValue(CHIMAY);
+
+    expect(await controller.getOne(ALICE, 1)).toBe(CHIMAY);
+    expect(service.getBeerForUser).toHaveBeenCalledExactlyOnceWith(ALICE, 1);
+  });
+
+  it("parses the beer id of the route with a ParseIntPipe", () => {
+    const args = Reflect.getMetadata(ROUTE_ARGS_METADATA, BeersController, "getOne") as Record<string, { pipes: unknown[] }>;
+
+    expect(args[`${RouteParamtypes.PARAM}:1`].pipes).toEqual([ParseIntPipe]);
+  });
+
+  it("declares 200 on every action", () => {
+    expect(Reflect.getMetadata(HTTP_CODE_METADATA, BeersController.prototype.getAll)).toBe(HttpStatus.OK);
+    expect(Reflect.getMetadata(HTTP_CODE_METADATA, BeersController.prototype.getOne)).toBe(HttpStatus.OK);
+  });
+});

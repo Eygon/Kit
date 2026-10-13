@@ -1,0 +1,23 @@
+export const BEER_STYLE_NAME_MAX_LENGTH = 60;
+
+export const BEER_STYLE_DESCRIPTION_MAX_LENGTH = 200;
+
+export const BREWERY_NAME_MAX_LENGTH = 60;
+
+export const BREWERY_CITY_MAX_LENGTH = 60;
+
+export const COUNTRY_CODE_LENGTH = 2;
+
+export const BEER_NAME_MAX_LENGTH = 60;
+
+export const BEER_DESCRIPTION_MAX_LENGTH = 300;
+
+export const BEER_SEARCH_TEXT_MAX_LENGTH = 120;
+
+export const BEER_SEARCH_MAX_LENGTH = 100;
+
+export const BEER_PAGE_SIZE_DEFAULT = 20;
+
+export const BEER_PAGE_SIZE_MAX = 50;
+
+export const BEER_ABV_MAX_PERCENT = 14;

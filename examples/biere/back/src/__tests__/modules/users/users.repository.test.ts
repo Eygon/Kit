@@ -41,4 +41,12 @@ describe("UsersRepository", () => {
   it("returns null for an unknown id", async () => {
     expect(await repository.findById(42)).toBeNull();
   });
+
+  it("tells that an existing user exists", async () => {
+    expect(await repository.existsById(1)).toBe(true);
+  });
+
+  it("tells that an unknown user does not exist", async () => {
+    expect(await repository.existsById(99)).toBe(false);
+  });
 });

@@ -1,7 +1,11 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "@/app";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
+
+const mockBeer = vi.hoisted(() => ({ useBeerQuery: vi.fn() }));
+
+vi.mock("@/pages/beerDetail/hooks/useBeerQuery", () => mockBeer);
 
 describe("App", () => {
   it.each([
@@ -50,5 +54,42 @@ describe("App", () => {
     const main = screen.getByRole("main");
     expect(main.className).toContain("pb-[calc(6rem+env(safe-area-inset-bottom))]");
     expect(main.parentElement?.className).toContain("min-h-dvh");
+  });
+
+  it("renders the beer sheet of /bieres/1 with the encyclopedia tab current", () => {
+    mockBeer.useBeerQuery.mockReturnValue({
+      data: {
+        id: 1,
+        name: "Chimay Rouge",
+        breweryName: "Bières de Chimay",
+        country: "BE",
+        styleId: 4,
+        styleName: "Dubbel trappiste",
+        family: null,
+        abv: 7,
+        aromas: [],
+        formats: [],
+        description: "Une trappiste.",
+      },
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithProviders(<App />, { initialPath: "/bieres/1" });
+
+    expect(mockBeer.useBeerQuery).toHaveBeenCalledWith(1);
+    expect(screen.getByRole("heading", { level: 1, name: "Chimay Rouge" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Encyclopédie" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Carte" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("does not redirect /bieres/abc to the encyclopedia but tells the beer is unknown", async () => {
+    mockBeer.useBeerQuery.mockReturnValue({ data: undefined, isPending: true, isError: false, refetch: vi.fn() });
+
+    renderWithProviders(<App />, { initialPath: "/bieres/abc" });
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Bière inconnue" })).toBeInTheDocument());
+    expect(mockBeer.useBeerQuery).toHaveBeenCalledWith(null);
   });
 });

@@ -5,4 +5,5 @@ export type TabBarEntry = Readonly<{
   to: RoutePathEnum;
   labelKey: string;
   icon: SvgIcon;
+  activePaths?: readonly RoutePathEnum[];
 }>;

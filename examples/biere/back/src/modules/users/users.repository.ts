@@ -18,4 +18,8 @@ export class UsersRepository {
     const entity = await this.users.findOneBy({ id });
     return entity === null ? null : toUserDto(entity);
   }
+
+  existsById(id: number): Promise<boolean> {
+    return this.users.existsBy({ id });
+  }
 }

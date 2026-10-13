@@ -1,0 +1,5 @@
+const MINUTE_MS = 60_000;
+
+export const CHECKIN_PAGE_SIZE = 20;
+
+export const CHECKIN_FUTURE_TOLERANCE_MS = 5 * MINUTE_MS;

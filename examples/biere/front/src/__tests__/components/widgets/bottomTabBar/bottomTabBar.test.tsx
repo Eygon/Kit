@@ -19,6 +19,16 @@ describe("BottomTabBar", () => {
     expect(screen.getByRole("link", { name: "Encyclopédie" })).not.toHaveAttribute("aria-current");
   });
 
+  it("keeps the Encyclopedia tab current on a beer sheet and no other", () => {
+    renderWithProviders(<BottomTabBar />, { initialPath: "/bieres/12" });
+
+    const nav = screen.getByRole("navigation");
+    const current = within(nav)
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("aria-current") === "page");
+    expect(current.map((link) => link.textContent)).toEqual(["Encyclopédie"]);
+  });
+
   it("stays fixed at the bottom above the safe area", () => {
     renderWithProviders(<BottomTabBar />);
 

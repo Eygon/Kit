@@ -2,6 +2,10 @@
   "app": {
     "name": "Mousse"
   },
+  "common": {
+    "retry": "Retry",
+    "close": "Close"
+  },
   "nav": {
     "label": "Main navigation",
     "encyclopedia": "Encyclopedia",
@@ -17,12 +21,161 @@
       "loaded": "Mousse, the hop mascot, backpack loaded with badges"
     }
   },
+  "beer": {
+    "families": {
+      "lager": "Lager",
+      "pilsner": "Pilsner",
+      "paleAle": "Pale Ale",
+      "ipa": "IPA",
+      "blonde": "Blonde",
+      "amber": "Amber",
+      "brown": "Brown",
+      "stout": "Stout",
+      "porter": "Porter",
+      "witbier": "Witbier",
+      "weizen": "Weizen",
+      "saison": "Saison",
+      "trappist": "Trappist",
+      "abbey": "Abbey",
+      "belgianStrong": "Belgian Strong",
+      "sourLambic": "Sour / Lambic",
+      "fruit": "Fruit beer",
+      "nonAlcoholic": "Non-alcoholic"
+    },
+    "aromas": {
+      "fruity": "Fruity",
+      "citrus": "Citrus",
+      "hoppy": "Hoppy",
+      "floral": "Floral",
+      "spicy": "Spicy",
+      "caramel": "Caramel",
+      "malty": "Malty",
+      "roasted": "Roasted",
+      "coffee": "Coffee",
+      "chocolate": "Chocolate",
+      "honey": "Honey",
+      "banana": "Banana",
+      "clove": "Clove",
+      "sour": "Sour",
+      "woody": "Woody",
+      "herbal": "Herbal",
+      "smoky": "Smoky",
+      "biscuit": "Biscuit"
+    },
+    "formats": {
+      "bottle": "Bottle",
+      "can": "Can",
+      "draft": "Draft"
+    },
+    "sorts": {
+      "name": "Name",
+      "abv": "Strength",
+      "brewery": "Brewery"
+    },
+    "statuses": {
+      "drunk": "Tasted",
+      "wishlist": "To taste",
+      "untasted": "Never tasted"
+    }
+  },
   "pages": {
     "encyclopedia": {
       "title": "Encyclopedia",
-      "subtitle": "Every beer, style and brewery.",
-      "emptyTitle": "No beers yet",
-      "emptyDescription": "Beer sheets will show up here."
+      "emptyTitle": "No beer matches",
+      "emptyDescription": "Try another search or remove some filters.",
+      "errorTitle": "Could not load the beers.",
+      "loadMore": "Show more",
+      "card": {
+        "unknownLabel": "???",
+        "notTasted": "Not tasted yet",
+        "stamp": "Tasted on {{date}}",
+        "stampWithoutDate": "Tasted"
+      },
+      "progress": {
+        "label": "{{discovered}} / {{total}} discovered",
+        "ringLabel": "Pokédex progress",
+        "errorTitle": "Progress unavailable."
+      },
+      "resultCount_one": "{{count}} result",
+      "resultCount_other": "{{count}} results",
+      "search": {
+        "label": "Search a beer or a brewery",
+        "clear": "Clear search"
+      },
+      "families": {
+        "label": "Families",
+        "all": "All",
+        "chip": "{{label}} ({{count}})"
+      },
+      "filters": {
+        "title": "Filters",
+        "activeCount_one": "{{count}} active filter",
+        "activeCount_other": "{{count}} active filters",
+        "abv": "Strength (ABV)",
+        "abvRange": "{{min}} to {{max}}%",
+        "status": "Status",
+        "allStatuses": "All",
+        "family": "Family",
+        "styles": "Styles",
+        "stylesError": "Could not load the styles.",
+        "countries": "Countries",
+        "formats": "Format",
+        "sort": "Sort by",
+        "reset": "Reset",
+        "apply_one": "Show {{count}} beer",
+        "apply_other": "Show {{count}} beers",
+        "applyUnknown": "Show beers",
+        "facetOption": "{{label}} ({{count}})"
+      }
+    },
+    "beerDetail": {
+      "back": "Back",
+      "brewery": "Brewery",
+      "country": "Country",
+      "style": "Style",
+      "abv": "Strength",
+      "aromas": "Aromas",
+      "formats": "Formats",
+      "description": "Description",
+      "unknownTitle": "Unknown beer",
+      "unknownDescription": "This beer is not in the encyclopedia.",
+      "backToEncyclopedia": "Back to the encyclopedia",
+      "errorTitle": "Could not load this beer.",
+      "wishlist": {
+        "toggle": "To taste",
+        "added": "Added to your wishlist.",
+        "removed": "Removed from your wishlist."
+      },
+      "history": {
+        "title": "My history",
+        "empty": "No tasting yet: tap “I drank it”.",
+        "errorTitle": "Could not load your history.",
+        "loadMore": "Show more",
+        "rating": "★ {{rating}}",
+        "ratingLabel": "Rating: {{rating}} out of 5"
+      },
+      "checkin": {
+        "open": "I drank it",
+        "title": "I drank it: {{name}}",
+        "drankAt": "Date and time",
+        "drankAtRequired": "Enter the date and time.",
+        "drankAtFuture": "The date cannot be in the future.",
+        "place": "Place",
+        "placeRequired": "Enter the place.",
+        "rating": "Rating",
+        "noRating": "No rating",
+        "ratingValue": "{{rating}} / 5",
+        "aromas": "Aromas (up to 5)",
+        "format": "Format",
+        "formatRequired": "Choose a format.",
+        "price": "Price",
+        "comment": "Comment",
+        "commentCount": "{{count}} / 500",
+        "submit": "Save",
+        "saved": "Tasting saved.",
+        "capturedTitle": "New beer captured!",
+        "capturedDescription": "{{name}} joins your Pokédex."
+      }
     },
     "map": {
       "title": "Map",

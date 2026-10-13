@@ -39,6 +39,27 @@
     box-shadow: none;
   }
 
+  .toggle-button {
+    border: var(--mousse-border) solid var(--mousse-ink);
+    border-radius: var(--mousse-control-radius);
+    box-shadow: var(--mousse-shadow);
+    font-weight: 700;
+    --toggle-button-bg: var(--surface);
+    --toggle-button-bg-hover: var(--default);
+    --toggle-button-bg-pressed: var(--default);
+    --toggle-button-bg-selected: var(--accent);
+    --toggle-button-bg-selected-hover: var(--accent-hover);
+    --toggle-button-bg-selected-pressed: var(--accent-hover);
+    --toggle-button-fg-selected: var(--accent-foreground);
+
+    &:active,
+    &[data-pressed="true"],
+    &[data-selected="true"] {
+      transform: translate(2px, 2px);
+      box-shadow: var(--mousse-shadow-pressed);
+    }
+  }
+
   .card {
     border: var(--mousse-border) solid var(--mousse-ink);
     border-radius: var(--mousse-radius);

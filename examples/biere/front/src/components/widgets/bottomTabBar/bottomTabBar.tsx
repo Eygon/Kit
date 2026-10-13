@@ -12,7 +12,13 @@ export const BottomTabBar = () => {
     >
       <ul className="mx-auto flex max-w-xl items-stretch gap-1.5 px-2 pt-2 pb-3">
         {TAB_BAR_ENTRIES.map((entry) => (
-          <TabBarItem key={entry.to} to={entry.to} label={t(entry.labelKey)} icon={entry.icon} />
+          <TabBarItem
+            key={entry.to}
+            to={entry.to}
+            label={t(entry.labelKey)}
+            icon={entry.icon}
+            activePaths={entry.activePaths}
+          />
         ))}
       </ul>
     </nav>

@@ -21,4 +21,13 @@ describe("TAB_BAR_ENTRIES", () => {
   it("gives every tab an icon", () => {
     TAB_BAR_ENTRIES.forEach((entry) => expect(entry.icon).toBeTypeOf("function"));
   });
+
+  it("keeps the Encyclopedia tab active on the beer detail path only", () => {
+    expect(TAB_BAR_ENTRIES.map((entry) => entry.activePaths)).toEqual([
+      [RoutePathEnum.BEER_DETAIL],
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
 });

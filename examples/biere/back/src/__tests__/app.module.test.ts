@@ -7,7 +7,10 @@ import { HttpExceptionFilter } from "@/common/filters/http-exception.filter";
 import { createValidationPipe } from "@/common/pipes/validation-pipe.factory";
 import { CurrentUserGuard } from "@/common/security/current-user.guard";
 import { DataSeeder } from "@/database/data-seeder";
+import { BeersController } from "@/modules/beers/beers.controller";
 import { HealthController } from "@/modules/health/health.controller";
+import { CheckinsController } from "@/modules/pokedex/checkins.controller";
+import { TastingsService } from "@/modules/tastings/tastings.service";
 import { UsersController } from "@/modules/users/users.controller";
 import { UsersService } from "@/modules/users/users.service";
 import { createTestApp } from "@/__tests__/support/test-app";
@@ -25,9 +28,15 @@ describe("AppModule", () => {
 
   it("wires the feature modules and the database seeder", () => {
     expect(app.get(HealthController)).toBeInstanceOf(HealthController);
+    expect(app.get(BeersController)).toBeInstanceOf(BeersController);
     expect(app.get(UsersController)).toBeInstanceOf(UsersController);
     expect(app.get(UsersService)).toBeInstanceOf(UsersService);
+    expect(app.get(TastingsService)).toBeInstanceOf(TastingsService);
     expect(app.get(DataSeeder)).toBeInstanceOf(DataSeeder);
+  });
+
+  it("mounts the pokedex module so the check-ins controller is served", () => {
+    expect(app.get(CheckinsController)).toBeInstanceOf(CheckinsController);
   });
 
   it("registers the identity guard, the validation pipe and the exception filter globally", () => {
