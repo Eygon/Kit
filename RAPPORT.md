@@ -82,6 +82,24 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Ce que le moteur apporte par rapport à la main** : les faits de l'US1 passent au worker de l'US2 sans que je les recopie ; la revue Opus se déclenche toute seule quand un fichier est partagé entre US (`PARTAGE`) ; la loupe tourne sans que j'y pense ; le hash du contrat est vérifié avant et après le fan-out.
 
+### Boucle 2 : trois cycles complets avec le moteur (13 octobre)
+
+Trois features neuves de bout en bout (prep Opus → moteur `Workflow` → correction des pistes de la loupe → passage réel), les agents du registre cette fois (sans `agentBodies`).
+
+| Cycle | Feature | Moteur | Agents / durée | Pistes de la loupe | Passage réel | Défaut de production |
+|---|---|---|---|---|---|---|
+| 1 | N14 Archiver un tableau (back, 4 US chaînées, 17 tâches) | séquentiel | 12 / 24,6 min | 7 (6 retenues) | API 14/14 ×3 | 0 |
+| 2 | N15 Rechercher dans la liste (front, 2 US) | séquentiel | 6 / 10,3 min | 5 (4 retenues) | navigateur 17/17 | 0 |
+| 3 | N16 Couleur d'étiquette (back ‖ chaîne front de 2 US, contrat gelé) | parallèle | 9 / 17 min | 9 (8 retenues) | API + navigateur 19/19 ×4 | 0 |
+
+**Ce que ça montre** : sur 9 US et 38 tâches, **aucun défaut de production** (contre 1 à 2 par feature dans les premiers cycles) : les règles ajoutées dans le brief du worker et de la prep tiennent. Les pistes de la loupe (1 à 5 par US) ne portent plus que sur des **tests trop faibles** : ordre des contrôles prouvé avec une valeur valide, assertion par sous-chaîne (« 12 tableaux sur 12 » passait pour « 2 tableaux sur 12 »), chemin d'échec simulé au lieu d'être réel. Les revues (Opus ou Sonnet) corrigent déjà elles-mêmes 2 trous par US dans 3 cas sur 7.
+
+**Défauts du kit corrigés pendant la boucle** (2) :
+1. **`review-lens` et passage réel sur le même dossier = faux rouges** (1 passe sur 12 instable, les 8 suivantes vertes une fois l'agent fini) : l'agent mute temporairement la production pour voir ses tests rouges pendant que Vite sert ce dossier. Règle dans `sk-impl` : le passage réel est servi depuis un instantané figé (ou le review-lens travaille dans une copie). Appliquée au cycle 3 : 19/19 ×4 sans à-coup.
+2. `contract-cover` ne reconnaissait pas `[HttpPost(...)]` cité par une tâche (corrigé à N10).
+
+**Points à confirmer par Thomas** : teintes hexadécimales des 8 couleurs (case de checklist laissée ouverte), et les décisions des questions de prep (toutes tranchées par moi, options recommandées).
+
 ### Bilan : 11 US, 2 XS, 9 genres (12 octobre)
 
 **Ce qui se répète**
