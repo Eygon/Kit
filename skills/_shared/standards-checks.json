@@ -27,7 +27,7 @@
       "re": "<(?:button|input|select|textarea|table|dialog)\\b",
       "files": "^src/.*\\.tsx$",
       "skip": "(__tests__/|\\.(test|spec)\\.)",
-      "msg": "controle natif la ou la lib Septeo en fournit un (justifier ou utiliser la lib)"
+      "msg": "controle natif la ou la lib UI du projet en fournit un (justifier ou utiliser la lib)"
     }
   ],
   "css/rem-units": [
@@ -43,7 +43,7 @@
       "re": "#[0-9A-Fa-f]{3,8}\\b",
       "files": "^src/.*\\.tsx$",
       "skip": "(__tests__/|\\.(test|spec)\\.)",
-      "msg": "couleur hex en dur (token Septeo)"
+      "msg": "couleur hex en dur (utiliser un jeton du theme du projet)"
     }
   ],
   "global/sealed-by-default": [
@@ -154,6 +154,14 @@
       "files": "^src/.*\\.tsx$",
       "skip": "(__tests__/|\\.(test|spec)\\.|/types/)",
       "msg": "type ou interface declare dans un .tsx (types/<comp>.ts)"
+    }
+  ],
+  "heroui-library-first": [
+    {
+      "re": "<(?:button|input|select|textarea|table|dialog)\\b",
+      "files": "^src/.*\\.tsx$",
+      "skip": "(__tests__/|\\.(test|spec)\\.)",
+      "msg": "controle natif la ou la lib UI du projet en fournit un (justifier ou utiliser la lib)"
     }
   ]
 }

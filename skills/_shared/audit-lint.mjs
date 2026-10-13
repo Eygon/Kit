@@ -102,7 +102,7 @@ const RECON_BACK_PATH = /`([\w.@-]+\/[\w./@{},-]*\.\w+)`/g;
 // existent vraiment. Spec 916 : design.md prescrivait `--font-display` (la lib
 // definit `--font-family-display`) et `Button kind="primary" size="s"` (la lib
 // a `variant` et `size: "sm" | "md" | "lg"`) ; les deux sont remontes du worker.
-const LIB_SCOPES = ["@septeo"];
+const LIB_SCOPES = ["@septeo", "@heroui"];
 const HTML_ATTRS = new Set([
   "className", "style", "id", "title", "role", "tabIndex", "type", "name", "value",
   "disabled", "form", "autoFocus", "hidden", "lang", "dir", "draggable", "placeholder",
