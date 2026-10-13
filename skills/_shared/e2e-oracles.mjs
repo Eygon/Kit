@@ -207,6 +207,9 @@ export async function covered(page, { within = "body", limit = 20, expected = []
       if (cx < 0 || cy < 0 || cx > vw || cy > vh) continue;
       const top = document.elementFromPoint(cx, cy);
       if (!top || top === el || el.contains(top) || top.contains(el)) continue;
+      const overlay = (() => { for (let a = top; a && a !== document.body; a = a.parentElement) { const ps = getComputedStyle(a).position; if (ps === "fixed" || ps === "sticky") return true; } return false; })();
+      const scrollable = (() => { if (document.documentElement.scrollHeight > vh + 1) return true; for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const st = getComputedStyle(a); if (/(auto|scroll)/.test(st.overflowY) && a.scrollHeight > a.clientHeight + 1) return true; } return false; })();
+      if (overlay && scrollable) continue;
       const label = (e) => (e.innerText || e.getAttribute("aria-label") || e.title || e.className || e.tagName).toString().trim().slice(0, 40);
       out.push({ text: label(el), coveredBy: label(top), x: Math.round(cx), y: Math.round(cy) });
     }
