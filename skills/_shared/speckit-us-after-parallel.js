@@ -152,12 +152,20 @@ function formatNotes(notes) {
   return notes.map(function (i) { return '- ' + (i.file ? i.file + ' : ' : '') + i.text }).join('\n')
 }
 
+// Un worker n a livre que s il rend un objet avec un commit (banc, 13 octobre : une reponse `{}` ou `[]` passait
+// pour une US terminee et partait en revue sur un commit inexistant).
+function hasCommit(out) {
+  return !!out && typeof out === 'object' && !Array.isArray(out) && typeof out.commit === 'string' && /^[0-9a-f]{7,40}$/i.test(out.commit.trim())
+}
+
 function workerStopped(out) {
-  return !out || typeof out !== 'object' || out.stopped === true
+  return !out || typeof out !== 'object' || Array.isArray(out) || out.stopped === true || !hasCommit(out)
 }
 
 function reasonOf(out) {
-  return out && typeof out === 'object' ? String(out.reason || 'stopped') : 'error'
+  if (!out || typeof out !== 'object' || Array.isArray(out)) return 'error'
+  if (out.stopped !== true && !hasCommit(out)) return 'worker sans commit'
+  return String(out.reason || 'stopped')
 }
 
 // The reviewer brief is static (written before the worker runs): without this
@@ -167,7 +175,8 @@ function reviewHandoffOf(out) {
   if (!out || typeof out !== 'object') return ''
   const parts = []
   if (out.commit) parts.push('Commit : ' + out.commit)
-  if (out.summary) parts.push('Resume : ' + out.summary)
+  // Le resume est du texte d agent : une ligne, bornee, sans amorce de structure markdown.
+  if (out.summary) parts.push('Resume : ' + String(out.summary).replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(?:[#>`|*+-]\s*)+/, '').slice(0, 800))
   if (Array.isArray(out.designConformance) && out.designConformance.length) {
     parts.push('designConformance :\n' + out.designConformance.map(function (d) {
       return '- ' + d.anchor + ' ' + d.status + (Array.isArray(d.gaps) && d.gaps.length ? ' : ' + d.gaps.join(' ; ') : '')
