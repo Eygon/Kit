@@ -380,7 +380,13 @@ UN jeu de standards par US.
    appliquent : placement, nommage, enums, structure des services ; et une
    PARTIE de fichier qu un standard range ailleurs — textures, types,
    helpers, Record d enum — devient un compagnon « and its <x> `chemin` »
-   de la tache : sinon le worker ne peut pas la placer et la revue escalade) :
+   de la tache : sinon le worker ne peut pas la placer et la revue escalade ;
+   cas vu deux fois sur Mousse (F1 US6 front, F2 US5 back) : le mapper. Un
+   type API front = dto + model + mapper, UN fichier chacun, meme pour un
+   type imbrique (facettes) ; une lecture de repository back qui renvoie un
+   DTO passe par le mapper du module, meme pour un DTO de deux champs : le
+   mapper est un compagnon « and its mapper `chemin` » de la tache, pas un
+   helper local) :
      node "<SK_SHARED>/standards-pack.mjs" pack --root <depot> [--ref origin/<branche>] --ids <a,b,c>
    avec `--out "<FEATURE_DIR>/.standards-<depot>.md"` puis Read de ce
    fichier (le pack fait 30-40 Ko : sur stdout, Bash le tronque). Il rend
@@ -499,6 +505,10 @@ Elle nomme donc :
 - pour toute donnee qu une AC affiche ou propose : sa source (service
   existant, endpoint du contrat, ou US qui la cree). Sans source, le worker
   code une liste de demonstration en dur (917 US5, 3 workers sur 3) ;
+- pour tout DTO lu ou construit (reponse de service front, lecture de
+  repository back) : le fichier du mapper et celui de son test, dans les
+  chemins de la tache (un helper de mapping local est un ecart au standard
+  triade/repository-pattern : la revue escalade, 2 fois sur 2 features) ;
 - pour un changement de surface publique (hook, type partage, export) :
   chaque consommateur (`grep -rl "<nom du module>" src`) dans CETTE US, ou
   un alias transitoire NOMME qui couvre tout membre retire ; un

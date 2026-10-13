@@ -20,7 +20,7 @@ if not os.path.exists(SF+"/.sk/repos.json") or SB not in open(SF+"/.sk/repos.jso
     subprocess.run(["git","-C",SF,"update-index","--skip-worktree",".sk/repos.json"],check=False)
 for S in (SB,SF):
     D=f"{S}/specs/{F}"; os.makedirs(D+"/briefs",exist_ok=True)
-    for n in ("spec.md","plan.md","recon.md","tasks.md","parallel.yml"):
+    for n in ("spec.md","plan.md","recon.md","tasks.md","parallel.yml","data-model.md"):
         if os.path.exists(f"{P}/{n}") and not os.path.exists(f"{D}/{n}"): shutil.copy(f"{P}/{n}",D)  # ne jamais ecraser tasks.md coche par un run precedent
     for d in ("checklists","contracts"):
         if os.path.isdir(f"{P}/{d}"): shutil.copytree(f"{P}/{d}",f"{D}/{d}",dirs_exist_ok=True)
