@@ -16,6 +16,8 @@ for repo,S in (("back",SB),("front",SF)):
 if not os.path.exists(SF+"/.sk/repos.json") or SB not in open(SF+"/.sk/repos.json").read():
     os.makedirs(SF+"/.sk",exist_ok=True)
     open(SF+"/.sk/repos.json","w").write(json.dumps({"backend":SB,"legacyBackend":None,"legacyFrontend":None})+"\n")
+    # fichier suivi par dev : le masquer, sinon le git add -A du worker le commite (defaut vu en F1 US6)
+    subprocess.run(["git","-C",SF,"update-index","--skip-worktree",".sk/repos.json"],check=False)
 for S in (SB,SF):
     D=f"{S}/specs/{F}"; os.makedirs(D+"/briefs",exist_ok=True)
     for n in ("spec.md","plan.md","recon.md","tasks.md","parallel.yml"):
