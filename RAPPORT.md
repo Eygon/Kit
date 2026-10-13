@@ -82,7 +82,7 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Ce que le moteur apporte par rapport à la main** : les faits de l'US1 passent au worker de l'US2 sans que je les recopie ; la revue Opus se déclenche toute seule quand un fichier est partagé entre US (`PARTAGE`) ; la loupe tourne sans que j'y pense ; le hash du contrat est vérifié avant et après le fan-out.
 
-### Boucle 2 : trois cycles complets avec le moteur (13 octobre)
+### Boucle 2 et 3 : quatre cycles complets avec le moteur (13 octobre)
 
 Trois features neuves de bout en bout (prep Opus → moteur `Workflow` → correction des pistes de la loupe → passage réel), les agents du registre cette fois (sans `agentBodies`).
 
@@ -99,6 +99,13 @@ Trois features neuves de bout en bout (prep Opus → moteur `Workflow` → corre
 2. `contract-cover` ne reconnaissait pas `[HttpPost(...)]` cité par une tâche (corrigé à N10).
 
 **Points à confirmer par Thomas** : teintes hexadécimales des 8 couleurs (case de checklist laissée ouverte), et les décisions des questions de prep (toutes tranchées par moi, options recommandées).
+
+**Cycle 4 (N17 Journal d'activité, back + front, 4 US, 2 chaînes en parallèle, 22,6 min, 12 agents)** : API 9/9 du premier coup, mais **deux défauts de production vus seulement au navigateur** (aucun test, aucune revue Opus, aucune loupe ne les voyait) :
+1. **Panneau inatteignable** : le tiroir de la lib est fixe et ne défile pas ; 20 entrées = 1834 px pour un écran de 900, « Voir plus » à y=1858. Corrigé (conteneur défilant). Nouvel oracle `unreachable` (`e2e-oracles.mjs`, section dans `sk-e2e.md`) + règle `us-sonnet`.
+2. **Réouverture = 25 entrées au lieu de 20** (`useInfiniteQuery` relit toutes les pages en cache). Corrigé (`gcTime: 0`) + règle `us-sonnet`.
+Après correction : navigateur 21/21 ×3, front 801 tests, back 421. Bilan : 3 défauts de géométrie en 6 features, toujours invisibles sauf au navigateur ; le passage réel reste indispensable.
+
+**Points à confirmer par Thomas** : teintes hexadécimales des 8 couleurs (case de checklist laissée ouverte), écarts N17 (200 + liste vide au lieu de 204 ; lecture qui relance l'erreur), et les décisions des questions de prep (toutes tranchées par moi, options recommandées).
 
 ### Bilan : 11 US, 2 XS, 9 genres (12 octobre)
 
