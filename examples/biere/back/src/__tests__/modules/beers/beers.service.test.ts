@@ -48,7 +48,13 @@ const NO_FILTERS = {
 };
 
 describe("BeersService", () => {
-  const repository = { findPage: vi.fn(), findFacets: vi.fn(), findById: vi.fn(), findStyleGroups: vi.fn(), findByIds: vi.fn() };
+  const repository = {
+    findPage: vi.fn(),
+    findFacets: vi.fn(),
+    findById: vi.fn(),
+    findByIds: vi.fn(),
+    findStyleGroups: vi.fn(),
+  };
   const tastingsService = { getBeerStates: vi.fn(), getDrunkBeerIds: vi.fn(), getWishlistBeerIds: vi.fn() };
   let service: BeersService;
 
@@ -334,5 +340,18 @@ describe("BeersService", () => {
 
       expect(await service.getCatalogTotals()).toEqual({ total: 0, families: [] });
     });
+  });
+
+  it("forwards the ids it is given to the repository", async () => {
+    repository.findByIds.mockResolvedValue([CHIMAY]);
+
+    expect(await service.getBeersByIds([1, 99])).toEqual([CHIMAY]);
+    expect(repository.findByIds).toHaveBeenCalledWith([1, 99]);
+  });
+
+  it("returns an empty list when the repository finds no beer", async () => {
+    repository.findByIds.mockResolvedValue([]);
+
+    expect(await service.getBeersByIds([])).toEqual([]);
   });
 });

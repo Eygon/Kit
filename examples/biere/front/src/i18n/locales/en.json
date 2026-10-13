@@ -78,6 +78,29 @@
       "untasted": "Never tasted"
     }
   },
+  "venue": {
+    "types": {
+      "bar": "Bar",
+      "shop": "Shop",
+      "brewery": "Brewery"
+    },
+    "statuses": {
+      "confirmed": "Confirmed",
+      "maybeGone": "Maybe gone",
+      "gone": "Gone",
+      "unknown": "Unknown"
+    },
+    "detail": {
+      "neverConfirmed": "Never confirmed",
+      "neverConfirmedWithVoters_one": "Never confirmed · {{count}} person recently",
+      "neverConfirmedWithVoters_other": "Never confirmed · {{count}} people recently",
+      "confirmedToday": "Confirmed today by $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "confirmedDaysAgo_one": "Confirmed {{count}} day ago by $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "confirmedDaysAgo_other": "Confirmed {{count}} days ago by $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "voters_one": "{{count}} person",
+      "voters_other": "{{count}} people"
+    }
+  },
   "pages": {
     "encyclopedia": {
       "title": "Encyclopedia",
@@ -180,8 +203,62 @@
     "map": {
       "title": "Map",
       "subtitle": "Bars, bottle shops and breweries around you.",
-      "emptyTitle": "No places yet",
-      "emptyDescription": "Places to discover will show up here."
+      "markerLabel": "{{name}}, {{type}}, {{status}}",
+      "tilesUnavailable": "Map background unavailable: places still work.",
+      "youAreHere": "You are here",
+      "locate": {
+        "action": "Near me",
+        "denied": "Location denied: allow it in your browser settings.",
+        "unavailable": "Location unavailable."
+      },
+      "list": {
+        "trigger": "Places ({{count}})",
+        "title": "Places",
+        "errorTitle": "Could not load the places.",
+        "emptyTitle": "No place here",
+        "emptyDescription": "Move the map or remove some filters."
+      },
+      "venue": {
+        "address": "Address",
+        "city": "City",
+        "close": "Close"
+      },
+      "venueBeers": {
+        "title": "Beers",
+        "otherFamily": "Others",
+        "errorTitle": "Could not load the beers.",
+        "emptyTitle": "No beer reported here",
+        "emptyDescription": "Be the first to report one."
+      },
+      "vote": {
+        "still": "Still there",
+        "gone": "Gone",
+        "stillLabel": "Still there: {{beer}}",
+        "goneLabel": "Gone: {{beer}}",
+        "cooldown": "You can vote again in {{count}} h",
+        "saved": "Vote saved",
+        "alreadyVoted": "You already voted for this beer here in the last 24 hours."
+      },
+      "beerFilter": {
+        "label": "Where to drink: {{name}}",
+        "unknown": "Unknown beer",
+        "remove": "Remove the beer filter"
+      },
+      "filters": {
+        "title": "Filters",
+        "types": "Place type",
+        "family": "Beer family",
+        "anyFamily": "All",
+        "confirmedOnly": "Confirmed availability only",
+        "radius": "Radius",
+        "radiusOption": "{{count}} km",
+        "radiusNeedsPosition": "Use Near me to pick a radius.",
+        "legend": "Legend",
+        "activeCount_one": "{{count}} active filter",
+        "activeCount_other": "{{count}} active filters",
+        "reset": "Reset",
+        "apply": "Apply"
+      }
     },
     "journal": {
       "title": "Journal",

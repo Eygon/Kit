@@ -2,21 +2,63 @@ import { getRepositoryToken, TypeOrmModule } from "@nestjs/typeorm";
 import { Test } from "@nestjs/testing";
 import type { TestingModule } from "@nestjs/testing";
 import type { Repository } from "typeorm";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DataSeeder } from "@/database/data-seeder";
+import { ALICE_USER_ID, SEED_VOTE_BATCH_SIZE } from "@/database/seed.constants";
 import beersSeed from "@/database/seed/data/beers.json";
 import breweriesSeed from "@/database/seed/data/breweries.json";
+import venueBeersSeed from "@/database/seed/data/venue-beers.json";
+import venuesSeed from "@/database/seed/data/venues.json";
 import stylesSeed from "@/database/seed/data/styles.json";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
 import { User } from "@/modules/users/entities/user.entity";
+import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
+import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
+import { Venue } from "@/modules/venues/entities/venue.entity";
+import { VoteSenseEnum } from "@/modules/venues/enums/vote-sense.enum";
 import { inMemoryDatabase } from "@/__tests__/support/test-database";
 
 const SEEDED_STYLE_COUNT = 34;
 const SEEDED_BREWERY_COUNT = 70;
 const SEEDED_BEER_COUNT = 120;
+const SEEDED_VENUE_COUNT = 36;
+const SEEDED_LINK_COUNT = 325;
+const SEEDED_VOTE_COUNT = 2266;
+const LOAD_TIME = new Date("2026-03-15T12:00:00.000Z");
+const DAY_MS = 86_400_000;
+const WINDOW_DAYS = 30;
+
+interface StoredVote {
+  readonly sense: string;
+  readonly votedAt: Date;
+}
+
+const ageInDays = (votedAt: Date): number => (LOAD_TIME.getTime() - votedAt.getTime()) / DAY_MS;
+
+const newestVote = <T extends StoredVote>(candidates: readonly T[]): T | undefined =>
+  [...candidates].sort((left, right) => right.votedAt.getTime() - left.votedAt.getTime())[0];
+
+const computeStoredStatus = (candidates: readonly StoredVote[]): string => {
+  const recent = candidates.filter((vote) => ageInDays(vote.votedAt) <= WINDOW_DAYS);
+  const positive = recent.filter((vote) => vote.sense === "still").length;
+  const negative = recent.length - positive;
+  if (recent.length === 0) {
+    return "unknown";
+  }
+  if (negative >= 2 && negative > positive) {
+    return "gone";
+  }
+  if (newestVote(recent)?.sense === "gone" || positive === negative) {
+    return "maybeGone";
+  }
+  if (positive >= 2 && positive > negative) {
+    return "confirmed";
+  }
+  return "unknown";
+};
 
 describe("DataSeeder", () => {
   let moduleRef: TestingModule;
@@ -24,16 +66,22 @@ describe("DataSeeder", () => {
   let styles: Repository<BeerStyle>;
   let breweries: Repository<Brewery>;
   let beers: Repository<Beer>;
+  let venues: Repository<Venue>;
+  let venueBeers: Repository<VenueBeer>;
+  let votes: Repository<AvailabilityVote>;
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer, Venue, VenueBeer, AvailabilityVote])],
       providers: [DataSeeder],
     }).compile();
     users = moduleRef.get<Repository<User>>(getRepositoryToken(User));
     styles = moduleRef.get<Repository<BeerStyle>>(getRepositoryToken(BeerStyle));
     breweries = moduleRef.get<Repository<Brewery>>(getRepositoryToken(Brewery));
     beers = moduleRef.get<Repository<Beer>>(getRepositoryToken(Beer));
+    venues = moduleRef.get<Repository<Venue>>(getRepositoryToken(Venue));
+    venueBeers = moduleRef.get<Repository<VenueBeer>>(getRepositoryToken(VenueBeer));
+    votes = moduleRef.get<Repository<AvailabilityVote>>(getRepositoryToken(AvailabilityVote));
   });
 
   afterEach(async () => {
@@ -252,5 +300,236 @@ describe("DataSeeder", () => {
 
     expect(await styles.count()).toBe(0);
     expect(await beers.count()).toBe(0);
+  });
+
+  it("loads the 36 venues of the file into an empty database", async () => {
+    await moduleRef.get(DataSeeder).onApplicationBootstrap();
+
+    expect(await venues.count()).toBe(SEEDED_VENUE_COUNT);
+    expect(venuesSeed).toHaveLength(SEEDED_VENUE_COUNT);
+  });
+
+  it("spreads the venues over 14 in Paris, 6 in Lyon, 6 in Lille and 10 in Brussels", async () => {
+    await moduleRef.get(DataSeeder).seed();
+
+    const cities = (await venues.find()).map((venue) => venue.city);
+    const countByCity = (city: string): number => cities.filter((entry) => entry === city).length;
+    expect([countByCity("Paris"), countByCity("Lyon"), countByCity("Lille"), countByCity("Bruxelles")]).toEqual([
+      14, 6, 6, 10,
+    ]);
+  });
+
+  it("keeps the type and the coordinates of the file", async () => {
+    await moduleRef.get(DataSeeder).seed();
+
+    const first = venuesSeed[0];
+    const stored = await venues.findOneByOrFail({ name: first.name });
+    expect(stored).toMatchObject({
+      type: first.type,
+      latitude: first.latitude,
+      longitude: first.longitude,
+      address: first.address,
+    });
+    expect(new Set((await venues.find()).map((venue) => venue.type))).toEqual(new Set(["bar", "shop", "brewery"]));
+  });
+
+  it("stores each of the 36 venues of the file with its name, type, city, address, coordinates and description", async () => {
+    await moduleRef.get(DataSeeder).seed();
+
+    const stored = await venues.find({ order: { id: "ASC" } });
+
+    expect(stored).toHaveLength(SEEDED_VENUE_COUNT);
+    stored.forEach((venue, index) => {
+      const { name, type, city, address, latitude, longitude, description } = venuesSeed[index];
+      expect(venue).toMatchObject({ name, type, city, address, latitude, longitude, description });
+    });
+  });
+
+  it("fails with the name of the venue and loads no venue when a venue type of the file is unknown", async () => {
+    const lastVenue = venuesSeed[venuesSeed.length - 1];
+    const original = lastVenue.type;
+    lastVenue.type = "cave";
+
+    try {
+      await expect(moduleRef.get(DataSeeder).seed()).rejects.toThrow(
+        new Error(`Venue "${lastVenue.name}" has an unknown type "cave".`),
+      );
+    } finally {
+      lastVenue.type = original;
+    }
+
+    expect(await venues.count()).toBe(0);
+    expect(await venueBeers.count()).toBe(0);
+  });
+
+  it("keeps 36 venues on a second seed", async () => {
+    const seeder = moduleRef.get(DataSeeder);
+
+    await seeder.seed();
+    await seeder.seed();
+
+    expect(await venues.count()).toBe(SEEDED_VENUE_COUNT);
+  });
+
+  it("leaves an already populated venues table untouched", async () => {
+    await venues.insert({
+      name: "Le Seul",
+      nameKey: "le seul",
+      type: "bar" as Venue["type"],
+      city: null,
+      address: "1 rue X",
+      latitude: 1,
+      longitude: 2,
+      description: null,
+    });
+
+    const [seedVenue] = await venues.find();
+    await venueBeers.insert({ venueId: seedVenue.id, beerId: 1 });
+
+    await moduleRef.get(DataSeeder).seed();
+
+    expect(await venues.count()).toBe(1);
+  });
+
+  it("loads the 325 links of the file, one per venue and beer pair", async () => {
+    await moduleRef.get(DataSeeder).onApplicationBootstrap();
+
+    const links = await venueBeers.find();
+    expect(venueBeersSeed).toHaveLength(SEEDED_LINK_COUNT);
+    expect(links).toHaveLength(SEEDED_LINK_COUNT);
+    expect(new Set(links.map((link) => `${link.venueId}-${link.beerId}`)).size).toBe(SEEDED_LINK_COUNT);
+  });
+
+  it("gives every link exactly its positive and negative votes, all without a user", async () => {
+    await moduleRef.get(DataSeeder).seed();
+
+    const venueIds = new Map((await venues.find()).map((venue) => [venue.name.toLowerCase(), venue.id]));
+    const beerIds = new Map((await beers.find()).map((beer) => [beer.name.toLowerCase(), beer.id]));
+    const links = await venueBeers.find();
+    const allVotes = await votes.find();
+    const countFor = (linkId: number, sense: string): number =>
+      allVotes.filter((vote) => vote.venueBeerId === linkId && vote.sense === sense).length;
+    expect(allVotes).toHaveLength(SEEDED_VOTE_COUNT);
+    expect(allVotes.every((vote) => vote.userId === null)).toBe(true);
+    for (const row of venueBeersSeed) {
+      const link = links.find(
+        (entry) =>
+          entry.venueId === venueIds.get(row.venueName.toLowerCase()) &&
+          entry.beerId === beerIds.get(row.beerName.toLowerCase()),
+      );
+      expect(link).toBeDefined();
+      expect([countFor(link!.id, "still"), countFor(link!.id, "gone")]).toEqual([
+        row.positiveVotes,
+        row.negativeVotes,
+      ]);
+    }
+  });
+
+  it("inserts the votes in batches of the seed batch size", async () => {
+    const insert = vi.spyOn(votes, "insert");
+
+    await moduleRef.get(DataSeeder).seed();
+
+    const batchSizes = insert.mock.calls.map(([rows]) => (rows as unknown[]).length);
+    expect(SEED_VOTE_BATCH_SIZE).toBe(200);
+    expect(batchSizes.slice(0, -1).every((size) => size === SEED_VOTE_BATCH_SIZE)).toBe(true);
+    expect(batchSizes.at(-1)).toBe(SEEDED_VOTE_COUNT % SEED_VOTE_BATCH_SIZE);
+    expect(batchSizes.reduce((total, size) => total + size, 0)).toBe(SEEDED_VOTE_COUNT);
+  });
+
+  it("dates the votes from the load time", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-03-15T12:00:00.000Z"));
+
+    try {
+      await moduleRef.get(DataSeeder).seed();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const dates = (await votes.find()).map((vote) => new Date(vote.votedAt).getTime());
+    expect(Math.max(...dates)).toBeLessThanOrEqual(new Date("2026-03-15T12:00:00.000Z").getTime());
+    expect(Math.max(...dates)).toBeGreaterThan(new Date("2026-03-14T12:00:00.000Z").getTime());
+  });
+
+  it("stores votes whose recomputed status is the file status for the 325 links and whose last confirmation is at lastConfirmedDaysAgo, absent without positive vote", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(LOAD_TIME);
+
+    try {
+      await moduleRef.get(DataSeeder).seed();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const venueIds = new Map((await venues.find()).map((venue) => [venue.name.toLowerCase(), venue.id]));
+    const beerIds = new Map((await beers.find()).map((beer) => [beer.name.toLowerCase(), beer.id]));
+    const links = await venueBeers.find();
+    const storedVotes = (await votes.find()).map((vote) => ({
+      linkId: vote.venueBeerId,
+      sense: vote.sense as string,
+      votedAt: new Date(vote.votedAt),
+    }));
+    const statusCounts = new Map<string, number>();
+
+    for (const row of venueBeersSeed) {
+      const link = links.find(
+        (entry) =>
+          entry.venueId === venueIds.get(row.venueName.toLowerCase()) &&
+          entry.beerId === beerIds.get(row.beerName.toLowerCase()),
+      );
+      const linkVotes = storedVotes.filter((vote) => vote.linkId === link!.id);
+      const lastStill = newestVote(linkVotes.filter((vote) => vote.sense === "still"));
+
+      expect(computeStoredStatus(linkVotes)).toBe(row.status);
+      expect(lastStill === undefined ? null : Math.round(ageInDays(lastStill.votedAt))).toBe(
+        row.positiveVotes === 0 ? null : row.lastConfirmedDaysAgo,
+      );
+      statusCounts.set(row.status, (statusCounts.get(row.status) ?? 0) + 1);
+    }
+
+    expect(Object.fromEntries(statusCounts)).toEqual({ confirmed: 227, maybeGone: 32, gone: 24, unknown: 42 });
+  });
+
+  it("adds no link and no vote on a second seed", async () => {
+    const seeder = moduleRef.get(DataSeeder);
+
+    await seeder.seed();
+    await seeder.seed();
+
+    expect(await venueBeers.count()).toBe(SEEDED_LINK_COUNT);
+    expect(await votes.count()).toBe(SEEDED_VOTE_COUNT);
+  });
+
+  it("leaves an already populated links table untouched", async () => {
+    await moduleRef.get(DataSeeder).seed();
+    await votes.clear();
+    await votes.insert({ venueBeerId: 1, userId: ALICE_USER_ID, sense: VoteSenseEnum.STILL, votedAt: new Date() });
+
+    await moduleRef.get(DataSeeder).seed();
+
+    expect(await venueBeers.count()).toBe(SEEDED_LINK_COUNT);
+    expect(await votes.count()).toBe(1);
+  });
+
+  it("fails naming the link and loads nothing when a venue of the file is missing", async () => {
+    await venues.insert({
+      name: "Le Seul",
+      nameKey: "le seul",
+      type: "bar" as Venue["type"],
+      city: null,
+      address: "1 rue X",
+      latitude: 1,
+      longitude: 2,
+      description: null,
+    });
+    const first = venueBeersSeed[0];
+
+    await expect(moduleRef.get(DataSeeder).seed()).rejects.toThrow(
+      new Error(`Venue beer "${first.venueName} / ${first.beerName}" has an unknown venue.`),
+    );
+
+    expect(await venueBeers.count()).toBe(0);
+    expect(await votes.count()).toBe(0);
   });
 });

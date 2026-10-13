@@ -214,6 +214,33 @@ describe("BeersRepository", () => {
       await expect(repository.findByIds([])).resolves.toEqual([]);
       expect(find).not.toHaveBeenCalled();
     });
+
+    it("returns the requested beers as DTOs ordered by id whatever the order asked", async () => {
+      const beers = await repository.findByIds([3, 1]);
+
+      expect(beers.map((beer) => beer.id)).toEqual([1, 3]);
+      expect(beers[1]).toEqual({
+        id: 3,
+        name: "Zeta Strong",
+        breweryName: "Brasserie Zeta",
+        country: "BE",
+        styleId: 1,
+        styleName: "Stout irlandais",
+        family: BeerFamilyEnum.STOUT,
+        abv: 9,
+        aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.SOUR],
+        formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.CAN],
+        description: "Description 3",
+      });
+    });
+
+    it("ignores an unknown id and the beers that were not asked", async () => {
+      expect((await repository.findByIds([2, 9999])).map((beer) => beer.id)).toEqual([2]);
+    });
+
+    it("returns an empty list for no id", async () => {
+      expect(await repository.findByIds([])).toEqual([]);
+    });
   });
 });
 

@@ -1,6 +1,7 @@
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { Test } from "@nestjs/testing";
 import { DataSource } from "typeorm";
+import type { Repository } from "typeorm";
 import { describe, expect, it } from "vitest";
 import { AppConfigModule } from "@/config/app-config.module";
 import { APP_CONFIG } from "@/config/app-config.constants";
@@ -9,6 +10,9 @@ import { DatabaseModule } from "@/database/database.module";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
+import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
+import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
+import { Venue } from "@/modules/venues/entities/venue.entity";
 import { TEST_CONFIG } from "@/__tests__/support/test-config";
 
 describe("DatabaseModule", () => {
@@ -35,6 +39,37 @@ describe("DatabaseModule", () => {
     expect(moduleRef.get(getRepositoryToken(BeerStyle))).toBeDefined();
     expect(moduleRef.get(getRepositoryToken(Brewery))).toBeDefined();
     expect(moduleRef.get(getRepositoryToken(Beer))).toBeDefined();
+
+    await moduleRef.close();
+  });
+
+  it("creates the venues table and registers its repository", async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppConfigModule, DatabaseModule] })
+      .overrideProvider(APP_CONFIG)
+      .useValue(TEST_CONFIG)
+      .compile();
+
+    const dataSource = moduleRef.get(DataSource);
+    const tables = await dataSource.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'venues'");
+    expect(tables).toEqual([{ name: "venues" }]);
+    expect(moduleRef.get<Repository<Venue>>(getRepositoryToken(Venue))).toBeDefined();
+
+    await moduleRef.close();
+  });
+
+  it("creates the venue_beers and availability_votes tables and registers their repositories", async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppConfigModule, DatabaseModule] })
+      .overrideProvider(APP_CONFIG)
+      .useValue(TEST_CONFIG)
+      .compile();
+
+    const dataSource = moduleRef.get(DataSource);
+    const tables = await dataSource.query(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('venue_beers', 'availability_votes') ORDER BY name",
+    );
+    expect(tables).toEqual([{ name: "availability_votes" }, { name: "venue_beers" }]);
+    expect(moduleRef.get<Repository<VenueBeer>>(getRepositoryToken(VenueBeer))).toBeDefined();
+    expect(moduleRef.get<Repository<AvailabilityVote>>(getRepositoryToken(AvailabilityVote))).toBeDefined();
 
     await moduleRef.close();
   });

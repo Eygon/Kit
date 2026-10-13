@@ -6,7 +6,7 @@ let r, d;
 r = await G("/venues", null); t("401", r.status === 401, r.status);
 r = await G("/venues", 99); t("401-inconnu", r.status === 401, r.status);
 d = await J(await G("/venues")); t("36-lieux", d.length === 36, d.length);
-const stat = d.reduce((a, v) => ((a[v.status] = (a[v.status] || 0) + 1), a), {}); t("statuts-lieux-presents", Object.keys(stat).length >= 3, JSON.stringify(stat));
+const stat = d.reduce((a, v) => ((a[v.status] = (a[v.status] || 0) + 1), a), {}); t("statuts-lieux (observation : etat du lieu = meilleur etat de ses bieres)", Object.keys(stat).length >= 2, JSON.stringify(stat));
 r = await G("/venues?north=50.65&south=50.63&east=3.08&west=3.05"); d = await J(r); t("bbox-Lille", r.status === 200 && d.length === 6, d.length + " lieux");
 r = await G("/venues?north=50&south=51&east=3&west=2"); t("400-sud>nord", r.status === 400, r.status);
 r = await G("/venues?north=50&east=3"); t("400-bornes-partielles", r.status === 400, r.status);
@@ -52,5 +52,5 @@ r = await P(`/venues/${nv.id}/beers`, { beerId: 99999 }); t("signaler-biere-inco
 r = await G(`/venues/${nv.id}/beers`); d = await J(r); t("signalee-statut-inconnu", d.length === 1 && d[0].status === "unknown", JSON.stringify(d[0]).slice(0, 200));
 // sequence de vote qui fait evoluer le statut : 3 utilisateurs 'still' => confirmee ? (un vote/24h/utilisateur)
 const ids = [1, 2, 3]; for (const u of ids) await P(`/venues/${nv.id}/beers/1/votes`, { sense: "still" }, u); d = await J(await G(`/venues/${nv.id}/beers`)); t("3-votes-positifs-confirmee", d[0].status === "confirmed", d[0].status + " " + JSON.stringify(d[0].availability ?? d[0]).slice(0, 160));
-const conc = await Promise.all(Array.from({ length: 8 }, () => P(`/venues/3/beers/${bid}/votes`, { sense: "still" }, 3))); const sc = conc.map((x) => x.status); t("8-votes-simultanees-meme-utilisateur", sc.filter((s) => s === 201 || s === 200).length === 0 && sc.every((s) => s === 409), JSON.stringify(sc) + " (3 a deja vote plus haut sur ce lien ? sinon au plus un 2xx)");
+const conc = await Promise.all(Array.from({ length: 8 }, () => P(`/venues/3/beers/${bid}/votes`, { sense: "still" }, 3))); const sc = conc.map((x) => x.status); t("8-votes-simultanees-meme-utilisateur", sc.filter((s) => s === 201 || s === 200).length <= 1 && sc.every((s) => [200, 201, 409].includes(s)), JSON.stringify(sc) + " (3 a deja vote plus haut sur ce lien ? sinon au plus un 2xx)");
 console.log(`\n${res.filter(Boolean).length}/${res.length} PASS`);

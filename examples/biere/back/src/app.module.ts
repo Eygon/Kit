@@ -10,9 +10,19 @@ import { HealthModule } from "@/modules/health/health.module";
 import { PokedexModule } from "@/modules/pokedex/pokedex.module";
 import { TastingsModule } from "@/modules/tastings/tastings.module";
 import { UsersModule } from "@/modules/users/users.module";
+import { VenuesModule } from "@/modules/venues/venues.module";
 
 @Module({
-  imports: [AppConfigModule, DatabaseModule, HealthModule, UsersModule, BeersModule, TastingsModule, PokedexModule],
+  imports: [
+    AppConfigModule,
+    DatabaseModule,
+    HealthModule,
+    UsersModule,
+    BeersModule,
+    TastingsModule,
+    PokedexModule,
+    VenuesModule,
+  ],
   providers: [
     { provide: APP_GUARD, useClass: CurrentUserGuard },
     { provide: APP_PIPE, useFactory: createValidationPipe },

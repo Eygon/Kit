@@ -362,3 +362,264 @@ describe("checkin sheet copy", () => {
     expect(readKey(en, key)).toBe(english);
   });
 });
+
+describe("map venue list copy", () => {
+  const keys = [
+    "pages.map.list.trigger",
+    "pages.map.list.title",
+    "pages.map.list.errorTitle",
+    "pages.map.list.emptyTitle",
+    "pages.map.list.emptyDescription",
+    "venue.types.bar",
+    "venue.types.shop",
+    "venue.types.brewery",
+    "venue.statuses.confirmed",
+    "venue.statuses.maybeGone",
+    "venue.statuses.gone",
+    "venue.statuses.unknown",
+  ];
+
+  it("translates the venue list keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Lieux ({{count}})",
+      "Lieux",
+      "Impossible de charger les lieux.",
+      "Aucun lieu ici",
+      "Déplacez la carte ou retirez des filtres.",
+      "Bar",
+      "Cave",
+      "Brasserie",
+      "Confirmée",
+      "Peut-être épuisée",
+      "Épuisée",
+      "Inconnue",
+    ]);
+  });
+
+  it("translates the venue list keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Places ({{count}})",
+      "Places",
+      "Could not load the places.",
+      "No place here",
+      "Move the map or remove some filters.",
+      "Bar",
+      "Shop",
+      "Brewery",
+      "Confirmed",
+      "Maybe gone",
+      "Gone",
+      "Unknown",
+    ]);
+  });
+
+  it("drops the fixed map empty state copy that the venue list replaces", () => {
+    [fr, en].forEach((locale) => {
+      expect(readKey(locale, "pages.map.emptyTitle")).toBeUndefined();
+      expect(readKey(locale, "pages.map.emptyDescription")).toBeUndefined();
+    });
+  });
+});
+
+describe("map availability copy", () => {
+  const keys = ["pages.map.title", "pages.map.markerLabel", "pages.map.tilesUnavailable"];
+
+  it("translates the map keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Carte",
+      "{{name}}, {{type}}, {{status}}",
+      "Fond de carte indisponible : les lieux restent utilisables.",
+    ]);
+  });
+
+  it("translates the map keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Map",
+      "{{name}}, {{type}}, {{status}}",
+      "Map background unavailable: places still work.",
+    ]);
+  });
+});
+
+describe("map location copy", () => {
+  const keys = [
+    "pages.map.locate.action",
+    "pages.map.locate.denied",
+    "pages.map.locate.unavailable",
+    "pages.map.youAreHere",
+  ];
+
+  it("translates the location keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Autour de moi",
+      "Position refusée : autorisez la localisation dans les réglages du navigateur.",
+      "Position indisponible.",
+      "Vous êtes ici",
+    ]);
+  });
+
+  it("translates the location keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Near me",
+      "Location denied: allow it in your browser settings.",
+      "Location unavailable.",
+      "You are here",
+    ]);
+  });
+});
+
+describe("map filters copy", () => {
+  const keys = [
+    "pages.map.filters.title",
+    "pages.map.filters.types",
+    "pages.map.filters.family",
+    "pages.map.filters.anyFamily",
+    "pages.map.filters.confirmedOnly",
+    "pages.map.filters.radius",
+    "pages.map.filters.radiusOption",
+    "pages.map.filters.radiusNeedsPosition",
+    "pages.map.filters.legend",
+    "pages.map.filters.activeCount_one",
+    "pages.map.filters.activeCount_other",
+    "pages.map.filters.reset",
+    "pages.map.filters.apply",
+  ];
+
+  it("translates the filters keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Filtres",
+      "Type de lieu",
+      "Famille de bière",
+      "Toutes",
+      "Disponibilité confirmée seulement",
+      "Rayon",
+      "{{count}} km",
+      "Utilisez Autour de moi pour choisir un rayon.",
+      "Légende",
+      "{{count}} filtre actif",
+      "{{count}} filtres actifs",
+      "Réinitialiser",
+      "Appliquer",
+    ]);
+  });
+
+  it("translates the filters keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Filters",
+      "Place type",
+      "Beer family",
+      "All",
+      "Confirmed availability only",
+      "Radius",
+      "{{count}} km",
+      "Use Near me to pick a radius.",
+      "Legend",
+      "{{count}} active filter",
+      "{{count}} active filters",
+      "Reset",
+      "Apply",
+    ]);
+  });
+});
+
+describe("map venue sheet copy", () => {
+  const keys = ["pages.map.venue.address", "pages.map.venue.city", "pages.map.venue.close"];
+
+  it("translates the venue sheet keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual(["Adresse", "Ville", "Fermer"]);
+  });
+
+  it("translates the venue sheet keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual(["Address", "City", "Close"]);
+  });
+});
+
+describe("map venue beers copy", () => {
+  const keys = [
+    "pages.map.venueBeers.title",
+    "pages.map.venueBeers.otherFamily",
+    "pages.map.venueBeers.errorTitle",
+    "pages.map.venueBeers.emptyTitle",
+    "pages.map.venueBeers.emptyDescription",
+  ];
+
+  it("translates the venue beers keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Bières",
+      "Autres",
+      "Impossible de charger les bières.",
+      "Aucune bière signalée ici",
+      "Soyez le premier à en signaler une.",
+    ]);
+  });
+
+  it("translates the venue beers keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Beers",
+      "Others",
+      "Could not load the beers.",
+      "No beer reported here",
+      "Be the first to report one.",
+    ]);
+  });
+});
+
+describe("vote and availability detail copy", () => {
+  const keys = [
+    "pages.map.vote.still",
+    "pages.map.vote.gone",
+    "pages.map.vote.stillLabel",
+    "pages.map.vote.goneLabel",
+    "pages.map.vote.cooldown",
+    "pages.map.vote.saved",
+    "pages.map.vote.alreadyVoted",
+    "venue.detail.neverConfirmed",
+    "venue.detail.neverConfirmedWithVoters_one",
+    "venue.detail.neverConfirmedWithVoters_other",
+    "venue.detail.confirmedToday",
+    "venue.detail.confirmedDaysAgo_one",
+    "venue.detail.confirmedDaysAgo_other",
+    "venue.detail.voters_one",
+    "venue.detail.voters_other",
+  ];
+
+  it("translates the vote and detail keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Toujours là",
+      "Plus là",
+      "Toujours là : {{beer}}",
+      "Plus là : {{beer}}",
+      "Vous pourrez revoter dans {{count}} h",
+      "Vote enregistré",
+      "Vous avez déjà voté pour cette bière ici dans les dernières 24 h.",
+      "Jamais confirmée",
+      "Jamais confirmée · {{count}} personne récemment",
+      "Jamais confirmée · {{count}} personnes récemment",
+      "Confirmée aujourd'hui par $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "Confirmée il y a {{count}} jour par $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "Confirmée il y a {{count}} jours par $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "{{count}} personne",
+      "{{count}} personnes",
+    ]);
+  });
+
+  it("translates the vote and detail keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Still there",
+      "Gone",
+      "Still there: {{beer}}",
+      "Gone: {{beer}}",
+      "You can vote again in {{count}} h",
+      "Vote saved",
+      "You already voted for this beer here in the last 24 hours.",
+      "Never confirmed",
+      "Never confirmed · {{count}} person recently",
+      "Never confirmed · {{count}} people recently",
+      "Confirmed today by $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "Confirmed {{count}} day ago by $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "Confirmed {{count}} days ago by $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "{{count}} person",
+      "{{count}} people",
+    ]);
+  });
+});

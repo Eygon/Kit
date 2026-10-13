@@ -4,8 +4,12 @@ import { App } from "@/app";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 
 const mockBeer = vi.hoisted(() => ({ useBeerQuery: vi.fn() }));
+const mockVenues = vi.hoisted(() => ({
+  useVenuesQuery: vi.fn(() => ({ venues: [], isPending: false, isError: false, refetch: vi.fn() })),
+}));
 
 vi.mock("@/pages/beerDetail/hooks/useBeerQuery", () => mockBeer);
+vi.mock("@/pages/map/hooks/useVenuesQuery", () => mockVenues);
 
 describe("App", () => {
   it.each([

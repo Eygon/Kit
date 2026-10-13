@@ -15,3 +15,9 @@ export const ME_WISHLIST = () => `${API_V1()}/me/wishlist`;
 export const ME_WISHLIST_ITEM = (beerId: number) => `${ME_WISHLIST()}/${beerId}`;
 
 export const CHECKINS = () => `${API_V1()}/checkins`;
+
+export const VENUES = () => `${API_V1()}/venues`;
+
+export const VENUE_BEERS = (venueId: number) => `${VENUES()}/${venueId}/beers`;
+
+export const VENUE_BEER_VOTES = (venueId: number, beerId: number) => `${VENUE_BEERS(venueId)}/${beerId}/votes`;

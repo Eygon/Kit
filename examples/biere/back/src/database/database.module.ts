@@ -8,6 +8,9 @@ import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
 import { User } from "@/modules/users/entities/user.entity";
+import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
+import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
+import { Venue } from "@/modules/venues/entities/venue.entity";
 
 @Module({
   imports: [
@@ -15,7 +18,7 @@ import { User } from "@/modules/users/entities/user.entity";
       inject: [APP_CONFIG],
       useFactory: (config: AppConfig) => buildDatabaseOptions(config),
     }),
-    TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer]),
+    TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer, Venue, VenueBeer, AvailabilityVote]),
   ],
   providers: [DataSeeder],
 })

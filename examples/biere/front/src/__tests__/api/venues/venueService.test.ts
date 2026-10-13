@@ -1,0 +1,292 @@
+import { toast } from "@heroui/react";
+import type { VenueQuery } from "@/types/models/venue/venueQuery";
+import { API_BASE_URL } from "@/config/apiConfig";
+import { EMPTY_VENUE_QUERY } from "@/types/mappers/venue/venueQueryMapper";
+import { VenueTypeEnum } from "@/types/enums/venue/venueTypeEnum";
+import { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
+import VenueService from "@/api/venues/venueService";
+import { HttpError } from "@/api/httpError";
+import { VoteSenseEnum } from "@/types/enums/venue/voteSenseEnum";
+import i18n from "@/i18n/i18n";
+import { voteVenueBeer } from "@/utils/queryFunctions/venueQueryFunctions";
+
+vi.mock("@heroui/react", () => ({
+  toast: { danger: vi.fn() },
+}));
+
+const VENUES_URL = `${API_BASE_URL}/api/v1/venues`;
+const mockFetch = vi.fn();
+
+const venueDto = {
+  id: 12,
+  name: "Le Trappiste",
+  type: "bar",
+  city: "Paris",
+  address: "1 rue de la Bière",
+  latitude: 48.8566,
+  longitude: 2.3522,
+  description: "",
+  distanceKm: null,
+  status: "confirmed",
+};
+
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+
+describe("VenueService.getAll", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.mocked(toast.danger).mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("requests /venues with a GET and exactly the contract parameters of the query", async () => {
+    const query: VenueQuery = {
+      ...EMPTY_VENUE_QUERY,
+      bounds: { north: 48.9, south: 48.8, east: 2.4, west: 2.2 },
+      types: [VenueTypeEnum.BAR, VenueTypeEnum.BREWERY],
+      family: BeerFamilyEnum.STOUT,
+      beerId: 7,
+      confirmedOnly: true,
+      position: { latitude: 48.85, longitude: 2.35 },
+      radiusKm: 10,
+    };
+    mockFetch.mockImplementation(async () => json([venueDto]));
+
+    await VenueService.getAll(query);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      `${VENUES_URL}?north=48.9&south=48.8&east=2.4&west=2.2&type=bar&type=brewery&beer=7&family=stout&confirmedOnly=true&latitude=48.85&longitude=2.35&radiusKm=10`,
+    );
+    expect(init.method).toBe("GET");
+  });
+
+  it("sends no parameter for an empty query", async () => {
+    mockFetch.mockImplementation(async () => json([]));
+
+    await VenueService.getAll(EMPTY_VENUE_QUERY);
+
+    expect(mockFetch.mock.calls[0][0]).toBe(`${VENUES_URL}?`);
+  });
+
+  it("returns the venues as models, with unknown type and status narrowed", async () => {
+    mockFetch.mockImplementation(async () =>
+      json([venueDto, { ...venueDto, id: 13, type: "pub", status: "available", distanceKm: 0.4 }]),
+    );
+
+    const venues = await VenueService.getAll(EMPTY_VENUE_QUERY);
+
+    expect(venues).toHaveLength(2);
+    expect(venues[0]).toEqual({ ...venueDto, type: "bar", status: "confirmed" });
+    expect(venues[1]).toEqual({ ...venueDto, id: 13, type: null, status: "unknown", distanceKm: 0.4 });
+  });
+
+  it("returns an empty list on a 204 answer without a toast", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(VenueService.getAll(EMPTY_VENUE_QUERY)).resolves.toEqual([]);
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it.each([400, 401, 500])("rejects with the HttpError on status %s and shows no toast", async (status) => {
+    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+
+    const failure = await VenueService.getAll(EMPTY_VENUE_QUERY).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).status).toBe(status);
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it("rejects with the original error on a network failure and shows no toast", async () => {
+    const networkError = new TypeError("Failed to fetch");
+    mockFetch.mockRejectedValue(networkError);
+
+    await expect(VenueService.getAll(EMPTY_VENUE_QUERY)).rejects.toBe(networkError);
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+});
+
+const venueBeerDto = {
+  beerId: 7,
+  beerName: "Houblon Chouffe",
+  breweryName: "Chouffe",
+  styleName: "Double IPA",
+  family: "ipa",
+  status: "maybeGone",
+  lastConfirmedAt: "2026-10-01T10:00:00.000Z",
+  recentVoterCount: 3,
+  nextVoteAt: null,
+};
+
+describe("VenueService.getBeers", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.mocked(toast.danger).mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("requests /venues/{id}/beers with a GET and no query string", async () => {
+    mockFetch.mockImplementation(async () => json([venueBeerDto]));
+
+    await VenueService.getBeers(12);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${VENUES_URL}/12/beers`);
+    expect(init.method).toBe("GET");
+  });
+
+  it("returns the beers as models in the received order, with unknown family and status narrowed and dates parsed", async () => {
+    mockFetch.mockImplementation(async () =>
+      json([venueBeerDto, { ...venueBeerDto, beerId: 8, family: "mead", status: "available", lastConfirmedAt: null }]),
+    );
+
+    const beers = await VenueService.getBeers(12);
+
+    expect(beers).toHaveLength(2);
+    expect(beers[0]).toEqual({
+      ...venueBeerDto,
+      family: "ipa",
+      status: "maybeGone",
+      lastConfirmedAt: new Date("2026-10-01T10:00:00.000Z"),
+      nextVoteAt: null,
+    });
+    expect(beers[1]).toEqual({ ...venueBeerDto, beerId: 8, family: null, status: "unknown", lastConfirmedAt: null, nextVoteAt: null });
+  });
+
+  it("returns an empty list on a 204 answer without a toast", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(VenueService.getBeers(12)).resolves.toEqual([]);
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it.each([400, 401, 404, 500])("rejects with the HttpError on status %s and shows no toast", async (status) => {
+    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+
+    const failure = await VenueService.getBeers(12).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).status).toBe(status);
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it("rejects with the original error on a network failure and shows no toast", async () => {
+    const networkError = new TypeError("Failed to fetch");
+    mockFetch.mockRejectedValue(networkError);
+
+    await expect(VenueService.getBeers(12)).rejects.toBe(networkError);
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+});
+
+describe("VenueService.vote", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.mocked(toast.danger).mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it.each([
+    [VoteSenseEnum.STILL, "still"],
+    [VoteSenseEnum.GONE, "gone"],
+  ])("posts the sense %s as the only body field to /venues/{id}/beers/{beerId}/votes", async (sense, expected) => {
+    mockFetch.mockImplementation(async () => json(venueBeerDto, 201));
+
+    await VenueService.vote(12, 7, sense);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${VENUES_URL}/12/beers/7/votes`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({ sense: expected });
+    expect((init.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
+  });
+
+  it("returns the recomputed beer as a model with dates parsed and no toast", async () => {
+    mockFetch.mockImplementation(async () =>
+      json({ ...venueBeerDto, status: "confirmed", nextVoteAt: "2026-10-14T10:00:00.000Z" }, 201),
+    );
+
+    const beer = await VenueService.vote(12, 7, VoteSenseEnum.STILL);
+
+    expect(beer).toEqual({
+      ...venueBeerDto,
+      status: "confirmed",
+      family: "ipa",
+      lastConfirmedAt: new Date("2026-10-01T10:00:00.000Z"),
+      nextVoteAt: new Date("2026-10-14T10:00:00.000Z"),
+    });
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it("AC5 on a 409 shows one toast with the dedicated already voted text and rethrows the HttpError", async () => {
+    mockFetch.mockImplementation(async () => json({ message: "You already voted" }, 409));
+
+    const failure = await VenueService.vote(12, 7, VoteSenseEnum.STILL).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).status).toBe(409);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith("Vous avez déjà voté pour cette bière ici dans les dernières 24 h.");
+  });
+
+  it.each([
+    [400, "errors.badRequest"],
+    [401, "errors.unauthorized"],
+    [404, "errors.notFound"],
+    [500, "errors.generic"],
+  ])("AC6 on status %s shows one toast with the text of %s and rethrows", async (status, key) => {
+    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+
+    const failure = await VenueService.vote(12, 7, VoteSenseEnum.GONE).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).status).toBe(status);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith(i18n.t(key));
+    expect(toast.danger).not.toHaveBeenCalledWith("Vous avez déjà voté pour cette bière ici dans les dernières 24 h.");
+  });
+
+  it("AC6 on a network failure shows one generic toast and rethrows the original error", async () => {
+    const networkError = new TypeError("Failed to fetch");
+    mockFetch.mockRejectedValue(networkError);
+
+    await expect(VenueService.vote(12, 7, VoteSenseEnum.STILL)).rejects.toBe(networkError);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith("Une erreur est survenue. Réessayez.");
+  });
+
+  it("treats an answer without a body as a failure: one generic toast and a rethrow", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(VenueService.vote(12, 7, VoteSenseEnum.STILL)).rejects.toBeInstanceOf(Error);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith("Une erreur est survenue. Réessayez.");
+  });
+
+  it("is reached through the voteVenueBeer query function with the same arguments", async () => {
+    mockFetch.mockImplementation(async () => json(venueBeerDto, 201));
+
+    const beer = await voteVenueBeer(12, 7, VoteSenseEnum.GONE);
+
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${VENUES_URL}/12/beers/7/votes`);
+    expect(JSON.parse(init.body as string)).toEqual({ sense: "gone" });
+    expect(beer.beerId).toBe(7);
+  });
+});

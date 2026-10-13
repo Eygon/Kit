@@ -9,3 +9,5 @@ export const SEED_USERS = [
   { id: BOB_USER_ID, displayName: "Bob", avatarColor: "#10B981" },
   { id: CAROL_USER_ID, displayName: "Carol", avatarColor: "#8B5CF6" },
 ] as const;
+
+export const SEED_VOTE_BATCH_SIZE = 200;

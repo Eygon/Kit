@@ -120,3 +120,22 @@
     border-radius: var(--mousse-radius);
   }
 }
+
+.leaflet-container .leaflet-control-zoom.leaflet-bar {
+  border: var(--mousse-border) solid var(--mousse-ink);
+  border-radius: var(--mousse-control-radius);
+  box-shadow: var(--mousse-shadow);
+  overflow: hidden;
+}
+
+.leaflet-container .leaflet-control-zoom.leaflet-bar a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  line-height: 1;
+  background-color: var(--surface);
+  color: var(--foreground);
+  border-radius: 0;
+}

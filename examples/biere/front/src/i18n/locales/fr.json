@@ -78,6 +78,29 @@
       "untasted": "Jamais goûtées"
     }
   },
+  "venue": {
+    "types": {
+      "bar": "Bar",
+      "shop": "Cave",
+      "brewery": "Brasserie"
+    },
+    "statuses": {
+      "confirmed": "Confirmée",
+      "maybeGone": "Peut-être épuisée",
+      "gone": "Épuisée",
+      "unknown": "Inconnue"
+    },
+    "detail": {
+      "neverConfirmed": "Jamais confirmée",
+      "neverConfirmedWithVoters_one": "Jamais confirmée · {{count}} personne récemment",
+      "neverConfirmedWithVoters_other": "Jamais confirmée · {{count}} personnes récemment",
+      "confirmedToday": "Confirmée aujourd'hui par $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "confirmedDaysAgo_one": "Confirmée il y a {{count}} jour par $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "confirmedDaysAgo_other": "Confirmée il y a {{count}} jours par $t(venue.detail.voters, {\"count\": {{voters}} })",
+      "voters_one": "{{count}} personne",
+      "voters_other": "{{count}} personnes"
+    }
+  },
   "pages": {
     "encyclopedia": {
       "title": "Encyclopédie",
@@ -180,8 +203,62 @@
     "map": {
       "title": "Carte",
       "subtitle": "Bars, caves et brasseries autour de vous.",
-      "emptyTitle": "Aucun lieu pour l'instant",
-      "emptyDescription": "Les lieux à découvrir apparaîtront ici."
+      "markerLabel": "{{name}}, {{type}}, {{status}}",
+      "tilesUnavailable": "Fond de carte indisponible : les lieux restent utilisables.",
+      "youAreHere": "Vous êtes ici",
+      "locate": {
+        "action": "Autour de moi",
+        "denied": "Position refusée : autorisez la localisation dans les réglages du navigateur.",
+        "unavailable": "Position indisponible."
+      },
+      "list": {
+        "trigger": "Lieux ({{count}})",
+        "title": "Lieux",
+        "errorTitle": "Impossible de charger les lieux.",
+        "emptyTitle": "Aucun lieu ici",
+        "emptyDescription": "Déplacez la carte ou retirez des filtres."
+      },
+      "venue": {
+        "address": "Adresse",
+        "city": "Ville",
+        "close": "Fermer"
+      },
+      "venueBeers": {
+        "title": "Bières",
+        "otherFamily": "Autres",
+        "errorTitle": "Impossible de charger les bières.",
+        "emptyTitle": "Aucune bière signalée ici",
+        "emptyDescription": "Soyez le premier à en signaler une."
+      },
+      "vote": {
+        "still": "Toujours là",
+        "gone": "Plus là",
+        "stillLabel": "Toujours là : {{beer}}",
+        "goneLabel": "Plus là : {{beer}}",
+        "cooldown": "Vous pourrez revoter dans {{count}} h",
+        "saved": "Vote enregistré",
+        "alreadyVoted": "Vous avez déjà voté pour cette bière ici dans les dernières 24 h."
+      },
+      "beerFilter": {
+        "label": "Où boire : {{name}}",
+        "unknown": "Bière inconnue",
+        "remove": "Retirer le filtre bière"
+      },
+      "filters": {
+        "title": "Filtres",
+        "types": "Type de lieu",
+        "family": "Famille de bière",
+        "anyFamily": "Toutes",
+        "confirmedOnly": "Disponibilité confirmée seulement",
+        "radius": "Rayon",
+        "radiusOption": "{{count}} km",
+        "radiusNeedsPosition": "Utilisez Autour de moi pour choisir un rayon.",
+        "legend": "Légende",
+        "activeCount_one": "{{count}} filtre actif",
+        "activeCount_other": "{{count}} filtres actifs",
+        "reset": "Réinitialiser",
+        "apply": "Appliquer"
+      }
     },
     "journal": {
       "title": "Journal",

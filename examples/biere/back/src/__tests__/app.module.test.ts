@@ -13,6 +13,7 @@ import { CheckinsController } from "@/modules/pokedex/checkins.controller";
 import { TastingsService } from "@/modules/tastings/tastings.service";
 import { UsersController } from "@/modules/users/users.controller";
 import { UsersService } from "@/modules/users/users.service";
+import { VenuesController } from "@/modules/venues/venues.controller";
 import { createTestApp } from "@/__tests__/support/test-app";
 
 describe("AppModule", () => {
@@ -32,6 +33,7 @@ describe("AppModule", () => {
     expect(app.get(UsersController)).toBeInstanceOf(UsersController);
     expect(app.get(UsersService)).toBeInstanceOf(UsersService);
     expect(app.get(TastingsService)).toBeInstanceOf(TastingsService);
+    expect(app.get(VenuesController)).toBeInstanceOf(VenuesController);
     expect(app.get(DataSeeder)).toBeInstanceOf(DataSeeder);
   });
 

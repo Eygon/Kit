@@ -13,7 +13,7 @@ const hOverflow = () => p.evaluate(() => document.documentElement.scrollWidth - 
 const goto = async (path) => { await p.goto(URL0 + path); await settle(); };
 // 1. chargement
 await goto("/");
-const head = await p.locator("h1").innerText(); const sub = await p.getByText(/\d+ bières?/).first().innerText().catch(() => "");
+const head = await p.locator("h1").innerText(); const sub = await p.getByText(/\d+ (\/ \d+ découvertes|bières?)/).first().innerText().catch(() => "");
 log("1.chargement", (await cards().count()) === 20 && /120/.test(sub), `${await cards().count()} cartes, en-tete « ${head} / ${sub} »`);
 let t = w.take(); log("1.sans-erreur", !t.fiveXX.length && !t.console.length, `5xx=${t.fiveXX.length} console=${t.console.length} ${t.console.slice(0,2)}`);
 log("1.pas-de-debordement-horizontal", (await hOverflow()) <= 0, `debordement ${await hOverflow()} px`);

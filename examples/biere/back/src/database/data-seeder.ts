@@ -5,15 +5,26 @@ import { Repository } from "typeorm";
 import breweriesSeed from "@/database/seed/data/breweries.json";
 import beersSeed from "@/database/seed/data/beers.json";
 import stylesSeed from "@/database/seed/data/styles.json";
+import venueBeersSeed from "@/database/seed/data/venue-beers.json";
+import venuesSeed from "@/database/seed/data/venues.json";
 import { buildBeerRows, buildBreweryRows, buildStyleRows } from "@/database/seed/catalog-seed";
-import { SEED_USERS } from "@/database/seed.constants";
+import { buildSeedVotes, buildVenueBeerRows, buildVenueRows } from "@/database/seed/venue-seed";
+import { SEED_USERS, SEED_VOTE_BATCH_SIZE } from "@/database/seed.constants";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
 import { User } from "@/modules/users/entities/user.entity";
+import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
+import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
+import { Venue } from "@/modules/venues/entities/venue.entity";
 
 const toIdsByLowerName = (rows: readonly { id: number; name: string }[]): Map<string, number> =>
   new Map(rows.map(({ id, name }) => [name.toLowerCase(), id]));
+
+const toLinkKey = (venueId: number, beerId: number): string => `${venueId}-${beerId}`;
+
+const toBatches = <T>(items: readonly T[], size: number): T[][] =>
+  Array.from({ length: Math.ceil(items.length / size) }, (_, index) => items.slice(index * size, (index + 1) * size));
 
 @Injectable()
 export class DataSeeder implements OnApplicationBootstrap {
@@ -22,6 +33,9 @@ export class DataSeeder implements OnApplicationBootstrap {
     @InjectRepository(BeerStyle) private readonly styles: Repository<BeerStyle>,
     @InjectRepository(Brewery) private readonly breweries: Repository<Brewery>,
     @InjectRepository(Beer) private readonly beers: Repository<Beer>,
+    @InjectRepository(Venue) private readonly venues: Repository<Venue>,
+    @InjectRepository(VenueBeer) private readonly venueBeers: Repository<VenueBeer>,
+    @InjectRepository(AvailabilityVote) private readonly availabilityVotes: Repository<AvailabilityVote>,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -33,6 +47,8 @@ export class DataSeeder implements OnApplicationBootstrap {
     await this.seedStyles();
     await this.seedBreweries();
     await this.seedBeers();
+    await this.seedVenues();
+    await this.seedVenueBeers();
   }
 
   private async seedUsers(): Promise<void> {
@@ -63,5 +79,33 @@ export class DataSeeder implements OnApplicationBootstrap {
     const styleIdsByName = toIdsByLowerName(await this.styles.find());
     const breweryIdsByName = toIdsByLowerName(await this.breweries.find());
     await this.beers.insert(buildBeerRows(beersSeed, styleIdsByName, breweryIdsByName));
+  }
+
+  private async seedVenues(): Promise<void> {
+    if ((await this.venues.count()) > 0) {
+      return;
+    }
+    await this.venues.insert(buildVenueRows(venuesSeed));
+  }
+
+  private async seedVenueBeers(): Promise<void> {
+    if ((await this.venueBeers.count()) > 0) {
+      return;
+    }
+    const venueIdsByName = toIdsByLowerName(await this.venues.find());
+    const beerIdsByName = toIdsByLowerName(await this.beers.find());
+    const linkRows = buildVenueBeerRows(venueBeersSeed, venueIdsByName, beerIdsByName);
+    await this.venueBeers.insert(linkRows);
+    const linkIds = new Map(
+      (await this.venueBeers.find()).map(({ id, venueId, beerId }) => [toLinkKey(venueId, beerId), id]),
+    );
+    const now = new Date();
+    const votes = venueBeersSeed.flatMap((row, index) => {
+      const { venueId, beerId } = linkRows[index];
+      return buildSeedVotes(row, linkIds.get(toLinkKey(venueId, beerId)) as number, now);
+    });
+    for (const batch of toBatches(votes, SEED_VOTE_BATCH_SIZE)) {
+      await this.availabilityVotes.insert(batch);
+    }
   }
 }
