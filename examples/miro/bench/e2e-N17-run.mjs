@@ -2,7 +2,7 @@
 // Usage : TW_CSS=tw-N17.css node e2e-N17-run.mjs <run>   -> results-N17-<run>.json
 import { chromium } from "/opt/node22/lib/node_modules/playwright/index.mjs";
 import { readFileSync, writeFileSync } from "node:fs";
-import { watch } from "/home/user/Kit/skills/_shared/e2e-oracles.mjs";
+import { watch, unreachable } from "/home/user/Kit/skills/_shared/e2e-oracles.mjs";
 const E = new URL(".", import.meta.url).pathname; const RUN = process.argv[2] || "1";
 const TW = readFileSync(E + (process.env.TW_CSS || "tw.css"), "utf8");
 const API = "http://localhost:5080/api/v1";
@@ -67,6 +67,8 @@ const lines = async (p) => (await panel(p).getByRole("listitem").allInnerTexts()
 cur = await open(`N17p-${STAMP}`); let { page } = cur;
 chk("US4.AC1", (await BTN(page).count()) === 1, `bouton Activite present=${await BTN(page).count()}`);
 await BTN(page).click(); await page.waitForTimeout(1200);
+const unr = await unreachable(page);
+chk("US4.atteignable", unr.length === 0, `boutons inatteignables (page de 20 entrees) : ${JSON.stringify(unr)}`);
 let l1 = await lines(page); const more = panel(page).getByRole("button", { name: /Voir plus/ });
 chk("US4.AC2", l1.length === 20 && /Alice a ajouté un élément/.test(l1[0]) && /il y a|à l'instant|maintenant/i.test(l1[0]) && (await more.count()) === 1, `20 entrees, 1re : « ${l1[0]} » ; Voir plus=${await more.count()}`);
 await more.click(); await page.waitForTimeout(1200); const l2 = await lines(page);
