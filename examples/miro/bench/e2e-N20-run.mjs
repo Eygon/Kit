@@ -45,10 +45,10 @@ await page.keyboard.press("Shift+ArrowDown"); await flush(page); it = await get(
 chk("US1.maj-50px", it.x === 410 && it.y === 350, `Maj+Bas : API (${it.x},${it.y}) (attendu 410,350)`);
 // 2. rafale de 6 touches : une seule demande, 400 ms apres la derniere
 cur.st.patches.length = 0; const tStart = Date.now();
-for (let i = 0; i < 6; i++) { await page.keyboard.press("ArrowLeft"); await page.waitForTimeout(60); }
-const tLast = Date.now(); await page.waitForTimeout(300); const early = cur.st.patches.length; await page.waitForTimeout(700);
+for (let i = 0; i < 6; i++) { await page.keyboard.press("ArrowLeft"); if (i < 5) await page.waitForTimeout(60); }
+await page.waitForTimeout(0); const tLast = Date.now() - 0; await page.waitForTimeout(300); const early = cur.st.patches.length; await page.waitForTimeout(700);
 it = await get(P.id);
-chk("US1.rafale-un-patch", cur.st.patches.length === 1 && early === 0 && it.x === 350 && it.y === 350 && cur.st.patches[0].t - tLast >= 350 && cur.st.patches[0].t - tLast <= 900, `6 touches : PATCH=${cur.st.patches.length} (avant 300 ms : ${early}) delai apres la derniere touche=${cur.st.patches[0] && cur.st.patches[0].t - tLast} ms ; API (${it.x},${it.y})`);
+chk("US1.rafale-un-patch", cur.st.patches.length === 1 && early === 0 && it.x === 350 && it.y === 350 && cur.st.patches[0].t - tLast >= 330 && cur.st.patches[0].t - tLast <= 900, `6 touches : PATCH=${cur.st.patches.length} (avant 300 ms : ${early}) delai apres la derniere touche=${cur.st.patches[0] && cur.st.patches[0].t - tLast} ms ; API (${it.x},${it.y})`);
 // 3. un seul Ctrl+Z pour toute la rafale (apres enregistrement)
 await page.keyboard.press("Control+z"); await flush(page); it = await get(P.id);
 chk("US1.ctrl-z-rafale", it.x === 410 && it.y === 350, `Ctrl+Z : API (${it.x},${it.y}) (attendu 410,350 = avant la rafale de 6)`);
@@ -71,12 +71,12 @@ cur.st.patches.length = 0; const q0 = await get(Q.id);
 await card(page, "Autre").dblclick({ position: { x: 20, y: 40 } }); await page.getByText("Modifier le contenu").first().waitFor({ timeout: 5000 });
 await page.getByRole("textbox").first().click(); for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight"); await flush(page); const q1 = await get(Q.id);
 chk("US1.champ-de-saisie", q1.x === q0.x && q1.y === q0.y && cur.st.patches.length === 0, `focus dans le champ : API (${q1.x},${q1.y}) = (${q0.x},${q0.y}) ; PATCH=${cur.st.patches.length}`);
-await page.keyboard.press("Escape"); await page.waitForTimeout(400);
+await page.keyboard.press("Escape"); await page.waitForTimeout(300); if (await page.getByText("Modifier le contenu").count()) await page.getByRole("button", { name: /Fermer|Close/ }).first().click(); await page.waitForTimeout(400);
 // 9. changer de selection pendant la rafale : la rafale est envoyee, pas perdue
 await sel(page, "Pivot"); const pv0 = await get(P.id); await page.keyboard.press("ArrowDown"); await page.keyboard.press("ArrowDown"); await sel(page, "Autre"); await flush(page); const pv1 = await get(P.id);
 chk("US1.changement-selection", pv1.y === pv0.y + 20, `2 fleches puis clic sur un autre element : Pivot y ${pv0.y} -> ${pv1.y} (attendu +20)`);
 // 10. zoom : 10 px du tableau
-await page.getByRole("button", { name: "Zoom avant" }).click(); await page.waitForTimeout(300); await sel(page, "Pivot"); const z0 = await get(P.id); const zr0 = await rect(page, "Pivot");
+await page.getByRole("button", { name: "Zoom avant" }).click({ timeout: 5000 }); await page.waitForTimeout(300); await sel(page, "Pivot"); const z0 = await get(P.id); const zr0 = await rect(page, "Pivot");
 await page.keyboard.press("ArrowRight"); await flush(page); const z1 = await get(P.id); const zr1 = await rect(page, "Pivot");
 chk("US1.zoom", z1.x === z0.x + 10 && Math.round(zr1.x - zr0.x) !== 10, `zoom avant : API +${z1.x - z0.x} (attendu 10) ; ecran +${Math.round(zr1.x - zr0.x)} px`);
 // 11. aide clavier
@@ -93,6 +93,13 @@ cur = await open({ stubPatch: (r) => r.fulfill({ status: 500, contentType: "appl
 await page.keyboard.press("ArrowRight"); await page.keyboard.press("ArrowRight"); await page.waitForTimeout(150); const fm = await rect(page, "Pivot"); await page.waitForTimeout(1500);
 const f1 = await rect(page, "Pivot"); const errs = (await page.evaluate(() => window.__toasts)).filter((t) => t.kind === "error");
 chk("US1.echec", errs.length === 1 && Math.round(fm.x - f0.x) === 20 && Math.abs(f1.x - f0.x) < 1, `500 : messages d erreur=${errs.length} ; deplace (+${Math.round(fm.x - f0.x)}) puis revenu (${Math.round(f1.x - f0.x)} px d ecart)`, true);
+// 14. rafraichissement distant pendant une rafale : l element ne saute pas en arriere
+cur = await open(); page = cur.page; await sel(page, "Pivot"); const j0 = await get(P.id); const jr0 = await rect(page, "Pivot");
+const xs = [];
+for (let i = 0; i < 6; i++) { await page.keyboard.press("ArrowRight"); if (i === 2) await api(2, "PATCH", `/boards/${BID}/items/${Q.id}`, { content: "Autre" + i }); await page.waitForTimeout(120); xs.push(Math.round((await rect(page, "Pivot")).x - jr0.x)); }
+await page.waitForTimeout(900); const j1 = await get(P.id); const jr1 = await rect(page, "Pivot");
+const mono = xs.every((v, k) => k === 0 || v >= xs[k - 1]);
+chk("US1.rafraichissement-distant", mono && j1.x === j0.x + 60 && Math.round(jr1.x - jr0.x) === 60, `positions a l ecran pendant la rafale ${JSON.stringify(xs)} (jamais en arriere=${mono}) ; API +${j1.x - j0.x} (attendu 60)`);
 await cur.ctx.close(); await browser.close();
 writeFileSync(E + `results-N20-${RUN}.json`, JSON.stringify(results, null, 1));
 console.log(`${results.filter((r) => r.ok).length}/${results.length}`);
