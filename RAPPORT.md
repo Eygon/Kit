@@ -65,6 +65,23 @@ Les runs sont des sous-agents qui appliquent les SKILL.md à la lettre en mode a
 
 **Limites** : une revue Sonnet qui rend PASS en moins d'une minute n'a pas toujours tout lu : sans la loupe, 3 à 7 trous par US auraient été livrés. Le moteur `Workflow` complet (avec la loupe) n'a toujours pas tourné de bout en bout (les agents `sk-worker`/`sk-reviewer` ne sont pas installés ici) : validé par ses tests et par le même déroulé fait à la main.
 
+### Moteur Workflow complet : testé de bout en bout (13 octobre)
+
+**Les deux moteurs ont tourné pour de bon**, avec de vrais agents : `speckit-us-loop.js` (N12 : 2 US enchaînées, tri de la liste puis mémorisation) et `speckit-us-after-parallel.js` (N13 : dupliquer un tableau, US1 back ‖ US2 front sur contrat gelé).
+
+| | N12 (séquentiel) | N13 (parallèle back ‖ front) |
+|---|---|---|
+| Agents | 6 (2 workers Sonnet, 2 revues Opus, 2 loupes Haiku) | 6 (idem, revues Sonnet/Opus selon le moteur) |
+| Durée du moteur | 10,4 min | 10 min (les 2 US en même temps) |
+| Résultat | ok, US1 PASS, US2 PASS | ok, US1 PASS (la revue a corrigé un test faible), US2 PASS, hash du contrat inchangé |
+| Pistes de la loupe | 2 + 2, toutes vraies | 3 + 3, toutes vraies, dont **un vrai défaut de production** (boutons de plusieurs cartes) |
+| Correction des pistes | 2,9 min, en parallèle du navigateur | 3,6 et 4,3 min, en parallèle |
+| Passage réel | 13/13 ×3 | 11/11 ×3 |
+
+**Pour qu'il tourne ici** : les agents `sk-worker` et `sk-reviewer` ne sont pas dans le registre d'une session cloud neuve. Le moteur accepte maintenant `args.agentBodies` (corps des agents, fourni par `skills/_shared/agent-bodies.mjs`) et lance un agent générique avec ce corps en tête : aucune installation, même résultat. Un hook de démarrage (`.claude/hooks/session-start.sh`, cloud seulement) installe aussi les agents. Les deux modifications sont dans le dépôt, sur la branche, à relire avant fusion. Le mode auto avait d'abord refusé l'appel `Workflow` pour « auto-modification » (j'avais installé des agents dans la configuration de la session) : annulé, puis relancé après ton « Tout ».
+
+**Ce que le moteur apporte par rapport à la main** : les faits de l'US1 passent au worker de l'US2 sans que je les recopie ; la revue Opus se déclenche toute seule quand un fichier est partagé entre US (`PARTAGE`) ; la loupe tourne sans que j'y pense ; le hash du contrat est vérifié avant et après le fan-out.
+
 ### Bilan : 11 US, 2 XS, 9 genres (12 octobre)
 
 **Ce qui se répète**

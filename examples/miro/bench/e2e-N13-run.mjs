@@ -64,6 +64,14 @@ await dup(page, NAME).dblclick(); await page.waitForTimeout(2200);
 const nAfter = (await names()).filter((n) => n === copyName).length;
 check("US2.dblclic", cur.sent.length === 1 && nAfter === nBefore + 1, `double clic instantane -> demandes=${cur.sent.length}, copies creees=${nAfter - nBefore}`);
 await cur.ctx.close();
+// deux duplications en vol sur deux cartes : les deux boutons restent desactives jusqu a leur propre reponse (trou revele par la loupe)
+cur = await open({ stub: async (r) => { await new Promise((x) => setTimeout(x, 1500)); return r.continue(); } }); page = cur.page;
+await dup(page, NAME).click(); await page.waitForTimeout(200); await dup(page, LONG).click(); await page.waitForTimeout(600);
+const both = (await dup(page, NAME).isDisabled()) && (await dup(page, LONG).isDisabled());
+await page.waitForTimeout(2600);
+const bothBack = !(await dup(page, NAME).isDisabled()) && !(await dup(page, LONG).isDisabled());
+check("US2.deux-en-vol", both && bothBack && cur.sent.length === 2, `deux cartes en vol : boutons desactives=${both} ; reactives apres reponse=${bothBack} ; demandes=${cur.sent.length}`);
+await cur.ctx.close();
 // AC4 : echec 500 puis 403 puis reseau : un seul message generique, aucun succes, rien cree
 for (const [label, stub] of [["500", (r) => r.fulfill({ status: 500, contentType: "application/json", body: "{}" })], ["403", (r) => r.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ message: "x" }) })], ["reseau", (r) => r.abort("connectionrefused")]]) {
   cur = await open({ stub }); page = cur.page; const nb = (await names()).length;

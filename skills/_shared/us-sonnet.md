@@ -327,6 +327,9 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
 - clic qui declenche une demande : la garde « deja en cours » est SYNCHRONE (`useRef`
   pose dans le handler), jamais `isPending` lu au rendu : deux clics dans le meme tick
   (dblclick) passent tous les deux (banc N4 : 2 demandes au lieu d une).
+  Une action par carte d une liste : suis l ENSEMBLE des ids en vol (state + `mutateAsync`, id libere au
+  `finally`), jamais `isPending` / `variables` seuls : `variables` ne garde que la derniere demande, le bouton
+  de la 1re carte redevenait actif pendant sa requete (banc N13, trouve par la loupe, pas par le worker).
 - effet de bord dans une fonction de requete (toast, log, compteur) : il part A CHAQUE tentative
   quand le client de prod relance (`retry: 1` de src/config/queryClient.ts), alors que le
   helper de test tourne en `retry: false`. « Un seul toast » se teste avec le retry de prod
