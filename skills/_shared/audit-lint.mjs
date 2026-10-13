@@ -8,10 +8,13 @@ const LF = String.fromCharCode(10);
 const BOM = String.fromCharCode(65279);
 
 import { contractWrites } from "./brief-fill.mjs";
-const MAX_PROD_FILES_PER_STORY = 6;
-const MAX_TASKS_PER_STORY = 6;
+// SK_CAP_SCALE (experience de banc, defaut 1) : multiplie les trois plafonds pour mesurer des US plus grosses.
+// Ne change rien tant que la variable n est pas posee ; les valeurs invalides ou < 1 sont ignorees.
+const CAP_SCALE = (() => { const v = Number(process.env.SK_CAP_SCALE); return Number.isFinite(v) && v >= 1 ? v : 1; })();
+const MAX_PROD_FILES_PER_STORY = Math.round(6 * CAP_SCALE);
+const MAX_TASKS_PER_STORY = Math.round(6 * CAP_SCALE);
 // Compagnons compris (« Create `hook.ts` and its key factory `keys.ts` ») : plafond dur.
-const MAX_FILES_WITH_COMPANIONS = 8;
+const MAX_FILES_WITH_COMPANIONS = Math.round(8 * CAP_SCALE);
 // Aligne sur sk-prep A.1 point 3 (2026-09-08) : « autant que le besoin l exige,
 // typiquement 3-5, jusqu a une dizaine si les US traversent plusieurs groupes ».
 // Le cap dur a 5 sortait un MEDIUM sur un trio L legitime (7 ancres, 2 US, 2 roots).
