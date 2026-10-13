@@ -6,14 +6,17 @@ B="/tmp/claude-0/-home-user-Kit/6d0ce183-8a0e-5e9b-8ccd-4301258ef079/scratchpad/
 repo,label,prep,F,US=sys.argv[1:6]
 be=sys.argv[sys.argv.index("--backend")+1] if "--backend" in sys.argv else None
 S=f"{B}/slots/I-{label}"; P=f"{prep}/specs/{F}"; D=f"{S}/specs/{F}"
-subprocess.run(["git","-C",f"{B}/{repo}","worktree","add","-q","-b",f"sk-impl-{label}",S,"dev"],check=True)
-if repo=="front": os.symlink(f"{B}/front/node_modules",S+"/node_modules")
-if be: open(S+"/.sk/repos.json","w").write(json.dumps({"backend":be,"legacyBackend":None,"legacyFrontend":None})+"\n")
+new_slot=not os.path.isdir(S)  # une 2e US dans le meme slot : on ne recree ni le worktree ni le trio
+if new_slot:
+    subprocess.run(["git","-C",f"{B}/{repo}","worktree","add","-q","-b",f"sk-impl-{label}",S,"dev"],check=True)
+    if repo=="front": os.symlink(f"{B}/front/node_modules",S+"/node_modules")
+if be and new_slot: open(S+"/.sk/repos.json","w").write(json.dumps({"backend":be,"legacyBackend":None,"legacyFrontend":None})+"\n")
 os.makedirs(D+"/briefs",exist_ok=True)
-for n in ("spec.md","plan.md","recon.md","tasks.md","parallel.yml"):
-    if os.path.exists(f"{P}/{n}"): shutil.copy(f"{P}/{n}",D)
-for d in ("checklists","contracts"):
-    if os.path.isdir(f"{P}/{d}"): shutil.copytree(f"{P}/{d}",f"{D}/{d}",dirs_exist_ok=True)
+if new_slot:
+    for n in ("spec.md","plan.md","recon.md","tasks.md","parallel.yml"):
+        if os.path.exists(f"{P}/{n}"): shutil.copy(f"{P}/{n}",D)
+    for d in ("checklists","contracts"):
+        if os.path.isdir(f"{P}/{d}"): shutil.copytree(f"{P}/{d}",f"{D}/{d}",dirs_exist_ok=True)
 brief={"featureDir":D,"slot":S,"us":US,"skShared":"/home/user/Kit/skills/_shared","standardsRoot":S,"lecture":[],"facts":[]}
 cs=[f for f in os.listdir(D+"/contracts")] if os.path.isdir(D+"/contracts") else []
 if cs:
