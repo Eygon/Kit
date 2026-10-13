@@ -48,6 +48,15 @@ Idées ajoutées par moi (à garder ou couper) : badges, rareté, bières simila
 | F4 | **Profil, badges, statistiques** | Progression par style, badges, statistiques, partage | agrégats, règles de déblocage |
 | F5 | **Finition mobile** | Hors-ligne léger, états vides et erreurs, accessibilité, passage 360 px | transversal |
 
+
+### Ajouts demandés par Thomas le 13 octobre au soir (backlog, dans cet ordre)
+
+| # | Feature | Contenu |
+|---|---|---|
+| F6 | **Recherche d'un bar sur la carte** | Champ de recherche par nom de bar / ville sur la carte ; fiche du bar avec ses bières et, pour chacune, « déjà bue / pas encore » pour l'utilisateur courant. |
+| F7 | **Critères, notes et avis** | Pour chaque bière : niveau d'amertume et autres critères (couleur, douceur, acidité, corps), note moyenne et avis des utilisateurs (un avis par personne et par bière, modifiable). |
+| F5 | **Profil social** | Photo de profil à choisir parmi une sélection ; **niveau et titre** selon les bières bues ; **collections** (« mes Pokédex » : listes de bières nommées, la liste d'envies en est une) ; **suivre** un profil ; **fil d'actualité** sur la page d'accueil avec les dernières activités des profils suivis. |
+
 ## 7. Hors périmètre (v1)
 
 Comptes avec mots de passe, modération, paiement, réseau social complet (amis, fil), recommandation par apprentissage, application native (PWA possible ensuite).
