@@ -21,7 +21,27 @@ const parallelItems = (cfg.__parseError || !Array.isArray(cfg.parallel)) ? [] : 
 // A parallel item is one story, or a CHAIN of stories of the same git root ({ chain: [g, g], root }).
 // Chains run side by side, the stories of a chain one after the other: 2 back US and 3 front US
 // make two lanes instead of a single parallel pair followed by three sequential stories.
+// Compact form: { root, dir, banc, ids: ['US1', 'US2'] } builds the three prompts of each US from the
+// briefs folder `dir` (<dir>/briefs/<US>-worker|review|fix.md) and the bench line `banc` : the explicit
+// form repeated 3 near-identical prompts per US (20 000 characters of args for 15 US).
+function expandIds(it) {
+  const dir = it.dir || it.featureDir
+  const banc = it.banc ? ' ' + it.banc : ''
+  const brief = function (id, kind) {
+    return 'Ton brief est dans ' + dir + '/briefs/' + id + '-' + kind + '.md ; lis-le en entier en premier ; cwd du slot ' + it.root + '.\n' + (it.banc || '') + ' '
+  }
+  const done = 'Ta sortie finale = le JSON de sortie du brief, rendu comme rapport final.\n'
+  return it.ids.map(function (id) {
+    return {
+      id: id,
+      prompt: brief(id, 'worker') + done,
+      reviewPrompt: brief(id, 'review') + 'Ta sortie finale = le JSON de sortie du brief.\n',
+      fixPrompt: brief(id, 'fix') + done,
+    }
+  })
+}
 const lanes = parallelItems.map(function (it) {
+  if (it && Array.isArray(it.ids) && !Array.isArray(it.chain) && (it.dir || it.featureDir)) it = { root: it.root, chain: expandIds(it) }
   if (it && Array.isArray(it.chain)) {
     const root = it.root || (it.chain[0] && it.chain[0].root)
     return { root: root, groups: it.chain.map(function (g) { return Object.assign({}, g, { root: g.root || root }) }) }

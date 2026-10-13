@@ -276,3 +276,17 @@ for (const engine of ["speckit-us-loop.js", "speckit-us-after-parallel.js"]) {
     assert.doesNotMatch(prompts[0], /y{801}/);
   });
 }
+
+test("after-parallel: the compact form { root, dir, banc, ids } builds the same three prompts as the explicit form", async () => {
+  const seen = {};
+  const args = { barrier: null, expectedHash: SHA, parallel: [{ root: "/slot", dir: "/slot/specs/001-x", banc: "Banc : test.", ids: ["US1", "US2"] }] };
+  const { result, calls } = await run("speckit-us-after-parallel.js", args, async (label, prompt) => {
+    seen[label] = prompt;
+    if (label.startsWith("us:")) return done;
+    return { verdict: "PASS", issues: [], contractSha256: SHA };
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls.filter((c) => c.startsWith("us:")), ["us:US1", "us:US2"]);
+  assert.equal(seen["us:US1"], "Ton brief est dans /slot/specs/001-x/briefs/US1-worker.md ; lis-le en entier en premier ; cwd du slot /slot.\nBanc : test. Ta sortie finale = le JSON de sortie du brief, rendu comme rapport final.\n");
+  assert.ok(seen["review:US1"].startsWith("Ton brief est dans /slot/specs/001-x/briefs/US1-review.md ;"));
+});

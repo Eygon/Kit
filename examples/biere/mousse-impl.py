@@ -55,4 +55,12 @@ if CONTRACT:
     out["hashPrompt"]=f"sha256 du fichier {SF}/specs/{F}/contracts/{CONTRACT}, rends {{sha256}}"
     out["expectedHash"]=open(f"{SF}/specs/{F}/contract.sha256").read().strip()
 os.makedirs(B+"/out",exist_ok=True)
+compact={"barrier":None,"parallel":[],"reviewTier":tier}
+for root,ids,banc in ((SB,BU,BACK),(SF,FU,FRONT)):
+    l=[u for u in ids.split(",") if u]
+    if l: compact["parallel"].append({"root":root,"dir":f"{root}/specs/{F}","banc":banc,"ids":l})
+if CONTRACT:
+    compact["hashPrompt"]=out["hashPrompt"]; compact["expectedHash"]=out["expectedHash"]
+open(f"{B}/out/wf-args-{F}-compact.json","w").write(json.dumps(compact,ensure_ascii=False))
+print("compact:",f"{B}/out/wf-args-{F}-compact.json")
 path=f"{B}/out/wf-args-{F}-chains.json"; open(path,"w").write(json.dumps(out,ensure_ascii=False)); print(path)
