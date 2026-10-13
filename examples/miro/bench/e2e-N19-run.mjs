@@ -123,11 +123,12 @@ const box = await UNDO(page).last().boundingBox();
 chk("GEO.8-toasts", unr.length === 0 && clp.length === 0 && box && box.y > 0, `8 toasts : inatteignables=${unr.length} coupes=${JSON.stringify(clp).slice(0, 120)} ; dernier bouton y=${box && Math.round(box.y)} ; illisibles=${unrd.length}`);
 chk("GEO.contraste", unrd.length === 0, `contraste : ${JSON.stringify(unrd).slice(0, 200)}`);
 // 13. suppression faite par un autre canal (API) : pas de toast ; quitter le tableau efface les toasts
+const Y1 = await mk({ x: 200, y: 200, content: "Y1" }); await mk({ x: 450, y: 200, content: "Y2" });
 cur = await open(); page = cur.page; await page.evaluate(() => { window.__toasts = []; });
-const ext = (await byContent("Z7"))[0]; const nUndo0 = await UNDO(page).count();
+const ext = (await byContent("Y1"))[0]; const nUndo0 = await UNDO(page).count();
 await api(1, "DELETE", `/boards/${BID}/items/${ext.id}`); await page.waitForTimeout(1500);
 chk("H5.suppression-externe", (await UNDO(page).count()) === nUndo0 && (await TOAST(page).count()) === 0, `suppression par l API : boutons Annuler ${nUndo0} -> ${await UNDO(page).count()} (aucun toast)`);
-await delItem(page, "Z6"); const had = await UNDO(page).count();
+await delItem(page, "Y2"); const had = await UNDO(page).count();
 await page.goBack().catch(() => {}); await page.goto("http://localhost:5173/"); await page.getByText(NAME, { exact: false }).first().click(); await page.locator('[data-testid^="canvas-item-"]').first().waitFor({ timeout: 10000 }); await page.waitForTimeout(800);
 chk("H6.quitter-efface", had === 1 && (await UNDO(page).count()) === 0, `avant de quitter ${had} toast ; apres retour ${await UNDO(page).count()}`);
 await cur.ctx.close(); await browser.close();
