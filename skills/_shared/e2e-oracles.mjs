@@ -132,6 +132,7 @@ export async function unreachable(page, { limit = 20, expected = [] } = {}) {
       if (s.visibility === "hidden" || s.display === "none" || el.disabled) continue;
       const r = el.getBoundingClientRect();
       if (!r.width || !r.height) continue;
+      if (r.width <= 2 && r.height <= 2) continue; // texte masque visuellement (sr-only, bouton « Rejeter » des tiroirs de la lib) : pas une cible
       if (r.top >= 0 && r.bottom <= vh + 1 && r.left >= 0 && r.right <= vw + 1) continue;
       let reachable = false, fixed = false;
       for (let a = el.parentElement; a; a = a.parentElement) {
