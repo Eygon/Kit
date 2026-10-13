@@ -101,6 +101,15 @@ seul commit DONE.
    (FIXED / FAIL). Banc jeu : un layout duplique au niveau module, declare
    puis jamais juge, a casse les tirs a travers les portes deux features
    plus tard.
+   Meme section : les « Faits rendus par le worker » portent ses RISQUES
+   connus (« non couvert par un test », « le dernier callback seul ») et
+   ses corrections du trio (« Corrige T001 : ... »). Juge chaque risque :
+   atteignable en usage normal -> defaut a corriger (FIXED) ou a rapporter,
+   avec le test qui le prouve ; une correction du trio doit etre justifiee
+   par la spec (AC, FR) citee, sinon c est un ecart. Banc N23 : un risque
+   declare par le worker (`mutate` perd le callback d un enregistrement en
+   vol) est passe en PASS faute d etre lu ; la meme livraison avait ete
+   corrigee par la revue au cycle N20.
 4. La gate ciblee des tests de l US est encore verte : vitest
    `related --run <fichiers prod du diff> <fichiers de test de l US>`
    plus les tests a import paresseux que related ne voit pas

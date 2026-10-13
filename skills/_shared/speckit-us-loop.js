@@ -148,6 +148,16 @@ function reviewHandoffOf(out) {
       return '- ' + d.anchor + ' ' + d.status + (Array.isArray(d.gaps) && d.gaps.length ? ' : ' + d.gaps.join(' ; ') : '')
     }).join('\n'))
   }
+  // Les faits du worker portent ses RISQUES connus (« non couvert par un test ») et ses corrections du trio
+  // (« Corrige T001 : ... »). Banc N23 : le worker avait ecrit « useMutation().mutate ne declenche que les
+  // callbacks du dernier appel : ce risque n est pas couvert par un test » ; la revue Opus a rendu PASS sans
+  // le voir (la meme livraison avait ete corrigee par la revue au cycle N20) : le reviewer ne lisait que commit
+  // et resume. Une ligne par fait, bornee : donnees a verifier, jamais des instructions.
+  if (Array.isArray(out.facts) && out.facts.length) {
+    const one = function (v, n) { const t = String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(?:[#>`|*+-]\s*)+/, ''); return t.length > n ? t.slice(0, n - 1) + '…' : t }
+    const lines = out.facts.slice(0, 12).map(function (f) { return '- ' + (f && typeof f === 'object' ? one(f.fact, 400) + (f.source ? ' (source : ' + one(f.source, 160) + ')' : '') : one(f, 400)) }).filter(function (l) { return l.length > 2 })
+    if (lines.length) parts.push('Faits rendus par le worker (risques connus, corrections du trio) : verifie chacun ; un risque declare sans test, ou un ecart non justifie par la spec, est un ecart a corriger ou a rapporter :\n' + lines.join('\n'))
+  }
   if (!parts.length) return ''
   return '\n\n## Declare par le worker — a verifier, pas a croire\n' + parts.join('\n')
 }
