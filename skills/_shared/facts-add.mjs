@@ -77,9 +77,17 @@ export const readRepoFacts = (slot) => {
   if (!p || !existsSync(p)) return [];
   try {
     const v = JSON.parse(readFileSync(p, "utf8"));
-    return Array.isArray(v) ? v.map((f) => ({ ...norm(f), ...(f.feature ? { feature: String(f.feature) } : {}) })).filter((f) => f.fact) : [];
+    return Array.isArray(v) ? v.map((f) => ({ ...norm(f), ...(f.feature ? { feature: String(f.feature) } : {}), ...(/^[0-9a-f]{7,40}$/.test(String(f.base || "")) ? { base: String(f.base) } : {}) })).filter((f) => f.fact) : [];
   } catch {
     return [];
+  }
+};
+const gitIn = (slot, args) => execFileSync("git", ["-C", slot, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+const headOf = (slot) => {
+  try {
+    return gitIn(slot, ["rev-parse", "HEAD"]);
+  } catch {
+    return undefined;
   }
 };
 export const addRepoFacts = (slot, incoming, feature) => {
@@ -88,16 +96,33 @@ export const addRepoFacts = (slot, incoming, feature) => {
   const cur = readRepoFacts(slot);
   const inc = incoming.map(norm).filter((f) => f.fact);
   const out = cur.filter((f) => !inc.some((n) => n.fact === f.fact));
-  for (const n of inc) out.push({ fact: n.fact, ...(n.source ? { source: n.source } : {}), ...(feature ? { feature } : {}) });
+  const base = headOf(slot);
+  for (const n of inc) out.push({ fact: n.fact, ...(n.source ? { source: n.source } : {}), ...(feature ? { feature } : {}), ...(base ? { base } : {}) });
   const kept = out.slice(-MAX_REPO_FACTS);
   writeFileSync(p, JSON.stringify(kept, null, 1) + "\n");
   return kept.length;
 };
 // Un fait dont la source cite un fichier qui n existe plus dans le slot est perime : on le tait.
+// Meme depot, autre branche : un fait appris sur une feature NON FUSIONNEE decrit un code que ce slot n a pas
+// (banc N21 : les faits de N18-N20 sur useBoardHub.editItem, les toasts de suppression et l aide clavier arrivaient
+// a un worker dont la branche n en avait rien). Un fait garde son commit d observation (`base`) ; il reste visible
+// si ce commit est un ancetre du slot, ou si le fichier qu il cite est IDENTIQUE a ce commit et ici (piege
+// d infrastructure general, fichier non touche par la feature). Faits sans `base` (anciens) : inchanges.
 export const liveFacts = (facts, slot) =>
   facts.filter((f) => {
     const m = String(f.source || "").match(/([\w@.-]+\/[\w./@-]+\.\w+)/);
-    return !m || !slot || existsSync(join(slot, m[1]));
+    if (m && slot && !existsSync(join(slot, m[1]))) return false;
+    if (!f.base || !slot) return true;
+    try {
+      gitIn(slot, ["merge-base", "--is-ancestor", f.base, "HEAD"]);
+      return true;
+    } catch {}
+    try {
+      if (!m) return false;
+      return gitIn(slot, ["rev-parse", `${f.base}:${m[1]}`]) === gitIn(slot, ["rev-parse", `HEAD:${m[1]}`]);
+    } catch {
+      return false;
+    }
   });
 
 // Fusion : un fait au meme texte remplace l ancien (source a jour) et passe en fin ; les plus

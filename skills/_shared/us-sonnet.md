@@ -319,6 +319,10 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
   vert peut casser le typecheck. Ne l annonce vert qu apres
   l avoir lance.
 <!-- if:front -->
+- texte d etat ajoute dans une barre ou un panneau de taille fixe (compteur, badge, message) : le conteneur ne doit
+  PAS changer de taille quand le texte apparait (`w-min min-w-full` ou `min-w-fit` sur le texte fait grandir la barre :
+  banc N21, 50 -> 82 px). Pose le texte hors du flux (`absolute top-full whitespace-nowrap`) ou reserve sa place ; le
+  test mesure la largeur de la barre avant / apres (le jsdom ne mesure rien : le navigateur tranche) ;
 - pastille / badge / infobulle posee AU-DESSUS ou A COTE d un element (`translateY(-100%)`) : un element colle au bord
   de la zone visible (conteneur `overflow-hidden`) la coupe et elle devient invisible ; la couche recoit la limite
   visible (ex. `visibleTop`) et retourne la pastille a l INTERIEUR du bord quand elle n a pas la place (test : element

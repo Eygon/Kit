@@ -166,6 +166,14 @@ le cas limite, l element colle au bord haut (puis bas, gauche, droit) de la zone
 (`overflow: hidden`). Banc N18 : le badge d un element a y=0 etait a 63-81 px pour un conteneur qui commence a 81 :
 jamais visible, sans erreur. Corrige en retournant le badge a l interieur du bord quand il n a pas la place au-dessus.
 
+## Oracle de stabilite de taille (`sizeStable`, e2e-oracles.mjs)
+
+Tout etat ajoute dans une barre ou un panneau de taille fixe (compteur « N elements selectionnes », badge, message
+d erreur de champ) : `sizeStable(page, '[role="toolbar"]', () => selectionner12())` rend la taille avant / apres. Une barre
+qui grandit au moment ou le texte apparait decale ce qui l entoure a chaque clic. Banc N21 : 50 -> 82 px (+64 %) a cause de
+`w-min min-w-full` sur le compteur. Corrige en posant le texte hors du flux (`absolute top-full`, `whitespace-nowrap`)
+ou en reservant sa place des le depart. Joue-le en francais ET dans les langues les plus longues du depot.
+
 ## Oracles de texte : ce que la spec impose, rien de plus
 
 Un oracle sur un libelle visible (aide, bouton, toast) n exige un texte EXACT

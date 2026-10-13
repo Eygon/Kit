@@ -227,6 +227,37 @@ test("facts are untrusted data: one line, bounded, no forged markdown structure,
   assert.equal(readFacts(fd).length, 0);
 });
 
+test("repo facts follow the branch: a fact from an unmerged feature stays out of a sibling branch, general facts and descendants keep it", async () => {
+  const { addRepoFacts, readRepoFacts, liveFacts } = await import("../facts-add.mjs");
+  const { mkdtempSync, writeFileSync, mkdirSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const repo = mkdtempSync(join(tmpdir(), "rf-"));
+  const git = (cwd, ...a) => execFileSync("git", ["-C", cwd, "-c", "user.email=t@t", "-c", "user.name=t", ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  git(repo, "init", "-q", "-b", "main");
+  mkdirSync(join(repo, "src"), { recursive: true });
+  writeFileSync(join(repo, "src", "board.ts"), "v0\n");
+  writeFileSync(join(repo, "src", "infra.ts"), "i0\n");
+  git(repo, "add", "-A"); git(repo, "commit", "-qm", "base");
+  const featA = join(repo, "..", "rf-a-" + Date.now()), featB = join(repo, "..", "rf-b-" + Date.now()), featC = join(repo, "..", "rf-c-" + Date.now());
+  git(repo, "worktree", "add", "-q", "-b", "a", featA); git(repo, "worktree", "add", "-q", "-b", "b", featB);
+  writeFileSync(join(featA, "src", "board.ts"), "v1 feature A\n"); git(featA, "add", "-A"); git(featA, "commit", "-qm", "A");
+  addRepoFacts(featA, [{ fact: "board.ts expose editItem (feature A)", source: "src/board.ts:3" }, { fact: "infra.ts : le listener avale le clic", source: "src/infra.ts:9" }], "A");
+  const stored = readRepoFacts(featA);
+  assert.equal(stored.length, 2);
+  assert.match(stored[0].base, /^[0-9a-f]{7,40}$/);
+  const names = (slot) => liveFacts(readRepoFacts(slot), slot).map((f) => f.fact);
+  assert.deepEqual(names(featA), ["board.ts expose editItem (feature A)", "infra.ts : le listener avale le clic"]);
+  assert.deepEqual(names(featB), ["infra.ts : le listener avale le clic"]);
+  git(repo, "worktree", "add", "-q", "-b", "c", featC, "a");
+  assert.equal(names(featC).length, 2);
+  git(repo, "merge", "-q", "a");
+  assert.equal(names(repo).length, 2);
+  const legacy = [{ fact: "ancien fait sans base", source: "src/board.ts:1" }];
+  assert.equal(liveFacts(legacy, featB).length, 1);
+});
+
 test("facts-add merges worker facts by text, keeps the newest, and brief-fill injects facts.json", async () => {
   const { mergeFacts, factsOfOutput, MAX_FACTS } = await import("../facts-add.mjs");
   const a = mergeFacts([], [{ fact: "f1", source: "a" }, "f2"], "US1");

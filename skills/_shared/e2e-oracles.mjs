@@ -168,3 +168,18 @@ export async function clippedOut(page, selector, { tolerance = 0.5, limit = 20 }
     return out.slice(0, limit);
   }, { selector, tolerance, limit });
 }
+
+// sizeStable(page, selector, act, { tolerance }) : la boite de `selector` ne doit pas changer de taille quand `act` ajoute
+// un etat (compteur, badge, message). Une barre de largeur fixe qui grandit au moment ou un texte y apparait decale tout
+// ce qui l entoure a chaque selection. Banc N21 : le compteur « 12 elements selectionnes » faisait passer la barre
+// d outils de 50 a 82 px (+64 %) a chaque selection ; ni jsdom ni les revues ne mesurent une largeur.
+// Rend { before, after, grew } ; grew vrai si la largeur ou la hauteur depasse la tolerance (px).
+export async function sizeStable(page, selector, act, { tolerance = 2 } = {}) {
+  const box = async () => page.evaluate((sel) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; }, selector);
+  const before = await box();
+  await act();
+  await page.waitForTimeout(250);
+  const after = await box();
+  const grew = !!before && !!after && (Math.abs(after.w - before.w) > tolerance || Math.abs(after.h - before.h) > tolerance);
+  return { before, after, grew };
+}
