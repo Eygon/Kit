@@ -256,7 +256,12 @@ tasks.md (fixPrompt dans CHAQUE groupe ; root = SLOT_CWD de l US), et
 Sonnet sur une petite US sans ecart declare, ~2 min contre ~4 pour Opus, meme
 score sur le banc piege du 10 octobre) ; `reviewTier: "opus"` si recon.md
 porte une ligne `- PARTAGE :` (fichier partage entre US : c est la que Sonnet
-a rate un ecart de conception). Le moteur
+a rate un ecart de conception).
+Registre d agents absent (session cloud neuve, Cursor) : ajoute aux args
+`agentBodies` = sortie de `node "<SK_SHARED>/agent-bodies.mjs"` (JSON des corps de sk-worker et
+sk-reviewer) ; le moteur lance alors un general-purpose avec ce corps en tete au lieu de
+`agentType` (meme resultat, aucune installation). Sans cet argument, `agentType` est passe tel quel.
+Le moteur
 transmet les faits d un worker aux workers et fix suivants du MEME root dans
 le run : les briefs etant remplis avant, sans lui US2 ignorait ce que US1
 venait d etablir. Boucle : worker -> revue. PASS /

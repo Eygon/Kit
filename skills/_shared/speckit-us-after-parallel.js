@@ -46,6 +46,17 @@ function collidingRoots(lanesOrGroups) {
 }
 
 // ---- BEGIN shared-review-fix (keep byte-identical in speckit-us-loop.js and speckit-us-after-parallel.js) ----
+// Agents du kit absents du registre (session cloud sans ~/.claude/agents, Cursor) : args.agentBodies =
+// { 'sk-worker': <corps de agents/sk-worker.md>, 'sk-reviewer': ... } (agent-bodies.mjs). Le moteur lance alors
+// un general-purpose avec ce corps en tete ; sans agentBodies, agentType est passe tel quel.
+function ag(prompt, opts) {
+  const bodies = cfg && cfg.agentBodies
+  const body = bodies && opts && opts.agentType ? bodies[opts.agentType] : null
+  if (!body) return agent(prompt, opts)
+  const o = Object.assign({}, opts, { agentType: 'general-purpose' })
+  return agent(String(body) + '\n\nOutils interdits (non disponibles pour toi) : Agent, AskUserQuestion, Workflow.\n---\n' + prompt, o)
+}
+
 const US_SCHEMA = {
   type: 'object',
   required: ['stopped'],
@@ -188,7 +199,7 @@ function reviewModelOf(label, handoff, usOut) {
 }
 
 async function reviewOnce(g, id, label, handoff, usOut) {
-  return agent(g.reviewPrompt + (handoff || ''), {
+  return ag(g.reviewPrompt + (handoff || ''), {
     label: label + ':' + id,
     phase: 'Review',
     model: reviewModelOf(label, handoff, usOut),
@@ -220,7 +231,7 @@ function lensOn() { return !cfg || cfg.reviewLens !== false }
 const LENS_MODE = (cfg && cfg.reviewLens === 'full') ? 'full' : 'fail-only'
 async function lensOnce(g, id, handoff) {
   if (!lensOn()) return []
-  const out = await agent(g.reviewPrompt + (handoff || '') + LENS_BRIEF, {
+  const out = await ag(g.reviewPrompt + (handoff || '') + LENS_BRIEF, {
     label: 'lens:' + id,
     phase: 'Review',
     model: 'haiku',
@@ -345,7 +356,7 @@ async function runUs(g) {
   }
 
   log('US ' + id + ' worker ' + WORKER_MODEL + ' start')
-  const usOut = await agent(prompt, {
+  const usOut = await ag(prompt, {
     label: 'us:' + id,
     phase: 'US',
     model: WORKER_MODEL,
@@ -437,7 +448,7 @@ async function runUs(g) {
   const fixBrief = fixPrompt + FIX_GATE_BUDGET + handoffOf(usOut, first.out) + '\n\nReprise apres review FAIL:\n' + formatNotes(row.issues)
   const fixOnce = function (label) {
     // Fix : meme modele que le worker (banc : Haiku et Sonnet ont fait le meme STOP perimetre puis le meme correctif).
-    return agent(fixBrief, { label: label + ':' + id, phase: 'US', model: WORKER_MODEL, effort: WORKER_EFFORT, agentType: 'sk-worker', schema: US_SCHEMA })
+    return ag(fixBrief, { label: label + ':' + id, phase: 'US', model: WORKER_MODEL, effort: WORKER_EFFORT, agentType: 'sk-worker', schema: US_SCHEMA })
   }
   // A fix agent that dies (null) is retried once, like a review; a real STOP is not.
   let fixOut = await fixOnce('fix')

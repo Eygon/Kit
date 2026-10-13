@@ -204,3 +204,29 @@ test("loop: workerModel haiku runs worker and fix on Haiku at high effort; auto-
   assert.equal(def["us:US1"], "sonnet/medium");
   assert.equal(def["review:US1"], "opus/medium");
 });
+
+test("loop: sans registre d agents, args.agentBodies remplace agentType par general-purpose + le corps de l agent en tete", async () => {
+  const seen = [];
+  const body = load("speckit-us-loop.js");
+  const fn = new AsyncFunction("agent", "log", "args", "parallel", body);
+  const fanOut = (fns) => Promise.all(fns.map((f) => f()));
+  const agent = async (prompt, opts) => {
+    seen.push({ label: opts.label, type: opts.agentType, head: prompt.slice(0, 20), model: opts.model });
+    if (opts.label.startsWith("us:") || opts.label.startsWith("fix:")) return done;
+    if (opts.label.startsWith("lens:")) return { issues: [] };
+    return { verdict: "PASS", issues: [] };
+  };
+  const bodies = { "sk-worker": "CORPS-WORKER", "sk-reviewer": "CORPS-REVIEWER" };
+  const r = await fn(agent, () => {}, { agentBodies: bodies, groups: [g("US1")] }, fanOut);
+  assert.equal(r.ok, true);
+  assert.ok(seen.length >= 3);
+  for (const x of seen) {
+    assert.equal(x.type, "general-purpose");
+    assert.match(x.head, /^CORPS-(WORKER|REVIEWER)/);
+  }
+  assert.equal(seen.find((x) => x.label === "us:US1").head.startsWith("CORPS-WORKER"), true);
+  assert.equal(seen.find((x) => x.label === "review:US1").head.startsWith("CORPS-REVIEWER"), true);
+  seen.length = 0;
+  await fn(agent, () => {}, { groups: [g("US1")] }, fanOut);
+  for (const x of seen) assert.match(x.type, /^sk-(worker|reviewer)$/);
+});
