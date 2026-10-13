@@ -21,6 +21,7 @@ const browser = await chromium.launch(); let cur;
 async function open({ stubCreate } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "fr-FR" });
   await ctx.addInitScript((css) => { document.addEventListener("DOMContentLoaded", () => { const s = document.createElement("style"); s.textContent = css; document.head.prepend(s); }); }, TW);
+  await ctx.addInitScript(() => { window.__toasts = []; window.addEventListener("septeo-toast", (e) => window.__toasts.push(e.detail)); });
   const page = await ctx.newPage(); const st = { posts: 0, stub: stubCreate };
   await page.route(new RegExp(`/boards/${BID}/items$`), async (r) => { if (r.request().method() === "POST") { st.posts++; if (st.stub) return st.stub(r); } return r.continue(); });
   const w = watch(page, { api: "http://localhost:5080", expectedConsole: [/negotiation/i, /signalr/i, /WebSocket/i, /Failed to load resource/i] });
@@ -28,9 +29,11 @@ async function open({ stubCreate } = {}) {
   await page.locator('[data-testid^="canvas-item-"]').first().waitFor({ timeout: 10000 }); await page.waitForTimeout(1200);
   return { ctx, page, w, st };
 }
+const reopen = async (p, w = 1200) => { await p.goto("http://localhost:5173/"); await p.getByText(NAME, { exact: false }).first().click(); await p.locator('[data-testid^="canvas-item-"]').first().waitFor({ timeout: 10000 }); await p.waitForTimeout(w); };
 const chk = (id, ok, d, allow5xx) => { const t = cur.w.take(); const bad = (!allow5xx && t.fiveXX.length) || t.console.length; log(id, ok && !bad, d + (bad ? " | 5xx/console: " + JSON.stringify([t.fiveXX, t.console]).slice(0, 220) : "")); };
 const cardOf = (p, text) => p.locator('[data-testid^="canvas-item-"]').filter({ hasText: text }).first();
 const delItem = async (p, text) => { await cardOf(p, text).click({ position: { x: 8, y: 8 } }); await p.waitForTimeout(150); await p.evaluate(() => document.activeElement && document.activeElement !== document.body && document.activeElement.blur()); await p.keyboard.press("Delete"); await p.waitForTimeout(500); };
+const toasts = (p) => p.evaluate(() => window.__toasts);
 const TOAST = (p) => p.getByText(/Élément supprimé/);
 const UNDO = (p) => p.getByRole("button", { name: /Annuler la suppression/ });
 const onCanvas = async (p, text) => (await p.locator('[data-testid^="canvas-item-"]').filter({ hasText: text }).count());
@@ -45,12 +48,14 @@ const before = { x: 120, y: 140, w: 170, h: 100, color: "#bbf7d0", type: "Sticky
 await UNDO(page).first().click(); await page.waitForTimeout(1000);
 const re = await byContent("Alpha"); const r0 = re[0];
 chk("US1.annuler", re.length === 1 && r0.x === before.x && r0.y === before.y && r0.width === before.w && r0.height === before.h && r0.color === before.color && r0.type === before.type, `recree : ${JSON.stringify(r0 && { x: r0.x, y: r0.y, w: r0.width, h: r0.height, c: r0.color, t: r0.type, id: r0.id })} (ancien id ${A1.id}) ; sur le canevas=${await onCanvas(page, "Alpha")}`);
-chk("US1.toast-ferme-succes", (await UNDO(page).count()) === 0 && (await page.getByText(/Élément restauré/).count()) >= 1, `bouton ferme=${(await UNDO(page).count()) === 0} ; message de reussite=${await page.getByText(/Élément restauré/).count()}`);
+const tsOk = (await toasts(page)).filter((t) => /restaur/i.test(t.message || ""));
+chk("US1.toast-ferme-succes", (await UNDO(page).count()) === 0 && tsOk.length === 1 && tsOk[0].kind === "success" && /commentaires et connecteurs/.test(tsOk[0].message), `bouton ferme=${(await UNDO(page).count()) === 0} ; toast de reussite=${JSON.stringify(tsOk).slice(0, 160)}`);
 await page.waitForTimeout(5500);
 // 3. expiration 6 s
 await delItem(page, "Bravo"); const t0 = Date.now();
 await page.waitForTimeout(4800); const still = (await UNDO(page).count()) === 1;
 await page.waitForTimeout(2200); const expired = (await UNDO(page).count()) === 0;
+if ((await byContent("Bravo")).length === 0) await mk({ x: 380, y: 140, content: "Bravo" });
 chk("US1.expiration-6s", still && expired, `a ~5 s : toast present=${still} ; a ~7 s : disparu=${expired} (${Date.now() - t0} ms)`);
 // 4. plusieurs suppressions : un toast chacune, chacune n annule que la sienne
 await delItem(page, "Charlie"); await delItem(page, "Delta"); await delItem(page, "Echo");
@@ -69,7 +74,7 @@ chk("US1.double-clic", all.every((x) => x <= 1), `apres double clic : Charlie/De
 await page.waitForTimeout(6500);
 // 6. Ctrl+Z restaure la derniere suppression et ferme son toast
 for (const c of ["Charlie", "Delta", "Echo"]) if ((await byContent(c)).length === 0) await mk({ content: c });
-await page.reload(); await page.locator('[data-testid^="canvas-item-"]').first().waitFor(); await page.waitForTimeout(1200);
+await reopen(page);
 await delItem(page, "Echo"); const toastBefore = await UNDO(page).count();
 await page.evaluate(() => document.activeElement && document.activeElement.blur()); await page.keyboard.press("Control+z"); await page.waitForTimeout(1000);
 chk("US2.ctrl-z", (await byContent("Echo")).length === 1 && toastBefore === 1 && (await UNDO(page).count()) === 0, `Ctrl+Z : Echo restaure=${(await byContent("Echo")).length} ; toast ferme=${(await UNDO(page).count()) === 0}`);
@@ -80,7 +85,7 @@ const nE = (await byContent("Echo")).length;
 chk("US2.pas-de-double-recreation", nE <= 1, `Annuler (toast) puis Ctrl+Z : Echo = ${nE} (jamais 2)`);
 // 8. focus dans un champ : Ctrl+Z ne restaure pas
 for (const c of ["Echo"]) if ((await byContent(c)).length === 0) await mk({ content: c });
-await page.reload(); await page.locator('[data-testid^="canvas-item-"]').first().waitFor(); await page.waitForTimeout(1200);
+await reopen(page);
 await delItem(page, "Echo");
 await cardOf(page, "Bravo").dblclick({ position: { x: 20, y: 40 } }); await page.getByText("Modifier le contenu").first().waitFor({ timeout: 5000 });
 await page.getByRole("textbox").first().click(); await page.keyboard.press("Control+z"); await page.waitForTimeout(900);
@@ -95,11 +100,10 @@ await cur.ctx.close();
 for (const [code, label] of [[500, "500"], [403, "403"], [404, "404"]]) {
   if ((await byContent("Delta")).length === 0) await mk({ content: "Delta" });
   cur = await open({ stubCreate: (r) => r.fulfill({ status: code, contentType: "application/json", body: JSON.stringify({ title: "x" }) }) }); page = cur.page;
-  await delItem(page, "Delta"); cur.w.take();
+  await delItem(page, "Delta"); cur.w.take(); await page.evaluate(() => { window.__toasts = []; });
   await UNDO(page).first().click(); await page.waitForTimeout(1300);
-  const errs = await page.locator('[role="alert"], [role="status"], [class*="toast" i]').filter({ hasText: /./ }).allInnerTexts();
-  const errTexts = errs.map((t) => t.replace(/\s+/g, " ").trim()).filter((t) => t && !/Élément supprimé/.test(t));
-  chk(`US1.echec-${label}`, (await byContent("Delta")).length === 0 && errTexts.length >= 1 && new Set(errTexts).size === 1, `recreation en ${label} : Delta toujours supprime=${(await byContent("Delta")).length === 0} ; messages=${JSON.stringify(errTexts)} ; POST=${cur.st.posts}`, true);
+  const errTexts = (await toasts(page)).filter((t) => t.kind === "error").map((t) => t.message);
+  chk(`US1.echec-${label}`, (await byContent("Delta")).length === 0 && errTexts.length === 1, `recreation en ${label} : Delta toujours supprime=${(await byContent("Delta")).length === 0} ; messages=${JSON.stringify(errTexts)} ; POST=${cur.st.posts}`, true);
   await cur.ctx.close();
 }
 // 11. crayon actif : cliquer sur Annuler ne trace pas
@@ -112,12 +116,20 @@ chk("H4.crayon", n1 === n0 + 1, `crayon actif : elements ${n0} -> ${n1} (+1 = la
 // 12. geometrie et lisibilite avec 8 toasts
 await page.getByRole("button", { name: /^Sélectionner/ }).first().click().catch(() => {});
 for (let i = 0; i < 8; i++) await mk({ x: 60 + (i % 4) * 190, y: 560 + Math.floor(i / 4) * 110, content: `Z${i}`, width: 120, height: 70 });
-await page.reload(); await page.locator('[data-testid^="canvas-item-"]').first().waitFor(); await page.waitForTimeout(1500);
+await reopen(page, 1500);
 for (let i = 0; i < 8; i++) await delItem(page, `Z${i}`);
 const unr = await unreachable(page); const unrd = await unreadable(page); const clp = await clippedOut(page, "[role=status] *, [aria-live] *");
 const box = await UNDO(page).last().boundingBox();
 chk("GEO.8-toasts", unr.length === 0 && clp.length === 0 && box && box.y > 0, `8 toasts : inatteignables=${unr.length} coupes=${JSON.stringify(clp).slice(0, 120)} ; dernier bouton y=${box && Math.round(box.y)} ; illisibles=${unrd.length}`);
 chk("GEO.contraste", unrd.length === 0, `contraste : ${JSON.stringify(unrd).slice(0, 200)}`);
+// 13. suppression faite par un autre canal (API) : pas de toast ; quitter le tableau efface les toasts
+cur = await open(); page = cur.page; await page.evaluate(() => { window.__toasts = []; });
+const ext = (await byContent("Z7"))[0]; const nUndo0 = await UNDO(page).count();
+await api(1, "DELETE", `/boards/${BID}/items/${ext.id}`); await page.waitForTimeout(1500);
+chk("H5.suppression-externe", (await UNDO(page).count()) === nUndo0 && (await TOAST(page).count()) === 0, `suppression par l API : boutons Annuler ${nUndo0} -> ${await UNDO(page).count()} (aucun toast)`);
+await delItem(page, "Z6"); const had = await UNDO(page).count();
+await page.goBack().catch(() => {}); await page.goto("http://localhost:5173/"); await page.getByText(NAME, { exact: false }).first().click(); await page.locator('[data-testid^="canvas-item-"]').first().waitFor({ timeout: 10000 }); await page.waitForTimeout(800);
+chk("H6.quitter-efface", had === 1 && (await UNDO(page).count()) === 0, `avant de quitter ${had} toast ; apres retour ${await UNDO(page).count()}`);
 await cur.ctx.close(); await browser.close();
 writeFileSync(E + `results-N19-${RUN}.json`, JSON.stringify(results, null, 1));
 console.log(`${results.filter((r) => r.ok).length}/${results.length}`);
