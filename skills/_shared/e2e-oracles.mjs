@@ -113,3 +113,32 @@ export async function overflowing(page, { tolerance = 2, limit = 20, expected = 
   }, tolerance);
   return found.filter((f) => !expected.some((rx) => rx.test(f.text))).slice(0, limit);
 }
+
+// Atteignabilite : un bouton, lien ou champ qui est HORS de l ecran sans qu aucun ancetre ne puisse defiler
+// jusqu a lui (ni la page : un ancetre `position: fixed` ne defile pas avec elle) est inatteignable pour
+// l utilisateur. Banc N17 : un panneau lateral (tiroir de la lib, fixe, overflow visible) de 20 entrees
+// poussait « Voir plus » a 1858 px sur un ecran de 900 : ni test, ni revue, ni loupe ne le voient.
+// Appelle-le avec le panneau ouvert et ses donnees maximales chargees.
+export async function unreachable(page, { limit = 20, expected = [] } = {}) {
+  const found = await page.evaluate(() => {
+    const out = [];
+    const vh = window.innerHeight, vw = document.documentElement.clientWidth;
+    const canScroll = (el) => { const s = getComputedStyle(el); return /(auto|scroll)/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 1; };
+    for (const el of document.querySelectorAll("button, a[href], input, select, textarea, [role=button]")) {
+      const s = getComputedStyle(el);
+      if (s.visibility === "hidden" || s.display === "none" || el.disabled) continue;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      if (r.top >= 0 && r.bottom <= vh + 1 && r.left >= 0 && r.right <= vw + 1) continue;
+      let reachable = false, fixed = false;
+      for (let a = el.parentElement; a; a = a.parentElement) {
+        if (getComputedStyle(a).position === "fixed") fixed = true;
+        if (canScroll(a) && a !== document.documentElement && a !== document.body) { reachable = true; break; }
+      }
+      if (!reachable && !fixed && document.documentElement.scrollHeight > vh) reachable = true;
+      if (!reachable) out.push({ text: (el.innerText || el.getAttribute("aria-label") || el.placeholder || el.tagName).trim().slice(0, 40), top: Math.round(r.top), bottom: Math.round(r.bottom), vh });
+    }
+    return out;
+  });
+  return found.filter((f) => !expected.some((rx) => rx.test(f.text))).slice(0, limit);
+}

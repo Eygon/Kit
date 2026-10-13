@@ -149,6 +149,15 @@ extreme permise par la spec (nom de 100 caracteres SANS espace, mot tres long, 1
 seul le navigateur le voit. Banc N3 (renommer un tableau) : un nom de 105 « L » sortait de sa carte, couvrait les
 cartes voisines et ecrasait le crayon a 0 px de large (le defaut existait deja sans le crayon).
 
+## Oracle d atteignabilite (`unreachable`, e2e-oracles.mjs)
+
+Sur chaque panneau, tiroir ou fenetre qui liste des donnees, charge-le avec le MAXIMUM que la spec permet (page pleine
+de 20 entrees, 50 commentaires) puis `unreachable(page)` : rend les boutons, liens et champs hors de l ecran que
+l utilisateur ne peut PAS atteindre (aucun ancetre ne defile, ou ancetre `position: fixed`). Banc N17 : le tiroir
+de la lib est fixe et n a pas de defilement : 20 entrees poussaient « Voir plus » a 1858 px pour un ecran de 900,
+jamais atteignable. jsdom ne mesure rien : seul le navigateur le voit. Corrige en donnant au contenu un conteneur
+defilant a hauteur bornee (`overflow-y-auto`, `max-h-[calc(100vh-...)]` ou `min-h-0` dans un flex pleine hauteur).
+
 ## Oracles de texte : ce que la spec impose, rien de plus
 
 Un oracle sur un libelle visible (aide, bouton, toast) n exige un texte EXACT

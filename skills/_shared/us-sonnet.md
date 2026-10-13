@@ -324,6 +324,10 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
   icone). Sans cela un nom de 100 caracteres sans espace deborde et ecrase le bouton
   a 0 px (banc N3 puis N4, meme carte : ni tests, ni revue, ni loupe ne le voient ; seul
   le navigateur reel).
+- panneau, tiroir ou fenetre de la lib qui liste des donnees (page de 20 entrees, commentaires) : le tiroir de la lib
+  est `position: fixed` SANS defilement. Mets la liste et ses boutons (« Voir plus ») dans un conteneur defilant a hauteur
+  bornee (`overflow-y-auto` + `max-h-[calc(100vh-<en-tete>)]`, ou flex pleine hauteur avec `min-h-0`) : sinon le bas du
+  panneau est hors ecran et inatteignable (banc N17 : « Voir plus » a 1858 px pour un ecran de 900, vu seulement au navigateur).
 - clic qui declenche une demande : la garde « deja en cours » est SYNCHRONE (`useRef`
   pose dans le handler), jamais `isPending` lu au rendu : deux clics dans le meme tick
   (dblclick) passent tous les deux (banc N4 : 2 demandes au lieu d une).
