@@ -100,12 +100,15 @@ export async function overflowing(page, { tolerance = 2, limit = 20, expected = 
       const range = document.createRange(); range.selectNodeContents(n);
       const tr = range.getBoundingClientRect();
       if (!tr.width || !tr.height) continue;
-      if (tr.right > vw + tol) out.push({ text: t.slice(0, 40), kind: "hors ecran", by: Math.round(tr.right - vw) });
+      // Texte volontairement coupe (`truncate`, `overflow: hidden` / `clip` sur un ancetre qui le borne) : pas un debordement
+      // visible. Banc N22 : une description de 200 caracteres tronquee avec points de suspension sortait en « hors ecran ».
+      const clippedByAncestor = () => { for (let a = el; a && a !== document.body; a = a.parentElement) { const cs = getComputedStyle(a); if (/^(hidden|clip)$/.test(cs.overflowX)) { const ar = a.getBoundingClientRect(); if (ar.right <= vw + tol && ar.width) return true; } } return false; };
+      if (tr.right > vw + tol && !clippedByAncestor()) out.push({ text: t.slice(0, 40), kind: "hors ecran", by: Math.round(tr.right - vw) });
       for (let b = el; b && b !== document.body; b = b.parentElement) {
         if (!hasBox(b)) continue;
         const br = b.getBoundingClientRect();
         if (!br.width) continue;
-        if (tr.right > br.right + tol || tr.left < br.left - tol) { out.push({ text: t.slice(0, 40), kind: "sort de sa boite", by: Math.round(Math.max(tr.right - br.right, br.left - tr.left)) }); }
+        if ((tr.right > br.right + tol || tr.left < br.left - tol) && !clippedByAncestor()) { out.push({ text: t.slice(0, 40), kind: "sort de sa boite", by: Math.round(Math.max(tr.right - br.right, br.left - tr.left)) }); }
         break;
       }
     }

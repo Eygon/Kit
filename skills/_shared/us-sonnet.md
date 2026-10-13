@@ -319,6 +319,14 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
   vert peut casser le typecheck. Ne l annonce vert qu apres
   l avoir lance.
 <!-- if:front -->
+- liste dans une fenetre / un tiroir de largeur « fit-content » (Modal, Drawer de la lib) : `truncate` (nowrap) ne
+  tronque RIEN si le conteneur n a pas de largeur bornee, il l ELARGIT a la taille du texte (banc N22 : une description de
+  200 caracteres sans espace faisait une fenetre de 1909 px sur un ecran de 1440). Donne a la liste une largeur
+  (`w-[36rem] max-w-[calc(100vw-6rem)]`, sans virgule dans la classe) ET une hauteur bornee defilante (`max-h-[60vh]
+  overflow-y-auto`) ; teste les deux avec 20 lignes dont un nom et une description sans espace ;
+- requete lue avec `retry` global (`queryClient` : `retry: 1`) ET un toast d erreur emis par le service : un seul echec
+  affiche DEUX messages ; mets `retry: false` sur cette requete (le bouton Reessayer existe) et teste avec un client
+  `retry: 1`, pas `retry: false` (banc N8 puis N22 : 2 toasts) ;
 - texte d etat ajoute dans une barre ou un panneau de taille fixe (compteur, badge, message) : le conteneur ne doit
   PAS changer de taille quand le texte apparait (`w-min min-w-full` ou `min-w-fit` sur le texte fait grandir la barre :
   banc N21, 50 -> 82 px). Pose le texte hors du flux (`absolute top-full whitespace-nowrap`) ou reserve sa place ; le
