@@ -319,6 +319,10 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
   vert peut casser le typecheck. Ne l annonce vert qu apres
   l avoir lance.
 <!-- if:front -->
+- pastille / badge / infobulle posee AU-DESSUS ou A COTE d un element (`translateY(-100%)`) : un element colle au bord
+  de la zone visible (conteneur `overflow-hidden`) la coupe et elle devient invisible ; la couche recoit la limite
+  visible (ex. `visibleTop`) et retourne la pastille a l INTERIEUR du bord quand elle n a pas la place (test : element
+  au bord haut, zoom 0.5 et 1) ;
 - texte libre (nom, titre) affiche dans une carte ou une ligne flex : `min-w-0` sur le
   conteneur flex, `break-words` sur le texte, `shrink-0` sur l action a cote (bouton,
   icone). Sans cela un nom de 100 caracteres sans espace deborde et ecrase le bouton

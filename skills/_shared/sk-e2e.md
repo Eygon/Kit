@@ -158,6 +158,14 @@ de la lib est fixe et n a pas de defilement : 20 entrees poussaient « Voir plus
 jamais atteignable. jsdom ne mesure rien : seul le navigateur le voit. Corrige en donnant au contenu un conteneur
 defilant a hauteur bornee (`overflow-y-auto`, `max-h-[calc(100vh-...)]` ou `min-h-0` dans un flex pleine hauteur).
 
+## Oracle de coupe (`clippedOut`, e2e-oracles.mjs)
+
+Tout badge, pastille ou infobulle POSE AU-DESSUS ou A COTE d un element (`translateY(-100%)`, `left: 100%`) : joue
+le cas limite, l element colle au bord haut (puis bas, gauche, droit) de la zone visible, badge affiche, puis
+`clippedOut(page, '[data-testid^="editing-badge-"]')` : rend ceux dont le rectangle sort du conteneur coupant
+(`overflow: hidden`). Banc N18 : le badge d un element a y=0 etait a 63-81 px pour un conteneur qui commence a 81 :
+jamais visible, sans erreur. Corrige en retournant le badge a l interieur du bord quand il n a pas la place au-dessus.
+
 ## Oracles de texte : ce que la spec impose, rien de plus
 
 Un oracle sur un libelle visible (aide, bouton, toast) n exige un texte EXACT

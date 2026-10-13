@@ -142,3 +142,29 @@ export async function unreachable(page, { limit = 20, expected = [] } = {}) {
   });
   return found.filter((f) => !expected.some((rx) => rx.test(f.text))).slice(0, limit);
 }
+
+// clippedOut(page, selector) : elements dont le rectangle sort du conteneur qui les COUPE (un ancetre en
+// overflow hidden/auto/scroll). Un badge, une infobulle ou une pastille posee AU-DESSUS ou A COTE d un element
+// (translateY(-100%), left: 100%) disparait quand l element est au bord de la zone visible : invisible, sans erreur.
+// Banc N18 : le badge « Alice edite… » d un element a y=0 etait 18 px au-dessus du conteneur coupant (y=63-81 pour un
+// conteneur a 81) : jamais affiche, ni tests (jsdom), ni revues, ni loupe ne le voient. Appelle-le avec le cas limite
+// (element colle au bord haut, bas, gauche, droit de la zone visible) et le badge affiche.
+export async function clippedOut(page, selector, { tolerance = 0.5, limit = 20 } = {}) {
+  return page.evaluate(({ selector, tolerance, limit }) => {
+    const out = [];
+    for (const el of document.querySelectorAll(selector)) {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+        const s = getComputedStyle(a);
+        if (s.overflow === "visible" && s.overflowX === "visible" && s.overflowY === "visible") continue;
+        const c = a.getBoundingClientRect();
+        if (r.top < c.top - tolerance || r.bottom > c.bottom + tolerance || r.left < c.left - tolerance || r.right > c.right + tolerance) {
+          out.push({ text: (el.innerText || el.getAttribute("data-testid") || el.tagName).trim().slice(0, 40), rect: [r.left, r.top, r.right, r.bottom].map(Math.round), clipper: [c.left, c.top, c.right, c.bottom].map(Math.round) });
+          break;
+        }
+      }
+    }
+    return out.slice(0, limit);
+  }, { selector, tolerance, limit });
+}
