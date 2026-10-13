@@ -1,0 +1,183 @@
+# Agent OS Standards Index (Mousse back, NestJS)
+
+# Injected standards are must. Select at most _meta.maxPerGroup per group via tags.
+# Unselected standards are out of scope for that run. Skip this _meta key when matching.
+# _meta.alwaysInject is exempt from the cap: those standards apply to every TypeScript file
+# written in src/, so they are injected on every back US and never compete for a slot.
+
+_meta:
+  maxPerGroup: 5
+  injectedAreMust: true
+  alwaysInject:
+    - global/final-readonly-by-default
+    - global/no-hardcoded-values
+    - architecture/module-structure
+    - architecture/service-repository-responsibilities
+    - no-comments
+    - naming-language
+    - file-placement
+
+constants:
+  description: "SCREAMING_SNAKE_CASE exports in <scope>.constants.ts files at the narrowest scope, unit suffixes (_MS, _BYTES, _PERCENT, _MAX_LENGTH), readonly T[] / as const / Readonly<Record>, Symbol injection tokens, and a required JSDoc only for an external/legacy ID"
+  tags: [typing, naming]
+
+enums:
+  description: "One enum per <name>.enum.ts file in the module's enums/ folder (src/common/ when shared), mandatory Enum suffix, SCREAMING_SNAKE_CASE members, string values in lower camelCase for the JSON contract, stored as simple-enum and validated with @IsEnum; guards and Record maps co-located"
+  tags: [typing]
+
+file-placement:
+  description: "Place every file at the narrowest scope that consumes it — inside the feature module (dtos/, entities/, mappers/, enums/, <name>.constants.ts) by default; promote to src/common/ only when a second module needs it; config in src/config/, database plumbing in src/database/"
+  tags: [structure]
+
+http-status:
+  description: "Use Nest's HttpStatus enum (from @nestjs/common) for every status — @HttpCode, exceptions, tests, filters — never a raw numeric literal"
+  tags: [api]
+
+naming-language:
+  description: "English-only for every identifier (files, folders, classes, functions, variables, DTO fields, table and column names, enum members, test names); French or other languages only as verbatim data — seed values, user-facing content, external contract values"
+  tags: [naming]
+
+no-comments:
+  description: "Production code carries no explanatory comments — the name, the type, a constant or an extracted function says it instead; the only survivors are machine-read directives (eslint-disable-next-line, @ts-expect-error) and the JSDoc that constants requires for an external ID"
+  tags: [naming, structure]
+
+no-dead-files:
+  description: "A file (or folder) left with nothing used after a refactor is deleted with its mirror test, not kept as a placeholder — grep imports, run typecheck and the tests before deleting; no empty module sub-folders \"for later\""
+  tags: [structure]
+
+architecture:
+  dependency-injection:
+    description: "Providers are @Injectable classes listed explicitly in their module's providers (no auto-registration by suffix); constructor injection with private readonly; a module exports only its service; non-class values use a Symbol token + @Inject"
+    tags: [structure]
+  module-structure:
+    description: "One Nest module per feature under src/modules/<name>/ with controller / service / repository / module files plus dtos/, entities/, mappers/, enums/ — the NestJS mirror of the Api / Business / DAL layers; no base classes, no I-interfaces"
+    tags: [structure, naming]
+  service-repository-responsibilities:
+    description: "Business logic lives in the service; the repository only reads/writes through TypeORM — the one piece of logic it owns is building the query (find options / QueryBuilder) so SQLite does the filtering and ordering"
+    tags: [structure, data]
+
+authentication:
+  header-identity:
+    description: "Identity is the X-User-Id header (positive integer, demo users 1-3), checked by the global CurrentUserGuard before anything else; missing / non-numeric / <= 0 → 401 with the canonical message. No JWT, no session in this repo."
+    tags: [security, api]
+  public-routes:
+    description: "Every route is protected by default; a route or controller opts out with @Public() — reserved for health and future truly anonymous endpoints, never to work around a failing test"
+    tags: [security, api]
+
+authorization:
+  resource-access:
+    description: "There is no role/policy framework — authorization is a business rule in the service, checked AFTER existence (404 before 403) and BEFORE conflicts (409), throwing ForbiddenException with a sentence message"
+    tags: [security, api]
+
+configuration:
+  secrets:
+    description: "A secret is a configuration value read from an environment variable through AppConfig — never hardcoded, never committed (.env is gitignored), never logged, never returned in an error body"
+    tags: [config, security]
+  typed-config:
+    description: "All configuration is read once from process.env by loadAppConfig into a readonly AppConfig, provided under the APP_CONFIG Symbol by the global AppConfigModule and injected with @Inject(APP_CONFIG); optional keys fall back to *_DEFAULT constants, invalid values fail at boot"
+    tags: [config]
+
+controllers:
+  binding-conventions:
+    description: "Bind with explicit decorators — @Body() dto: CreateXDto, @Query() query: XQueryDto, @Param(\"id\", ParseIntPipe) id: number, @CurrentUserId() userId: number; body and query types are validated classes, never inline object types or any"
+    tags: [api, validation]
+  controller-patterns:
+    description: "Controllers are thin — route + DTO binding + one service call + explicit @HttpCode; the service is constructor-injected; no business rule, no repository, no try/catch, no manual response object"
+    tags: [api, structure]
+  current-user-resolution:
+    description: "A handler gets the caller with @CurrentUserId() userId: number (set by CurrentUserGuard) and passes it to the service as first argument — never from body, query or headers; the user id is never a DTO field"
+    tags: [api, security]
+  http-status-codes:
+    description: "Every handler declares @HttpCode(HttpStatus.X) — GET/PATCH/PUT 200, POST create 201, DELETE 204 (no body); errors 400/401/403/404/409 come from exceptions in the fixed order 401 → 400 → 404 → 403 → 409; an empty list is 200 [], a missing resource is 404"
+    tags: [api, errors]
+
+data-access:
+  database-module:
+    description: "One TypeORM connection, configured once in DatabaseModule (forRootAsync + buildDatabaseOptions) on better-sqlite3 — file data/mousse.db, \":memory:\" in tests, autoLoadEntities, synchronize as schema management; no migrations folder, no hand-written DDL"
+    tags: [data, config]
+  entities:
+    description: "TypeORM entities are decorated classes in entities/<name>.entity.ts — @Entity({ name }) with a plural snake_case table, explicit column types, lengths from constants, nullable columns typed T | null, enums as simple-enum; registered with TypeOrmModule.forFeature in the owning module only"
+    tags: [data, typing]
+  query-input-safety:
+    description: "Client input never shapes SQL — sort keys go through a validated enum + static Record whitelist of FindOptionsOrder, QueryBuilder uses named parameters only, and LIKE searches escape \\ % _ with ESCAPE '\\'"
+    tags: [data, security]
+  repository-pattern:
+    description: "A repository is an @Injectable <Name>Repository wrapping @InjectRepository(Entity) Repository<Entity>; reads return DTOs (via the mapper), null when missing, or scalars — never entities; writes take plain entity data built by the mapper and return the DTO"
+    tags: [data]
+  seeding:
+    description: "Demo data is inserted by the idempotent DataSeeder on application bootstrap (only when the table is empty), from SEED_* constants with fixed ids in src/database/seed.constants.ts; tests rely on those constants, not on literals"
+    tags: [data, testing]
+  transactions:
+    description: "A write that touches several rows/tables atomically is ONE repository method running this.<repo>.manager.transaction(async (manager) => …) and using only that manager inside; services never see EntityManager / DataSource; checks (404/403/409) happen in the service before the call"
+    tags: [data]
+
+dto:
+  dto-shape:
+    description: "Read DTOs are readonly interfaces (<Name>Dto) with a fully concrete shape; write DTOs are classes (Create<Name>Dto, Update<Name>Dto, <Name>sQueryDto) with readonly decorated fields; one DTO per file in dtos/<kebab-name>.dto.ts; no entity, no id, no owner in a write DTO"
+    tags: [typing, api]
+  dto-validation:
+    description: "Every write-DTO field carries class-validator decorators (an undecorated field is rejected by forbidNonWhitelisted); required = no ?, type decorator + @IsNotEmpty for strings; optional = ? + @IsOptional first; limits from constants; nested objects @ValidateNested + @Type; the global ValidationPipe answers 400 { message } joined with \"; \""
+    tags: [validation, api]
+  optional-patch:
+    description: "PATCH DTOs make every field optional; undefined = not sent (keep), null = clear (only for nullable columns, via @IsOptional), a non-nullable field uses @ValidateIf(isSupplied) so null is rejected; an all-absent payload is a 400 from the service via hasAnySuppliedValue"
+    tags: [validation, api]
+
+error-handling:
+  error-response:
+    description: "Every error body is exactly { \"message\": string } — produced by the global @Catch() HttpExceptionFilter for HttpExceptions (array messages joined with \"; \"), unknown routes, malformed JSON, multer limits; unexpected errors are logged and answered 500 { \"message\": \"Internal error\" }"
+    tags: [errors, api]
+  exceptions:
+    description: "One choice — services throw Nest's built-in HttpExceptions (BadRequest/NotFound/Forbidden/Conflict/Unauthorized) with an English sentence; no custom exception classes, no try/catch in controllers, no error objects returned; anything else becomes a hidden 500"
+    tags: [errors, api]
+
+global:
+  final-readonly-by-default:
+    description: "TypeScript has no sealed/final — so every injected dependency is private readonly, every DTO/config field readonly, constants as const / readonly T[]; classes are never extended except a deliberate base, confirmed with the author"
+    tags: [typing, structure]
+  no-hardcoded-values:
+    description: "Never hardcode limits/thresholds/business values or messages reused elsewhere — use a named SCREAMING_SNAKE_CASE constant in the owning *.constants.ts file, or a parameter"
+    tags: [naming, typing]
+
+mappers:
+  manual-mappers:
+    description: "Entity <-> DTO mapping is hand-written pure exported arrow functions in mappers/<name>.mapper.ts — to<Name>Dto(entity) for reads, toNew<Name>(dto, ...) / to<Name>Changes(dto) for writes; no class-transformer instanceToPlain, no AutoMapper-like library, no mapping inline in a repository or service"
+    tags: [typing, data]
+  mapper-composition:
+    description: "A mapper delegates nested objects and collections to the child's own mapper — child === null ? null : toChildDto(child), items.map(toItemDto) — never re-inlines a child's fields"
+    tags: [typing]
+  mapper-null-defaults:
+    description: "The read mapper is where nullable columns become the DTO's concrete shape — description ?? \"\", list ?? [], enum fallback — so read DTOs have no optional or null field unless null is meaningful to the front"
+    tags: [typing]
+  mapper-preloaded-relations:
+    description: "Mappers read only relations the repository query loaded (relations / leftJoinAndSelect); no lazy relations, no eager: true, no query inside a mapper"
+    tags: [typing, data]
+
+middleware:
+  cross-cutting-providers:
+    description: "Cross-cutting HTTP behaviour is a Nest guard / pipe / interceptor / filter in src/common/<kind>/, @Injectable, singleton, registered globally in AppModule via APP_* tokens or locally with @UseGuards/@UseInterceptors — not raw Express middleware"
+    tags: [api, structure]
+  request-pipeline:
+    description: "Nest's fixed request order gives the API its check order — body parser → CurrentUserGuard (401) → ValidationPipe / ParseIntPipe (400) → controller → service (404 → 403 → 409) → HttpExceptionFilter ({ message }); global prefix api/v1 and CORS are set in configureApp"
+    tags: [api, errors]
+  request-state:
+    description: "Per-request data (the current user id) is written by the guard on the request object (AuthenticatedRequest.currentUserId) and read through @CurrentUserId(); never in a provider field, never Scope.REQUEST, never AsyncLocalStorage"
+    tags: [api, security]
+
+services:
+  post-commit-side-effects:
+    description: "A non-database side effect after a successful write (notification, external call, file cleanup) is best-effort — run after the repository call, try/catch + Logger.error, never fail or roll back the persisted write"
+    tags: [errors]
+  service-composition:
+    description: "A service uses its own repository plus other modules' exported services (import the module), never another module's repository or entity Repository; no circular module imports — extract a shared module instead"
+    tags: [structure]
+  service-validation:
+    description: "The service enforces what class-validator can't — no-op PATCH (400), existence (404), access (403), uniqueness/state (409) — in exactly that order, with guard clauses that throw Nest exceptions before any write"
+    tags: [validation, errors]
+
+testing:
+  api-tests:
+    description: "End-to-end HTTP tests use createTestApp() (AppModule + TEST_CONFIG in-memory SQLite + configureApp) and supertest against app.getHttpServer(); assert status with HttpStatus and the exact body; probe controllers declared in the test file cover cross-cutting behaviour"
+    tags: [testing, api]
+  testing-conventions:
+    description: "Vitest 5 (+ unplugin-swc for decorator metadata) with explicit imports; one test file per source file mirrored in src/__tests__/<path>.test.ts; Nest units built with Test.createTestingModule and { provide, useValue } vi.fn mocks; repositories and seeders run on in-memory SQLite; AAA, HttpStatus enum, no comments"
+    tags: [testing]

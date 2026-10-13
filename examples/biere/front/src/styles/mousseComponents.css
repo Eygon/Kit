@@ -1,0 +1,101 @@
+@layer components {
+  .button {
+    border: var(--mousse-border) solid var(--mousse-ink);
+    border-radius: var(--mousse-control-radius);
+    font-weight: 700;
+  }
+
+  .button--primary,
+  .button--secondary,
+  .button--tertiary,
+  .button--outline,
+  .button--danger,
+  .button--danger-soft {
+    box-shadow: var(--mousse-shadow);
+
+    &:active,
+    &[data-pressed="true"] {
+      transform: translate(2px, 2px);
+      box-shadow: var(--mousse-shadow-pressed);
+    }
+  }
+
+  .button--secondary {
+    --button-bg: var(--secondary);
+    --button-bg-hover: var(--secondary-hover);
+    --button-bg-pressed: var(--secondary-hover);
+    --button-fg: var(--secondary-foreground);
+  }
+
+  .button--tertiary {
+    --button-bg: var(--surface);
+    --button-bg-hover: var(--default);
+    --button-bg-pressed: var(--default);
+    --button-fg: var(--foreground);
+  }
+
+  .button--ghost {
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .card {
+    border: var(--mousse-border) solid var(--mousse-ink);
+    border-radius: var(--mousse-radius);
+  }
+
+  .card--transparent {
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .card--secondary {
+    background-color: var(--secondary);
+    color: var(--secondary-foreground);
+
+    .card__title,
+    .card__description {
+      color: var(--secondary-foreground);
+    }
+  }
+
+  .card__title {
+    font-weight: 700;
+  }
+
+  .chip {
+    border: var(--mousse-border) solid var(--mousse-ink);
+    font-weight: 700;
+  }
+
+  .popover,
+  .select__popover,
+  .dropdown__popover,
+  .combo-box__popover,
+  .autocomplete__popover,
+  .date-picker__popover,
+  .date-range-picker__popover,
+  .color-picker__popover,
+  .modal__dialog,
+  .alert-dialog__dialog,
+  .drawer__dialog,
+  .toast,
+  .alert {
+    border: var(--mousse-border) solid var(--mousse-ink);
+  }
+
+  .popover,
+  .select__popover,
+  .dropdown__popover,
+  .combo-box__popover,
+  .autocomplete__popover,
+  .date-picker__popover,
+  .date-range-picker__popover,
+  .color-picker__popover,
+  .modal__dialog,
+  .alert-dialog__dialog,
+  .toast,
+  .alert {
+    border-radius: var(--mousse-radius);
+  }
+}

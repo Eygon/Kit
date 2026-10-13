@@ -1,0 +1,2 @@
+export const MASCOT_IMAGE_WIDTH_PX = 512;
+export const MASCOT_SMALL_IMAGE_WIDTH_PX = 256;

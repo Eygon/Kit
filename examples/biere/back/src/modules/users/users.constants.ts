@@ -1,0 +1,3 @@
+export const USER_DISPLAY_NAME_MAX_LENGTH = 50;
+
+export const USER_AVATAR_COLOR_LENGTH = 7;

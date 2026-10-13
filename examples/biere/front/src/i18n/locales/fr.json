@@ -1,0 +1,65 @@
+{
+  "app": {
+    "name": "Mousse"
+  },
+  "nav": {
+    "label": "Navigation principale",
+    "encyclopedia": "Encyclopédie",
+    "map": "Carte",
+    "journal": "Journal",
+    "profile": "Profil"
+  },
+  "mascot": {
+    "alt": {
+      "searching": "Mousse, le houblon mascotte, cherche à la loupe",
+      "captured": "Mousse, le houblon mascotte, fête une bière capturée",
+      "confused": "Mousse, le houblon mascotte, se gratte la tête",
+      "loaded": "Mousse, le houblon mascotte, sac à dos chargé de badges"
+    }
+  },
+  "pages": {
+    "encyclopedia": {
+      "title": "Encyclopédie",
+      "subtitle": "Toutes les bières, styles et brasseries.",
+      "emptyTitle": "Aucune bière pour l'instant",
+      "emptyDescription": "Les fiches des bières apparaîtront ici."
+    },
+    "map": {
+      "title": "Carte",
+      "subtitle": "Bars, caves et brasseries autour de vous.",
+      "emptyTitle": "Aucun lieu pour l'instant",
+      "emptyDescription": "Les lieux à découvrir apparaîtront ici."
+    },
+    "journal": {
+      "title": "Journal",
+      "subtitle": "Vos dégustations, au fil des verres.",
+      "emptyTitle": "Aucune dégustation pour l'instant",
+      "emptyDescription": "Vos notes de dégustation apparaîtront ici."
+    },
+    "profile": {
+      "title": "Profil",
+      "subtitle": "Votre compte et vos préférences.",
+      "emptyTitle": "Aucune préférence pour l'instant",
+      "emptyDescription": "Vos réglages apparaîtront ici.",
+      "demoUser": {
+        "title": "Utilisateur de démonstration",
+        "description": "Les requêtes sont envoyées au nom de cet utilisateur.",
+        "label": "Utilisateur courant",
+        "users": {
+          "alice": "Alice (utilisateur 1)",
+          "bob": "Bob (utilisateur 2)",
+          "carol": "Carol (utilisateur 3)"
+        }
+      }
+    }
+  },
+  "errors": {
+    "generic": "Une erreur est survenue. Réessayez.",
+    "badRequest": "La demande est invalide.",
+    "unauthorized": "Vous devez être identifié.",
+    "forbidden": "Vous n'avez pas accès à cette ressource.",
+    "notFound": "La ressource demandée est introuvable.",
+    "conflict": "Cette action entre en conflit avec l'état actuel.",
+    "payloadTooLarge": "Le fichier est trop volumineux."
+  }
+}

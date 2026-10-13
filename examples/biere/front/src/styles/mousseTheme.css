@@ -1,0 +1,151 @@
+:root {
+  --mousse-hop: #2d6a4f;
+  --mousse-leather: #4a2e1b;
+  --mousse-amber: #e9a825;
+  --mousse-paper: #f0eae1;
+  --mousse-cream: #f4f1ea;
+  --mousse-ink: #1d1c1a;
+
+  --mousse-border: 2px;
+  --mousse-shadow: 4px 4px 0 var(--mousse-ink);
+  --mousse-shadow-pressed: 2px 2px 0 var(--mousse-ink);
+  --mousse-radius: 1rem;
+  --mousse-control-radius: 0.75rem;
+}
+
+:root,
+.light,
+.dark,
+[data-theme="light"],
+[data-theme="dark"] {
+  color-scheme: light;
+
+  --background: var(--mousse-paper);
+  --foreground: var(--mousse-ink);
+
+  --surface: var(--mousse-cream);
+  --surface-foreground: var(--mousse-ink);
+  --surface-secondary: color-mix(in oklab, var(--mousse-paper) 86%, var(--mousse-leather) 14%);
+  --surface-secondary-foreground: var(--mousse-ink);
+  --surface-tertiary: color-mix(in oklab, var(--mousse-paper) 76%, var(--mousse-leather) 24%);
+  --surface-tertiary-foreground: var(--mousse-ink);
+
+  --overlay: var(--mousse-cream);
+  --overlay-foreground: var(--mousse-ink);
+
+  --muted: color-mix(in oklab, var(--mousse-ink) 72%, var(--mousse-paper) 28%);
+
+  --default: var(--surface-secondary);
+  --default-foreground: var(--mousse-ink);
+
+  --accent: var(--mousse-hop);
+  --accent-foreground: var(--mousse-cream);
+
+  --secondary: var(--mousse-leather);
+  --secondary-foreground: var(--mousse-cream);
+  --secondary-hover: color-mix(in oklab, var(--mousse-leather) 88%, var(--mousse-cream) 12%);
+
+  --highlight: var(--mousse-amber);
+  --highlight-foreground: var(--mousse-ink);
+
+  --success: var(--mousse-hop);
+  --success-foreground: var(--mousse-cream);
+  --warning: var(--mousse-amber);
+  --warning-foreground: var(--mousse-ink);
+
+  --field-background: var(--mousse-cream);
+  --field-foreground: var(--mousse-ink);
+  --field-placeholder: var(--muted);
+  --field-border: var(--mousse-ink);
+  --field-border-width: var(--mousse-border);
+  --field-radius: var(--mousse-control-radius);
+
+  --segment: var(--mousse-cream);
+  --segment-foreground: var(--mousse-ink);
+
+  --border: var(--mousse-ink);
+  --border-width: var(--mousse-border);
+  --separator: color-mix(in oklab, var(--mousse-ink) 30%, transparent);
+  --focus: var(--mousse-hop);
+  --link: var(--mousse-hop);
+  --backdrop: color-mix(in oklab, var(--mousse-ink) 55%, transparent);
+
+  --surface-shadow: var(--mousse-shadow);
+  --overlay-shadow: var(--mousse-shadow);
+  --field-shadow: 0 0 0 0 transparent;
+}
+
+@theme inline {
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+
+  --shadow-mousse: var(--mousse-shadow);
+  --shadow-mousse-pressed: var(--mousse-shadow-pressed);
+  --radius-mousse: var(--mousse-radius);
+  --radius-control: var(--mousse-control-radius);
+}
+
+@theme {
+  --font-display: "Shrikhand", "Georgia", serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --animate-mascot-float: mascot-float 2.4s ease-in-out infinite;
+  --animate-mascot-twinkle: mascot-twinkle 1.6s ease-in-out infinite;
+  --animate-mascot-fall: mascot-fall 2.8s ease-in infinite;
+
+  @keyframes mascot-float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-6deg);
+    }
+    50% {
+      transform: translateY(-0.5rem) rotate(4deg);
+    }
+  }
+
+  @keyframes mascot-twinkle {
+    0%,
+    100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(0.6) rotate(20deg);
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes mascot-fall {
+    0% {
+      transform: translateY(0) rotate(0deg);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(260%) rotate(160deg);
+      opacity: 0;
+    }
+  }
+}
+
+@utility border-mousse {
+  border-width: var(--mousse-border);
+  border-style: solid;
+}
+
+@utility border-t-mousse {
+  border-top-width: var(--mousse-border);
+  border-top-style: solid;
+}
+
+@utility sparkle-shape {
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+}

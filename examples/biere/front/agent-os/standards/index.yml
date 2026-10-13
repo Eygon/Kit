@@ -1,0 +1,187 @@
+# Injected standards are must. Select at most _meta.maxPerGroup per group via tags.
+# Unselected standards are out of scope for that run. Skip this _meta key when matching.
+# _meta.alwaysInject is exempt from the cap: those standards apply to every file written,
+# so they are injected on every run and never compete for a slot.
+
+_meta:
+  maxPerGroup: 5
+  injectedAreMust: true
+  alwaysInject:
+    - ui/design-system
+    - css/tailwind-tokens
+    - heroui-library-first
+    - ui/mobile-first
+    - no-comments
+    - naming-language
+    - file-placement
+    - react/file-decomposition
+    - enums
+
+constants:
+  description: SCREAMING_SNAKE_CASE with unit suffixes (_MS/_PX/_BYTES), as const/readonly literals, xxxConstants.ts files in src/constants or the feature's utils, and named backend IDs with required JSDoc trace
+  tags: [typing, naming]
+
+enums:
+  description: Enum location (src/types/enums/<domain>/), one-per-file, mandatory Enum suffix, SCREAMING_SNAKE_CASE members, string-vs-numeric value choice, one representation per concept, and co-located guards/option-arrays/Record maps
+  tags: [typing]
+
+file-placement:
+  description: Canonical rule for where any file lives — place every artifact (component, hook, type/dto/mapper, util) at the narrowest scope that consumes it, promote only on a wider second consumer; the API data layer stays top-level by domain
+  tags: [structure]
+
+naming-language:
+  description: English-only for code identifiers (components, folders, files, hooks, vars, types), with explicit verbatim exceptions for backend contract values and French route URL segments (/carte, /profil)
+  tags: [naming]
+
+no-comments:
+  description: Production code carries no explanatory comments — the name, the type or an extracted function says it instead; the only survivors are the JSDoc that constants requires and a machine-read directive
+  tags: [naming, structure]
+
+no-dead-files:
+  description: A file left with nothing but export {} (or no export at all) after a refactor is deleted, not kept as a placeholder — check every import and test before deleting
+  tags: [structure]
+
+heroui-library-first:
+  description: Reach for the HeroUI v3 (@heroui/react) component before hand-rolling one — Button, Card, Chip, Tabs, TextField/Input, Select, Slider, Modal, Drawer, toast, Avatar, Skeleton, Switch, Checkbox; verify the API in the installed .d.ts, onPress not onClick, no provider; pick the variant the DA maps (src/styles/mousseComponents.css already restyles them), never restyle; a bare element only for what HeroUI does not cover
+  tags: [ui, css, a11y]
+
+http-status:
+  description: Use the HttpStatusCodeEnum (src/types/enums/http) for HTTP status checks — never a raw numeric literal
+  tags: [api]
+
+utils:
+  description: Shared helpers in src/utils/ — one topic folder, one function per file named after its export; storage only via KeyValueStorage + StorageKeyEnum; current user via getCurrentUserId/setCurrentUserId; all error display via DisplayError (HeroUI toast.danger)
+  tags: [structure]
+
+ui:
+  design-system:
+    description: Mousse art direction as checkable rules — palette through semantic tokens only (bg-accent hop green, bg-secondary leather brown, bg-highlight amber reserved for the key interaction / ratings / stats badges, bg-background paper, bg-surface cream, text-foreground and border-border ink), 60/30/10, border-mousse 2px ink, shadow-mousse hard 4px (no blur), rounded-mousse 16px / rounded-control 12px, flat fills only, font-display Shrikhand for titles/counters/badges and Plus Jakarta Sans 600, light theme only, HeroUI variant map, compiled examples
+    tags: [ui, css]
+  mascot:
+    description: Mascot element only (src/components/elements/mascot) — mood by situation (searching, captured, confused, loaded) with CSS stand-ins until the real variants are drawn, EmptyStatePanel for empty results, one per screen, isDecorative (aria-hidden) next to a message else a t() alt, motion-safe animations, never deformed, recoloured, cropped or imported as a raw image
+    tags: [ui, a11y]
+  mobile-first:
+    description: Design at 390x844 first then widen with md:/lg:; touch targets >= 44px (HeroUI lg size or min-h-11), no hover-only interaction, bottom tab bar for top-level navigation (DA look in ui/design-system), drawers/bottom sheets over wide modals, min-h-dvh + safe-area insets, no horizontal overflow at 360px (hard shadows included), long text truncated or wrapped
+    tags: [ui, css, a11y]
+
+accessibility:
+  focus-visibility:
+    description: HeroUI components draw their own focus ring; a hand-written interactive element uses focus-visible:focus-ring (--focus token); never strip the ring
+    tags: [ui, a11y]
+  icons-and-labels:
+    description: Icons from @gravity-ui/icons always carry aria-hidden="true"; icon-only controls (Button isIconOnly) need an aria-label or sr-only text, always via t()
+    tags: [ui, a11y, i18n]
+  live-regions:
+    description: role=alert for errors (HeroUI Alert does not set it), aria-live=polite for status, Button isPending / aria-busy on in-flight controls, toasts announced by the toast region; announced text via t()
+    tags: [ui, a11y, i18n]
+  modal-dialog:
+    description: Every overlay is a HeroUI Drawer (bottom sheet by default on mobile) or Modal/AlertDialog on React Aria Dialog — focus trap, Escape and labelling for free via *.Heading; no hand-rolled div role=dialog or native <dialog>
+    tags: [ui, a11y]
+  semantic-elements:
+    description: Every interactive element is a real control (HeroUI Button/Link, router NavLink with aria-current, native <a>) — never a clickable <div onClick>
+    tags: [ui, a11y]
+
+api:
+  request-timeouts:
+    description: fetch has no default timeout — bound a call with AbortSignal.timeout(X_TIMEOUT_MS) passed as { signal } to httpClient whenever a hung request would strand UI state, sized against the backend's own ceiling
+    tags: [api]
+  multipart-upload:
+    description: File uploads post a FormData with httpClient.postForm — no hand-set Content-Type, field "file", one file per request, 5 MB backend cap checked client-side first
+    tags: [api]
+  error-handling:
+    description: Reads swallow + DisplayError + safe fallback; writes DisplayError + rethrow; toast exactly once; HttpStatusCodeEnum
+    tags: [api]
+  service-structure:
+    description: Per-domain default-export class, static async method recipe on the shared fetch httpClient (X-User-Id, JSON, HttpError), mandatory queryFunctions pass-through, DTO-to-model mapping & 204 semantics
+    tags: [api]
+  url-builders:
+    description: Centralized endpoint builders in src/utils/apiURL/apiURL.ts on API_BASE_URL (VITE_API_URL, default http://localhost:5090) + /api/v1; no inline URLs; placeholder + replace path params
+    tags: [api]
+
+css:
+  conditional-classes:
+    description: Compose conditional/variant Tailwind classes with template literals only (no clsx/cn/cva/tv even though HeroUI re-exports cn and tv) — repeated strings to a const, multi-state logic to pure getXClasses helpers
+    tags: [ui, css]
+  tailwind-tokens:
+    description: Tailwind v4 CSS-first config (tailwindcss + @heroui/styles + src/styles/mousseTheme.css); colours, radii, shadows and fonts from the theme variables as native utilities (bg-surface, text-muted, bg-accent, bg-secondary, bg-highlight, border-mousse, rounded-mousse, shadow-mousse, font-display) — never the Tailwind palette, never a hard-coded colour, no dark mode
+    tags: [ui, css]
+  rem-units:
+    description: Every arbitrary Tailwind length, including ones nested inside a compound value, a calc() or a HeroUI prop that takes pixels as a number, is rem never px — base 1rem = 16px, token or default scale step first; the only px are the DA line/shadow tokens in mousseTheme.css
+    tags: [ui, css]
+
+error-handling:
+  error-contract:
+    description: Backend errors are JSON { message } with a meaningful status (401 -> 400 -> 404 -> 403 -> 409, 413); the client keeps HttpError(status, message) and the UI copy comes from the status via i18n keys, never from the backend message
+    tags: [api]
+  ui-states:
+    description: A query-backed section renders loading (Skeleton), error (Alert status=danger role=alert + retry), empty (EmptyStatePanel with the mascot, on HeroUI EmptyState) or data; no React ErrorBoundary by design
+    tags: [ui, api]
+
+react:
+  component-structure:
+    description: Atomic design levels, one folder per component, props types in types/ at scope, named exports, pages as XPage in src/pages/<page>/<page>.tsx, feature-folder co-location by scope
+    tags: [ui]
+  context-providers:
+    description: Context split into context/provider/hook files, null + throwing consumer hook, memoized provider value; app providers mounted once in main.tsx; HeroUI v3 needs no provider
+    tags: [ui]
+  file-decomposition:
+    description: One component per .tsx file; props/types, secondary components, and non-trivial helpers each move to their own file at scope — only the loading skeleton may stay
+    tags: [ui]
+  forms:
+    description: Form & validation pattern — HeroUI Form + TextField/Label/Input/Description/FieldError with React Aria validation (no react-hook-form/zod), form values separate from the model, co-located mappers, backend 400 mapped to validationErrors
+    tags: [ui]
+  hooks:
+    description: What belongs in a hooks/ folder, when to extract a hook (HeroUI overlays own their open state), state shape (one object over many useState), named-object return shape, Loader/Query/Search naming, composing focused sub-hooks, and useCallback/useMemo discipline
+    tags: [ui]
+  i18n:
+    description: All user-facing copy renders through t(); keys mirrored in src/i18n/locales/fr.json (default) and en.json, parity enforced by localesParity.test.ts; verbatim exceptions for backend/route contracts
+    tags: [ui, i18n]
+  mutation-cache-updates:
+    description: setQueryData for locally-known fields, invalidateQueries for server-derived data; optimistic 4-callback recipe vs plain invalidate-on-success; success toast via HeroUI toast.success in the hook, error toast only from DisplayError
+    tags: [api]
+  routing:
+    description: react-router v7 declarative — BrowserRouter in main.tsx, one <Routes> in app.tsx, paths from RoutePathEnum (French segments verbatim), catch-all redirect, top-level sections = bottom tab bar entries, NavLink navigation, nested <Routes>, lazy() only for heavy pages
+    tags: [ui]
+  tanstack-query:
+    description: TanStack Query v5 conventions — shared queryClient (retry 1, no refetch on focus), file triad, query key factory, queryTimes with the cache category fixed per domain, hook naming
+    tags: [api]
+
+testing:
+  testing-patterns:
+    description: Mirror file structure in src/__tests__ (one test per source file), mapper test cases, component tests rendering real HeroUI components through renderWithProviders and querying by role/name, jsdom shims in setup.ts
+    tags: [testing]
+  mocking-conventions:
+    description: vi.mock conventions for default-export services, hooks, partial module mocks (importOriginal), HeroUI side effects, fetch/env/storage doubles (avoids false-red infra failures)
+    tags: [testing]
+
+typing:
+  boundary-narrowing:
+    description: Untrusted input (storage, URL params, HeroUI Key values, JSON.parse) enters as unknown then is narrowed via isX/parseX guards; never any
+    tags: [typing]
+  dto-interface:
+    description: DTOs are always named-export interfaces; models are interfaces
+    tags: [typing]
+  generic-unknown-slots:
+    description: Generic constraints and unused library type slots use unknown, never any
+    tags: [typing]
+  mapper-defaults:
+    description: DTO→model mappers resolve all nullability with type-appropriate defaults (null/""/0/false/[]); model fields stay concrete
+    tags: [typing]
+  mapper-naming:
+    description: Naming conventions for mapper functions (xDtoToModel, xToSaveDto, buildXDto, xToSelectOptions) and their placement
+    tags: [typing]
+  model-dto-mapper:
+    description: Triad of model/dto/mapper files required for every API-bound data type, one exported type per file
+    tags: [typing, structure]
+  nested-mapping-helpers:
+    description: Convert nested DTO fields/arrays with local non-exported helpers composed in the main mapper; compose existing exported mappers for typed-triad sub-objects; export EMPTY_* default instances; promote to a dedicated triad only when reused elsewhere
+    tags: [typing]
+  partial-update-builder:
+    description: Build partial-update (PATCH) payloads with buildXDto — assign a key only when !== undefined; coerce cleared optional inputs to null
+    tags: [typing]
+  read-write-dto:
+    description: A read/write resource has decoupled DTOs — an optional-field read DTO, a required-but-nullable create DTO (SaveXDto), and an optional-field patch DTO (UpdateXDto); write DTOs drop read-only fields
+    tags: [typing]
+  test-double-assertion:
+    description: as unknown as T (double assertion) is allowed only in tests for partial mocks; production code must narrow instead
+    tags: [typing, testing]

@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+@import "@fontsource/shrikhand/400.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+@import "./styles/mousseTheme.css";
+@import "./styles/mousseComponents.css";
+
+html {
+  font-synthesis: none;
+}
+
+body {
+  @apply bg-background font-sans font-semibold text-foreground antialiased;
+}

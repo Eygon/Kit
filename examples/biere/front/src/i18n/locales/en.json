@@ -1,0 +1,65 @@
+{
+  "app": {
+    "name": "Mousse"
+  },
+  "nav": {
+    "label": "Main navigation",
+    "encyclopedia": "Encyclopedia",
+    "map": "Map",
+    "journal": "Journal",
+    "profile": "Profile"
+  },
+  "mascot": {
+    "alt": {
+      "searching": "Mousse, the hop mascot, searching with a magnifying glass",
+      "captured": "Mousse, the hop mascot, celebrating a captured beer",
+      "confused": "Mousse, the hop mascot, scratching its head",
+      "loaded": "Mousse, the hop mascot, backpack loaded with badges"
+    }
+  },
+  "pages": {
+    "encyclopedia": {
+      "title": "Encyclopedia",
+      "subtitle": "Every beer, style and brewery.",
+      "emptyTitle": "No beers yet",
+      "emptyDescription": "Beer sheets will show up here."
+    },
+    "map": {
+      "title": "Map",
+      "subtitle": "Bars, bottle shops and breweries around you.",
+      "emptyTitle": "No places yet",
+      "emptyDescription": "Places to discover will show up here."
+    },
+    "journal": {
+      "title": "Journal",
+      "subtitle": "Your tastings, glass after glass.",
+      "emptyTitle": "No tastings yet",
+      "emptyDescription": "Your tasting notes will show up here."
+    },
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Your account and preferences.",
+      "emptyTitle": "No preferences yet",
+      "emptyDescription": "Your settings will show up here.",
+      "demoUser": {
+        "title": "Demo user",
+        "description": "Requests are sent on behalf of this user.",
+        "label": "Current user",
+        "users": {
+          "alice": "Alice (user 1)",
+          "bob": "Bob (user 2)",
+          "carol": "Carol (user 3)"
+        }
+      }
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again.",
+    "badRequest": "The request is invalid.",
+    "unauthorized": "You must be signed in.",
+    "forbidden": "You do not have access to this resource.",
+    "notFound": "The requested resource cannot be found.",
+    "conflict": "This action conflicts with the current state.",
+    "payloadTooLarge": "The file is too large."
+  }
+}

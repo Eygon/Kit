@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+/data/
+specs/
+.env
+*.log
+.sk-local
