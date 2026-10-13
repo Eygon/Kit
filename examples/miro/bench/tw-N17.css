@@ -354,6 +354,9 @@
   .h-px {
     height: 1px;
   }
+  .max-h-\[calc\(100vh-7rem\)\] {
+    max-height: calc(100vh - 7rem);
+  }
   .min-h-10 {
     min-height: calc(var(--spacing) * 10);
   }
@@ -456,6 +459,9 @@
   }
   .gap-\(--spacing-3\) {
     gap: var(--spacing-3);
+  }
+  .gap-\(--spacing-4\) {
+    gap: var(--spacing-4);
   }
   .gap-1 {
     gap: var(--spacing);
