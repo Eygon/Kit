@@ -45,13 +45,14 @@ async function open({ stub } = {}) {
 }
 const card = (p, n) => p.getByRole("listitem").filter({ hasText: n }).first();
 const colorBtn = (p, n) => card(p, n).getByRole("button", { name: /^Couleur/ });
+let dlg; const D = (p) => p.getByRole("dialog").filter({ hasText: /Couleur du tableau/ }).first();
 const toasts = (p) => p.evaluate(() => window.__toasts);
-cur = await open(); let { page } = cur;
+cur = await open(); let { page } = cur; dlg = D(page);
 chk("US3.AC1-3", (await colorBtn(page, NAME).count()) === 1 && (await colorBtn(page, OTHER).count()) === 0 && (await card(page, OTHER).innerText()).includes("Couleur : Rouge"), `proprietaire : bouton Couleur=${await colorBtn(page, NAME).count()} ; editeur : bouton=${await colorBtn(page, OTHER).count()}, pastille « ${(await card(page, OTHER).innerText()).match(/Couleur : \w+/)?.[0]} »`);
 chk("US2.AC2", !/Couleur : /.test(await card(page, NAME).innerText()), "tableau sans couleur : aucune pastille ni texte");
 const open0 = await card(page, NAME).getByRole("button").first().innerText();
 await colorBtn(page, NAME).click(); await page.waitForTimeout(400);
-const dlg = page.getByRole("dialog").filter({ hasText: /Couleur du tableau/ }).first();
+dlg = D(page);
 const btns = await dlg.getByRole("button").allInnerTexts();
 chk("US3.AC4/5", await dlg.isVisible() && btns.length >= 9 && /Aucune couleur/.test(btns.join("|")) && /actuelle/.test((await dlg.getByRole("button", { name: /Aucune couleur/ }).innerText())) && (await card(page, NAME).count()) > 0, `fenetre : ${btns.length} boutons ${JSON.stringify(btns.map((b) => b.replace(/\n/g, " ")).slice(0, 10))}`);
 // choix vert
@@ -67,26 +68,26 @@ await dlg.getByRole("button", { name: /Aucune couleur/ }).click(); await page.wa
 chk("US3.AC7", /actuelle/.test(curGreen) && cur.sent[1]?.color === null && !/Couleur : /.test(await card(page, NAME).innerText()) && (await col(mine.id)) === null, `vert marque actuel=${/actuelle/.test(curGreen)} ; null envoye=${cur.sent[1]?.color === null} ; pastille retiree ; API=${await col(mine.id)}`);
 await cur.ctx.close();
 // fermer sans choisir : rien envoye
-cur = await open(); page = cur.page; await colorBtn(page, NAME).click(); await page.waitForTimeout(300); await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+cur = await open(); page = cur.page; dlg = D(page); await colorBtn(page, NAME).click(); await page.waitForTimeout(300); await page.keyboard.press("Escape"); await page.waitForTimeout(300);
 const closedBtn = dlg.getByRole("button", { name: /Fermer|Close/i });
 if (await dlg.isVisible().catch(() => false) && (await closedBtn.count())) await closedBtn.first().click();
 chk("US3.AC10", cur.sent.length === 0 && (await col(mine.id)) === null, `fenetre fermee sans choix : demandes=${cur.sent.length}, couleur inchangee=${await col(mine.id)}`);
 await cur.ctx.close();
 // echec : un seul toast generique, fenetre ouverte, pastille inchangee ; double clic : une seule demande
 for (const [label, stub] of [["500", (r) => r.fulfill({ status: 500, contentType: "application/json", body: "{}" })], ["403", (r) => r.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ message: "x" }) })], ["reseau", (r) => r.abort("connectionrefused")]]) {
-  cur = await open({ stub }); page = cur.page; await colorBtn(page, NAME).click(); await page.waitForTimeout(300);
+  cur = await open({ stub }); page = cur.page; dlg = D(page); await colorBtn(page, NAME).click(); await page.waitForTimeout(300);
   await dlg.getByRole("button", { name: /Rouge/ }).click(); await page.waitForTimeout(1200); const ts = await toasts(page); cur.w.take();
   chk(`US3.AC9-${label}`, ts.length === 1 && /Une erreur est survenue/.test(ts[0].message) && (await dlg.isVisible()) && !/Couleur : /.test(await card(page, NAME).innerText()), `${label} -> toasts=${JSON.stringify(ts).slice(0, 100)} ; fenetre ouverte=${await dlg.isVisible()} ; pastille inchangee`, true);
   await cur.ctx.close();
 }
-cur = await open({ stub: async (r) => { await new Promise((x) => setTimeout(x, 700)); return r.continue(); } }); page = cur.page; await colorBtn(page, NAME).click(); await page.waitForTimeout(300);
+cur = await open({ stub: async (r) => { await new Promise((x) => setTimeout(x, 700)); return r.continue(); } }); page = cur.page; dlg = D(page); await colorBtn(page, NAME).click(); await page.waitForTimeout(300);
 await dlg.getByRole("button", { name: /Bleu/ }).dblclick(); await page.waitForTimeout(300);
 const dis = await dlg.getByRole("button", { name: /Orange/ }).isDisabled(); await page.waitForTimeout(1500);
 chk("US3.AC8+dblclic", cur.sent.length === 1 && dis, `double clic -> demandes=${cur.sent.length} ; boutons desactives pendant l envoi=${dis}`);
 await api(1, "PATCH", `/boards/${mine.id}/color`, { color: null });
 await cur.ctx.close();
 // debordement : nom de 100 caracteres, pastille et bouton visibles
-cur = await open(); page = cur.page; await api(1, "PATCH", `/boards/${mine.id}/color`, { color: "Blue" });
+cur = await open(); page = cur.page; dlg = D(page); await api(1, "PATCH", `/boards/${mine.id}/color`, { color: "Blue" });
 const longId = (await api(1, "GET", "/boards")).body.find((b) => b.name === LONG).id; await api(1, "PATCH", `/boards/${longId}/color`, { color: "Purple" }); await page.reload(); await card(page, LONG).waitFor({ timeout: 10000 });
 const ov = await overflowing(page); const bb = await colorBtn(page, LONG).boundingBox();
 chk("US3.debordement", ov.length === 0 && bb && bb.width >= 20, `debordements=${JSON.stringify(ov).slice(0, 150)} ; bouton Couleur de la carte au nom de 100 car. = ${JSON.stringify(bb)}`);
