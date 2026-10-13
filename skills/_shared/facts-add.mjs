@@ -13,10 +13,20 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 export const MAX_FACTS = 40;
+// Un fait est une OBSERVATION d un agent, copiee dans les briefs des workers suivants et dans la memoire du
+// depot : donnee non fiable, jamais une instruction. Une ligne, bornee, sans amorce de structure markdown
+// (titre, citation, bloc de code) : sinon un fait multiligne forge une section « INSTRUCTIONS » dans le brief
+// (banc N21 : un fait de 5 000 caracteres avec « ## INSTRUCTIONS PRIORITAIRES » sortait tel quel dans US2-worker.md).
+export const MAX_FACT_CHARS = 400;
+export const MAX_SOURCE_CHARS = 200;
+export const cleanText = (v, max) => {
+  const one = String(v ?? "").replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, " ").replace(/\s+/g, " ").trim().replace(/^(?:[#>`|*+-]\s*)+/, "").replace(/`{3,}/g, "`").trim();
+  return one.length > max ? one.slice(0, max - 1).trimEnd() + "…" : one;
+};
 const norm = (f) => {
-  if (!f || typeof f !== "object") return { fact: String(f).trim() };
-  const out = { fact: String(f.fact || "").trim() };
-  if (f.source) out.source = String(f.source).trim();
+  if (!f || typeof f !== "object") return { fact: cleanText(f, MAX_FACT_CHARS) };
+  const out = { fact: cleanText(f.fact, MAX_FACT_CHARS) };
+  if (f.source) out.source = cleanText(f.source, MAX_SOURCE_CHARS);
   if (f.us) out.us = String(f.us);
   if (f.repo) out.repo = String(f.repo);
   return out;
