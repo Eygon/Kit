@@ -21,7 +21,7 @@ async function open({ list = FIX, status = 200, init } = {}) {
   return { ctx, page, w };
 }
 const SEL = (p) => p.getByRole("combobox", { name: /Trier par/ });
-const order = async (p) => (await p.getByRole("listitem").allInnerTexts()).map((t) => t.split("\n")[0].trim()).filter(Boolean);
+const order = async (p) => { for (let i = 0; i < 4; i++) { try { return (await p.getByRole("listitem").allInnerTexts()).map((t) => t.split("\n")[0].trim()).filter(Boolean); } catch (e) { await p.waitForTimeout(400); } } return []; };
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // US1
 cur = await open(); let { page } = cur; await SEL(page).waitFor({ timeout: 10000 });
@@ -41,6 +41,7 @@ check("US1.AC5", eq(await order(page), ["Daté", "SansDate"]), `date vide en der
 await cur.ctx.close();
 for (const [id, o, what] of [["US1.AC6-erreur", { status: 500 }, "erreur"], ["US1.AC6-vide", { status: 204 }, "vide"]]) {
   cur = await open(o); page = cur.page; await page.waitForTimeout(3500);
+  cur.w.take(); // le 500 est simule par le scenario : pas un defaut du produit
   check(id, (await SEL(page).count()) === 0, `liste ${what} : sélecteur absent=${(await SEL(page).count()) === 0}`);
   await cur.ctx.close();
 }
