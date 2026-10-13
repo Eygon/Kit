@@ -647,6 +647,22 @@ Défauts du kit révélés par F1, et corrigés :
 - `diff-cover` côté .NET : coverlet écrit `<guid>/coverage.info`, et les propriétés auto `{ get; set; }` faisaient du bruit. Les deux sont gérés.
 - Retours de prep : recettes back dans recon.md (section `## Back`, vérifiée dans le dépôt back), source « créé par T<n> » pour une table que crée la feature, design.md écrit avant que FEATURE_DIR existe, token cité dans une note pris pour une cible.
 
+## Journée du 13 octobre : cycles 5-12, tests hostiles, projet Mousse
+
+**Cycles de fonctionnalités (N18 à N29)** : détail dans `examples/miro/bench/nouvelles-us-log.txt`. Constat net : sur les features front sans géométrie nouvelle (N15, N19, N20), le passage réel au navigateur ne trouve plus rien, les défauts utiles viennent de la revue Opus et de la loupe. Il garde sa valeur dès qu'une feature ajoute de l'affichage : 4 défauts de géométrie en 7 features, invisibles hors navigateur (badge coupé, compteur qui fait bouger la barre, liste sans hauteur, texte qui élargit une fenêtre).
+
+**Tests hostiles (T1 à T14)** : trio empoisonné, coupure et reprise du moteur, consignes cachées dans le dépôt, spec contradictoire, fuzz des scripts (640 cas), faits comme canal d'injection, besoin dangereux / flou / déjà existant, contrat gelé modifié, réponses d'agent corrompues (240 cas). Le kit a tenu partout. Défauts trouvés et corrigés :
+- les faits rendus par le worker n'arrivaient pas au reviewer (ajoutés au handoff) ;
+- les faits étaient recopiés tels quels : nettoyés, bornés (400 caractères), traités comme des données et non des instructions ;
+- la mémoire du dépôt traversait les branches : un fait garde maintenant le commit de base et n'est servi que si ce commit est un ancêtre ou si le fichier cité est identique ;
+- un worker sans commit comptait comme livré : il est maintenant arrêté ('worker sans commit') ;
+- l'oracle `overflowing` donnait un faux positif sur le texte coupé volontairement ; nouveaux oracles `clippedOut` et `sizeStable` ;
+- la portée « bibliothèque » ne couvrait que `@septeo` : ajout de `@heroui`.
+
+**Grosses US (plafonds ×2)** : 2,5 fois plus de temps mur pour 1,3 fois plus de tokens, qualité de revue inchangée, mais plus de défauts de géométrie. On garde le plafond à 6 fichiers.
+
+**Mousse** (`examples/biere`, front React + HeroUI, back NestJS) : projet réel construit avec le kit, feature par feature. Le kit détecte maintenant les trois piles (front React, back .NET, back NestJS) : conditions `ts`, `node`, `front`, `back` dans `brief-fill`, gate vitest pour le front et le back Node, bloc `if:node` dans `us-sonnet.md`. Script de slots du banc : `examples/biere/mousse-impl.py`.
+
 ## À faire de ton côté
 1. **Copier `agents/sk-worker.md` et `agents/sk-reviewer.md`** dans `~/.claude/agents/` (et `~/.cursor/agents/`). Les workflows les appellent désormais.
 2. **Index front** : 4 standards existaient sans être indexés, donc n'étaient jamais appliqués : `api/multipart-upload`, `api/request-timeouts`, `react/grid-filters`, `react/paginated-grids`. Ils sont ajoutés dans `agent-os/front/standards/index.yml` du dépôt : à reporter dans MySepteoWeb.
