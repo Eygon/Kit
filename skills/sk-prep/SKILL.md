@@ -505,6 +505,12 @@ Elle nomme donc :
 - pour toute donnee qu une AC affiche ou propose : sa source (service
   existant, endpoint du contrat, ou US qui la cree). Sans source, le worker
   code une liste de demonstration en dur (917 US5, 3 workers sur 3) ;
+- pour tout composant CREE ou dont une prop est AJOUTEE : le fichier des props
+  `types/<composant>.ts` (standard react/file-decomposition : un type de props
+  par fichier, a la portee de la page) dans les chemins de la tache, meme pour
+  une seule prop de plus. Omission vue 6 fois sur Mousse (F3 US11, US14, US17,
+  US18 ; F2 US15 : type d un formulaire existant) : chaque fois, le worker s est
+  arrete ou a declare l ecart et la revue a escalade ;
 - pour tout DTO lu ou construit (reponse de service front, lecture de
   repository back) : le fichier du mapper et celui de son test, dans les
   chemins de la tache (un helper de mapping local est un ecart au standard
