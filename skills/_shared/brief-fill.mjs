@@ -218,10 +218,13 @@ export const fillBriefs = (json, templates) => {
   const prodAll = [...new Set([...(json.prod || []), ...derived.prod])];
   const isFront = prodAll.some((p) => /\.(?:[cm]?[jt]sx?|s?css)$/.test(p));
   const isBack = prodAll.some((p) => /\.cs$/.test(p));
-  const conds = { design: Boolean(json.designPath), contract: Boolean(json.contractPath), front: isFront || !isBack, back: isBack || !isFront };
+  // Back Node (NestJS) : un depot dont package.json declare @nestjs/core. Il partage les outils TypeScript du front (tsc, eslint,
+  // vitest, diff-cover) mais aucune regle d ecran ; ni les blocs .NET.
+  const isNode = (() => { try { return /"@nestjs\/core"/.test(readFileSync(join(json.standardsRoot || json.slot, "package.json"), "utf8")); } catch { return false; } })();
+  const conds = { design: Boolean(json.designPath), contract: Boolean(json.contractPath), node: isNode, ts: isNode || isFront || !isBack, front: !isNode && (isFront || !isBack), back: !isNode && (isBack || !isFront) };
   // Gate ciblee de la stack : vitest pour le front, gate.mjs (dotnet test --filter par classe) pour
   // une US back. Banc Miro F8 : le brief back citait la gate vitest et tsc.
-  const gate = conds.front && !isBack ? "node node_modules/vitest/vitest.mjs run --coverage=false" : `node "${json.skShared}/gate.mjs"`;
+  const gate = (conds.front || conds.node) && !isBack ? "node node_modules/vitest/vitest.mjs run --coverage=false" : `node "${json.skShared}/gate.mjs"`;
   common.push(["<GATE>", gate]);
   templates = {
     worker: applyConditions(templates.worker, conds),

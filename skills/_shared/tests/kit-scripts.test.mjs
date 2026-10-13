@@ -258,6 +258,42 @@ test("repo facts follow the branch: a fact from an unmerged feature stays out of
   assert.equal(liveFacts(legacy, featB).length, 1);
 });
 
+test("brief-fill: a NestJS back gets the TypeScript tools and the Node block, never the .NET block nor the UI rules; a React front keeps its UI rules", async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync, readFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join, dirname } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const here = dirname(fileURLToPath(import.meta.url));
+  const build = (pkg, prod, test) => {
+    const slot = mkdtempSync(join(tmpdir(), "bfn-"));
+    writeFileSync(join(slot, "package.json"), JSON.stringify(pkg));
+    const fd = join(slot, "specs", "001-x");
+    mkdirSync(join(fd, "briefs"), { recursive: true });
+    writeFileSync(join(fd, "tasks.md"), `## [US1] X\n- [ ] T001 [US1] Create \`${prod}\` — Test: \`${test}\`\n`);
+    writeFileSync(join(fd, "spec.md"), "### User Story 1 - X\n**Acceptance Scenarios**:\n1. **Given** a, **When** b, **Then** c.\n");
+    const json = join(fd, "briefs", "US1.json");
+    writeFileSync(json, JSON.stringify({ featureDir: fd, slot, us: "US1", skShared: join(here, ".."), lecture: [], facts: [] }));
+    try { execFileSync("node", [join(here, "..", "brief-fill.mjs"), json, "--out", join(fd, "briefs")], { cwd: slot, encoding: "utf8" }); } catch {}
+    return readFileSync(join(fd, "briefs", "US1-worker.md"), "utf8");
+  };
+  const nest = build({ dependencies: { "@nestjs/core": "^11.0.0" } }, "src/modules/beers/beers.service.ts", "src/__tests__/modules/beers/beers.service.test.ts");
+  assert.match(nest, /Back NestJS \(TypeScript\)/);
+  assert.match(nest, /Typecheck \(stack TypeScript\)/);
+  assert.match(nest, /vitest\.mjs run --coverage=false/);
+  assert.doesNotMatch(nest, /dotnet build/);
+  assert.doesNotMatch(nest, /min-w-0/);
+  assert.doesNotMatch(nest, /Back \.NET, fin d US/);
+  const react = build({ dependencies: { react: "^19.0.0" } }, "src/pages/a/a.tsx", "src/__tests__/pages/a/a.test.tsx");
+  assert.match(react, /min-w-0/);
+  assert.match(react, /Typecheck \(stack TypeScript\)/);
+  assert.doesNotMatch(react, /Back NestJS/);
+  const dn = build({}, "Mousse.Api/Controllers/AController.cs", "Mousse.Tests/Controllers/AControllerTests.cs");
+  assert.match(dn, /dotnet build/);
+  assert.doesNotMatch(dn, /min-w-0/);
+  assert.doesNotMatch(dn, /Back NestJS/);
+});
+
 test("facts-add merges worker facts by text, keeps the newest, and brief-fill injects facts.json", async () => {
   const { mergeFacts, factsOfOutput, MAX_FACTS } = await import("../facts-add.mjs");
   const a = mergeFacts([], [{ fact: "f1", source: "a" }, "f2"], "US1");

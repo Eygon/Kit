@@ -37,13 +37,13 @@ personne ne repondra.
 - Outils du kit : <SK_SHARED> (dossier _shared, chemin absolu)
 - Fichiers de test : <TEST_FILES>
 - Gate ciblee : <GATE> <fichier>
-<!-- if:front -->
+<!-- if:ts -->
 - Typecheck (stack TypeScript) : node node_modules/typescript/bin/tsc --noEmit --incremental --tsBuildInfoFile "$(git rev-parse --git-dir)/sk-tsc.tsbuildinfo" -p tsconfig.json
   TS2451 « Cannot redeclare » entre deux tests : l un des deux n a ni import
   ni export (ajoute `export {};`). Autre erreur restante sur un fichier que
   l US n a pas touche : relance UNE fois sans cache
   (`rm "$(git rev-parse --git-dir)/sk-tsc.tsbuildinfo"`) avant de conclure.
-<!-- /if:front -->
+<!-- /if:ts -->
 <!-- if:back -->
 - Build (stack .NET, tient lieu de typecheck) : dotnet build --nologo -v q
 <!-- /if:back -->
@@ -236,7 +236,7 @@ d un hook, regle d API, 409) ne se prouve bien qu isole.
    Stack compilee : symbole absent (types reels) = RED valide, y compris
    quand le projet de test unique (.NET) ne compile plus a cause du symbole
    d une AUTRE tache de l US : n attends pas son GREEN pour ecrire ce test.
-<!-- if:front -->
+<!-- if:ts -->
    Sinon import paresseux si le symbole n existe pas. Stack
    Vite/vitest : le chemin passe par une const,
      const M = "<alias/chemin>"; const { X } = await import(/* @vite-ignore */ M)
@@ -254,7 +254,7 @@ d un hook, regle d API, 409) ne se prouve bien qu isole.
    Date relative (« il y a 5 min ») avec userEvent :
    `vi.useFakeTimers({ toFake: ["Date"] })`, jamais les faux timers
    complets (userEvent attend un setTimeout et le test pend 5 s).
-<!-- /if:front -->
+<!-- /if:ts -->
    Rouge compile (hors symbole manquant) : corrige le TEST.
    Vert d emblee : deja couvert, passe a la tache suivante.
 2. GREEN. Prod minimale de la tache. UNE gate, qui verifie
@@ -359,6 +359,8 @@ BUDGET DES GATES GLOBALES, US et passe de fix comprises :
   helper de test tourne en `retry: false`. « Un seul toast » se teste avec le retry de prod
   (QueryClient retry:1, delai reduit) ; l effet unique vit sur l echec FINAL (hook, `errorUpdatedAt`),
   pas dans le service (banc N8 : 2 toasts par echec, vu par la revue, la loupe et le navigateur, pas par les tests du worker).
+<!-- /if:front -->
+<!-- if:ts -->
 - lint : JAMAIS `yarn lint` (baseline de centaines
   d erreurs CRLF). Toujours
   `node node_modules/eslint/bin/eslint.js <tes fichiers>`,
@@ -379,7 +381,10 @@ Les trois partent dans UN appel en fin d US, suivis de la couverture du diff :
   node node_modules/eslint/bin/eslint.js <tes fichiers> && node node_modules/vitest/vitest.mjs related --run --coverage.enabled --coverage.reporter=lcov --coverage.reportsDirectory="$(git rev-parse --git-dir)/sk-cov" --testTimeout=20000 <tes fichiers prod> <tes fichiers de test> && <commande typecheck du Contexte>
   node "<SK_SHARED>/diff-cover.mjs" --lcov "$(git rev-parse --git-dir)/sk-cov" --range HEAD   (avant ton commit DONE : arbre de travail + fichiers non suivis)
 Back .NET : meme outil sur un lcov coverlet (voir le bloc back).
-<!-- /if:front -->
+<!-- /if:ts -->
+<!-- if:node -->
+- Back NestJS (TypeScript), couches : controleur MINCE (validation DTO class-validator, appel du service, code HTTP), service = regles metier (jamais d ORM), repository = SEUL a toucher TypeORM, mapper entite <-> DTO ; un module par domaine (`src/modules/<nom>/`). Ordre des controles d une route : 401 -> 400 (validation) -> 404 -> 403 -> 409 : une tache qui l impose a un test par PAIRE d etapes voisines. Tests : `src/__tests__/<chemin de la source>.test.ts` (miroir), services avec doublures, API avec supertest + `Test.createTestingModule` + SQLite memoire ; un code HTTP se prouve par le test de la route, pas par celui du service. Pas de dotnet, pas de React : memes outils que ci-dessus (eslint, tsc, vitest related + diff-cover), standards `agent-os/standards` du depot (controllers, services, data-access, dto, error-handling).
+<!-- /if:node -->
 <!-- if:back -->
 - Back .NET, fin d US, UN appel : `dotnet build --nologo -v q` (0 erreur,
   0 nouvel avertissement) puis `dotnet test <projet de test> --nologo -v q

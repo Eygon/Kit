@@ -23,7 +23,7 @@ Deux sources de référence, résolues via `~/.claude/skills/_shared/sk-config.m
 - `assets/speckit/constitution-<stack>.md` du kit — la constitution spec-kit de référence.
 
 `<stack>` est détecté à l'étape 0 : `frontend-react` si `package.json` déclare `react`,
-`backend-c#` si un `*.sln` ou `*.csproj` existe à la racine ou un niveau en dessous. Les deux à la
+`backend-c#` si un `*.sln` ou `*.csproj` existe à la racine ou un niveau en dessous, `backend-node-nest` si `package.json` déclare `@nestjs/core` (outils TypeScript du front : tsc, eslint, vitest, diff-cover ; `brief-fill` lui donne le bloc `if:node` de `us-sonnet.md`, ni le bloc .NET ni les règles d'écran ; ses standards `agent-os/` sont portés par le dépôt lui-même, il n'y a pas encore de dossier de référence `agentOs/backend-node-nest` dans `STANDARDS_REPO`). Les deux à la
 fois (mono-repo) → demande laquelle installer à la racine ; aucune des deux → étape 2 et
 constitution STOP, dis-le, le reste continue.
 
