@@ -187,3 +187,30 @@ export async function sizeStable(page, selector, act, { tolerance = 2 } = {}) {
   const grew = !!before && !!after && (Math.abs(after.w - before.w) > tolerance || Math.abs(after.h - before.h) > tolerance);
   return { before, after, grew };
 }
+
+// covered(page, { within }) : controles (bouton, lien, champ) dont le CENTRE est recouvert par un autre element (la barre d outils
+// qui passe sur le bouton de zoom de la carte, un en-tete collant, un badge). `unreachable` ne voit que le hors-ecran : un controle
+// visible mais recouvert ne se touche pas. Banc Mousse F3 : les boutons + / - de Leaflet etaient sous la barre « Lieux / Filtres » ;
+// banc Miro N20 : tiroir d edition recouvert par la barre. Appelle-le sans panneau modal ouvert (le fond d un dialogue est recouvert
+// par definition), ou limite-le avec `within` (selecteur du panneau).
+export async function covered(page, { within = "body", limit = 20, expected = [] } = {}) {
+  const found = await page.evaluate(({ within }) => {
+    const out = [];
+    const root = document.querySelector(within) || document.body;
+    const vh = window.innerHeight, vw = document.documentElement.clientWidth;
+    for (const el of root.querySelectorAll("button, a[href], input, select, textarea, [role=button]")) {
+      const s = getComputedStyle(el);
+      if (s.visibility === "hidden" || s.display === "none" || el.disabled || s.pointerEvents === "none") continue;
+      const r = el.getBoundingClientRect();
+      if (r.width <= 2 || r.height <= 2) continue;
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      if (cx < 0 || cy < 0 || cx > vw || cy > vh) continue;
+      const top = document.elementFromPoint(cx, cy);
+      if (!top || top === el || el.contains(top) || top.contains(el)) continue;
+      const label = (e) => (e.innerText || e.getAttribute("aria-label") || e.title || e.className || e.tagName).toString().trim().slice(0, 40);
+      out.push({ text: label(el), coveredBy: label(top), x: Math.round(cx), y: Math.round(cy) });
+    }
+    return out;
+  }, { within });
+  return found.filter((f) => !expected.some((rx) => rx.test(f.text))).slice(0, limit);
+}

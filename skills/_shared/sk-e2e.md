@@ -166,6 +166,15 @@ le cas limite, l element colle au bord haut (puis bas, gauche, droit) de la zone
 (`overflow: hidden`). Banc N18 : le badge d un element a y=0 etait a 63-81 px pour un conteneur qui commence a 81 :
 jamais visible, sans erreur. Corrige en retournant le badge a l interieur du bord quand il n a pas la place au-dessus.
 
+## Oracle de recouvrement (`covered`, e2e-oracles.mjs)
+
+`unreachable` ne voit que le hors-ecran. Un bouton visible mais RECOUVERT par un autre element (barre d outils flottante,
+en-tete collant, badge) ne se touche pas : `covered(page)` rend, pour chaque controle (bouton, lien, champ), ce qui est
+au-dessus de son centre (`elementFromPoint`). Joue-le panneau ferme (le fond d un dialogue modal est recouvert par
+definition) ou limite-le avec `{ within: '[role="dialog"]' }`. Banc Mousse F3 : les boutons + / - de la carte Leaflet
+etaient sous la barre « Lieux / Filtres » ; banc Miro N20 : tiroir d edition recouvert par la barre : ni tests (jsdom), ni
+revues, ni loupe ne le voient. Corrige en deplacant le controle de la lib (`position="bottomright"`) ou en reservant sa place.
+
 ## Oracle de stabilite de taille (`sizeStable`, e2e-oracles.mjs)
 
 Tout etat ajoute dans une barre ou un panneau de taille fixe (compteur « N elements selectionnes », badge, message
