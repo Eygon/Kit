@@ -511,6 +511,18 @@ Elle nomme donc :
   une seule prop de plus. Omission vue 6 fois sur Mousse (F3 US11, US14, US17,
   US18 ; F2 US15 : type d un formulaire existant) : chaque fois, le worker s est
   arrete ou a declare l ecart et la revue a escalade ;
+- pour tout enum du contrat OpenAPI (CollectionKindEnum, AvatarEnum...) : son
+  fichier `enums/<nom>.enum.ts` (back) ou `types/enums/<domaine>/<nom>Enum.ts`
+  (front) dans les chemins de la PREMIERE US qui type un champ avec lui ; un
+  type union en dur (`"wishlist" | "custom"`) ou une valeur ecrite en ligne est un
+  ecart que la revue escalade (Mousse F5 US20) ;
+- pour tout hook de lecture qu une AC dit « sans appel au serveur » tant qu une
+  condition n est pas remplie (profil non suivi, feuille fermee) : le parametre
+  `isEnabled` du hook et son appel dans les chemins de la tache ; sans lui le
+  worker code un second composant dans la page, qui viole « un composant par
+  fichier » (Mousse F5 US26). Meme idee pour un titre de section reutilise sur
+  la page d un autre utilisateur : prevoir la prop (`ownerName`) des la tache
+  qui reutilise le composant ;
 - pour tout DTO lu ou construit (reponse de service front, lecture de
   repository back) : le fichier du mapper et celui de son test, dans les
   chemins de la tache (un helper de mapping local est un ecart au standard
