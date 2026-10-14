@@ -32,6 +32,10 @@ cd front && npm install && npm run dev
 Pas d'authentification : l'en-tête `X-User-Id` (1 Alice, 2 Bob, 3 Carol) identifie l'utilisateur ; le sélecteur est dans **Profil → Utilisateur de démonstration**.
 Fond de carte : tuiles OpenStreetMap (nécessite Internet ; sans elles la carte reste utilisable).
 
+## Démo sans installation (artefact)
+
+`mock/` contient un faux serveur d'API qui tourne dans le navigateur (`mock-api.js`, vérifié contre le vrai back sur 857 requêtes sans écart) et `build-artifact.sh`, qui construit le vrai front (branche dev) avec ce faux serveur pour l'héberger en un seul dossier. Les données sont fictives et gardées dans le navigateur ; le bouton « Réinitialiser » de la barre verte repart du départ. Limites : pas de fond de carte (les tuiles OpenStreetMap sont bloquées dans l'artefact), pas de service worker, la démo suit l'état de `dev` au moment de la construction (F11 et F12 ne sont pas dedans tant qu'elles ne sont pas fusionnées).
+
 ## Tester
 
 ```bash
