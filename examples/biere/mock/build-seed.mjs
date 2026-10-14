@@ -10,6 +10,11 @@ const dataDir = join(backDir, "src/database/seed/data");
 const read = (name) => JSON.parse(readFileSync(join(dataDir, name), "utf8"));
 
 const beers = read("beers.json").map(({ imageUrl, ...beer }) => beer);
+const venues = read("venues.json");
+// F11 : data-seeder.ts relie chaque dégustation de démo au lieu dont le nom est exactement sa place
+// (venueIdsByName.get(row.place) ?? null) ; les ids des lieux suivent l'ordre de venues.json.
+const venueIdByExactName = new Map(venues.map((venue, i) => [venue.name, i + 1]));
+const demoCheckins = read("demo-checkins.json").map((row) => ({ ...row, venueId: venueIdByExactName.get(row.place) ?? null }));
 
 const seed = {
   users: [
@@ -25,10 +30,10 @@ const seed = {
   styles: read("styles.json"),
   breweries: read("breweries.json"),
   beers,
-  venues: read("venues.json"),
+  venues,
   venueBeers: read("venue-beers.json"),
   reviews: read("reviews.json"),
-  demoCheckins: read("demo-checkins.json"),
+  demoCheckins,
 };
 
 const banner =

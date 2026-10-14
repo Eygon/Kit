@@ -13,7 +13,7 @@
   var API_PREFIX = "/api/v1";
   var BASE_URL = BASE_ORIGIN + API_PREFIX;
   var STORAGE_KEY = "mousse-mock-state-v1";
-  var STATE_VERSION = 1;
+  var STATE_VERSION = 2; // 2 : F11-F13 (venueId, bières communautaires) ; un état d'une autre version est ignoré
   var options = root.__MOUSSE_MOCK_OPTIONS__ || {};
   var LATENCY = Array.isArray(options.latency) ? options.latency : [30, 120];
 
@@ -62,6 +62,29 @@
   var MONTHLY_CHECKINS_MONTHS = 12;
   var BADGE_TARGETS = { firstSip: 1, explorer: 10, collector: 50, globetrotter: 5, photographer: 10, regular: 3,
     sentinel: 10, cartographer: 1 };
+  // F12 : bières communautaires (beers.constants.ts)
+  var BEER_NAME_MIN_LENGTH = 2;
+  var BEER_NAME_MAX_LENGTH = 80;
+  var BREWERY_NAME_MIN_LENGTH = 2;
+  var BREWERY_NAME_MAX_LENGTH = 60;
+  var BEER_DESCRIPTION_MAX_LENGTH = 500;
+  var BEER_PROPOSAL_ABV_MAX_PERCENT = 20;
+  var BEER_ABV_MAX_DECIMAL_PLACES = 1;
+  var BEER_PROPOSALS_PER_WINDOW_MAX = 10;
+  var BEER_PROPOSAL_WINDOW_HOURS = 24;
+  var BEER_PROPOSAL_WINDOW_MS = BEER_PROPOSAL_WINDOW_HOURS * HOUR_MS;
+  var COUNTRY_CODES = ("AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS " +
+    "BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI " +
+    "FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR " +
+    "IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM " +
+    "MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT " +
+    "PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM " +
+    "TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW").split(" ");
+  // F13 : recherche tolérante (common/text/text-search.constants.ts)
+  var APPROXIMATE_MIN_WORD_LENGTH = 4;
+  var APPROXIMATE_LONG_WORD_LENGTH = 8;
+  var APPROXIMATE_SHORT_WORD_MAX_DISTANCE = 1;
+  var APPROXIMATE_LONG_WORD_MAX_DISTANCE = 2;
 
   // ---------------------------------------------------------------- utilitaires
   var COMBINING_MARKS = /\p{M}/gu;
@@ -70,6 +93,34 @@
       .replace(/\s+/g, " ").trim();
   };
   var normalizeLineEndings = function (value) { return value.replace(/\r\n?/g, "\n"); };
+  // common/text/levenshtein-distance.ts et matches-approximately.ts (F13)
+  var levenshteinDistance = function (a, b) {
+    var previousRow = Array.from({ length: b.length + 1 }, function (_, i) { return i; });
+    for (var row = 1; row <= a.length; row += 1) {
+      var currentRow = [row];
+      for (var column = 1; column <= b.length; column += 1) {
+        var substitutionCost = a[row - 1] === b[column - 1] ? 0 : 1;
+        currentRow.push(Math.min(previousRow[column] + 1, currentRow[column - 1] + 1, previousRow[column - 1] + substitutionCost));
+      }
+      previousRow = currentRow;
+    }
+    return previousRow[b.length];
+  };
+  var toSignificantWords = function (value) {
+    return normalizeSearchText(value).split(" ").filter(function (w) { return w.length >= APPROXIMATE_MIN_WORD_LENGTH; });
+  };
+  var maxDistanceFor = function (word) {
+    return word.length >= APPROXIMATE_LONG_WORD_LENGTH ? APPROXIMATE_LONG_WORD_MAX_DISTANCE : APPROXIMATE_SHORT_WORD_MAX_DISTANCE;
+  };
+  var hasApproximableWord = function (term) { return toSignificantWords(term).length > 0; };
+  var matchesApproximately = function (term, texts) {
+    var termWords = toSignificantWords(term);
+    if (termWords.length === 0) return false;
+    var textWords = texts.reduce(function (all, t) { return all.concat(toSignificantWords(t)); }, []);
+    return termWords.every(function (termWord) {
+      return textWords.some(function (textWord) { return levenshteinDistance(termWord, textWord) <= maxDistanceFor(termWord); });
+    });
+  };
   var sqlLower = function (value) { return value.replace(/[A-Z]/g, function (c) { return c.toLowerCase(); }); };
   var compareBinary = function (a, b) {
     var i = 0;
@@ -124,6 +175,7 @@
   var notFound = function (m) { return new HttpError(404, m); };
   var forbidden = function (m) { return new HttpError(403, m); };
   var conflict = function (m) { return new HttpError(409, m); };
+  var tooManyRequests = function (m) { return new HttpError(429, m); };
 
   // ---------------------------------------------------------------- seed (portage de src/database/seed/*.ts)
   var toIdsByLowerName = function (rows) {
@@ -184,7 +236,7 @@
         styleId: styleIds.get(row.styleName.toLowerCase()), abv: row.abv, ibu: row.ibu, ebc: row.ebc,
         description: row.description, aromas: row.aromas.map(function (s) { return BEER_AROMA_BY_SEED_SLUG[s]; }),
         formats: BEER_FORMATS.filter(function (f) { return row.formats.indexOf(f) !== -1; }), country: row.country,
-        searchText: normalizeSearchText(row.name + " " + row.breweryName) };
+        searchText: normalizeSearchText(row.name + " " + row.breweryName), createdBy: null, createdAt: null };
     });
     var venues = seed.venues.map(function (row, i) {
       return { id: i + 1, name: row.name, type: row.type, city: row.city, address: row.address,
@@ -219,7 +271,8 @@
       seed.demoCheckins.forEach(function (row) {
         if (userIdsByName[row.userName] !== userId) return;
         checkins.push({ id: checkins.length + 1, userId: userId, beerId: beerIds.get(row.beerName.toLowerCase()),
-          drankAt: checkinsNow - row.daysAgo * DAY_MS, place: row.place, rating: row.rating, aromas: [],
+          drankAt: checkinsNow - row.daysAgo * DAY_MS, place: row.place,
+          venueId: row.venueId !== undefined ? row.venueId : null, rating: row.rating, aromas: [],
           format: row.format, price: null, comment: "", photoId: null });
       });
     });
@@ -231,7 +284,7 @@
       users: users, styles: styles, breweries: breweries, beers: beers, venues: venues, links: links, votes: votes,
       reviews: reviews, checkins: checkins, follows: follows, wishlist: [], collections: [], collectionItems: [],
       photos: {},
-      seq: { venues: venues.length, links: links.length, votes: votes.length, reviews: reviews.length,
+      seq: { beers: beers.length, breweries: breweries.length, venues: venues.length, links: links.length, votes: votes.length, reviews: reviews.length,
         checkins: checkins.length, follows: follows.length, wishlist: 0, collections: 0, collectionItems: 0 },
     };
   };
@@ -363,6 +416,10 @@
     return { key: "isEnum", each: each, test: function (v) { return values.indexOf(v) !== -1; },
       message: function (p, r) { return eachPrefix(r) + p + " must be one of the following values: " + values.join(", "); } };
   };
+  var IsIn = function (values) {
+    return { key: "isIn", each: false, test: function (v) { return values.indexOf(v) !== -1; },
+      message: function (p) { return p + " must be one of the following values: " + values.join(", "); } };
+  };
   var Min = function (min, opts) {
     var each = !!(opts && opts.each);
     return { key: "min", each: each, test: function (v) { return typeof v === "number" && v >= min; },
@@ -428,6 +485,7 @@
     schema.forEach(function (prop) {
       var value = object[prop.name];
       if (prop.optional && (value === null || value === undefined)) return;
+      if (prop.supplied && value === undefined) return; // @ValidateIf((_, v) => v !== undefined) : null est validé
       var constraints = {};
       prop.rules.slice().reverse().forEach(function (r) {
         var ok = r.each && Array.isArray(value) ? value.every(r.test) : r.test(value);
@@ -481,12 +539,35 @@
     { name: "beerId", number: true, rules: [IsInt(), Min(1)] },
     { name: "drankAt", rules: [IsISO8601()] },
     { name: "place", transform: trimString, rules: [IsString(), IsNotEmpty(), MaxLength(80)] },
+    { name: "venueId", optional: true, number: true, rules: [IsInt(), Min(1)] },
     { name: "rating", optional: true, number: true, rules: [IsNumber(), Min(0.5), Max(5), IsMultipleOf(0.5)] },
     { name: "aromas", optional: true, transform: splitAromas,
       rules: [IsArray(), ArrayMaxSize(5), ArrayUnique(), IsEnum(BEER_AROMAS, { each: true })] },
     { name: "format", rules: [IsEnum(BEER_FORMATS)] },
     { name: "price", optional: true, number: true, rules: [IsNumber({ maxDecimalPlaces: 2 }), Min(0), Max(1000)] },
     { name: "comment", optional: true, transform: normalizeComment, rules: [IsString(), MaxLength(500)] },
+  ];
+  // UpdateCheckinDto (F13) : JSON, sans @Type ; supplied = @ValidateIf(v !== undefined), optional = @IsOptional
+  var UpdateCheckinSchema = [
+    { name: "drankAt", supplied: true, rules: [IsISO8601()] },
+    { name: "place", supplied: true, transform: trimString, rules: [IsString(), IsNotEmpty(), MaxLength(80)] },
+    { name: "venueId", optional: true, rules: [IsInt(), Min(1)] },
+    { name: "rating", optional: true, rules: [IsNumber(), Min(0.5), Max(5), IsMultipleOf(0.5)] },
+    { name: "aromas", supplied: true, rules: [IsArray(), ArrayMaxSize(5), ArrayUnique(), IsEnum(BEER_AROMAS, { each: true })] },
+    { name: "format", supplied: true, rules: [IsEnum(BEER_FORMATS)] },
+    { name: "price", optional: true, rules: [IsNumber({ maxDecimalPlaces: 2 }), Min(0), Max(1000)] },
+    { name: "comment", supplied: true, transform: normalizeComment, rules: [IsString(), MaxLength(500)] },
+  ];
+  var toSingleLine = function (v) { return typeof v === "string" ? v.replace(/\s+/g, " ").trim() : v; };
+  var CreateBeerSchema = [
+    { name: "name", transform: toSingleLine,
+      rules: [IsString(), MinLength(BEER_NAME_MIN_LENGTH), MaxLength(BEER_NAME_MAX_LENGTH)] },
+    { name: "breweryName", transform: toSingleLine,
+      rules: [IsString(), MinLength(BREWERY_NAME_MIN_LENGTH), MaxLength(BREWERY_NAME_MAX_LENGTH)] },
+    { name: "country", rules: [IsIn(COUNTRY_CODES)] },
+    { name: "styleId", rules: [IsInt(), Min(1)] },
+    { name: "abv", rules: [IsNumber({ maxDecimalPlaces: BEER_ABV_MAX_DECIMAL_PLACES }), Min(0), Max(BEER_PROPOSAL_ABV_MAX_PERCENT)] },
+    { name: "description", optional: true, transform: normalizeText, rules: [IsString(), MaxLength(BEER_DESCRIPTION_MAX_LENGTH)] },
   ];
   var CheckinsQuerySchema = [
     { name: "beerId", optional: true, number: true, rules: [IsInt(), Min(1)] },
@@ -505,6 +586,7 @@
       rules: [IsArray(), IsInt({ each: true }), Min(1, { each: true })] },
     { name: "confirmedOnly", optional: true, transform: toBoolean, rules: [IsBoolean()] },
     { name: "undiscovered", optional: true, transform: toBoolean, rules: [IsBoolean()] },
+    { name: "visited", optional: true, transform: toBoolean, rules: [IsBoolean()] },
     { name: "latitude", optional: true, number: true, rules: [IsNumber(), Min(-90), Max(90)] },
     { name: "longitude", optional: true, number: true, rules: [IsNumber(), Min(-180), Max(180)] },
     { name: "radiusKm", optional: true, number: true, rules: [IsNumber(), IsPositive(), Max(50)] },
@@ -526,7 +608,6 @@
   ];
   var SaveCollectionSchema = [{ name: "name", transform: trimString, rules: [IsString(), IsNotEmpty(), MaxLength(40)] }];
   var MyCollectionsQuerySchema = [{ name: "beerId", optional: true, number: true, rules: [IsInt(), Min(1)] }];
-  var EmptySchema = [];
 
   // ---------------------------------------------------------------- utilisateurs
   var getUsers = function () {
@@ -556,6 +637,7 @@
       colorLevel: beer.ebc === null ? null : toLevel(beer.ebc, COLOR_LEVEL_EBC_MAX),
       styleColorRange: beer.ebc === null
         ? { min: toLevel(style.ebcMin, COLOR_LEVEL_EBC_MAX), max: toLevel(style.ebcMax, COLOR_LEVEL_EBC_MAX) } : null,
+      source: beer.createdBy === null ? "official" : "community", createdBy: beer.createdBy,
     };
   };
   var getBeer = function (id) {
@@ -598,6 +680,7 @@
       }
       if (filters.beerIds !== undefined && filters.beerIds.indexOf(beer.id) === -1) return false;
       if (filters.excludedBeerIds !== undefined && filters.excludedBeerIds.indexOf(beer.id) !== -1) return false;
+      if (filters.officialOnly === true && beer.createdBy !== null) return false;
       return true;
     });
   };
@@ -622,7 +705,7 @@
     return { families: families, countries: countries, formats: formats };
   };
   var getCatalogTotals = function () {
-    var facets = findFacets("", {}, ratingSummaries());
+    var facets = findFacets("", { officialOnly: true }, ratingSummaries());
     return { total: facets.families.reduce(function (s, f) { return s + f.count; }, 0), families: facets.families };
   };
   var sortBeers = function (rows, sort, summaries) {
@@ -665,8 +748,13 @@
     return state.wishlist.filter(function (w) { return w.userId === userId; }).map(function (w) { return w.beerId; })
       .sort(function (a, b) { return a - b; });
   };
+  var findAuthorName = function (beer) {
+    if (beer.createdBy === null) return null;
+    var author = index.usersById.get(beer.createdBy);
+    return author ? author.displayName : null;
+  };
   var toCatalogBeerDto = function (beer, st, summary) {
-    return Object.assign(beer, {
+    return Object.assign(beer, { createdByName: findAuthorName(beer),
       drunk: st ? st.drunk : false, checkinCount: st ? st.checkinCount : 0, inWishlist: st ? st.inWishlist : false,
       averageRating: summary ? summary.averageRating : null, reviewCount: summary ? summary.reviewCount : 0,
     });
@@ -685,12 +773,59 @@
     if (query.status === "wishlist") filters.beerIds = getWishlistBeerIds(userId);
     if (query.status === "untasted") filters.excludedBeerIds = getDrunkBeerIds(userId);
     var summaries = ratingSummaries();
-    var rows = sortBeers(applyConditions(search, filters, summaries), query.sort !== undefined ? query.sort : "name", summaries);
+    var sort = query.sort !== undefined ? query.sort : "name";
+    var found = findBeersPage(search, filters, sort, summaries);
+    var rows = found.rows;
     var slice = rows.slice((page - 1) * size, (page - 1) * size + size);
-    var facets = findFacets(search, filters, summaries);
     var states = byKey(getBeerStates(userId, slice.map(function (b) { return b.id; })), "beerId");
     var items = slice.map(function (b) { return toCatalogBeerDto(toBeerDto(b), states.get(b.id), summaries.get(b.id)); });
-    return { items: items, total: rows.length, page: page, size: size, facets: facets };
+    return { items: items, total: rows.length, page: page, size: size, facets: found.facets, isApproximate: found.isApproximate };
+  };
+  // beers.service.ts findBeersPage (F13) : repli tolérant quand la recherche exacte, filtres compris, ne rend rien.
+  var findBeersPage = function (search, filters, sort, summaries) {
+    var rows = sortBeers(applyConditions(search, filters, summaries), sort, summaries);
+    var facets = findFacets(search, filters, summaries);
+    if (rows.length > 0 || !hasApproximableWord(search)) return { rows: rows, facets: facets, isApproximate: false };
+    var beerIds = applyConditions("", filters, summaries).sort(function (a, b) { return a.id - b.id; })
+      .filter(function (b) { return matchesApproximately(search, [b.searchText]); }).map(function (b) { return b.id; });
+    if (beerIds.length === 0) return { rows: rows, facets: facets, isApproximate: false };
+    var approximateFilters = Object.assign({}, filters, { beerIds: beerIds });
+    return { rows: sortBeers(applyConditions("", approximateFilters, summaries), sort, summaries),
+      facets: findFacets("", approximateFilters, summaries), isApproximate: true };
+  };
+  var getBreweries = function () {
+    return state.breweries.slice().sort(function (a, b) { return compareBinary(sqlLower(a.name), sqlLower(b.name)) || a.id - b.id; })
+      .map(function (b) { return { id: b.id, name: b.name, country: b.country }; });
+  };
+  // beers.service.ts createBeer (F12) : 404 style -> 429 quota -> brasserie réutilisée ou créée -> 409 doublon.
+  var createBeer = function (userId, dto) {
+    if (!state.styles.some(function (st) { return st.id === dto.styleId; })) throw notFound("Beer style " + dto.styleId + " not found.");
+    var since = Date.now() - BEER_PROPOSAL_WINDOW_MS;
+    var recent = state.beers.filter(function (b) { return b.createdBy === userId && b.createdAt !== null && b.createdAt >= since; });
+    if (recent.length >= BEER_PROPOSALS_PER_WINDOW_MAX) {
+      throw tooManyRequests("You can propose at most " + BEER_PROPOSALS_PER_WINDOW_MAX + " beers every " +
+        BEER_PROPOSAL_WINDOW_HOURS + " hours.");
+    }
+    var breweryKey = normalizeSearchText(dto.breweryName);
+    var brewery = getBreweries().find(function (b) { return normalizeSearchText(b.name) === breweryKey; });
+    var breweryId;
+    if (brewery === undefined) {
+      breweryId = nextId("breweries");
+      state.breweries.push({ id: breweryId, name: dto.breweryName, country: dto.country, city: "" });
+    } else {
+      var nameKey = normalizeSearchText(dto.name);
+      if (state.beers.some(function (b) { return b.breweryId === brewery.id && normalizeSearchText(b.name) === nameKey; })) {
+        throw conflict("A beer named \"" + nameKey + "\" already exists for brewery \"" + brewery.name + "\".");
+      }
+      breweryId = brewery.id;
+    }
+    var id = nextId("beers");
+    state.beers.push({ id: id, name: dto.name, breweryId: breweryId, styleId: dto.styleId, abv: dto.abv, ibu: null, ebc: null,
+      description: dto.description !== undefined && dto.description !== null ? dto.description : "", aromas: [], formats: [],
+      country: dto.country, searchText: normalizeSearchText(dto.name + " " + dto.breweryName), createdBy: userId,
+      createdAt: Date.now() });
+    rebuildIndex();
+    return getBeerForUser(userId, id);
   };
 
   var findReviewStats = function (beerId) {
@@ -773,12 +908,13 @@
   // ---------------------------------------------------------------- dégustations, dex, liste d'envies
   var compareChrono = function (a, b) { return a.drankAt - b.drankAt || a.id - b.id; };
   var toCheckinRecord = function (c) {
-    return { id: c.id, userId: c.userId, beerId: c.beerId, drankAt: iso(c.drankAt), place: c.place, rating: c.rating,
+    return { id: c.id, userId: c.userId, beerId: c.beerId, drankAt: iso(c.drankAt), place: c.place,
+      venueId: c.venueId === undefined ? null : c.venueId, rating: c.rating,
       aromas: c.aromas.slice(), format: c.format, price: c.price, comment: c.comment, photoId: c.photoId };
   };
   var toCheckinDto = function (record, beerName) {
     return { id: record.id, beerId: record.beerId, beerName: beerName, drankAt: record.drankAt, place: record.place,
-      rating: record.rating, aromas: record.aromas, format: record.format, price: record.price, comment: record.comment,
+      venueId: record.venueId, rating: record.rating, aromas: record.aromas, format: record.format, price: record.price, comment: record.comment,
       photoId: record.photoId };
   };
   var getUserCheckins = function (userId) {
@@ -822,6 +958,7 @@
       if (contentType === null) throw badRequest("The photo must be a JPEG, PNG or WebP image.");
     }
     var beer = getBeer(dto.beerId);
+    if (dto.venueId !== undefined) ensureVenueExists(dto.venueId);
     var isFirstDiscovery = !hasCheckin(userId, beer.id);
     var photoId = null;
     if (photo) {
@@ -830,7 +967,8 @@
       photoUrls.set(photoId, bytesToDataUrl(photo.bytes, contentType));
     }
     var checkin = { id: nextId("checkins"), userId: userId, beerId: dto.beerId, drankAt: new Date(dto.drankAt).getTime(),
-      place: dto.place.trim(), rating: dto.rating !== undefined && dto.rating !== null ? dto.rating : null,
+      place: dto.place.trim(), venueId: dto.venueId !== undefined && dto.venueId !== null ? dto.venueId : null,
+      rating: dto.rating !== undefined && dto.rating !== null ? dto.rating : null,
       aromas: (dto.aromas || []).slice(), format: dto.format,
       price: dto.price !== undefined && dto.price !== null ? dto.price : null,
       comment: dto.comment !== undefined && dto.comment !== null ? dto.comment : "", photoId: photoId };
@@ -847,11 +985,40 @@
     return { items: slice.map(function (r) { return toCheckinDto(r, names.get(r.beerId) || ""); }), total: rows.length,
       page: page, size: CHECKIN_PAGE_SIZE };
   };
-  var deleteCheckin = function (userId, id) {
-    var i = state.checkins.findIndex(function (c) { return c.id === id; });
-    if (i === -1) throw notFound("Check-in " + id + " not found.");
-    var checkin = state.checkins[i];
+  var getOwnedCheckin = function (userId, id) {
+    var checkin = state.checkins.find(function (c) { return c.id === id; });
+    if (!checkin) throw notFound("Check-in " + id + " not found.");
     if (checkin.userId !== userId) throw forbidden("You can only access your own check-ins.");
+    return checkin;
+  };
+  var getCheckin = function (userId, id) {
+    var checkin = getOwnedCheckin(userId, id);
+    return toCheckinDto(toCheckinRecord(checkin), getBeer(checkin.beerId).name);
+  };
+  // pokedex.service.ts updateCheckin (F13) : corps vide -> date future -> venueId sans place -> 404/403 -> 404 lieu.
+  var updateCheckin = function (userId, id, dto) {
+    if (!Object.keys(dto).some(function (k) { return dto[k] !== undefined; })) throw badRequest("At least one field must be supplied.");
+    if (dto.drankAt !== undefined && Date.parse(dto.drankAt) > Date.now() + CHECKIN_FUTURE_TOLERANCE_MS) {
+      throw badRequest("drankAt must not be in the future.");
+    }
+    var linkedVenueId = dto.venueId !== undefined && dto.venueId !== null ? dto.venueId : null;
+    if (linkedVenueId !== null && dto.place === undefined) throw badRequest("venueId requires place.");
+    var checkin = getOwnedCheckin(userId, id);
+    if (linkedVenueId !== null) ensureVenueExists(linkedVenueId);
+    var beer = getBeer(checkin.beerId);
+    if (dto.drankAt !== undefined) checkin.drankAt = new Date(dto.drankAt).getTime();
+    if (dto.place !== undefined) checkin.place = dto.place.trim();
+    if (dto.place !== undefined || dto.venueId !== undefined) checkin.venueId = linkedVenueId;
+    if (dto.rating !== undefined) checkin.rating = dto.rating;
+    if (dto.aromas !== undefined) checkin.aromas = dto.aromas.slice();
+    if (dto.format !== undefined) checkin.format = dto.format;
+    if (dto.price !== undefined) checkin.price = dto.price;
+    if (dto.comment !== undefined) checkin.comment = dto.comment;
+    return toCheckinDto(toCheckinRecord(checkin), beer.name);
+  };
+  var deleteCheckin = function (userId, id) {
+    var checkin = getOwnedCheckin(userId, id);
+    var i = state.checkins.indexOf(checkin);
     state.checkins.splice(i, 1);
     if (checkin.photoId !== null) {
       delete state.photos[checkin.photoId];
@@ -861,10 +1028,12 @@
   var getDex = function (userId) {
     var discoveries = getDiscoveries(userId);
     var totals = getCatalogTotals();
-    var discovered = getBeersByIds(discoveries.map(function (d) { return d.beerId; }));
+    var discovered = getBeersByIds(discoveries.map(function (d) { return d.beerId; }))
+      .filter(function (b) { return b.source === "official"; });
+    var officialIds = new Set(discovered.map(function (b) { return b.id; }));
     var totalsByFamily = new Map(totals.families.map(function (f) { return [f.value, f.count]; }));
     return {
-      discovered: discoveries.length, total: totals.total,
+      discovered: discoveries.filter(function (d) { return officialIds.has(d.beerId); }).length, total: totals.total,
       families: BEER_FAMILIES.map(function (family) {
         return { family: family, discovered: discovered.filter(function (b) { return b.family === family; }).length,
           total: totalsByFamily.get(family) || 0 };
@@ -953,18 +1122,36 @@
       address: v.address, latitude: v.latitude, longitude: v.longitude,
       description: v.description === null || v.description === undefined ? "" : v.description };
   };
-  var toVenueDto = function (record, status, distanceKm) {
+  var toVenueDto = function (record, status, distanceKm, visit, isApproximateMatch) {
     return { id: record.id, name: record.name, type: record.type, city: record.city, address: record.address,
       latitude: record.latitude, longitude: record.longitude, description: record.description, distanceKm: distanceKm,
-      status: status };
+      status: status, checkinCount: visit ? visit.checkinCount : 0, lastCheckinAt: visit ? visit.lastCheckinAt : null,
+      isApproximateMatch: isApproximateMatch };
+  };
+  // tastings.repository.ts findVenueVisits (F11) : COUNT(*) et MAX(drankAt) des dégustations de l'utilisateur par lieu.
+  var getVisits = function (userId, venueIds) {
+    var wanted = new Set(venueIds);
+    var acc = new Map();
+    state.checkins.forEach(function (c) {
+      if (c.userId !== userId || c.venueId === null || c.venueId === undefined || !wanted.has(c.venueId)) return;
+      var cur = acc.get(c.venueId);
+      if (!cur) acc.set(c.venueId, { venueId: c.venueId, checkinCount: 1, last: c.drankAt });
+      else { cur.checkinCount += 1; cur.last = Math.max(cur.last, c.drankAt); }
+    });
+    var out = new Map();
+    acc.forEach(function (v, venueId) {
+      out.set(venueId, { venueId: venueId, checkinCount: v.checkinCount, lastCheckinAt: iso(v.last) });
+    });
+    return out;
   };
   var groupByVenue = function (links) {
     var map = new Map();
     links.forEach(function (l) { map.set(l.venueId, (map.get(l.venueId) || []).concat([l])); });
     return map;
   };
-  var toVenueWithStatus = function (record, links, now, distanceKm) {
-    return toVenueDto(record, pickBestStatus(links.map(function (l) { return computeAvailability(l.votes, now).status; })), distanceKm);
+  var toVenueWithStatus = function (record, links, now, distanceKm, visit, isApproximateMatch) {
+    return toVenueDto(record, pickBestStatus(links.map(function (l) { return computeAvailability(l.votes, now).status; })), distanceKm,
+      visit, isApproximateMatch);
   };
   var toPosition = function (query) {
     if (query.latitude === undefined && query.longitude === undefined) return null;
@@ -1013,6 +1200,16 @@
       radiusKm = query.radiusKm;
     }
     var records = findVenues(bounds, types, search);
+    var venues = toFilteredVenues(userId, query, records, position, radiusKm, false);
+    if (venues.length > 0 || !hasApproximableWord(search)) {
+      if (position === null || search !== "") return venues;
+      return venues.sort(function (a, b) { return a.distanceKm - b.distanceKm || a.name.localeCompare(b.name, "fr"); });
+    }
+    // F13 : repli tolérant sur les mots du nom et de la ville, filtres compris, sans tri par distance.
+    var closeRecords = findVenues(bounds, types, "").filter(function (r) { return matchesApproximately(search, [r.name, r.city]); });
+    return toFilteredVenues(userId, query, closeRecords, position, radiusKm, true);
+  };
+  var toFilteredVenues = function (userId, query, records, position, radiusKm, isApproximateMatch) {
     var recordIds = new Set(records.map(function (r) { return r.id; }));
     var links = findLinks(function (l) { return recordIds.has(l.venueId); });
     var retained = links;
@@ -1028,22 +1225,29 @@
     }
     var linksByVenue = groupByVenue(retained);
     var undiscoveredIds = new Set(undiscovered.map(function (l) { return l.venueId; }));
+    var visits = getVisits(userId, records.map(function (r) { return r.id; }));
     var now = Date.now();
-    var venues = records
+    return records
       .filter(function (r) { return !hasBeerFilter(query) || linksByVenue.has(r.id); })
       .filter(function (r) { return query.undiscovered !== true || undiscoveredIds.has(r.id); })
+      .filter(function (r) { return query.visited !== true || (visits.has(r.id) && visits.get(r.id).checkinCount > 0); })
       .map(function (r) {
-        return toVenueWithStatus(r, linksByVenue.get(r.id) || [], now, position === null ? null : computeDistanceKm(position, r));
+        return toVenueWithStatus(r, linksByVenue.get(r.id) || [], now, position === null ? null : computeDistanceKm(position, r),
+          visits.get(r.id), isApproximateMatch);
       })
       .filter(function (v) { return query.confirmedOnly !== true || v.status === "confirmed"; })
       .filter(function (v) { return radiusKm === null || v.distanceKm <= radiusKm; });
-    if (position === null || search !== "") return venues;
-    return venues.sort(function (a, b) { return a.distanceKm - b.distanceKm || a.name.localeCompare(b.name, "fr"); });
   };
   var getVenueRecord = function (id) {
     var venue = state.venues.find(function (v) { return v.id === id; });
     if (!venue) throw notFound("Venue " + id + " not found.");
     return toVenueRecord(venue);
+  };
+  var ensureVenueExists = function (id) { getVenueRecord(id); };
+  var getVenue = function (userId, id) {
+    var record = getVenueRecord(id);
+    var links = findLinks(function (l) { return l.venueId === id; });
+    return toVenueWithStatus(record, links, Date.now(), null, getVisits(userId, [id]).get(id), false);
   };
   var getBeerVenues = function (beerId, query) {
     var position = toPosition(query);
@@ -1143,7 +1347,7 @@
       description: dto.description !== undefined && dto.description !== null ? dto.description : null,
       nameKey: nameKey, searchName: normalizeSearchText(name), searchCity: normalizeSearchText(city || "") };
     state.venues.push(venue);
-    return toVenueDto(toVenueRecord(venue), "unknown", null);
+    return toVenueDto(toVenueRecord(venue), "unknown", null, undefined, false);
   };
   var reportBeer = function (userId, venueId, dto) {
     getVenueRecord(venueId);
@@ -1255,6 +1459,8 @@
       if (beer && !seen.has(beer.id)) { seen.add(beer.id); discoveries.push({ drankAt: c.drankAt, beer: beer }); }
     });
     var discoveryDates = discoveries.map(function (d) { return d.drankAt; });
+    var officialDiscoveries = discoveries.filter(function (d) { return d.beer.source === "official"; });
+    var officialDiscoveryDates = officialDiscoveries.map(function (d) { return d.drankAt; });
     var totalsByFamily = new Map(totals.families.map(function (f) { return [f.value, f.count]; }));
     var countries = new Set();
     var globetrotterAt = null;
@@ -1272,12 +1478,12 @@
       badge("firstSip", null, BADGE_TARGETS.firstSip, progressTowards(BADGE_TARGETS.firstSip, discoveryDates)),
       badge("explorer", null, BADGE_TARGETS.explorer, progressTowards(BADGE_TARGETS.explorer, discoveryDates)),
       badge("collector", null, 50, progressTowards(50, discoveryDates)),
-      badge("completionist", null, totals.total, progressTowards(totals.total, discoveryDates)),
+      badge("completionist", null, totals.total, progressTowards(totals.total, officialDiscoveryDates)),
       badge("globetrotter", null, BADGE_TARGETS.globetrotter,
         { current: Math.min(countries.size, BADGE_TARGETS.globetrotter), unlockedAt: globetrotterAt }),
     ].concat(BEER_FAMILIES.map(function (family) {
       var target = totalsByFamily.get(family) || 0;
-      var dates = discoveries.filter(function (d) { return d.beer.family === family; }).map(function (d) { return d.drankAt; });
+      var dates = officialDiscoveries.filter(function (d) { return d.beer.family === family; }).map(function (d) { return d.drankAt; });
       return badge("specialist", family, target, progressTowards(target, dates));
     })).concat([
       badge("photographer", null, BADGE_TARGETS.photographer, progressTowards(BADGE_TARGETS.photographer, photoDates)),
@@ -1561,7 +1767,9 @@
   var int = function (name) { return { name: name, pipe: parseIntParam }; };
 
   route("GET", "/beers", { query: BeersQuerySchema, run: function (r) { return getBeers(r.userId, r.query); } });
+  route("POST", "/beers", { status: 201, body: CreateBeerSchema, run: function (r) { return createBeer(r.userId, r.body); } });
   route("GET", "/beer-styles", { run: function () { return getStyleGroups(); } });
+  route("GET", "/breweries", { run: function () { return getBreweries(); } });
   route("GET", "/beers/:id", { params: [int("id")], run: function (r) { return getBeerForUser(r.userId, r.params.id); } });
   route("GET", "/beers/:beerId/reviews", { params: [int("beerId")], query: PageQuerySchema,
     run: function (r) { return getReviewPage(r.userId, r.params.beerId, r.query); } });
@@ -1574,6 +1782,9 @@
   route("POST", "/checkins", { status: 201, multipart: true, body: CreateCheckinSchema,
     run: function (r) { return createCheckin(r.userId, r.body, r.file); } });
   route("GET", "/checkins", { query: CheckinsQuerySchema, run: function (r) { return getCheckins(r.userId, r.query); } });
+  route("GET", "/checkins/:id", { params: [int("id")], run: function (r) { return getCheckin(r.userId, r.params.id); } });
+  route("PATCH", "/checkins/:id", { params: [int("id")], body: UpdateCheckinSchema,
+    run: function (r) { return updateCheckin(r.userId, r.params.id, r.body); } });
   route("DELETE", "/checkins/:id", { params: [int("id")], status: 204, run: function (r) { deleteCheckin(r.userId, r.params.id); } });
   route("GET", "/me/dex", { run: function (r) { return getDex(r.userId); } });
   route("GET", "/me/wishlist", { run: function (r) { return getWishlist(r.userId); } });
@@ -1581,6 +1792,7 @@
   route("DELETE", "/me/wishlist/:beerId", { params: [int("beerId")], status: 204,
     run: function (r) { removeFromWishlist(r.userId, r.params.beerId); } });
   route("GET", "/venues", { query: VenuesQuerySchema, run: function (r) { return getVenues(r.userId, r.query); } });
+  route("GET", "/venues/:id", { params: [int("id")], run: function (r) { return getVenue(r.userId, r.params.id); } });
   route("GET", "/venues/:id/beers", { params: [int("id")], query: VenueBeersQuerySchema,
     run: function (r) { return getVenueBeers(r.userId, r.params.id, r.query); } });
   route("POST", "/venues", { status: 201, body: CreateVenueSchema, run: function (r) { return createVenue(r.body); } });
@@ -1625,7 +1837,7 @@
 
   // ---------------------------------------------------------------- serveur HTTP simulé
   var STATUS_TEXT = { 200: "OK", 201: "Created", 204: "No Content", 400: "Bad Request", 401: "Unauthorized",
-    403: "Forbidden", 404: "Not Found", 409: "Conflict", 413: "Payload Too Large", 500: "Internal Server Error" };
+    403: "Forbidden", 404: "Not Found", 409: "Conflict", 413: "Payload Too Large", 429: "Too Many Requests", 500: "Internal Server Error" };
   var jsonResponse = function (status, body) {
     if (status === 204) return new Response(null, { status: 204, statusText: STATUS_TEXT[204] });
     return new Response(JSON.stringify(body), { status: status, statusText: STATUS_TEXT[status] || "",
@@ -1699,7 +1911,8 @@
       var value = decodeURIComponent(match[idx + 1]);
       request.params[name] = spec ? spec.pipe(value) : value;
     });
-    request.query = validate(found.query || EmptySchema, parseQuery(parsed.search));
+    // Sans @Query() dans le contrôleur, Nest ne valide pas la chaîne de requête : les paramètres inconnus sont ignorés.
+    request.query = found.query ? validate(found.query, parseQuery(parsed.search)) : {};
     if (found.body) request.body = validate(found.body, plainBody);
     var result = found.run(request);
     return { status: found.status || 200, body: result, mutating: method !== "GET" };
