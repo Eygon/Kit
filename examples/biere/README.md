@@ -46,4 +46,4 @@ Les `front/` et `back/` de ce dossier sont des copies de travail du code livré 
 
 ## Décisions à confirmer
 
-Toutes les décisions prises par le superviseur en l'absence de Thomas sont listées par feature dans `JOURNAL.md` et dans les `plan.md` des specs (« à confirmer par Thomas »).
+Toutes les décisions prises par le superviseur en l'absence de Thomas sont regroupées dans `DECISIONS.md` (22 décisions, avec le pourquoi) ; le détail par feature est dans `JOURNAL.md` et dans les `plan.md` des specs (« à confirmer par Thomas »).
