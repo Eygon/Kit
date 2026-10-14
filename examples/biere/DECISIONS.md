@@ -34,8 +34,8 @@ Si tu ne dis rien, tout reste tel quel.
 | 19 | **Seed de démo social** derrière `SEED_DEMO_ACTIVITY` (activé par défaut, coupé en test) : dégustations de Bob et Carol sur 30 jours, Alice les suit (F5) | Ne casse pas les tests existants |
 | 20 | **Recherche de lieux avec colonnes normalisées** (`searchName`, `searchCity`) + rattrapage au démarrage pour les bases déjà remplies (F6) | Pas de base à recréer |
 | 21 | **Budgets du bundle** : fichier d'entrée ≤ 450 kB et JS initial ≤ 900 kB ; 5 pages chargées à la demande (F9) | 1 147 kB → 890 kB au départ |
-| 23 | **Appli installable + hors ligne (F10)** : vite-plugin-pwa 1.3.0 et sharp 0.35.4 en devDependency (versions exactes) ; icône d'appli tirée de la mascotte (écart au standard `ui/mascot`) ; cache de lecture des GET /api/v1 hors photos (réseau d'abord, 7 jours), jamais les écritures ; cache vidé au changement d'utilisateur de démo | Pas de file d'attente d'écritures hors ligne (hors périmètre). Réversible : supprimer `public/icons` et le plugin |
 | 22 | **Polices écrites à la main** (latin et latin-ext seulement) plutôt que les CSS par sous-ensemble de la bibliothèque (F9) | Ces CSS font télécharger latin-ext à chaque visite |
+| 23 | **Appli installable + hors ligne (F10)** : vite-plugin-pwa 1.3.0 et sharp 0.35.4 en devDependency (versions exactes) ; icône d'appli tirée de la mascotte (écart au standard `ui/mascot`) ; cache de lecture des GET /api/v1 hors photos (réseau d'abord, 7 jours), jamais les écritures ; cache vidé au changement d'utilisateur de démo | Pas de file d'attente d'écritures hors ligne (hors périmètre). Réversible : supprimer `public/icons` et le plugin |
 
 ## À savoir (limites, pas des choix)
 
