@@ -534,6 +534,12 @@ Elle nomme donc :
   repository back) : le fichier du mapper et celui de son test, dans les
   chemins de la tache (un helper de mapping local est un ecart au standard
   triade/repository-pattern : la revue escalade, 2 fois sur 2 features) ;
+- pour tout champ OBLIGATOIRE ajoute a une entite ou a un type partage : les types
+  derives (`Omit<Entite, ...>`, `Pick<...>`, un `...InsertRow` du seed) et les
+  fabriques de fixtures (`grep -rn "Omit<Entite\|Pick<Entite" src`) dans les chemins
+  de la US, ou le champ declare facultatif/omis du type derive. Omission vue sur
+  Mousse F12 US2 : `catalog-seed.ts` ne compilait plus, le worker s'est arrete
+  (STOP preuve) et la feature a perdu un run ;
 - pour un changement de surface publique (hook, type partage, export) :
   chaque consommateur (`grep -rl "<nom du module>" src`) dans CETTE US, ou
   un alias transitoire NOMME qui couvre tout membre retire ; un
