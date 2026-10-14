@@ -38,6 +38,7 @@ export const toReviewDto = (record: ReviewRecordDto, author: UserDto, currentUse
   authorId: record.userId,
   authorName: author.displayName,
   authorAvatarColor: author.avatarColor,
+  authorAvatar: author.avatar,
   rating: record.rating,
   text: record.text,
   sweetness: record.sweetness,

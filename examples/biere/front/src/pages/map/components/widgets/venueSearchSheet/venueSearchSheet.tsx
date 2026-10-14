@@ -6,7 +6,10 @@ import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStat
 import { useVenueSearch } from "@/pages/map/hooks/useVenueSearch";
 import type { VenueSearchSheetProps } from "@/pages/map/types/venueSearchSheet";
 import { formatDistance } from "@/pages/map/utils/formatDistance";
-import { VENUE_SEARCH_MAX_LENGTH } from "@/pages/map/utils/mapConstants";
+import {
+  MAP_TOOLBAR_CONTROL_CLASSES,
+  VENUE_SEARCH_MAX_LENGTH,
+} from "@/pages/map/utils/mapConstants";
 import { MascotMoodEnum } from "@/types/enums/mascot/mascotMoodEnum";
 import { VENUE_TYPE_LABEL_KEYS } from "@/types/enums/venue/venueTypeEnum";
 import type { Venue } from "@/types/models/venue/venue";
@@ -119,7 +122,11 @@ export const VenueSearchSheet = ({
 
   return (
     <Drawer isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button variant="secondary" size="lg" className="self-start">
+      <Button
+        variant="secondary"
+        size="lg"
+        className={`${MAP_TOOLBAR_CONTROL_CLASSES} grow`}
+      >
         <Magnifier aria-hidden="true" />
         {t("pages.map.search.trigger")}
       </Button>

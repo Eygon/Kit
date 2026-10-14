@@ -1,3 +1,5 @@
+import { getAvatarArtwork } from "@/components/elements/userAvatar/utils/avatarArtworks";
+import { AvatarEnum } from "@/types/enums/user/avatarEnum";
 import { screen, within } from "@testing-library/react";
 import { afterEach } from "vitest";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
@@ -10,7 +12,7 @@ const BARE_REVIEW: Review = {
   beerId: 7,
   authorId: 2,
   authorName: "bob",
-  authorAvatarColor: "#10B981",
+  authorAvatar: AvatarEnum.HOP,
   rating: 3.5,
   text: "",
   sweetness: null,
@@ -35,14 +37,48 @@ describe("ReviewEntry", () => {
     await i18n.changeLanguage("fr");
   });
 
-  it("renders a list item with the author initial, the name, the stars and the date of the last update", async () => {
+  it("draws the avatar of the author, hidden from screen readers since the name is next to it", async () => {
+    const { container } = renderEntry({
+      ...BARE_REVIEW,
+      authorAvatar: AvatarEnum.GLASS,
+    });
+
+    const svg = container.querySelector("svg[aria-hidden='true']");
+    expect(svg).not.toBeNull();
+    const paths = Array.from(svg!.querySelectorAll("path")).map((path) =>
+      path.getAttribute("d"),
+    );
+    expect(paths).toEqual(
+      getAvatarArtwork(AvatarEnum.GLASS).shapes.map((shape) => shape.d),
+    );
+    expect(
+      screen.queryByRole("img", { name: /Avatar/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("draws the avatar of each author whoever it is", async () => {
+    const { container } = renderEntry({
+      ...BARE_REVIEW,
+      authorAvatar: AvatarEnum.PRETZEL,
+    });
+
+    const paths = Array.from(
+      container.querySelectorAll("svg[aria-hidden='true'] path"),
+    ).map((path) => path.getAttribute("d"));
+    expect(paths).toEqual(
+      getAvatarArtwork(AvatarEnum.PRETZEL).shapes.map((shape) => shape.d),
+    );
+  });
+
+  it("renders a list item with the name, the stars and the date of the last update", async () => {
     const { container } = renderEntry(BARE_REVIEW);
 
     const item = getEntry();
     expect(within(item).getByText("bob")).toBeInTheDocument();
-    expect(within(item).getByText("B")).toBeInTheDocument();
     expect(within(item).getByText("3,5 sur 5")).toHaveClass("sr-only");
-    const states = Array.from(container.querySelectorAll("[data-state]")).map((star) => star.getAttribute("data-state"));
+    const states = Array.from(container.querySelectorAll("[data-state]")).map(
+      (star) => star.getAttribute("data-state"),
+    );
     expect(states).toEqual(["full", "full", "full", "half", "empty"]);
     expect(within(item).getByText("12/10/2026")).toBeInTheDocument();
     expect(within(item).queryByText("10/10/2026")).not.toBeInTheDocument();
@@ -52,7 +88,7 @@ describe("ReviewEntry", () => {
     const { container } = renderEntry(BARE_REVIEW);
 
     const item = getEntry();
-    expect(item.textContent).toBe("Bbob3,5 sur 512/10/2026");
+    expect(item.textContent).toBe("bob3,5 sur 512/10/2026");
     expect(container.querySelector("p")).toBeNull();
     expect(within(item).queryByRole("list")).not.toBeInTheDocument();
     expect(within(item).queryByText("Mon avis")).not.toBeInTheDocument();
@@ -80,21 +116,22 @@ describe("ReviewEntry", () => {
     renderEntry({ ...BARE_REVIEW, sweetness: 2, acidity: null, body: 5 });
 
     const criteria = within(getEntry()).getByRole("list");
-    expect(within(criteria).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "Douceur : Sèche",
-      "Corps : Très plein",
-    ]);
+    expect(
+      within(criteria)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Douceur : Sèche", "Corps : Très plein"]);
   });
 
   it("reads a criterion at its first and last level", async () => {
     renderEntry({ ...BARE_REVIEW, sweetness: 1, acidity: 5, body: 3 });
 
     const criteria = within(getEntry()).getByRole("list");
-    expect(within(criteria).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "Douceur : Très sèche",
-      "Acidité : Très vive",
-      "Corps : Moyen",
-    ]);
+    expect(
+      within(criteria)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Douceur : Très sèche", "Acidité : Très vive", "Corps : Moyen"]);
   });
 
   it("keeps a long unbroken author name inside a shrinkable flex child", async () => {

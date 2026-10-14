@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
 import type { CollectionSummary } from "@/types/models/collection/collectionSummary";
+import { isConflictError } from "@/utils/httpError/isConflictError";
 import { createCollection } from "@/utils/queryFunctions/collectionQueryFunctions";
 import { collectionKeys } from "@/utils/queryKeys/collectionQueryKeys";
 
@@ -12,6 +13,10 @@ export const useCreateCollectionMutation = () => {
     mutationFn: (name: string) => createCollection(name),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: collectionKeys.all() });
+    },
+    onError: (error) => {
+      if (isConflictError(error))
+        void queryClient.invalidateQueries({ queryKey: collectionKeys.all() });
     },
   });
 

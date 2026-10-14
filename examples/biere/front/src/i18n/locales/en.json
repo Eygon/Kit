@@ -260,6 +260,7 @@
       "resultCount_other": "{{count}} results",
       "search": {
         "label": "Search a beer or a brewery",
+        "placeholder": "Beer or brewery",
         "clear": "Clear search"
       },
       "families": {
@@ -431,6 +432,9 @@
       "clusterLabel_other": "{{count}} venues, zoom in",
       "tilesUnavailable": "Map background unavailable: places still work.",
       "youAreHere": "You are here",
+      "toolbar": {
+        "label": "Map tools"
+      },
       "locate": {
         "action": "Near me",
         "denied": "Location denied: allow it in your browser settings.",

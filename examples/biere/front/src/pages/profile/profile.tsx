@@ -33,19 +33,31 @@ export const ProfilePage = () => {
   const statsQuery = useStatsQuery();
   const wishlistQuery = useWishlistQuery();
   const { removeItem, pendingBeerId } = useRemoveFromWishlistMutation();
-  const { createCollection, isPending: isCreatingCollection } = useCreateCollectionMutation();
-  const customCollectionCount = collectionsQuery.collections.filter(({ kind }) => kind === CollectionKindEnum.CUSTOM).length;
-  const selectedLanguage = isLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : LanguageEnum.FR;
+  const { createCollection, isPending: isCreatingCollection } =
+    useCreateCollectionMutation();
+  const customCollectionCount = collectionsQuery.collections.filter(
+    ({ kind }) => kind === CollectionKindEnum.CUSTOM,
+  ).length;
+  const selectedLanguage = isLanguage(i18n.resolvedLanguage)
+    ? i18n.resolvedLanguage
+    : LanguageEnum.FR;
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t("pages.profile.title")} subtitle={t("pages.profile.subtitle")} />
+      <PageHeader
+        title={t("pages.profile.title")}
+        subtitle={t("pages.profile.subtitle")}
+      />
       <ProfileHeader
         profile={profileQuery.profile}
         isPending={profileQuery.isPending}
         isError={profileQuery.isError}
         onRetry={() => void profileQuery.refetch()}
-        action={profileQuery.profile === null ? undefined : <EditProfileSheet profile={profileQuery.profile} />}
+        action={
+          profileQuery.profile === null ? undefined : (
+            <EditProfileSheet profile={profileQuery.profile} />
+          )
+        }
       />
       <CollectionsSection
         userId={currentUserId}
@@ -53,12 +65,33 @@ export const ProfilePage = () => {
         isPending={collectionsQuery.isPending}
         isError={collectionsQuery.isError}
         onRetry={() => void collectionsQuery.refetch()}
+        action={
+          <CollectionNameSheet
+            customCollectionCount={customCollectionCount}
+            isPending={isCreatingCollection}
+            onSave={createCollection}
+          />
+        }
       />
-      <CollectionNameSheet customCollectionCount={customCollectionCount} isPending={isCreatingCollection} onSave={createCollection} />
-      <DemoUserSelect selectedUserId={currentUserId} onSelectUser={changeCurrentUser} />
-      <LanguageSelect selectedLanguage={selectedLanguage} onSelectLanguage={(language) => void i18n.changeLanguage(language)} />
-      <FamilyProgressSection dex={dex} isPending={isPending} isError={isError} onRetry={() => void refetch()} />
-      <ShareProgressButton discovered={dex?.discovered ?? 0} total={dex?.total ?? 0} isDisabled={dex === null} />
+      <DemoUserSelect
+        selectedUserId={currentUserId}
+        onSelectUser={changeCurrentUser}
+      />
+      <LanguageSelect
+        selectedLanguage={selectedLanguage}
+        onSelectLanguage={(language) => void i18n.changeLanguage(language)}
+      />
+      <FamilyProgressSection
+        dex={dex}
+        isPending={isPending}
+        isError={isError}
+        onRetry={() => void refetch()}
+      />
+      <ShareProgressButton
+        discovered={dex?.discovered ?? 0}
+        total={dex?.total ?? 0}
+        isDisabled={dex === null}
+      />
       <BadgeSection
         badges={badgesQuery.badges}
         isPending={badgesQuery.isPending}

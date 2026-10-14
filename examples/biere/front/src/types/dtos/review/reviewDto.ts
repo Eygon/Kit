@@ -3,7 +3,7 @@ export interface ReviewDto {
   beerId: number;
   authorId: number;
   authorName: string;
-  authorAvatarColor: string;
+  authorAvatar: string;
   rating: number;
   text: string;
   sweetness: number | null;

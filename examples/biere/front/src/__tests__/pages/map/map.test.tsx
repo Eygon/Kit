@@ -10,6 +10,7 @@ import userEvent from "@testing-library/user-event";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import type { ReactNode, Ref } from "react";
+import i18n from "@/i18n/i18n";
 import { MapPage } from "@/pages/map/map";
 import { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
 import { AvailabilityStatusEnum } from "@/types/enums/venue/availabilityStatusEnum";
@@ -1078,9 +1079,7 @@ describe("MapPage", () => {
     );
 
     expect(leaflet.fakeMap.fitBounds).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getByRole("dialog", { name: "La Cave" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "La Cave" })).toBeInTheDocument();
     expect(screen.getAllByRole("dialog", { hidden: true })).toHaveLength(1);
     expect(mockVenueBeers.useVenueBeersQuery).toHaveBeenLastCalledWith(2);
     expect(
@@ -1467,17 +1466,80 @@ describe("MapPage venue search", () => {
   it("US6 AC1 puts Rechercher un lieu as the first button of the toolbar", () => {
     renderWithProviders(<MapPage />);
 
-    const toolbar = screen.getByRole("button", {
-      name: "Rechercher un lieu",
-    }).parentElement;
-    expect(toolbar?.querySelector("button")).toBe(
-      screen.getByRole("button", { name: "Rechercher un lieu" }),
-    );
+    const toolbar = screen.getByRole("group", { name: "Outils de la carte" });
+    const search = screen.getByRole("button", { name: "Rechercher un lieu" });
+    expect(within(toolbar).getAllByRole("button")[0]).toBe(search);
     expect(
-      within(toolbar as HTMLElement).getByRole("button", {
-        name: "Autour de moi",
-      }),
+      within(toolbar).getByRole("button", { name: "Autour de moi" }),
     ).toBeInTheDocument();
+  });
+
+  it("polish4 lays the toolbar out on two rows: the search with the proposal icon, then the three compact controls", () => {
+    renderWithProviders(<MapPage />);
+
+    const toolbar = screen.getByRole("group", { name: "Outils de la carte" });
+    expect(toolbar.children).toHaveLength(2);
+    const [firstRow, secondRow] = Array.from(toolbar.children) as HTMLElement[];
+    expect(
+      within(firstRow)
+        .getAllByRole("button")
+        .map(
+          (button) => button.getAttribute("aria-label") ?? button.textContent,
+        ),
+    ).toEqual(["Rechercher un lieu", "Proposer un lieu"]);
+    expect(
+      within(secondRow)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^Lieux \(\d+\)$/),
+        "Filtres",
+        "Autour de moi",
+      ]),
+    );
+    expect(within(secondRow).getAllByRole("button")).toHaveLength(3);
+  });
+
+  it("polish4 offers Proposer un lieu as an icon-only button named by aria-label, hidden icon, no visible text", () => {
+    renderWithProviders(<MapPage />);
+
+    const propose = screen.getByRole("button", { name: "Proposer un lieu" });
+    expect(propose).toHaveAttribute("aria-label", "Proposer un lieu");
+    expect(propose.className).toContain("button--icon-only");
+    expect(propose.className).toContain("button--lg");
+    expect(propose.textContent).toBe("");
+    expect(propose.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("polish4 keeps every toolbar control at least 44px high and shrinkable so that nothing overflows at 360px", () => {
+    renderWithProviders(<MapPage />);
+
+    const toolbar = screen.getByRole("group", { name: "Outils de la carte" });
+    for (const button of within(toolbar).getAllByRole("button")) {
+      expect(button.className).toContain("min-h-11");
+    }
+    for (const name of [
+      "Rechercher un lieu",
+      "Autour de moi",
+      /^Lieux \(\d+\)$/,
+      "Filtres",
+    ]) {
+      expect(screen.getByRole("button", { name })).toHaveClass("min-w-0");
+    }
+  });
+
+  it("polish4 names the toolbar in English", async () => {
+    await i18n.changeLanguage("en");
+    renderWithProviders(<MapPage />);
+
+    expect(
+      screen.getByRole("group", { name: "Map tools" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Propose a venue" }),
+    ).toBeInTheDocument();
+    await i18n.changeLanguage("fr");
   });
 
   it("US6 AC2 centers the map on the chosen result at zoom 16 and opens its sheet", async () => {

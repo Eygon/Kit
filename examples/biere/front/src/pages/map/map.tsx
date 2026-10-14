@@ -1,3 +1,4 @@
+import { MapPinPlus } from "@gravity-ui/icons";
 import { Button } from "@heroui/react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +14,7 @@ import { useGeolocation } from "@/pages/map/hooks/useGeolocation";
 import { useMapFilters } from "@/pages/map/hooks/useMapFilters";
 import { useVenuesQuery } from "@/pages/map/hooks/useVenuesQuery";
 import { GeolocationStatusEnum } from "@/pages/map/types/geolocationStatusEnum";
+import { MAP_TOOLBAR_CONTROL_CLASSES } from "@/pages/map/utils/mapConstants";
 import { getMapBannerMessage } from "@/pages/map/utils/getMapBannerMessage";
 import { EMPTY_VENUE_QUERY } from "@/types/mappers/venue/venueQueryMapper";
 import type { GeoPosition } from "@/types/models/venue/geoPosition";
@@ -24,7 +26,9 @@ export const MapPage = () => {
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [tilesUnavailable, setTilesUnavailable] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-  const [focusedPosition, setFocusedPosition] = useState<GeoPosition | null>(null);
+  const [focusedPosition, setFocusedPosition] = useState<GeoPosition | null>(
+    null,
+  );
   const [isListOpen, setIsListOpen] = useState(false);
   const [isPickingPoint, setIsPickingPoint] = useState(false);
   const [pickedPoint, setPickedPoint] = useState<GeoPosition | null>(null);
@@ -43,15 +47,29 @@ export const MapPage = () => {
       undiscovered: filters.undiscovered,
       radiusKm,
     }),
-    [position, filters.types, filters.family, filters.beerId, filters.confirmedOnly, filters.undiscovered, radiusKm],
+    [
+      position,
+      filters.types,
+      filters.family,
+      filters.beerId,
+      filters.confirmedOnly,
+      filters.undiscovered,
+      radiusKm,
+    ],
   );
-  const { venues, isPending, isError, refetch } = useVenuesQuery({ ...filterQuery, bounds });
+  const { venues, isPending, isError, refetch } = useVenuesQuery({
+    ...filterQuery,
+    bounds,
+  });
   const selectVenue = (venue: Venue) => {
     setIsListOpen(false);
     setSelectedVenue(venue);
   };
   const selectSearchedVenue = (venue: Venue) => {
-    setFocusedPosition({ latitude: venue.latitude, longitude: venue.longitude });
+    setFocusedPosition({
+      latitude: venue.latitude,
+      longitude: venue.longitude,
+    });
     selectVenue(venue);
   };
   const hasPointPrompt = isPickingPoint || pickedPoint !== null;
@@ -89,33 +107,60 @@ export const MapPage = () => {
         />
       </div>
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 p-4">
-        <div className="pointer-events-auto flex flex-wrap gap-2 self-start">
-          <VenueSearchSheet filterQuery={filterQuery} activeFilterCount={activeCount} onSelectVenue={selectSearchedVenue} />
-          <VenueListDrawer
-            venues={venues}
-            isPending={isPending}
-            isError={isError}
-            onRetry={() => void refetch()}
-            onSelectVenue={selectVenue}
-            isOpen={isListOpen}
-            onOpenChange={setIsListOpen}
-          />
-          <MapFiltersDrawer appliedFilters={filters} hasPosition={position !== null} onApply={applyFilters} />
-          <Button
-            variant="primary"
-            size="lg"
-            isPending={status === GeolocationStatusEnum.LOCATING}
-            onPress={locate}
-          >
-            {t("pages.map.locate.action")}
-          </Button>
-          <Button variant="secondary" size="lg" onPress={() => setIsPickingPoint(true)}>
-            {t("pages.map.propose.action")}
-          </Button>
+        <div
+          role="group"
+          aria-label={t("pages.map.toolbar.label")}
+          className="pointer-events-auto flex w-full max-w-md flex-col gap-2 self-start"
+        >
+          <div className="flex gap-2">
+            <VenueSearchSheet
+              filterQuery={filterQuery}
+              activeFilterCount={activeCount}
+              onSelectVenue={selectSearchedVenue}
+            />
+            <Button
+              isIconOnly
+              variant="secondary"
+              size="lg"
+              aria-label={t("pages.map.propose.action")}
+              className="min-h-11 shrink-0"
+              onPress={() => setIsPickingPoint(true)}
+            >
+              <MapPinPlus aria-hidden="true" />
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <VenueListDrawer
+              venues={venues}
+              isPending={isPending}
+              isError={isError}
+              onRetry={() => void refetch()}
+              onSelectVenue={selectVenue}
+              isOpen={isListOpen}
+              onOpenChange={setIsListOpen}
+            />
+            <MapFiltersDrawer
+              appliedFilters={filters}
+              hasPosition={position !== null}
+              onApply={applyFilters}
+            />
+            <Button
+              variant="primary"
+              size="lg"
+              className={`${MAP_TOOLBAR_CONTROL_CLASSES} grow`}
+              isPending={status === GeolocationStatusEnum.LOCATING}
+              onPress={locate}
+            >
+              {t("pages.map.locate.action")}
+            </Button>
+          </div>
         </div>
         {filters.beerId !== null && (
           <div className="pointer-events-auto flex min-w-0 self-start p-1">
-            <BeerFilterChip beerId={filters.beerId} onRemove={() => applyFilters({ ...filters, beerId: null })} />
+            <BeerFilterChip
+              beerId={filters.beerId}
+              onRemove={() => applyFilters({ ...filters, beerId: null })}
+            />
           </div>
         )}
         {banner !== null && (
@@ -123,11 +168,19 @@ export const MapPage = () => {
             {hasPointPrompt && (
               <div className="flex flex-wrap gap-2">
                 {pickedPoint !== null && (
-                  <Button variant="primary" size="lg" onPress={() => setIsProposeOpen(true)}>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    onPress={() => setIsProposeOpen(true)}
+                  >
                     {t("pages.map.propose.confirmPoint")}
                   </Button>
                 )}
-                <Button variant="tertiary" size="lg" onPress={cancelPointPicking}>
+                <Button
+                  variant="tertiary"
+                  size="lg"
+                  onPress={cancelPointPicking}
+                >
                   {t("pages.map.propose.cancel")}
                 </Button>
               </div>
@@ -135,7 +188,10 @@ export const MapPage = () => {
           </MapBanner>
         )}
       </div>
-      <VenueSheet venue={selectedVenue} onClose={() => setSelectedVenue(null)} />
+      <VenueSheet
+        venue={selectedVenue}
+        onClose={() => setSelectedVenue(null)}
+      />
       <ProposeVenueDrawer
         position={pickedPoint}
         isOpen={isProposeOpen}

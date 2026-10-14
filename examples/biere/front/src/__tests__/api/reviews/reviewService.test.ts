@@ -3,7 +3,11 @@ import { HttpError } from "@/api/httpError";
 import ReviewService from "@/api/reviews/reviewService";
 import i18n from "@/i18n/i18n";
 import type { NewReview } from "@/types/models/review/newReview";
-import { BEER_BY_ID, BEER_MY_REVIEW, BEER_REVIEWS } from "@/utils/apiURL/apiURL";
+import {
+  BEER_BY_ID,
+  BEER_MY_REVIEW,
+  BEER_REVIEWS,
+} from "@/utils/apiURL/apiURL";
 
 vi.mock("@heroui/react", () => ({
   toast: { danger: vi.fn() },
@@ -16,7 +20,7 @@ const reviewDto = (id: number, isMine = false) => ({
   beerId: 7,
   authorId: id,
   authorName: `Author ${id}`,
-  authorAvatarColor: "#10B981",
+  authorAvatar: "hop",
   rating: 4,
   text: "Bien",
   sweetness: 2,
@@ -27,9 +31,16 @@ const reviewDto = (id: number, isMine = false) => ({
   isMine,
 });
 
-const pageDto = { mine: reviewDto(1, true), items: [reviewDto(4), reviewDto(3)], total: 12, page: 2, size: 10 };
+const pageDto = {
+  mine: reviewDto(1, true),
+  items: [reviewDto(4), reviewDto(3)],
+  total: 12,
+  page: 2,
+  size: 10,
+};
 
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
 
 describe("ReviewService.getPage", () => {
   beforeEach(() => {
@@ -43,7 +54,6 @@ describe("ReviewService.getPage", () => {
   });
 
   it("builds the beer reviews url from the beer url", async () => {
-
     expect(BEER_REVIEWS(7)).toMatch(/\/api\/v1\/beers\/7\/reviews$/);
     expect(BEER_REVIEWS(7)).toBe(`${BEER_BY_ID(7)}/reviews`);
   });
@@ -74,25 +84,34 @@ describe("ReviewService.getPage", () => {
     expect((await ReviewService.getPage(7, 1)).mine).toBeNull();
   });
 
-  it.each([400, 401, 404, 500])("rejects with the HttpError on status %s and shows no toast", async (status) => {
-    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+  it.each([400, 401, 404, 500])(
+    "rejects with the HttpError on status %s and shows no toast",
+    async (status) => {
+      mockFetch.mockImplementation(async () =>
+        json({ message: "boom" }, status),
+      );
 
-    const failure = ReviewService.getPage(7, 1);
+      const failure = ReviewService.getPage(7, 1);
 
-    await expect(failure).rejects.toBeInstanceOf(HttpError);
-    await expect(failure).rejects.toMatchObject({ status });
-    expect(toast.danger).not.toHaveBeenCalled();
-  });
+      await expect(failure).rejects.toBeInstanceOf(HttpError);
+      await expect(failure).rejects.toMatchObject({ status });
+      expect(toast.danger).not.toHaveBeenCalled();
+    },
+  );
 
   it("rejects on a network failure and shows no toast", async () => {
     mockFetch.mockRejectedValue(new TypeError("Failed to fetch"));
 
-    await expect(ReviewService.getPage(7, 1)).rejects.toThrow("Failed to fetch");
+    await expect(ReviewService.getPage(7, 1)).rejects.toThrow(
+      "Failed to fetch",
+    );
     expect(toast.danger).not.toHaveBeenCalled();
   });
 
   it("rejects on an empty 204 answer instead of returning a page", async () => {
-    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+    mockFetch.mockImplementation(
+      async () => new Response(null, { status: 204 }),
+    );
 
     const failure = ReviewService.getPage(7, 1);
 
@@ -101,7 +120,13 @@ describe("ReviewService.getPage", () => {
   });
 });
 
-const NEW_REVIEW: NewReview = { rating: 4.5, text: "Très bonne", sweetness: 2, acidity: null, body: 5 };
+const NEW_REVIEW: NewReview = {
+  rating: 4.5,
+  text: "Très bonne",
+  sweetness: 2,
+  acidity: null,
+  body: 5,
+};
 
 describe("ReviewService.save", () => {
   beforeEach(() => {
@@ -148,14 +173,21 @@ describe("ReviewService.save", () => {
   });
 
   it("shows the check-in-first message once and rethrows on a 403", async () => {
-    mockFetch.mockImplementation(async () => json({ message: "You must check in this beer before reviewing it." }, 403));
+    mockFetch.mockImplementation(async () =>
+      json(
+        { message: "You must check in this beer before reviewing it." },
+        403,
+      ),
+    );
 
     const failure = ReviewService.save(7, NEW_REVIEW);
 
     await expect(failure).rejects.toBeInstanceOf(HttpError);
     await expect(failure).rejects.toMatchObject({ status: 403 });
     expect(toast.danger).toHaveBeenCalledTimes(1);
-    expect(toast.danger).toHaveBeenCalledWith("Enregistrez d'abord une dégustation de cette bière.");
+    expect(toast.danger).toHaveBeenCalledWith(
+      "Enregistrez d'abord une dégustation de cette bière.",
+    );
   });
 
   it.each([
@@ -163,30 +195,45 @@ describe("ReviewService.save", () => {
     [401, "errors.unauthorized"],
     [404, "errors.notFound"],
     [500, "errors.generic"],
-  ])("shows the message of the status %s once and rethrows", async (status, key) => {
-    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+  ])(
+    "shows the message of the status %s once and rethrows",
+    async (status, key) => {
+      mockFetch.mockImplementation(async () =>
+        json({ message: "boom" }, status),
+      );
 
-    await expect(ReviewService.save(7, NEW_REVIEW)).rejects.toMatchObject({ status });
+      await expect(ReviewService.save(7, NEW_REVIEW)).rejects.toMatchObject({
+        status,
+      });
 
-    expect(i18n.t(key)).not.toBe("");
-    expect(i18n.t(key)).not.toBe(i18n.t("pages.beerDetail.reviews.checkinRequired"));
-    expect(toast.danger).toHaveBeenCalledTimes(1);
-    expect(toast.danger).toHaveBeenCalledWith(i18n.t(key));
-  });
+      expect(i18n.t(key)).not.toBe("");
+      expect(i18n.t(key)).not.toBe(
+        i18n.t("pages.beerDetail.reviews.checkinRequired"),
+      );
+      expect(toast.danger).toHaveBeenCalledTimes(1);
+      expect(toast.danger).toHaveBeenCalledWith(i18n.t(key));
+    },
+  );
 
   it("shows the generic message and rethrows on a network failure", async () => {
     mockFetch.mockRejectedValue(new TypeError("Failed to fetch"));
 
-    await expect(ReviewService.save(7, NEW_REVIEW)).rejects.toThrow("Failed to fetch");
+    await expect(ReviewService.save(7, NEW_REVIEW)).rejects.toThrow(
+      "Failed to fetch",
+    );
 
     expect(toast.danger).toHaveBeenCalledTimes(1);
     expect(toast.danger).toHaveBeenCalledWith(i18n.t("errors.generic"));
   });
 
   it("rejects with the generic message on an empty 204 answer", async () => {
-    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+    mockFetch.mockImplementation(
+      async () => new Response(null, { status: 204 }),
+    );
 
-    await expect(ReviewService.save(7, NEW_REVIEW)).rejects.toThrow("Empty save response");
+    await expect(ReviewService.save(7, NEW_REVIEW)).rejects.toThrow(
+      "Empty save response",
+    );
 
     expect(toast.danger).toHaveBeenCalledTimes(1);
     expect(toast.danger).toHaveBeenCalledWith(i18n.t("errors.generic"));
@@ -205,7 +252,9 @@ describe("ReviewService.remove", () => {
   });
 
   it("sends one DELETE on the my review url of the beer and resolves without any toast", async () => {
-    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+    mockFetch.mockImplementation(
+      async () => new Response(null, { status: 204 }),
+    );
 
     await expect(ReviewService.remove(7)).resolves.toBeUndefined();
 
@@ -221,17 +270,22 @@ describe("ReviewService.remove", () => {
     [401, "errors.unauthorized"],
     [404, "errors.notFound"],
     [500, "errors.generic"],
-  ])("shows the message of the status %s once and rethrows", async (status, key) => {
-    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+  ])(
+    "shows the message of the status %s once and rethrows",
+    async (status, key) => {
+      mockFetch.mockImplementation(async () =>
+        json({ message: "boom" }, status),
+      );
 
-    const failure = ReviewService.remove(7);
+      const failure = ReviewService.remove(7);
 
-    await expect(failure).rejects.toBeInstanceOf(HttpError);
-    await expect(failure).rejects.toMatchObject({ status });
-    expect(i18n.t(key)).not.toBe("");
-    expect(toast.danger).toHaveBeenCalledTimes(1);
-    expect(toast.danger).toHaveBeenCalledWith(i18n.t(key));
-  });
+      await expect(failure).rejects.toBeInstanceOf(HttpError);
+      await expect(failure).rejects.toMatchObject({ status });
+      expect(i18n.t(key)).not.toBe("");
+      expect(toast.danger).toHaveBeenCalledTimes(1);
+      expect(toast.danger).toHaveBeenCalledWith(i18n.t(key));
+    },
+  );
 
   it("shows the generic message and rethrows on a network failure", async () => {
     mockFetch.mockRejectedValue(new TypeError("Failed to fetch"));

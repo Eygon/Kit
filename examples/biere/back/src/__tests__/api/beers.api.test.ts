@@ -741,20 +741,35 @@ describe("beers API rating statistics", () => {
     expect(sheet).toMatchObject({ averageRating: null, reviewCount: 0, ...NO_REVIEW_STATS });
   });
 
-  it("US5 AC3 counts the ratings 1, 1.5, 3.5, 4.5 and 5 in the bar of their integer part", async () => {
+  it("US5 AC3 counts the ratings 1, 1.5, 3.5, 4.5 and 5 in the bar of their nearest star, half rounded up", async () => {
     const chimayId = await findBeerId("Chimay Rouge");
     await insertRatings(chimayId, [1, 1.5, 3.5, 4.5, 5]);
 
     const sheet = await getSheet(chimayId);
 
     expect(sheet.ratingDistribution).toEqual([
+      { stars: 1, count: 1 },
+      { stars: 2, count: 1 },
+      { stars: 3, count: 0 },
+      { stars: 4, count: 1 },
+      { stars: 5, count: 2 },
+    ]);
+    expect([sheet.averageRating, sheet.reviewCount]).toEqual([3.1, 5]);
+  });
+
+  it("US5 AC3 rounds the ratings 0.5 and 4.5 up to the 1 and 5 star bars", async () => {
+    const rochefortId = await findBeerId("Rochefort 8");
+    await insertRatings(rochefortId, [0.5, 1, 4, 4.5]);
+
+    const sheet = await getSheet(rochefortId);
+
+    expect(sheet.ratingDistribution).toEqual([
       { stars: 1, count: 2 },
       { stars: 2, count: 0 },
-      { stars: 3, count: 1 },
+      { stars: 3, count: 0 },
       { stars: 4, count: 1 },
       { stars: 5, count: 1 },
     ]);
-    expect([sheet.averageRating, sheet.reviewCount]).toEqual([3.1, 5]);
   });
 
   it("US5 AC4 hides the average of a criterion filled by 2 reviews and shows it to the tenth with a 3rd", async () => {

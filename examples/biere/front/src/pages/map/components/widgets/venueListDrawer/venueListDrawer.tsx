@@ -4,13 +4,17 @@ import { useTranslation } from "react-i18next";
 import { AvailabilityBadge } from "@/components/elements/availabilityBadge/availabilityBadge";
 import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStatePanel";
 import { formatDistance } from "@/pages/map/utils/formatDistance";
+import { MAP_TOOLBAR_CONTROL_CLASSES } from "@/pages/map/utils/mapConstants";
 import type { VenueListDrawerProps } from "@/pages/map/types/venueListDrawer";
 import type { Venue } from "@/types/models/venue/venue";
 import { MascotMoodEnum } from "@/types/enums/mascot/mascotMoodEnum";
 import { VENUE_TYPE_LABEL_KEYS } from "@/types/enums/venue/venueTypeEnum";
 
 const SKELETON_ROW_COUNT = 5;
-const SKELETON_ROW_KEYS = Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => index);
+const SKELETON_ROW_KEYS = Array.from(
+  { length: SKELETON_ROW_COUNT },
+  (_, index) => index,
+);
 
 export const VenueListDrawer = ({
   venues,
@@ -80,11 +84,19 @@ export const VenueListDrawer = ({
               className="h-auto min-h-11 w-full min-w-0 flex-col items-start justify-start gap-1 p-3 text-left"
               onPress={() => handleSelect(venue)}
             >
-              <span className="min-w-0 font-bold break-words text-foreground">{venue.name}</span>
+              <span className="min-w-0 font-bold break-words text-foreground">
+                {venue.name}
+              </span>
               <span className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-sm text-muted">
-                {venue.type !== null && <span>{t(VENUE_TYPE_LABEL_KEYS[venue.type])}</span>}
-                {venue.city !== "" && <span className="min-w-0 break-words">{venue.city}</span>}
-                {venue.distanceKm !== null && <span>{formatDistance(venue.distanceKm, i18n.language)}</span>}
+                {venue.type !== null && (
+                  <span>{t(VENUE_TYPE_LABEL_KEYS[venue.type])}</span>
+                )}
+                {venue.city !== "" && (
+                  <span className="min-w-0 break-words">{venue.city}</span>
+                )}
+                {venue.distanceKm !== null && (
+                  <span>{formatDistance(venue.distanceKm, i18n.language)}</span>
+                )}
               </span>
               <AvailabilityBadge status={venue.status} />
             </Button>
@@ -96,7 +108,11 @@ export const VenueListDrawer = ({
 
   return (
     <Drawer isOpen={isOpen} onOpenChange={handleOpenChange}>
-      <Button variant="secondary" size="lg" className="self-start">
+      <Button
+        variant="secondary"
+        size="lg"
+        className={`${MAP_TOOLBAR_CONTROL_CLASSES} grow`}
+      >
         {t("pages.map.list.trigger", { count: venues.length })}
       </Button>
       <Drawer.Backdrop>

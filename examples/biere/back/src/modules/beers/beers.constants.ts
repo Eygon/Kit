@@ -32,6 +32,8 @@ export const REVIEW_RATING_MAX = 5;
 
 export const REVIEW_RATING_STEP = 0.5;
 
+export const REVIEW_RATING_BUCKET_ROUNDING_OFFSET = 0.5;
+
 export const REVIEW_TEXT_MAX_LENGTH = 500;
 
 export const REVIEW_CRITERION_MIN = 1;

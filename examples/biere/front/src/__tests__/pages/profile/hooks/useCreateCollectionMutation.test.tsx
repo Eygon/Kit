@@ -3,8 +3,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Mock } from "vitest";
+import { HttpError } from "@/api/httpError";
 import { createTestQueryClient } from "@/__tests__/utils/renderWithProviders";
 import { useCreateCollectionMutation } from "@/pages/profile/hooks/useCreateCollectionMutation";
+import { HttpStatusCodeEnum } from "@/types/enums/http/httpStatusCodeEnum";
 import type { CollectionSummary } from "@/types/models/collection/collectionSummary";
 import { createCollection } from "@/utils/queryFunctions/collectionQueryFunctions";
 import { collectionKeys } from "@/utils/queryKeys/collectionQueryKeys";
@@ -13,7 +15,12 @@ vi.mock("@/utils/queryFunctions/collectionQueryFunctions", () => ({
   createCollection: vi.fn(),
 }));
 
-const CREATED: CollectionSummary = { id: 8, kind: "custom" as CollectionSummary["kind"], name: "Trappistes", beerCount: 0 };
+const CREATED: CollectionSummary = {
+  id: 8,
+  kind: "custom" as CollectionSummary["kind"],
+  name: "Trappistes",
+  beerCount: 0,
+};
 
 const wrapperFor = (client: QueryClient) => {
   const Wrapper = ({ children }: Readonly<{ children: ReactNode }>) => (
@@ -23,7 +30,9 @@ const wrapperFor = (client: QueryClient) => {
 };
 
 const renderMutation = (client: QueryClient) =>
-  renderHook(() => useCreateCollectionMutation(), { wrapper: wrapperFor(client) });
+  renderHook(() => useCreateCollectionMutation(), {
+    wrapper: wrapperFor(client),
+  });
 
 describe("useCreateCollectionMutation", () => {
   beforeEach(() => {
@@ -46,7 +55,9 @@ describe("useCreateCollectionMutation", () => {
     expect(createCollection).toHaveBeenCalledWith("Trappistes");
     expect(created).toEqual(CREATED);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: collectionKeys.all() });
-    expect(client.getQueryState(collectionKeys.list(1))?.isInvalidated).toBe(true);
+    expect(client.getQueryState(collectionKeys.list(1))?.isInvalidated).toBe(
+      true,
+    );
   });
 
   it("rethrows and invalidates nothing when the creation fails", async () => {
@@ -56,10 +67,29 @@ describe("useCreateCollectionMutation", () => {
     const { result } = renderMutation(client);
 
     await act(async () => {
-      await expect(result.current.createCollection("Trappistes")).rejects.toThrow("Down");
+      await expect(
+        result.current.createCollection("Trappistes"),
+      ).rejects.toThrow("Down");
     });
 
     expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it("rethrows and invalidates every collection list when the creation is refused with a 409, the cached count being stale", async () => {
+    (createCollection as Mock).mockRejectedValue(
+      new HttpError(HttpStatusCodeEnum.CONFLICT, "Conflict"),
+    );
+    const client = createTestQueryClient();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderMutation(client);
+
+    await act(async () => {
+      await expect(
+        result.current.createCollection("Trappistes"),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: collectionKeys.all() });
   });
 
   it("sends a single request when the creation is triggered twice in the same tick", async () => {
@@ -91,15 +121,21 @@ describe("useCreateCollectionMutation", () => {
   });
 
   it("accepts a new creation once the failed one is over", async () => {
-    (createCollection as Mock).mockRejectedValueOnce(new Error("Down")).mockResolvedValueOnce(CREATED);
+    (createCollection as Mock)
+      .mockRejectedValueOnce(new Error("Down"))
+      .mockResolvedValueOnce(CREATED);
     const client = createTestQueryClient();
     const { result } = renderMutation(client);
 
     await act(async () => {
-      await expect(result.current.createCollection("Trappistes")).rejects.toThrow("Down");
+      await expect(
+        result.current.createCollection("Trappistes"),
+      ).rejects.toThrow("Down");
     });
     await act(async () => {
-      await expect(result.current.createCollection("Trappistes")).resolves.toEqual(CREATED);
+      await expect(
+        result.current.createCollection("Trappistes"),
+      ).resolves.toEqual(CREATED);
     });
 
     expect(createCollection).toHaveBeenCalledTimes(2);

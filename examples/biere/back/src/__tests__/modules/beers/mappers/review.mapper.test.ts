@@ -83,6 +83,7 @@ describe("review mapper", () => {
       authorId: 1,
       authorName: "Alice",
       authorAvatarColor: "#F59E0B",
+      authorAvatar: "hop",
       rating: 4.5,
       text: "Superbe",
       sweetness: 2,
@@ -92,6 +93,12 @@ describe("review mapper", () => {
       updatedAt: "2026-03-05T12:30:00.000Z",
       isMine: true,
     });
+  });
+
+  it("carries the avatar of the author next to the avatar color", async () => {
+    const author = { id: 2, displayName: "Bob", avatarColor: "#10B981", avatar: AvatarEnum.MALT };
+
+    expect(toReviewDto({ ...RECORD, userId: 2 }, author, 1)).toMatchObject({ authorAvatarColor: "#10B981", authorAvatar: "malt" });
   });
 
   it("sets isMine to false when the viewer is not the author", async () => {

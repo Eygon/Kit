@@ -847,7 +847,7 @@ describe("BeersRepository reviews", () => {
   });
 
   describe("findReviewStats", () => {
-    it("counts the ratings in the bar of their integer part, completed to five bars", async () => {
+    it("counts the ratings in the bar of the nearest star, half rounded up, completed to five bars", async () => {
       await reviews().insert([
         row({ userId: 1, rating: 1 }),
         row({ userId: 2, rating: 1.5 }),
@@ -860,9 +860,28 @@ describe("BeersRepository reviews", () => {
       const stats = await repository.findReviewStats(ORVAL);
 
       expect(stats.ratingDistribution).toEqual([
+        { stars: 1, count: 1 },
+        { stars: 2, count: 1 },
+        { stars: 3, count: 0 },
+        { stars: 4, count: 1 },
+        { stars: 5, count: 2 },
+      ]);
+    });
+
+    it("rounds a rating of 0.5 up to 1 star and a rating of 4.5 up to 5 stars", async () => {
+      await reviews().insert([
+        row({ userId: 1, rating: 0.5 }),
+        row({ userId: 2, rating: 1 }),
+        row({ userId: 3, rating: 4 }),
+        row({ userId: 4, rating: 4.5 }),
+      ]);
+
+      const stats = await repository.findReviewStats(ORVAL);
+
+      expect(stats.ratingDistribution).toEqual([
         { stars: 1, count: 2 },
         { stars: 2, count: 0 },
-        { stars: 3, count: 1 },
+        { stars: 3, count: 0 },
         { stars: 4, count: 1 },
         { stars: 5, count: 1 },
       ]);

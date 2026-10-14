@@ -260,6 +260,7 @@
       "resultCount_other": "{{count}} résultats",
       "search": {
         "label": "Rechercher une bière ou une brasserie",
+        "placeholder": "Bière ou brasserie",
         "clear": "Effacer la recherche"
       },
       "families": {
@@ -431,6 +432,9 @@
       "clusterLabel_other": "{{count}} lieux, zoomer",
       "tilesUnavailable": "Fond de carte indisponible : les lieux restent utilisables.",
       "youAreHere": "Vous êtes ici",
+      "toolbar": {
+        "label": "Outils de la carte"
+      },
       "locate": {
         "action": "Autour de moi",
         "denied": "Position refusée : autorisez la localisation dans les réglages du navigateur.",

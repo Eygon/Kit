@@ -14,6 +14,7 @@ import type { ReviewStatsDto } from "@/modules/beers/dtos/review-stats.dto";
 import type { ReviewRecordDto } from "@/modules/beers/dtos/review-record.dto";
 import type { ReviewRecordSliceDto } from "@/modules/beers/dtos/review-record-slice.dto";
 import type { BeerStyleGroupDto } from "@/modules/beers/dtos/beer-style-group.dto";
+import { REVIEW_RATING_BUCKET_ROUNDING_OFFSET } from "@/modules/beers/beers.constants";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Review } from "@/modules/beers/entities/review.entity";
@@ -30,6 +31,8 @@ import { toRatingSummaryDto, toReviewStatsDto } from "@/modules/beers/mappers/re
 import type { RawCriteriaRow, RawRatingBucketRow, RawRatingSummaryRow } from "@/modules/beers/mappers/review-stats.mapper";
 
 const NO_BEER_CONDITION = "1 = 0";
+
+const RATING_BUCKET_EXPRESSION = `CAST(review.rating + ${REVIEW_RATING_BUCKET_ROUNDING_OFFSET} AS INTEGER)`;
 
 const FORMATS_LIST_EXPRESSION = "(',' || beer.formats || ',')";
 
@@ -153,10 +156,10 @@ export class BeersRepository {
   async findReviewStats(beerId: number): Promise<ReviewStatsDto> {
     const bucketRows = await this.reviews
       .createQueryBuilder("review")
-      .select("CAST(review.rating AS INTEGER)", "stars")
+      .select(RATING_BUCKET_EXPRESSION, "stars")
       .addSelect("COUNT(*)", "count")
       .where("review.beerId = :beerId", { beerId })
-      .groupBy("CAST(review.rating AS INTEGER)")
+      .groupBy(RATING_BUCKET_EXPRESSION)
       .getRawMany<RawRatingBucketRow>();
     const criteriaQuery = this.reviews.createQueryBuilder("review").where("review.beerId = :beerId", { beerId });
     Object.values(ReviewCriterionEnum).forEach((criterion) => {

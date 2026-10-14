@@ -61,10 +61,10 @@ Idées ajoutées par moi (à garder ou couper) : badges, rareté, bières simila
 
 Comptes avec mots de passe, modération, paiement, réseau social complet (amis, fil), recommandation par apprentissage, application native (PWA possible ensuite).
 
-### Polish noté (13-14 octobre, nuit)
-- Fiche bière : l'avatar de l'auteur d'un avis ignore la couleur de l'auteur (`reviewEntry.tsx` : `Avatar color="accent"` fixe ; `authorAvatarColor` mappé mais jamais lu) → à traiter avec les avatars de F5.
-- Profil : libellés de mois tronqués dans l'histogramme (« dé… », « jan… »).
-- Histogramme des notes : une note 4,5 est comptée dans « 4 étoiles » (arrondi bas) — décision à confirmer.
-- Carte : trois bandeaux empilés en haut, repères qui se superposent à Paris (pas de regroupement).
-- Collections : le bouton « Nouvelle collection » est rendu après la section (`profile.tsx`) alors que la spec dit « dans la section » ; un 409 à la limite de 20 collections affiche « Ce nom est déjà pris » (HttpError sans corps) au lieu de « 20 collections au plus » (cas rare : cache périmé).
-- Avis : l'histogramme range une note 4,5 dans « 4 étoiles ».
+### Polish (13-14 octobre) : tout est traité
+- Avatar de l'auteur d'un avis : `authorAvatar` ajouté au contrat côté back et affiché (fait, polish 4).
+- Libellés de mois de l'histogramme : une initiale par mois (polish 1).
+- Histogramme des notes : arrondi à l'étoile la plus proche, demi vers le haut (4,5 compte dans « 5 étoiles ») (polish 4).
+- Carte : un seul bandeau (polish 1), repères regroupés (F8), barre d'outils sur 2 rangées (polish 4).
+- Collections : bouton « Nouvelle collection » dans la section ; message « 20 collections au plus » à la limite (polish 4).
+- Placeholder de recherche de l'Encyclopédie raccourci (polish 4).

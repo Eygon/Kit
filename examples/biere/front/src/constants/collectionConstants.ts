@@ -1,0 +1,1 @@
+export const CUSTOM_COLLECTIONS_MAX = 20;

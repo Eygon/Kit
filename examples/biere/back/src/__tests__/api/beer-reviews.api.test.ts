@@ -15,6 +15,8 @@ const NO_TASTING_MESSAGE = "You must check in this beer before reviewing it.";
 const REVIEW_TEXT_LENGTH = 500;
 const HALF_TEXT_LENGTH = 250;
 
+const ME_PROFILE_PATH = "/api/v1/me/profile";
+
 const reviewPath = (beerId: number | string): string => `${BEERS_PATH}/${beerId}/reviews/me`;
 
 describe("beer reviews API", () => {
@@ -85,6 +87,7 @@ describe("beer reviews API", () => {
       authorId: ALICE_USER_ID,
       authorName: "Alice",
       authorAvatarColor: "#F59E0B",
+      authorAvatar: "hop",
       rating: 4.5,
       text: "Superbe amertume",
       sweetness: 2,
@@ -137,7 +140,7 @@ describe("beer reviews API", () => {
     const response = await put(BOB_USER_ID, westmalleId, { rating: 5, text: "Finalement top", acidity: 4 });
 
     expect(response.status).toBe(HttpStatus.OK);
-    expect(response.body).toMatchObject({ authorId: BOB_USER_ID, authorName: "Bob", rating: 5, text: "Finalement top", acidity: 4, isMine: true });
+    expect(response.body).toMatchObject({ authorId: BOB_USER_ID, authorName: "Bob", authorAvatar: "malt", rating: 5, text: "Finalement top", acidity: 4, isMine: true });
     expect(await countReviews(BOB_USER_ID, westmalleId)).toBe(1);
   });
 
@@ -325,6 +328,7 @@ describe("beer reviews API", () => {
         authorId: CAROL_USER_ID,
         authorName: "Carol",
         authorAvatarColor: "#8B5CF6",
+        authorAvatar: "glass",
         rating: 3.5,
         text: "Carol aujourd'hui",
         sweetness: 2,
@@ -341,6 +345,7 @@ describe("beer reviews API", () => {
         authorId: BOB_USER_ID,
         authorName: "Bob",
         authorAvatarColor: "#10B981",
+        authorAvatar: "malt",
         rating: 3.5,
         text: "Bob hier",
         sweetness: 2,
@@ -356,6 +361,7 @@ describe("beer reviews API", () => {
         authorId: ALICE_USER_ID,
         authorName: "Alice",
         authorAvatarColor: "#F59E0B",
+        authorAvatar: "hop",
         rating: 3.5,
         text: "Alice il y a 3 jours",
         sweetness: 2,
@@ -446,6 +452,69 @@ describe("beer reviews API", () => {
       expect(valid.status).toBe(HttpStatus.UNAUTHORIZED);
       expect(valid.body).toEqual({ message: UNIDENTIFIED_USER_MESSAGE });
       expect(unknown.status).toBe(HttpStatus.UNAUTHORIZED);
+    });
+  });
+
+  describe("author avatar", () => {
+    const updateProfile = (userId: number, body: object) =>
+      request(app.getHttpServer()).put(ME_PROFILE_PATH).set(USER_ID_HEADER_NAME, String(userId)).send(body);
+
+    it("follows the avatar of Alice on her saved review and on the page after she changes it", async () => {
+      const duvelId = await findBeerId("Duvel");
+      const checkin = await request(app.getHttpServer())
+        .post("/api/v1/checkins")
+        .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID))
+        .field("beerId", String(duvelId))
+        .field("drankAt", "2025-10-02T18:00:00.000Z")
+        .field("place", "Le Bistrot")
+        .field("format", "bottle");
+      expect(checkin.status).toBe(HttpStatus.CREATED);
+      const saved = await put(ALICE_USER_ID, duvelId, { rating: 4, text: "Avant changement" });
+      const changed = await updateProfile(ALICE_USER_ID, { displayName: "Alice", avatar: "foam" });
+      const resaved = await put(ALICE_USER_ID, duvelId, { rating: 4, text: "Après changement" });
+      const page = await request(app.getHttpServer())
+        .get(`${BEERS_PATH}/${duvelId}/reviews`)
+        .set(USER_ID_HEADER_NAME, String(BOB_USER_ID));
+
+      expect(changed.status).toBe(HttpStatus.OK);
+      expect(saved.body.authorAvatar).toBe("hop");
+      expect(resaved.body).toMatchObject({ authorAvatar: "foam", authorAvatarColor: "#F59E0B" });
+      expect(page.body.items.find((item: { authorId: number }) => item.authorId === ALICE_USER_ID)).toMatchObject({
+        authorAvatar: "foam",
+        authorAvatarColor: "#F59E0B",
+      });
+      await updateProfile(ALICE_USER_ID, { displayName: "Alice", avatar: "hop" });
+    });
+  });
+});
+
+describe("beer reviews API demo data", () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await createTestApp();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("serves the demo review of Bob with his avatar malt and his avatar color", async () => {
+    const list = await request(app.getHttpServer())
+      .get(BEERS_PATH)
+      .query({ q: "Pilsner Urquell" })
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+    const [pilsner] = (list.body as BeerPageDto).items.filter((item) => item.name === "Pilsner Urquell");
+
+    const response = await request(app.getHttpServer())
+      .get(`${BEERS_PATH}/${pilsner.id}/reviews`)
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+
+    expect(response.status).toBe(HttpStatus.OK);
+    expect(response.body.items.find((item: { authorId: number }) => item.authorId === BOB_USER_ID)).toMatchObject({
+      authorName: "Bob",
+      authorAvatarColor: "#10B981",
+      authorAvatar: "malt",
     });
   });
 });

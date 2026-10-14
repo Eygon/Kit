@@ -1,3 +1,4 @@
+import { AvatarEnum } from "@/types/enums/user/avatarEnum";
 import {
   EMPTY_REVIEW_FORM,
   REVIEW_MAX_RATING,
@@ -15,7 +16,7 @@ const REVIEW: Review = {
   beerId: 7,
   authorId: 2,
   authorName: "Bob",
-  authorAvatarColor: "accent",
+  authorAvatar: AvatarEnum.HOP,
   rating: 4.5,
   text: "Très bonne",
   sweetness: 2,
@@ -36,17 +37,31 @@ describe("review form constants", () => {
   });
 
   it("starts empty with no rating and no criterion", () => {
-    expect(EMPTY_REVIEW_FORM).toEqual({ rating: null, text: "", sweetness: 0, acidity: 0, body: 0 });
+    expect(EMPTY_REVIEW_FORM).toEqual({
+      rating: null,
+      text: "",
+      sweetness: 0,
+      acidity: 0,
+      body: 0,
+    });
   });
 });
 
 describe("reviewToFormValues", () => {
   it("copies the rating, the text and the rated criteria of a review", () => {
-    expect(reviewToFormValues(REVIEW)).toEqual({ rating: 4.5, text: "Très bonne", sweetness: 2, acidity: 0, body: 5 });
+    expect(reviewToFormValues(REVIEW)).toEqual({
+      rating: 4.5,
+      text: "Très bonne",
+      sweetness: 2,
+      acidity: 0,
+      body: 5,
+    });
   });
 
   it("turns an absent criterion into 0 and keeps an empty text", () => {
-    expect(reviewToFormValues({ ...REVIEW, text: "", sweetness: null, body: null })).toEqual({
+    expect(
+      reviewToFormValues({ ...REVIEW, text: "", sweetness: null, body: null }),
+    ).toEqual({
       rating: 4.5,
       text: "",
       sweetness: 0,
@@ -58,7 +73,15 @@ describe("reviewToFormValues", () => {
 
 describe("formValuesToNewReview", () => {
   it("sends a criterion left at 0 as absent and the others as they are", () => {
-    expect(formValuesToNewReview({ rating: 3.5, text: "Top", sweetness: 4, acidity: 0, body: 1 })).toEqual({
+    expect(
+      formValuesToNewReview({
+        rating: 3.5,
+        text: "Top",
+        sweetness: 4,
+        acidity: 0,
+        body: 1,
+      }),
+    ).toEqual({
       rating: 3.5,
       text: "Top",
       sweetness: 4,
@@ -68,7 +91,15 @@ describe("formValuesToNewReview", () => {
   });
 
   it("sends every criterion as absent when none was rated", () => {
-    expect(formValuesToNewReview({ rating: 1, text: "", sweetness: 0, acidity: 0, body: 0 })).toEqual({
+    expect(
+      formValuesToNewReview({
+        rating: 1,
+        text: "",
+        sweetness: 0,
+        acidity: 0,
+        body: 0,
+      }),
+    ).toEqual({
       rating: 1,
       text: "",
       sweetness: null,

@@ -501,6 +501,7 @@ describe("BeersService", () => {
         authorId: ALICE,
         authorName: "Alice",
         authorAvatarColor: "#F59E0B",
+        authorAvatar: "hop",
         rating: 4.5,
         text: "Superbe amertume",
         sweetness: 2,
@@ -627,10 +628,10 @@ describe("BeersService", () => {
 
       const page = await service.getReviewPage(3, 1, {});
 
-      expect(page.mine).toMatchObject({ id: 9, authorName: "Carol", isMine: true });
-      expect(page.items.map((item) => [item.id, item.authorName, item.authorAvatarColor, item.isMine])).toEqual([
-        [8, "Bob", "#10B981", false],
-        [7, "Alice", "#F59E0B", false],
+      expect(page.mine).toMatchObject({ id: 9, authorName: "Carol", authorAvatar: "glass", isMine: true });
+      expect(page.items.map((item) => [item.id, item.authorName, item.authorAvatarColor, item.authorAvatar, item.isMine])).toEqual([
+        [8, "Bob", "#10B981", "malt", false],
+        [7, "Alice", "#F59E0B", "hop", false],
       ]);
       expect([page.total, page.page, page.size]).toEqual([2, 1, REVIEW_PAGE_SIZE]);
       expect(REVIEW_PAGE_SIZE).toBe(10);

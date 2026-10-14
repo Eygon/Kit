@@ -7,6 +7,7 @@ import { BeersService } from "@/modules/beers/beers.service";
 import type { ReviewDto } from "@/modules/beers/dtos/review.dto";
 import { ReviewsQueryDto } from "@/modules/beers/dtos/reviews-query.dto";
 import { UpsertReviewDto } from "@/modules/beers/dtos/upsert-review.dto";
+import { AvatarEnum } from "@/modules/users/enums/avatar.enum";
 
 const REVIEW: ReviewDto = {
   id: 7,
@@ -14,6 +15,7 @@ const REVIEW: ReviewDto = {
   authorId: 1,
   authorName: "Alice",
   authorAvatarColor: "#F59E0B",
+  authorAvatar: AvatarEnum.HOP,
   rating: 4.5,
   text: "Superbe amertume",
   sweetness: 2,

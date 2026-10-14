@@ -37,7 +37,7 @@
  {
   "id": "B.envie-en-base",
   "ok": true,
-  "detail": "[{\"beerId\":58,\"beerName\":\"3 Monts\",\"addedAt\":\"2026-10-14T09:25:51.000Z\"}]"
+  "detail": "[{\"beerId\":58,\"beerName\":\"3 Monts\",\"addedAt\":\"2026-10-14T10:38:56.000Z\"}]"
  },
  {
   "id": "B.envie-persistante",
@@ -62,7 +62,7 @@
  {
   "id": "C.date-max-maintenant",
   "ok": true,
-  "detail": "max=2026-10-14T09:25"
+  "detail": "max=2026-10-14T10:38"
  },
  {
   "id": "C.date-future-refusee",
@@ -102,12 +102,12 @@
  {
   "id": "C.donnees-en-base",
   "ok": true,
-  "detail": "{\"id\":1,\"beerId\":58,\"beerName\":\"3 Monts\",\"drankAt\":\"2026-10-14T09:15:00.000Z\",\"place\":\"Bar du Coin\",\"rating\":4.5,\"aromas\":[\"fruity\",\"citrus\",\"hoppy\",\"floral\",\"spicy\"],\"format\":\"can\",\"price\":3.5,\"comment\":\"Très bon\\nsur deux lignes\",\"photoId\":null}"
+  "detail": "{\"id\":1,\"beerId\":58,\"beerName\":\"3 Monts\",\"drankAt\":\"2026-10-14T10:29:00.000Z\",\"place\":\"Bar du Coin\",\"rating\":4.5,\"aromas\":[\"fruity\",\"citrus\",\"hoppy\",\"floral\",\"spicy\"],\"format\":\"can\",\"price\":3.5,\"comment\":\"Très bon\\nsur deux lignes\",\"photoId\":null}"
  },
  {
   "id": "C.fuseau-date-correct",
   "ok": true,
-  "detail": "ecart 64 s entre l heure saisie et la base (UTC)"
+  "detail": "ecart 8 s entre l heure saisie et la base (UTC)"
  },
  {
   "id": "D.historique",

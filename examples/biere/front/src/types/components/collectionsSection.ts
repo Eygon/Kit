@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { CollectionSummary } from "@/types/models/collection/collectionSummary";
 
 export type CollectionsSectionProps = Readonly<{
@@ -7,4 +8,5 @@ export type CollectionsSectionProps = Readonly<{
   isPending: boolean;
   isError: boolean;
   onRetry: () => void;
+  action?: ReactNode;
 }>;

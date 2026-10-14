@@ -1,3 +1,4 @@
+import { AvatarEnum } from "@/types/enums/user/avatarEnum";
 import { ReviewsSection } from "@/pages/beerDetail/components/widgets/reviewsSection/reviewsSection";
 import { toast } from "@heroui/react";
 import { screen, waitFor, within } from "@testing-library/react";
@@ -24,7 +25,7 @@ const reviewOf = (id: number, overrides: Partial<Review> = {}): Review => ({
   beerId: 1,
   authorId: id,
   authorName: `Author ${id}`,
-  authorAvatarColor: "#10B981",
+  authorAvatar: AvatarEnum.HOP,
   rating: 4,
   text: "",
   sweetness: null,
@@ -36,12 +37,23 @@ const reviewOf = (id: number, overrides: Partial<Review> = {}): Review => ({
   ...overrides,
 });
 
-const MINE = reviewOf(100, { authorName: "Moi", isMine: true, text: "Mon avis perso" });
+const MINE = reviewOf(100, {
+  authorName: "Moi",
+  isMine: true,
+  text: "Mon avis perso",
+});
 
-const pageOf = (page: number, total: number, mine: Review | null): ReviewPage => ({
+const pageOf = (
+  page: number,
+  total: number,
+  mine: Review | null,
+): ReviewPage => ({
   mine,
-  items: Array.from({ length: Math.max(0, Math.min(PAGE_SIZE, total - (page - 1) * PAGE_SIZE)) }, (_, index) =>
-    reviewOf(total - ((page - 1) * PAGE_SIZE + index)),
+  items: Array.from(
+    {
+      length: Math.max(0, Math.min(PAGE_SIZE, total - (page - 1) * PAGE_SIZE)),
+    },
+    (_, index) => reviewOf(total - ((page - 1) * PAGE_SIZE + index)),
   ),
   total,
   page,
@@ -49,15 +61,13 @@ const pageOf = (page: number, total: number, mine: Review | null): ReviewPage =>
 });
 
 const stubReviews = (total: number, mine: Review | null = MINE) => {
-  (ReviewService.getPage as Mock).mockImplementation(async (_beerId: number, page: number) =>
-    pageOf(page, total, mine),
+  (ReviewService.getPage as Mock).mockImplementation(
+    async (_beerId: number, page: number) => pageOf(page, total, mine),
   );
 };
 
 const authorNames = () =>
-  screen
-    .getAllByText(/^(Author \d+|Moi)$/)
-    .map((name) => name.textContent);
+  screen.getAllByText(/^(Author \d+|Moi)$/).map((name) => name.textContent);
 
 const BASE_BEER: Beer = {
   id: 1,
@@ -133,7 +143,9 @@ describe("ReviewsSection", () => {
     renderSection(REVIEWED_BEER);
 
     const section = screen.getByRole("region", { name: "Avis" });
-    expect(within(section).getByRole("heading", { level: 2, name: "Avis" })).toBeInTheDocument();
+    expect(
+      within(section).getByRole("heading", { level: 2, name: "Avis" }),
+    ).toBeInTheDocument();
   });
 
   it("reads the average 3,5, the 12 reviews and a 3,5 sur 5 alternative text", () => {
@@ -142,7 +154,9 @@ describe("ReviewsSection", () => {
     expect(screen.getByText("3,5")).toBeInTheDocument();
     expect(screen.getByText("12 avis")).toBeInTheDocument();
     expect(screen.getByText("3,5 sur 5")).toHaveClass("sr-only");
-    const states = Array.from(container.querySelectorAll("[data-state]")).map((star) => star.getAttribute("data-state"));
+    const states = Array.from(container.querySelectorAll("[data-state]")).map(
+      (star) => star.getAttribute("data-state"),
+    );
     expect(states).toEqual(["full", "full", "full", "half", "empty"]);
   });
 
@@ -150,20 +164,24 @@ describe("ReviewsSection", () => {
     renderSection(REVIEWED_BEER);
 
     const meters = screen.getAllByRole("meter", { name: /étoile/ });
-    expect(meters.map((meter) => meter.getAttribute("aria-valuetext"))).toEqual([
-      "5 étoiles : 2 avis",
-      "4 étoiles : 7 avis",
-      "3 étoiles : 2 avis",
-      "2 étoiles : 0 avis",
-      "1 étoile : 1 avis",
-    ]);
+    expect(meters.map((meter) => meter.getAttribute("aria-valuetext"))).toEqual(
+      [
+        "5 étoiles : 2 avis",
+        "4 étoiles : 7 avis",
+        "3 étoiles : 2 avis",
+        "2 étoiles : 0 avis",
+        "1 étoile : 1 avis",
+      ],
+    );
   });
 
   it("reads the sweetness with its level and hides the acidity with the missing reviews", () => {
     renderSection(REVIEWED_BEER);
 
     expect(screen.getByText("Douceur 2,7 / 5 · Sèche")).toBeInTheDocument();
-    expect(screen.getByText("Acidité : encore 2 avis pour afficher ce critère")).toBeInTheDocument();
+    expect(
+      screen.getByText("Acidité : encore 2 avis pour afficher ce critère"),
+    ).toBeInTheDocument();
   });
 
   it("says there is no rating yet and shows empty bars when nobody reviewed the beer", () => {
@@ -175,14 +193,18 @@ describe("ReviewsSection", () => {
     const bars = screen.getAllByRole("meter", { name: /étoile/ });
     expect(bars).toHaveLength(5);
     bars.forEach((bar) => expect(bar).toHaveAttribute("aria-valuenow", "0"));
-    expect(screen.getByText("Corps : encore 3 avis pour afficher ce critère")).toBeInTheDocument();
+    expect(
+      screen.getByText("Corps : encore 3 avis pour afficher ce critère"),
+    ).toBeInTheDocument();
   });
 
   it("renders the summary in English", async () => {
     await i18n.changeLanguage("en");
     renderSection(REVIEWED_BEER);
 
-    expect(screen.getByRole("heading", { level: 2, name: "Reviews" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Reviews" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("3.5")).toBeInTheDocument();
     expect(screen.getByText("12 reviews")).toBeInTheDocument();
     expect(screen.getByText("3.5 out of 5")).toBeInTheDocument();
@@ -212,17 +234,24 @@ describe("ReviewsSection review list", () => {
     renderSection(REVIEWED_BEER);
 
     await screen.findByText("Moi");
-    expect(authorNames()).toEqual(["Moi", ...Array.from({ length: 10 }, (_, index) => `Author ${12 - index}`)]);
+    expect(authorNames()).toEqual([
+      "Moi",
+      ...Array.from({ length: 10 }, (_, index) => `Author ${12 - index}`),
+    ]);
     expect(screen.getAllByText("Mon avis")).toHaveLength(1);
     expect(screen.getByText("Mon avis perso")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Voir plus" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Voir plus" }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Voir plus" }));
 
     await waitFor(() => expect(authorNames()).toHaveLength(13));
     expect(authorNames().slice(-2)).toEqual(["Author 2", "Author 1"]);
     expect(authorNames().filter((name) => name === "Moi")).toHaveLength(1);
-    expect(screen.queryByRole("button", { name: "Voir plus" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Voir plus" }),
+    ).not.toBeInTheDocument();
     expect((ReviewService.getPage as Mock).mock.calls).toEqual([
       [REVIEWED_BEER.id, 1],
       [REVIEWED_BEER.id, 2],
@@ -236,7 +265,9 @@ describe("ReviewsSection review list", () => {
     await screen.findByText("Author 3");
     expect(authorNames()).toEqual(["Author 3", "Author 2", "Author 1"]);
     expect(screen.queryByText("Mon avis")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Voir plus" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Voir plus" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows my review alone, without the empty state, when nobody else reviewed the beer", async () => {
@@ -245,8 +276,12 @@ describe("ReviewsSection review list", () => {
 
     await screen.findByText("Moi");
     expect(authorNames()).toEqual(["Moi"]);
-    expect(screen.queryByText("Aucun avis pour l'instant")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Voir plus" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Aucun avis pour l'instant"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Voir plus" }),
+    ).not.toBeInTheDocument();
   });
 
   it("AC2 shows only the author, the stars and the date for a review without text and without criterion", async () => {
@@ -261,7 +296,7 @@ describe("ReviewsSection review list", () => {
 
     const author = await screen.findByText("Zoé");
     const entry = author.closest("li");
-    expect(entry?.textContent).toBe("ZZoé3,5 sur 512/10/2026");
+    expect(entry?.textContent).toBe("Zoé3,5 sur 512/10/2026");
     expect(entry?.querySelector("p")).toBeNull();
     expect(entry?.querySelector("ul")).toBeNull();
   });
@@ -276,8 +311,12 @@ describe("ReviewsSection review list", () => {
     const busy = container.querySelector('[aria-busy="true"]');
     expect(busy).not.toBeNull();
     expect(busy?.children.length).toBeGreaterThanOrEqual(3);
-    expect(busy?.querySelectorAll(".skeleton")).toHaveLength(busy?.children.length ?? -1);
-    expect(screen.queryByText("Aucun avis pour l'instant")).not.toBeInTheDocument();
+    expect(busy?.querySelectorAll(".skeleton")).toHaveLength(
+      busy?.children.length ?? -1,
+    );
+    expect(
+      screen.queryByText("Aucun avis pour l'instant"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
     resolvePage(pageOf(1, 1, null));
@@ -293,7 +332,9 @@ describe("ReviewsSection review list", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Impossible de charger les avis.");
-    expect(screen.queryByText("Aucun avis pour l'instant")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Aucun avis pour l'instant"),
+    ).not.toBeInTheDocument();
 
     stubReviews(1, null);
     await user.click(within(alert).getByRole("button", { name: "Réessayer" }));
@@ -306,11 +347,23 @@ describe("ReviewsSection review list", () => {
     stubReviews(0, null);
     const { container } = renderSection(UNREVIEWED_BEER);
 
-    expect(await screen.findByRole("heading", { level: 2, name: "Aucun avis pour l'instant" })).toBeInTheDocument();
-    expect(screen.getByText("Soyez le premier à donner votre avis.")).toBeInTheDocument();
-    expect(container.querySelector('[data-slot="mascot"]')).toHaveAttribute("data-mood", "searching");
+    expect(
+      await screen.findByRole("heading", {
+        level: 2,
+        name: "Aucun avis pour l'instant",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Soyez le premier à donner votre avis."),
+    ).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="mascot"]')).toHaveAttribute(
+      "data-mood",
+      "searching",
+    );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Voir plus" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Voir plus" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows no mascot while loading, on a list, or on an error", async () => {
@@ -334,14 +387,18 @@ describe("ReviewsSection review list", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Impossible de charger les avis.");
     expect(authorNames()).toHaveLength(11);
-    expect(screen.queryByText("Aucun avis pour l'instant")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Aucun avis pour l'instant"),
+    ).not.toBeInTheDocument();
 
     stubReviews(12);
     await user.click(within(alert).getByRole("button", { name: "Réessayer" }));
 
     await waitFor(() => expect(authorNames()).toHaveLength(13));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Voir plus" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Voir plus" }),
+    ).not.toBeInTheDocument();
   });
 
   it("asks for the next page once when Voir plus is double clicked in the same tick", async () => {
@@ -354,7 +411,11 @@ describe("ReviewsSection review list", () => {
     more.click();
 
     await waitFor(() => expect(authorNames()).toHaveLength(13));
-    expect((ReviewService.getPage as Mock).mock.calls.filter(([, page]) => page === 2)).toHaveLength(1);
+    expect(
+      (ReviewService.getPage as Mock).mock.calls.filter(
+        ([, page]) => page === 2,
+      ),
+    ).toHaveLength(1);
   });
 
   it("renders the list copy in English", async () => {
@@ -362,7 +423,9 @@ describe("ReviewsSection review list", () => {
     stubReviews(0, null);
     renderSection(UNREVIEWED_BEER);
 
-    expect(await screen.findByRole("heading", { level: 2, name: "No reviews yet" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "No reviews yet" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Be the first to review it.")).toBeInTheDocument();
   });
 });
@@ -383,7 +446,9 @@ describe("ReviewsSection review sheet", () => {
     renderSection(REVIEWED_BEER);
 
     await screen.findByText("Author 2");
-    expect(screen.getByRole("button", { name: "Donner mon avis" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Donner mon avis" }),
+    ).toBeDisabled();
     expect(screen.getByText(CHECKIN_FIRST)).toBeInTheDocument();
   });
 
@@ -394,13 +459,17 @@ describe("ReviewsSection review sheet", () => {
     );
     renderSection(CHECKED_IN_BEER);
 
-    expect(screen.getByRole("button", { name: "Donner mon avis" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Donner mon avis" }),
+    ).toBeDisabled();
     expect(screen.queryByText(CHECKIN_FIRST)).not.toBeInTheDocument();
 
     resolvePage(pageOf(1, 1, null));
 
     await screen.findByText("Author 1");
-    expect(screen.getByRole("button", { name: "Donner mon avis" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Donner mon avis" }),
+    ).toBeEnabled();
   });
 
   it("disables the button when the first page fails, then enables it after a successful retry", async () => {
@@ -409,13 +478,17 @@ describe("ReviewsSection review sheet", () => {
     renderSection(CHECKED_IN_BEER);
 
     const alert = await screen.findByRole("alert");
-    expect(screen.getByRole("button", { name: "Donner mon avis" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Donner mon avis" }),
+    ).toBeDisabled();
 
     stubReviews(1, null);
     await user.click(within(alert).getByRole("button", { name: "Réessayer" }));
 
     await screen.findByText("Author 1");
-    expect(screen.getByRole("button", { name: "Donner mon avis" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Donner mon avis" }),
+    ).toBeEnabled();
   });
 
   it("enables Donner mon avis for a tasted beer without review and shows no mention", async () => {
@@ -423,7 +496,9 @@ describe("ReviewsSection review sheet", () => {
     renderSection(CHECKED_IN_BEER);
 
     await screen.findByText("Author 2");
-    expect(screen.getByRole("button", { name: "Donner mon avis" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Donner mon avis" }),
+    ).toBeEnabled();
     expect(screen.queryByText(CHECKIN_FIRST)).not.toBeInTheDocument();
   });
 
@@ -432,8 +507,12 @@ describe("ReviewsSection review sheet", () => {
     renderSection(REVIEWED_BEER);
 
     await screen.findByText("Moi");
-    expect(screen.getByRole("button", { name: "Modifier mon avis" })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: "Donner mon avis" })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Modifier mon avis" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "Donner mon avis" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(CHECKIN_FIRST)).not.toBeInTheDocument();
   });
 
@@ -446,9 +525,17 @@ describe("ReviewsSection review sheet", () => {
     await user.click(screen.getByRole("button", { name: "Modifier mon avis" }));
 
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByRole("heading", { name: "Votre avis sur Chimay Rouge" })).toBeInTheDocument();
-    expect(within(dialog).getByRole("textbox", { name: "Votre avis" })).toHaveValue("Mon avis perso");
-    expect(within(dialog).getByRole("slider", { name: "Note" })).toHaveValue("4");
+    expect(
+      within(dialog).getByRole("heading", {
+        name: "Votre avis sur Chimay Rouge",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("textbox", { name: "Votre avis" }),
+    ).toHaveValue("Mon avis perso");
+    expect(within(dialog).getByRole("slider", { name: "Note" })).toHaveValue(
+      "4",
+    );
   });
 
   it("E4 keeps my review editable and deletable when I have no tasting left", async () => {
@@ -460,10 +547,14 @@ describe("ReviewsSection review sheet", () => {
     await user.click(screen.getByRole("button", { name: "Modifier mon avis" }));
 
     const dialog = await screen.findByRole("dialog");
-    const remove = within(dialog).getByRole("button", { name: "Supprimer mon avis" });
+    const remove = within(dialog).getByRole("button", {
+      name: "Supprimer mon avis",
+    });
     expect(remove).toBeEnabled();
     await user.click(remove);
-    expect(await screen.findByRole("alertdialog")).toHaveAccessibleName("Supprimer votre avis ?");
+    expect(await screen.findByRole("alertdialog")).toHaveAccessibleName(
+      "Supprimer votre avis ?",
+    );
   });
 
   it("puts the button under the section title", async () => {
@@ -473,25 +564,44 @@ describe("ReviewsSection review sheet", () => {
     const heading = screen.getByRole("heading", { level: 2, name: "Avis" });
     const button = screen.getByRole("button", { name: "Donner mon avis" });
 
-    expect(heading.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(screen.getByRole("region", { name: "Avis" })).getByRole("button", { name: "Donner mon avis" })).toBe(button);
-    await screen.findByRole("heading", { level: 2, name: "Aucun avis pour l'instant" });
+    expect(
+      heading.compareDocumentPosition(button) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      within(screen.getByRole("region", { name: "Avis" })).getByRole("button", {
+        name: "Donner mon avis",
+      }),
+    ).toBe(button);
+    await screen.findByRole("heading", {
+      level: 2,
+      name: "Aucun avis pour l'instant",
+    });
   });
 
   it("AC1 sends the review, closes the sheet, shows Avis enregistré and reads the review list again", async () => {
     const user = userEvent.setup();
     stubReviews(0, null);
-    (ReviewService.save as Mock).mockResolvedValue(reviewOf(100, { isMine: true, rating: 4 }));
+    (ReviewService.save as Mock).mockResolvedValue(
+      reviewOf(100, { isMine: true, rating: 4 }),
+    );
     renderSection(CHECKED_IN_BEER);
-    await screen.findByRole("heading", { level: 2, name: "Aucun avis pour l'instant" });
+    await screen.findByRole("heading", {
+      level: 2,
+      name: "Aucun avis pour l'instant",
+    });
 
     await user.click(screen.getByRole("button", { name: "Donner mon avis" }));
     const dialog = await screen.findByRole("dialog");
     within(dialog).getByRole("slider", { name: "Note" }).focus();
     await user.keyboard("{ArrowRight}{ArrowRight}");
-    await user.click(within(dialog).getByRole("button", { name: "Publier mon avis" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: "Publier mon avis" }),
+    );
 
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
     expect(ReviewService.save).toHaveBeenCalledTimes(1);
     expect(ReviewService.save).toHaveBeenCalledWith(CHECKED_IN_BEER.id, {
       rating: 4,
@@ -501,7 +611,11 @@ describe("ReviewsSection review sheet", () => {
       body: null,
     });
     expect(toast.success).toHaveBeenCalledWith("Avis enregistré");
-    await waitFor(() => expect((ReviewService.getPage as Mock).mock.calls.length).toBeGreaterThanOrEqual(2));
+    await waitFor(() =>
+      expect(
+        (ReviewService.getPage as Mock).mock.calls.length,
+      ).toBeGreaterThanOrEqual(2),
+    );
   });
 
   it("renders the mention in English", async () => {
@@ -509,7 +623,9 @@ describe("ReviewsSection review sheet", () => {
     stubReviews(0, null);
     renderSection(REVIEWED_BEER);
 
-    expect(screen.getByRole("button", { name: "Write a review" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Write a review" }),
+    ).toBeDisabled();
     expect(screen.getByText("Check in this beer first.")).toBeInTheDocument();
     await screen.findByRole("heading", { level: 2, name: "No reviews yet" });
   });

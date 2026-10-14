@@ -9,9 +9,13 @@ import { buildUserProfilePath } from "@/types/enums/routing/routePathEnum";
 import type { CollectionSummary } from "@/types/models/collection/collectionSummary";
 
 const SKELETON_ROW_COUNT = 3;
-const SKELETON_ROW_KEYS = Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => index);
+const SKELETON_ROW_KEYS = Array.from(
+  { length: SKELETON_ROW_COUNT },
+  (_, index) => index,
+);
 const LIST_CLASSES = "flex flex-col gap-3";
-const ROW_CLASSES = "flex min-w-0 items-center justify-between gap-3 rounded-mousse border-mousse bg-surface p-3 shadow-mousse";
+const ROW_CLASSES =
+  "flex min-w-0 items-center justify-between gap-3 rounded-mousse border-mousse bg-surface p-3 shadow-mousse";
 
 const CollectionsSkeleton = () => (
   <ul aria-busy="true" className={LIST_CLASSES}>
@@ -24,12 +28,25 @@ const CollectionsSkeleton = () => (
   </ul>
 );
 
-const buildCollectionPath = (userId: number, { id, kind }: CollectionSummary): string => {
+const buildCollectionPath = (
+  userId: number,
+  { id, kind }: CollectionSummary,
+): string => {
   const profilePath = buildUserProfilePath(userId);
-  return kind === CollectionKindEnum.WISHLIST || id === null ? `${profilePath}/wishlist` : `${profilePath}/collections/${id}`;
+  return kind === CollectionKindEnum.WISHLIST || id === null
+    ? `${profilePath}/wishlist`
+    : `${profilePath}/collections/${id}`;
 };
 
-export const CollectionsSection = ({ userId, ownerName, collections, isPending, isError, onRetry }: CollectionsSectionProps) => {
+export const CollectionsSection = ({
+  userId,
+  ownerName,
+  collections,
+  isPending,
+  isError,
+  onRetry,
+  action,
+}: CollectionsSectionProps) => {
   const { t } = useTranslation();
 
   const renderContent = () => {
@@ -59,10 +76,17 @@ export const CollectionsSection = ({ userId, ownerName, collections, isPending, 
       <ul className={LIST_CLASSES}>
         {collections.map((collection) => (
           <li key={collection.id ?? collection.kind} className={ROW_CLASSES}>
-            <Link to={buildCollectionPath(userId, collection)} className="flex min-h-11 min-w-0 flex-1 items-center font-bold break-words">
-              {collection.kind === CollectionKindEnum.WISHLIST ? t("collections.wishlist") : collection.name}
+            <Link
+              to={buildCollectionPath(userId, collection)}
+              className="flex min-h-11 min-w-0 flex-1 items-center font-bold break-words"
+            >
+              {collection.kind === CollectionKindEnum.WISHLIST
+                ? t("collections.wishlist")
+                : collection.name}
             </Link>
-            <span className="shrink-0 text-muted">{t("collections.beerCount", { count: collection.beerCount })}</span>
+            <span className="shrink-0 text-muted">
+              {t("collections.beerCount", { count: collection.beerCount })}
+            </span>
           </li>
         ))}
       </ul>
@@ -71,7 +95,14 @@ export const CollectionsSection = ({ userId, ownerName, collections, isPending, 
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-display text-xl">{ownerName === undefined ? t("collections.title") : t("collections.titleOf", { name: ownerName })}</h2>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <h2 className="min-w-0 font-display text-xl break-words">
+          {ownerName === undefined
+            ? t("collections.title")
+            : t("collections.titleOf", { name: ownerName })}
+        </h2>
+        {action}
+      </div>
       {renderContent()}
     </section>
   );
