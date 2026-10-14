@@ -674,6 +674,22 @@ export const lintSpec = (dir, opts = {}) => {
     }
   }
 
+  // Route ajoutee sans proprietaire d'onglet : sur une page de detail, l'onglet de sa section doit rester le courant (standard react/routing,
+  // `activePaths` de la barre d'onglets). Oubli vu sur Mousse F5 US28 (pages de collection : aucun onglet `aria-current`, escalade).
+  {
+    const routeRoot = findRepoRoot(dir);
+    const hasRouting = routeRoot && existsSync(join(routeRoot, "agent-os", "standards", "react", "routing.md")) && existsSync(join(routeRoot, "src", "constants", "tabBarConstants.ts"));
+    if (hasRouting) {
+      for (const [story, list] of stories) {
+        if (story === "unassigned") continue;
+        const addsRoute = list.some((t) => t.paths.some((q) => /routePathEnum\.ts$/.test(q) && !isTestPath(q)) || (t.paths.some((q) => /(^|\/)app\.tsx$/.test(q) && !isTestPath(q)) && /\broutes?\b|\bRoute\b/i.test(t.body)));
+        const ownsTab = list.some((t) => /tabBarConstants|sans onglet|no tab/i.test(t.body));
+        if (addsRoute && !ownsTab)
+          add("medium", "route-without-tab-owner", `${story} ajoute une route (routePathEnum.ts) sans citer \`src/constants/tabBarConstants.ts\` (activePaths de l'onglet de sa section) ni « sans onglet » : l'onglet courant ne sera pas marque sur cette page`, "tasks.md");
+      }
+    }
+  }
+
   for (const [story, list] of stories) {
     if (story === "unassigned") continue;
     const { prod, companionFiles } = countStory(list);

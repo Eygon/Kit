@@ -228,6 +228,32 @@ par process : en general, tous les it d une tache dans un seul RED
 puis un seul GREEN ; decoupe plus fin quand un comportement (etat
 d un hook, regle d API, 409) ne se prouve bien qu isole.
 
+Trous de tests recurrents (la loupe de tests les a trouves dans CHAQUE
+feature Mousse F1 a F10, 3 a 14 par feature) : ecris-les d emblee, ils
+coutent une ligne chacun et evitent une passe de reprise.
+- Bornes : accepte N ET refuse N+1, accepte 1 ET refuse 0 ; un nom avec espaces
+  autour (trim) a la borne haute ; jamais seulement le rejet.
+- Ordre : une regle « le premier gagne a egalite » se teste dans les DEUX ordres
+  d entree ; un tri se teste avec des ex aequo.
+- Corps complet : un etat vide (utilisateur sans donnee) s asserte en toEqual sur le
+  corps entier, APRES lecture des donnees d un autre utilisateur ; une erreur
+  s asserte en { message: <exact ou expect.any(String)> }, jamais `not.toBe("")`.
+- `every()` / `some()` sur une liste : asserte d abord sa longueur, sinon une liste
+  vide passe.
+- Textes : pluriel et singulier EXACTS dans les DEUX langues (`1 beer`, pas
+  `toHaveTextContent("1 beer")` qui accepte `1 beers`) ; la parite des cles ne prouve
+  pas les valeurs.
+- Dates et fuseaux : force le fuseau (`vi.stubEnv("TZ", ...)` / `process.env.TZ`,
+  restaure) sur un instant proche de minuit ; un test « quel que soit le fuseau »
+  qui ne change jamais le fuseau ne prouve rien.
+- Accents et casse : « Ete » / « ete » ET les lettres accentuees ; SQLite `LOWER`
+  ne replie pas les accents.
+- Position et appartenance : asserte OU est l element (dans la section, a la position
+  du barycentre), pas seulement qu il existe.
+- Echec apres reponse : une attente qui ne regarde que l appel (`waitFor(called)`)
+  n attend pas le traitement du rejet ; attends l etat stable (bouton plus pending,
+  dialogue ferme) avant d asserter ce qui NE doit PAS arriver.
+
 1. RED. Ecris les it/test/Fact de CETTE tache (tous, ou le
    lot que tu as choisi) dans le fichier cite. UNE gate sur CE fichier, qui prend
    aussi l empreinte du test, dans le MEME appel :

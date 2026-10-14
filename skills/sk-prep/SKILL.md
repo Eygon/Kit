@@ -515,7 +515,8 @@ Elle nomme donc :
   react/file-decomposition) : `component-without-props-file` (medium : un composant
   cree sans `types/<composant>.ts`, a ignorer s'il n'a aucune prop),
   `dto-without-mapper` (high : un DTO front cree sans aucun mapper dans l'US) et
-  `contract-enum-without-file` (high). Un finding n'est pas a contourner : ajoute
+  `contract-enum-without-file` (high), `route-without-tab-owner` (medium : une route
+  ajoutee sans `tabBarConstants.ts` ni « sans onglet » dans l'US). Un finding n'est pas a contourner : ajoute
   le chemin a la tache ;
 - pour tout enum du contrat OpenAPI (CollectionKindEnum, AvatarEnum...) : son
   fichier `enums/<nom>.enum.ts` (back) ou `types/enums/<domaine>/<nom>Enum.ts`

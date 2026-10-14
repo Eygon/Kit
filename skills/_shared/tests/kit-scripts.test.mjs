@@ -696,3 +696,26 @@ test("audit-lint flags a created component without props file and a DTO without 
   const good = ["- [ ] T001 [US1] Create `src/pages/a/components/elements/card/card.tsx` and its props `src/pages/a/types/card.ts` — Test: `src/__tests__/pages/a/card.test.tsx`", "- [ ] T002 [US1] Create `src/types/dtos/x/thingDto.ts` and its mapper `src/types/mappers/x/thingMapper.ts` — Test: `src/__tests__/types/mappers/x/thingMapper.test.ts`"];
   assert.doesNotMatch(run(true, good), /component-without-props-file|dto-without-mapper/);
 });
+
+test("audit-lint flags a story that adds a route without the tab owner (repo with react/routing)", async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join, dirname } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const lint = join(dirname(fileURLToPath(import.meta.url)), "..", "audit-lint.mjs");
+  const run = (withRouting, lines) => {
+    const root = mkdtempSync(join(tmpdir(), "lint-route-"));
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    if (withRouting) { mkdirSync(join(root, "agent-os", "standards", "react"), { recursive: true }); writeFileSync(join(root, "agent-os", "standards", "react", "routing.md"), "# r\n"); mkdirSync(join(root, "src", "constants"), { recursive: true }); writeFileSync(join(root, "src", "constants", "tabBarConstants.ts"), "export const x = 1;\n"); }
+    const d = join(root, "specs", "001-x"); mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, "tasks.md"), `# Tasks\n\n## [US1] X\n${lines.join("\n")}\n`);
+    writeFileSync(join(d, "spec.md"), "# s\n"); writeFileSync(join(d, "plan.md"), "# p\n");
+    try { return execFileSync("node", [lint, d], { encoding: "utf8" }); } catch (e) { return String(e.stdout); }
+  };
+  const bad = ["- [ ] T001 [US1] Extend `src/types/enums/routing/routePathEnum.ts` with `USER_COLLECTION` and create `src/pages/c/collection.tsx` — Test: `src/__tests__/pages/c/collection.test.tsx`"];
+  assert.match(run(true, bad), /route-without-tab-owner/);
+  assert.doesNotMatch(run(false, bad), /route-without-tab-owner/);
+  const good = [bad[0] + " ; onglet courant : `src/constants/tabBarConstants.ts` (activePaths du Profil)"];
+  assert.doesNotMatch(run(true, good), /route-without-tab-owner/);
+});
