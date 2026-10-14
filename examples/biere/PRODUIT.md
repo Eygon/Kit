@@ -68,3 +68,12 @@ Comptes avec mots de passe, modération, paiement, réseau social complet (amis,
 - Carte : un seul bandeau (polish 1), repères regroupés (F8), barre d'outils sur 2 rangées (polish 4).
 - Collections : bouton « Nouvelle collection » dans la section ; message « 20 collections au plus » à la limite (polish 4).
 - Placeholder de recherche de l'Encyclopédie raccourci (polish 4).
+
+### Backlog ergonomie / manques (14 octobre, demande de Thomas : « ergonomie ou features nécessaires manquantes »)
+Audit rapide (lecture du produit en l'état) : le lieu d'une dégustation est du texte libre (la carte et le Journal ne se parlent pas) ; le catalogue est fermé (120 bières : impossible d'enregistrer une bière absente) ; une dégustation ne se modifie pas (suppression seulement) ; le Journal n'a ni recherche, ni filtre, ni regroupement ; le fil n'a pas de réaction ; pas de vraie authentification (sélecteur de démo, hors périmètre du banc).
+- **F11 Lieux de dégustation liés à la carte** (back + front) : complétion des lieux dans « Je l'ai bue », `venueId`, « vous avez bu ici N fois », filtre carte « Lieux où j'ai bu », lien depuis le Journal. *(prep lancée)*
+- **F12 Proposer une bière manquante** (back + front) : POST/PATCH/DELETE de bières communautaires, doublon 409, repère « Proposée par », Pokédex officiel inchangé (à confirmer). *(prep lancée)*
+- **F13 Journal : modifier, chercher, filtrer** : PATCH d'une dégustation (note, lieu, date, format, commentaire, photo), recherche texte, filtre par note et par mois, titres de mois. À lancer après F11 (même formulaire).
+- **F14 Réactions « Santé ! » sur le fil** : une réaction par utilisateur et par carte, compteur, qui a réagi.
+- **F15 Autres bières de la brasserie / du même style** sur la fiche.
+- Hors périmètre du banc, à signaler : authentification réelle (inscription, mot de passe), notifications, export/suppression des données.
