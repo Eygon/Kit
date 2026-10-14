@@ -52,7 +52,7 @@
  {
   "id": "3.recherche-sans-accent",
   "ok": true,
-  "detail": "3 cartes ; url /?q=weissbrau"
+  "detail": "3 cartes ; url /bieres?q=weissbrau"
  },
  {
   "id": "3.compteur-resultats",
@@ -82,12 +82,12 @@
  {
   "id": "4.puce-famille",
   "ok": true,
-  "detail": "Stout (6) -> 6 cartes ; url /?family=stout"
+  "detail": "Stout (6) -> 6 cartes ; url /bieres?family=stout"
  },
  {
   "id": "4.historique-retour",
   "ok": true,
-  "detail": "retour : /"
+  "detail": "retour : /bieres"
  },
  {
   "id": "4.rangee-puces-defilante",
@@ -122,7 +122,7 @@
  {
   "id": "5.appliquer",
   "ok": true,
-  "detail": "url /?country=BE ; 20 cartes"
+  "detail": "url /bieres?country=BE ; 20 cartes"
  },
  {
   "id": "5.coherence-api",
@@ -132,7 +132,7 @@
  {
   "id": "5.reinitialiser",
   "ok": true,
-  "detail": "url /"
+  "detail": "url /bieres"
  },
  {
   "id": "6.fiche",
@@ -147,7 +147,7 @@
  {
   "id": "6.fiche-onglet-courant",
   "ok": true,
-  "detail": "onglet courant « Encyclopédie »"
+  "detail": "onglet courant « Bières »"
  },
  {
   "id": "6.id-invalide",
@@ -175,8 +175,8 @@
   "detail": "20 cartes apres Reessayer"
  },
  {
-  "id": "8.anglais-detection-navigateur (limite connue : langue fixe fr, choix en F4)",
-  "ok": false,
+  "id": "8.anglais-detection-navigateur (levee par F4 : langue detectee + selecteur)",
+  "ok": true,
   "detail": "« Encyclopedia |  | 0 / 120 discovered |  | Filters | All | Lager (19) | Pilsner (5) | Pale Ale (2 »"
  },
  {

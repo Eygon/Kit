@@ -13,14 +13,14 @@ const hOv = () => p.evaluate(() => document.documentElement.scrollWidth - docume
 const goto = async (path) => { await p.goto(URL0 + path); await settle(); };
 const apiGet = async (path, u = 1) => (await fetch(API + "/api/v1" + path, { headers: { "X-User-Id": String(u) } })).json();
 // A. etat initial
-await goto("/"); const body0 = await p.locator("body").innerText();
+await goto("/bieres"); const body0 = await p.locator("body").innerText();
 log("A.compteur-0", /0 \/ 120 découvertes/.test(body0), (body0.match(/\d+ \/ \d+ découvertes/) || ["?"])[0]);
 const pb = await p.locator('[role="progressbar"]').first().evaluate((e) => ({ now: e.getAttribute("aria-valuenow"), max: e.getAttribute("aria-valuemax") })).catch(() => null); log("A.anneau-accessible", pb && pb.max === "120" && pb.now === "0", JSON.stringify(pb));
 const unk = await cards().first().innerText(); log("A.carte-grisee", /\?\?\?/.test(unk) && !/Bue le/.test(unk), unk.replace(/\n/g, " | ").slice(0, 80));
 log("A.sans-debordement", (await hOv()) <= 0 && (await overflowing(p)).length === 0, "h-overflow " + (await hOv()));
 let t = w.take(); log("A.sans-erreur", !t.fiveXX.length && !t.console.length, `5xx=${t.fiveXX.length} console=${t.console.length}`);
 // B. envie
-await cards().first().click(); await settle();
+await cards().first().click(); await settle(); await p.waitForTimeout(1500); // page de la fiche chargee a la demande (F9)
 const wish = p.getByRole("button", { name: /À goûter/ });
 log("B.fiche-historique-vide", /Pas encore de dégustation/.test(await p.locator("body").innerText()), "etat vide");
 await wish.click(); await p.waitForTimeout(150); const pr1 = await wish.getAttribute("aria-pressed"); await settle();
@@ -64,7 +64,7 @@ await p.getByRole("button", { name: /Je l'ai bue/ }).click(); await p.waitForTim
 const cap2 = await p.locator('[data-mood="captured"]').count(); log("D.2e-checkin-pas-de-mascotte", cap2 === 0, `mascotte captured=${cap2} (1ere decouverte seulement)`);
 await settle(); const ck2 = await apiGet("/checkins"); log("D.2-checkins", ck2.total === 2, ck2.total); log("D.historique-ordre", /Maison[\s\S]*Bar du Coin/.test(await p.locator("body").innerText()), "plus recent en haut");
 // E. encyclopedie apres
-await goto("/"); const bodyE = await p.locator("body").innerText(); log("E.compteur-1", /1 \/ 120 découvertes/.test(bodyE), (bodyE.match(/\d+ \/ \d+ découvertes/) || ["?"])[0]);
+await goto("/bieres"); const bodyE = await p.locator("body").innerText(); log("E.compteur-1", /1 \/ 120 découvertes/.test(bodyE), (bodyE.match(/\d+ \/ \d+ découvertes/) || ["?"])[0]);
 const stamped = await p.locator('a[href^="/bieres/"]', { hasText: /Bue le/ }).count(); const stampTxt = await p.locator('a[href^="/bieres/"]', { hasText: /Bue le/ }).first().innerText().catch(() => ""); log("E.carte-tamponnee", stamped === 1 && stampTxt.includes(new Date().toLocaleDateString("fr-FR")), `${stamped} carte(s) tamponnee(s) : ${stampTxt.replace(/\n/g, " | ").slice(0, 70)}`);
 await p.screenshot({ path: "f2-home1.png" });
 await p.getByRole("button", { name: /Filtres/ }).click(); await p.waitForTimeout(500); const dl = p.getByRole("dialog"); await dl.getByText(/^Bues/).click(); await p.waitForTimeout(700); const seeB = await dl.getByRole("button", { name: /Voir \d+ bière/ }).innerText(); log("E.filtre-bues-compteur", /Voir 1 bière/.test(seeB), seeB);
@@ -72,7 +72,7 @@ await dl.getByRole("button", { name: /Voir \d+ bière/ }).click(); await settle(
 await p.getByRole("button", { name: /Filtres/ }).click(); await p.waitForTimeout(500); await p.getByRole("dialog").getByText(/^Jamais/).click(); await p.waitForTimeout(700); const seeU = await p.getByRole("dialog").getByRole("button", { name: /Voir \d+ bière/ }).innerText(); log("E.filtre-jamais-goutees", /Voir 119 bières/.test(seeU), seeU);
 await p.screenshot({ path: "f2-filtre-statut.png" });
 // F. autre utilisateur : isolation
-const bob = await mk(2); await bob.p.goto(URL0 + "/"); await bob.p.waitForLoadState("networkidle"); await bob.p.waitForTimeout(500); log("F.autre-utilisateur-0", /0 \/ 120 découvertes/.test(await bob.p.locator("body").innerText()), "Bob voit 0 / 120"); await bob.ctx.close();
+const bob = await mk(2); await bob.p.goto(URL0 + "/bieres"); await bob.p.waitForLoadState("networkidle"); await bob.p.waitForTimeout(500); log("F.autre-utilisateur-0", /0 \/ 120 découvertes/.test(await bob.p.locator("body").innerText()), "Bob voit 0 / 120"); await bob.ctx.close();
 // G. erreur reseau pendant l envoi : la feuille reste, rien n est perdu
 await goto("/bieres/2"); await p.getByRole("button", { name: /Je l'ai bue/ }).click(); await p.waitForTimeout(600); const d3 = p.getByRole("dialog"); await d3.getByLabel(/Lieu/).fill("Test panne"); await d3.getByText(/^Pression/).click();
 await p.route("**/api/v1/checkins", (r) => (r.request().method() === "POST" ? r.abort() : r.continue())); w.take(); await d3.getByRole("button", { name: /Enregistrer/ }).scrollIntoViewIfNeeded(); await d3.getByRole("button", { name: /Enregistrer/ }).click(); await p.waitForTimeout(1500);

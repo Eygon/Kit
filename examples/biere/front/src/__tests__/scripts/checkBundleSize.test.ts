@@ -43,9 +43,11 @@ const BASE_DEV_DEPENDENCIES = [
   "@vitest/coverage-v8",
   "eslint",
   "jsdom",
+  "sharp",
   "typescript",
   "typescript-eslint",
   "vite",
+  "vite-plugin-pwa",
   "vitest",
 ];
 

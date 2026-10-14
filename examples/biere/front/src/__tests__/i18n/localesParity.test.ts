@@ -36,6 +36,13 @@ describe("locales parity", () => {
     expect(readKey(en, "pages.map.clusterLabel_other")).toBe("{{count}} venues, zoom in");
   });
 
+  it("translates the update available prompt and its refresh action in every locale", () => {
+    expect(readKey(fr, "pwa.updateAvailable")).toBe("Nouvelle version disponible");
+    expect(readKey(en, "pwa.updateAvailable")).toBe("A new version is available");
+    expect(readKey(fr, "pwa.refresh")).toBe("Actualiser");
+    expect(readKey(en, "pwa.refresh")).toBe("Refresh");
+  });
+
   it("has no empty translation in any locale", () => {
     [fr, en].forEach((locale) => {
       getDeepKeys(locale).forEach((key) =>
@@ -1905,5 +1912,12 @@ describe("lazy page loading label", () => {
   it("translates the lazy page loading label in every locale", () => {
     expect(readKey(fr, "lazyPage.loadingLabel")).toBe("Chargement de la page…");
     expect(readKey(en, "lazyPage.loadingLabel")).toBe("Loading the page…");
+  });
+});
+
+describe("offline banner copy", () => {
+  it("translates the offline message in every locale", () => {
+    expect(readKey(fr, "pwa.offline")).toBe("Vous êtes hors ligne");
+    expect(readKey(en, "pwa.offline")).toBe("You are offline");
   });
 });

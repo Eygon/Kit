@@ -738,6 +738,11 @@
       }
     }
   },
+  "pwa": {
+    "offline": "Vous êtes hors ligne",
+    "updateAvailable": "Nouvelle version disponible",
+    "refresh": "Actualiser"
+  },
   "errors": {
     "generic": "Une erreur est survenue. Réessayez.",
     "badRequest": "La demande est invalide.",

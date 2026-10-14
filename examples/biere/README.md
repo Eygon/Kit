@@ -14,6 +14,8 @@ React 19 + TypeScript + HeroUI (front) · NestJS + SQLite (back) · mobile first
 | **Profil** | Avatar (12 au choix), niveau et titre selon les bières découvertes, badges, statistiques, histogramme 12 mois, envies « À goûter », langue FR/EN |
 | **Profils** | Liste des amateurs, suivre / ne plus suivre, abonnés et abonnements |
 
+L'appli est installable (manifeste + icônes depuis la mascotte) et lisible hors ligne : coquille et lectures déjà vues en cache (service worker en production seulement), bandeau « Vous êtes hors ligne ». Pour la voir : `npm run build && npx vite preview --port 5174`.
+
 Direction artistique : `DA.md` (vert houblon, ambre pour les interactions clés, bordures encre, ombres dures).
 
 ## Lancer
@@ -46,4 +48,4 @@ Les `front/` et `back/` de ce dossier sont des copies de travail du code livré 
 
 ## Décisions à confirmer
 
-Toutes les décisions prises par le superviseur en l'absence de Thomas sont regroupées dans `DECISIONS.md` (22 décisions, avec le pourquoi) ; le détail par feature est dans `JOURNAL.md` et dans les `plan.md` des specs (« à confirmer par Thomas »).
+Toutes les décisions prises par le superviseur en l'absence de Thomas sont regroupées dans `DECISIONS.md` (23 décisions, avec le pourquoi) ; le détail par feature est dans `JOURNAL.md` et dans les `plan.md` des specs (« à confirmer par Thomas »).

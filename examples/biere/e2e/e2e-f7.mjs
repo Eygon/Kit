@@ -63,7 +63,7 @@ await conf.last().getByRole("button", { name: /^Annuler$/ }).click(); await p.wa
 await p.getByRole("dialog").last().getByRole("button", { name: /Supprimer mon avis/ }).first().click(); await p.waitForTimeout(600); w.take(); await p.getByRole("alertdialog").or(p.getByRole("dialog")).last().getByRole("button", { name: /^Supprimer$/ }).click(); await p.waitForTimeout(1500);
 const dnet = w.take().net.filter((n) => n.m === "DELETE" && /reviews\/me/.test(n.u)); log("D.suppression-une-requete", dnet.length === 1 && dnet[0].s === 204, `${dnet.length} DELETE (${dnet.map((x) => x.s)})`); log("D.avis-disparu", (await G(`/beers/${noCk.id}/reviews`)).mine === null, "mine = null");
 // E. encyclopedie : tri par note
-await p.goto(URL0 + "/?sort=rating"); await settle(p); await p.waitForTimeout(900); txt = await p.locator("body").innerText(); log("E.encyclopedie-tri-note", /★|\d[.,]\d/.test(txt), "notes visibles dans les cartes"); await p.screenshot({ path: "f7-encyclopedia.png" });
+await p.goto(URL0 + "/bieres?sort=rating"); await settle(p); await p.waitForTimeout(900); txt = await p.locator("body").innerText(); log("E.encyclopedie-tri-note", /★|\d[.,]\d/.test(txt), "notes visibles dans les cartes"); await p.screenshot({ path: "f7-encyclopedia.png" });
 // F. panne API sur les avis
 await p.route("**/api/v1/beers/*/reviews*", (rt) => rt.abort()); await p.goto(URL0 + `/bieres/${target.id}`); await settle(p); await p.waitForTimeout(800); txt = await p.locator("body").innerText(); log("F.panne-avis-alerte-reessayer", /Impossible de charger les avis/.test(txt) && /Réessayer/.test(txt) && /Amertume/.test(txt), "section avis en erreur, fiche vivante"); await p.screenshot({ path: "f7-reviews-error.png" }); await p.unroute("**/api/v1/beers/*/reviews*");
 // G. 360 px

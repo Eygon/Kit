@@ -738,6 +738,11 @@
       }
     }
   },
+  "pwa": {
+    "offline": "You are offline",
+    "updateAvailable": "A new version is available",
+    "refresh": "Refresh"
+  },
   "errors": {
     "generic": "Something went wrong. Try again.",
     "badRequest": "The request is invalid.",

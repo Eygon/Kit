@@ -14,7 +14,7 @@ const goto = async (path) => { await p.goto(URL0 + path); await settle(); await 
 const markers = () => p.locator(".leaflet-marker-icon");
 const listCount = async () => +((await p.getByRole("button", { name: /^Lieux \(\d+\)/ }).innerText()).match(/\((\d+)\)/)?.[1] ?? -1);
 // A. chargement
-await goto("/carte"); const n0 = await listCount(); const m0 = await markers().count();
+await goto("/carte"); const n0 = await listCount(); const m0 = (await p.getByRole("button", { name: /\d+ lieux?, zoomer/ }).evaluateAll((els) => els.reduce((a, e) => a + (parseInt((e.getAttribute("title") || e.getAttribute("aria-label") || "0")) || 0), 0))) + (await markers().evaluateAll((els) => els.filter((e) => /[✓?✕–]/.test(e.textContent || "")).length)); // F8 : pastilles de regroupement + reperes isoles
 log("A.chargement", n0 > 0 && m0 === n0, `Lieux (${n0}) ; ${m0} reperes`);
 let t = w.take(); log("A.sans-erreur", !t.fiveXX.length && !t.console.length, `5xx=${t.fiveXX.length} console=${t.console.length} ${t.console.slice(0, 2)}`);
 const body = await p.locator("body").innerText(); log("A.tuiles-indisponibles-non-bloquant", /Fond de carte indisponible/.test(body) && n0 > 0, "message affiche et lieux utilisables");
