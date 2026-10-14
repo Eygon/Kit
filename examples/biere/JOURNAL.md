@@ -70,3 +70,8 @@
 - Passage réel : 17/17 (3 pastilles « 3 / 6 / 3 » + 1 repère à Paris au lieu de 14 icônes superposées, 0 paire d'icônes à moins de 40 px, tap = zoom sans fiche, recherche → fiche + zoom 16, filtre recalcule, mode Proposer, 360 px). Défaut de script uniquement (nom accessible lu dans `title`).
 - Polish 3 (audit axe) : le gris à 3,57:1 ne venait pas du jeton `--muted` (7,3:1) mais d'un `opacity-70` sur les cartes non goûtées → 85 ; liens du fil soulignés ; titres de cartes en h2 ; attribution Leaflet soulignée. Audit axe : 0 violation (fr).
 - Kit : règle `contract-enum-without-file` dans `audit-lint` (+ test, 86 passent).
+
+## F9 Pages à la demande, polices, budget du bundle (14 octobre, matin)
+- Front seul, 3 US, prep Opus avec 3 questions (5 pages lazy ; budgets entrée <= 450 kB ET JS initial <= 900 kB lus dans le manifeste, car un budget sur le seul fichier d'entrée se contourne avec un chunk partagé ; @font-face maison car les CSS par sous-ensemble de fontsource n'ont pas d'unicode-range et feraient télécharger latin-ext à chaque visite). Moteur : 3 US PASS sans escalade ; garde `scripts/check-bundle-size.mjs` (entrée 447 kB, JS initial 890 kB au lieu de 1 147 kB, 6 woff2).
+- Review-lens : 6 pistes dont un défaut de course (échec d'un chargeur pendant que la page est démontée) déjà corrigé dans le hook.
+- Passage réel : 15/16 puis 16/16. **Défaut vu au navigateur seulement** : « Réessayer » ne faisait rien (aucune requête ne part, le navigateur garde l'échec de l'import en mémoire) ; les 51 tests unitaires et le test d'échec passaient. Correctif : après un second échec en ligne, rechargement de la page ; hors ligne l'alerte reste. Piège ajouté à `sk-e2e.md`.

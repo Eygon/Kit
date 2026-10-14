@@ -220,3 +220,9 @@ passage par feature : les defauts entre features n apparaissent qu ensemble.
 ## Oracle d accessibilite (`a11y`, e2e-oracles.mjs)
 
 `a11y(page, { axePath })` lance axe-core sur l ecran ouvert et rend les violations (impact >= moderate par defaut) avec 3 noeuds d exemple et la raison. Appelle-le sur chaque ecran et chaque feuille/tiroir ouverts, en fr et en en. axe-core s installe a part (`npm install axe-core` dans un dossier temporaire) : le kit ne l embarque pas. Il trouve les contrastes insuffisants, les boutons sans nom, les champs sans etiquette, les ids dupliques, les titres sautes ; il ne voit pas la mise en page (utilise `overflowing`, `covered`, `unreachable`). Banc Mousse (14 octobre) : premier passage sur 12 ecrans.
+
+## Pieges que seul le navigateur reel montre (a rejouer, jsdom ne les voit pas)
+
+- **Import dynamique en echec** : le navigateur garde l'echec d'un `import()` en memoire (module map) ; relancer le meme import echoue a l'instant, meme reseau revenu. Un « Reessayer » qui ne fait que rappeler `import()` ne marche donc jamais. Test : `page.route(<chunk>, r => r.abort("internetdisconnected"))`, ouvrir la page, constater l'alerte, `unroute`, cliquer « Reessayer », verifier que la page arrive ET qu'une requete part (`page.on("request")`). Correctif Mousse F9 : apres un second echec en ligne, `window.location.reload()` (hors ligne : garder l'alerte).
+- **Switch / case a cocher HeroUI** : l'`input` reel fait 13 px et est recouvert par le controle ; Playwright echoue sur `getByRole("switch")`. Cliquer le libelle.
+- **Cases a cocher empilees** : le `.checkbox` de HeroUI est un `flex-col` ; la case doit etre dans `Checkbox.Content` pour une ligne horizontale (vu sur « Ajouter a une collection »).
