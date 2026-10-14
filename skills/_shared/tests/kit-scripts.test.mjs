@@ -652,3 +652,23 @@ test("facts : memoire du depot partagee entre worktrees et features, faits perim
   assert.doesNotMatch(r.worker, /fait perime/);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("audit-lint flags a contract enum with no file in the task paths", async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join, dirname } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const lint = join(dirname(fileURLToPath(import.meta.url)), "..", "audit-lint.mjs");
+  const run = (taskLine) => {
+    const d = mkdtempSync(join(tmpdir(), "lint-enum-"));
+    mkdirSync(join(d, "contracts"));
+    writeFileSync(join(d, "contracts", "api.yaml"), "components:\n  schemas:\n    CollectionKindEnum:\n      type: string\n      enum: [wishlist, custom]\n");
+    writeFileSync(join(d, "tasks.md"), `# Tasks\n\n## [US1] X\n${taskLine}\n`);
+    writeFileSync(join(d, "spec.md"), "# s\n");
+    writeFileSync(join(d, "plan.md"), "# p\n");
+    try { return execFileSync("node", [lint, d], { encoding: "utf8" }); } catch (e) { return String(e.stdout); }
+  };
+  assert.match(run("- [ ] T001 [US1] Create `src/modules/c/dtos/summary.dto.ts` — Test: `src/__tests__/t.test.ts`"), /contract-enum-without-file/);
+  assert.doesNotMatch(run("- [ ] T001 [US1] Create `src/modules/c/enums/collection-kind.enum.ts` (`CollectionKindEnum`) — Test: `src/__tests__/t.test.ts`"), /contract-enum-without-file/);
+});

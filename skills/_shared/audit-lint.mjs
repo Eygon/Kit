@@ -765,6 +765,25 @@ export const lintSpec = (dir, opts = {}) => {
       add("medium", "contract-field-without-source", `champ "${f}" du contrat n apparait pas dans plan.md (Faits verifies: base, table, colonne, volumetrie)`, "contracts/");
     if (unsourced.length > 20)
       add("medium", "contract-field-without-source", `${unsourced.length - 20} autres champs sans source dans plan.md`, "contracts/");
+    // Enum du contrat (schema `XxxEnum` avec `enum: [...]`) sans fichier dans les chemins des taches : le worker type le champ en
+    // union litterale ou ecrit la valeur en ligne, la revue escalade (Mousse F5 US20 : CollectionKindEnum). Un enum deja dans le code
+    // du depot (grep sur sa ref par defaut) n'est pas a creer.
+    const kebab = (n) => n.replace(/Enum$/, "").replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+    const enumNames = new Set();
+    for (const f of contract.files) {
+      const text = read(f) || "";
+      for (const m of matchAll(text, /^\s{2,6}([A-Z][A-Za-z0-9]*Enum)\s*:\s*\n(?:\s+[^\n]*\n){0,6}?\s+enum\s*:/gm)) enumNames.add(m[1]);
+    }
+    for (const name of enumNames) {
+      const camel = name[0].toLowerCase() + name.slice(1);
+      const inTasks = tasksText.includes(name) || tasksText.includes(camel) || tasksText.includes(`${kebab(name)}.enum`);
+      const inRepo = [lintRoot, backLinked].filter(Boolean).some((r) => {
+        const hit = git(r, ["grep", "-l", "-w", "-e", name, defaultRef(r) || "HEAD", "--", "*.ts", "*.tsx"]);
+        return Boolean(hit && hit.trim());
+      });
+      if (!inTasks && !inRepo)
+        add("high", "contract-enum-without-file", `l'enum du contrat ${name} n'a aucun fichier dans les chemins des taches (back : enums/${kebab(name)}.enum.ts ; front : types/enums/<domaine>/${camel}.ts) : le worker le taperait en union litterale`, "tasks.md");
+    }
   }
 
   const parallelPath = join(dir, "parallel.yml");
