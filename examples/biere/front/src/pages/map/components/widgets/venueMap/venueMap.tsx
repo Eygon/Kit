@@ -1,12 +1,26 @@
 import "leaflet/dist/leaflet.css";
-import { divIcon } from "leaflet";
-import type { LeafletMouseEvent, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
+import { divIcon, latLngBounds } from "leaflet";
+import type {
+  LeafletMouseEvent,
+  Map as LeafletMap,
+  Marker as LeafletMarker,
+} from "leaflet";
 import { useEffect, useState } from "react";
-import { CircleMarker, MapContainer, Marker, TileLayer, Tooltip, ZoomControl } from "react-leaflet";
+import {
+  CircleMarker,
+  MapContainer,
+  Marker,
+  TileLayer,
+  Tooltip,
+  ZoomControl,
+} from "react-leaflet";
 import { useTranslation } from "react-i18next";
+import { getVenueClusterIcon } from "@/pages/map/components/widgets/venueMap/utils/getVenueClusterIcon";
 import { getVenueMarkerIcon } from "@/pages/map/components/widgets/venueMap/utils/getVenueMarkerIcon";
+import { useVenueClusters } from "@/pages/map/hooks/useVenueClusters";
 import type { VenueMapProps } from "@/pages/map/types/venueMap";
 import {
+  CLUSTER_MAX_ZOOM,
   DEFAULT_MAP_CENTER,
   DEFAULT_MAP_ZOOM,
   FOCUSED_VENUE_ZOOM,
@@ -44,6 +58,7 @@ export const VenueMap = ({
 }: VenueMapProps) => {
   const { t } = useTranslation();
   const [map, setMap] = useState<LeafletMap | null>(null);
+  const clusters = useVenueClusters(map, venues);
 
   useEffect(() => {
     if (map === null) return;
@@ -105,7 +120,9 @@ export const VenueMap = ({
       map.off("mouseup", endPress);
       map.off("contextmenu", pickNow);
       map.off("click", pickPoint);
-      PRESS_CANCEL_EVENTS.forEach((eventName) => map.off(eventName, cancelPress));
+      PRESS_CANCEL_EVENTS.forEach((eventName) =>
+        map.off(eventName, cancelPress),
+      );
     };
   }, [map, onPickPoint, isPickingPoint]);
 
@@ -116,27 +133,74 @@ export const VenueMap = ({
 
   useEffect(() => {
     if (map === null || focusedPosition === null) return;
-    map.flyTo([focusedPosition.latitude, focusedPosition.longitude], FOCUSED_VENUE_ZOOM);
+    map.flyTo(
+      [focusedPosition.latitude, focusedPosition.longitude],
+      FOCUSED_VENUE_ZOOM,
+    );
   }, [map, focusedPosition]);
 
   return (
-    <MapContainer className="size-full" center={DEFAULT_MAP_CENTER} zoom={DEFAULT_MAP_ZOOM} zoomControl={false} ref={setMap}>
+    <MapContainer
+      className="size-full"
+      center={DEFAULT_MAP_CENTER}
+      zoom={DEFAULT_MAP_ZOOM}
+      zoomControl={false}
+      ref={setMap}
+    >
       <ZoomControl position={ZOOM_CONTROL_POSITION} />
-      <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} eventHandlers={{ tileerror: () => onTilesUnavailable() }} />
-      {venues.map((venue) => (
-        <Marker
-          key={venue.id}
-          position={[venue.latitude, venue.longitude]}
-          icon={getVenueMarkerIcon(venue)}
-          title={t("pages.map.markerLabel", {
-            name: venue.name,
-            type: venue.type === null ? "" : t(VENUE_TYPE_LABEL_KEYS[venue.type]),
-            status: t(AVAILABILITY_STATUS_LABEL_KEYS[venue.status]),
-          })}
-          keyboard
-          eventHandlers={{ click: () => onSelectVenue(venue) }}
-        />
-      ))}
+      <TileLayer
+        url={OSM_TILE_URL}
+        attribution={OSM_ATTRIBUTION}
+        eventHandlers={{ tileerror: () => onTilesUnavailable() }}
+      />
+      {clusters.map((cluster) => {
+        if (cluster.venues.length === 1) {
+          const [venue] = cluster.venues;
+          return (
+            <Marker
+              key={venue.id}
+              position={[venue.latitude, venue.longitude]}
+              icon={getVenueMarkerIcon(venue)}
+              title={t("pages.map.markerLabel", {
+                name: venue.name,
+                type:
+                  venue.type === null
+                    ? ""
+                    : t(VENUE_TYPE_LABEL_KEYS[venue.type]),
+                status: t(AVAILABILITY_STATUS_LABEL_KEYS[venue.status]),
+              })}
+              keyboard
+              eventHandlers={{ click: () => onSelectVenue(venue) }}
+            />
+          );
+        }
+        return (
+          <Marker
+            key={cluster.key}
+            position={[cluster.latitude, cluster.longitude]}
+            icon={getVenueClusterIcon(cluster.venues.length)}
+            title={t("pages.map.clusterLabel", {
+              count: cluster.venues.length,
+            })}
+            keyboard
+            eventHandlers={{
+              click: () =>
+                map?.fitBounds(
+                  latLngBounds(
+                    cluster.venues.map((venue) => [
+                      venue.latitude,
+                      venue.longitude,
+                    ]),
+                  ),
+                  {
+                    padding: [MARKER_SIZE_PX, MARKER_SIZE_PX],
+                    maxZoom: CLUSTER_MAX_ZOOM,
+                  },
+                ),
+            }}
+          />
+        );
+      })}
       {pickedPoint !== null && (
         <Marker
           position={[pickedPoint.latitude, pickedPoint.longitude]}
@@ -146,7 +210,9 @@ export const VenueMap = ({
           draggable
           eventHandlers={{
             dragend: (event) => {
-              const { lat, lng } = (event.target as LeafletMarker).getLatLng().wrap();
+              const { lat, lng } = (event.target as LeafletMarker)
+                .getLatLng()
+                .wrap();
               onPickPoint({ latitude: lat, longitude: lng });
             },
           }}

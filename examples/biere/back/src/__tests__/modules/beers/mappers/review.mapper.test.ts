@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toNewReview, toReviewDto, toReviewPageDto, toReviewRecordDto } from "@/modules/beers/mappers/review.mapper";
+import { AvatarEnum } from "@/modules/users/enums/avatar.enum";
 
 const CREATED = new Date("2026-03-01T10:00:00.000Z");
 const UPDATED = new Date("2026-03-05T12:30:00.000Z");
@@ -74,7 +75,7 @@ describe("review mapper", () => {
   });
 
   it("builds the read DTO with the author fields and isMine true for the author", async () => {
-    const author = { id: 1, displayName: "Alice", avatarColor: "#F59E0B" };
+    const author = { id: 1, displayName: "Alice", avatarColor: "#F59E0B", avatar: AvatarEnum.HOP };
 
     expect(toReviewDto(RECORD, author, 1)).toEqual({
       id: 7,
@@ -94,15 +95,15 @@ describe("review mapper", () => {
   });
 
   it("sets isMine to false when the viewer is not the author", async () => {
-    const author = { id: 1, displayName: "Alice", avatarColor: "#F59E0B" };
+    const author = { id: 1, displayName: "Alice", avatarColor: "#F59E0B", avatar: AvatarEnum.HOP };
 
     expect(toReviewDto(RECORD, author, 2).isMine).toBe(false);
   });
 
   describe("toReviewPageDto", () => {
-    const ALICE = { id: 1, displayName: "Alice", avatarColor: "#F59E0B" };
-    const BOB = { id: 2, displayName: "Bob", avatarColor: "#10B981" };
-    const CAROL = { id: 3, displayName: "Carol", avatarColor: "#8B5CF6" };
+    const ALICE = { id: 1, displayName: "Alice", avatarColor: "#F59E0B", avatar: AvatarEnum.HOP };
+    const BOB = { id: 2, displayName: "Bob", avatarColor: "#10B981", avatar: AvatarEnum.MALT };
+    const CAROL = { id: 3, displayName: "Carol", avatarColor: "#8B5CF6", avatar: AvatarEnum.GLASS };
     const authors = new Map([ALICE, BOB, CAROL].map((user) => [user.id, user]));
     const bobRecord = { ...RECORD, id: 8, userId: 2, text: "Bob" };
     const carolRecord = { ...RECORD, id: 9, userId: 3, text: "Carol" };

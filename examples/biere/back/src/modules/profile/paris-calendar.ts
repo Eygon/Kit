@@ -1,16 +1,11 @@
-import { MONTHLY_CHECKINS_MONTHS, PARIS_TIME_ZONE } from "@/modules/profile/profile.constants";
+import { toParisDayKey } from "@/common/time/paris-day-key";
+import { MONTHLY_CHECKINS_MONTHS } from "@/modules/profile/profile.constants";
 
 const DAY_KEY_LENGTH = 10;
 const MONTH_KEY_LENGTH = 7;
 const MONTHS_PER_YEAR = 12;
-const PARIS_DAY_FORMAT = new Intl.DateTimeFormat("en-CA", {
-  timeZone: PARIS_TIME_ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
 
-export const toParisDayKey = (iso: string): string => PARIS_DAY_FORMAT.format(new Date(iso));
+export { toParisDayKey };
 
 export const toParisMonthKey = (iso: string): string => toParisDayKey(iso).slice(0, MONTH_KEY_LENGTH);
 

@@ -11,6 +11,8 @@ import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
 import { Review } from "@/modules/beers/entities/review.entity";
+import { Follow } from "@/modules/social/entities/follow.entity";
+import { Checkin } from "@/modules/tastings/entities/checkin.entity";
 import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
 import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
 import { Venue } from "@/modules/venues/entities/venue.entity";
@@ -84,6 +86,23 @@ describe("DatabaseModule", () => {
     const tables = await dataSource.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'reviews'");
     expect(tables).toEqual([{ name: "reviews" }]);
     expect(moduleRef.get<Repository<Review>>(getRepositoryToken(Review))).toBeDefined();
+
+    await moduleRef.close();
+  });
+
+  it("creates the checkins and follows tables and registers their repositories", async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppConfigModule, DatabaseModule] })
+      .overrideProvider(APP_CONFIG)
+      .useValue(TEST_CONFIG)
+      .compile();
+
+    const dataSource = moduleRef.get(DataSource);
+    const tables = await dataSource.query(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('checkins', 'follows') ORDER BY name",
+    );
+    expect(tables).toEqual([{ name: "checkins" }, { name: "follows" }]);
+    expect(moduleRef.get<Repository<Checkin>>(getRepositoryToken(Checkin))).toBeDefined();
+    expect(moduleRef.get<Repository<Follow>>(getRepositoryToken(Follow))).toBeDefined();
 
     await moduleRef.close();
   });

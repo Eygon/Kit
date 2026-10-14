@@ -123,6 +123,17 @@ export class BeersRepository {
     return { items: entities.map(toReviewRecordDto), total };
   }
 
+  async findReviewsByUsers(userIds: readonly number[]): Promise<ReviewRecordDto[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+    const entities = await this.reviews.find({
+      where: { userId: In([...userIds]) },
+      order: { updatedAt: "DESC", id: "DESC" },
+    });
+    return entities.map(toReviewRecordDto);
+  }
+
   async findRatingSummaries(beerIds: readonly number[]): Promise<RatingSummaryDto[]> {
     if (beerIds.length === 0) {
       return [];

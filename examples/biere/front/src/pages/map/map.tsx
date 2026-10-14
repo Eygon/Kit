@@ -1,7 +1,8 @@
-import { Alert, Button } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BeerFilterChip } from "@/pages/map/components/elements/beerFilterChip/beerFilterChip";
+import { MapBanner } from "@/pages/map/components/elements/mapBanner/mapBanner";
 import { ProposeVenueDrawer } from "@/pages/map/components/widgets/proposeVenueDrawer/proposeVenueDrawer";
 import { MapFiltersDrawer } from "@/pages/map/components/widgets/mapFiltersDrawer/mapFiltersDrawer";
 import { VenueListDrawer } from "@/pages/map/components/widgets/venueListDrawer/venueListDrawer";
@@ -12,6 +13,7 @@ import { useGeolocation } from "@/pages/map/hooks/useGeolocation";
 import { useMapFilters } from "@/pages/map/hooks/useMapFilters";
 import { useVenuesQuery } from "@/pages/map/hooks/useVenuesQuery";
 import { GeolocationStatusEnum } from "@/pages/map/types/geolocationStatusEnum";
+import { getMapBannerMessage } from "@/pages/map/utils/getMapBannerMessage";
 import { EMPTY_VENUE_QUERY } from "@/types/mappers/venue/venueQueryMapper";
 import type { GeoPosition } from "@/types/models/venue/geoPosition";
 import type { MapBounds } from "@/types/models/venue/mapBounds";
@@ -63,6 +65,12 @@ export const MapPage = () => {
       : status === GeolocationStatusEnum.UNAVAILABLE
         ? "pages.map.locate.unavailable"
         : null;
+  const banner = getMapBannerMessage({
+    locateErrorKey,
+    tilesUnavailable,
+    hasPointPrompt,
+    isPointPicked: pickedPoint !== null,
+  });
 
   return (
     <div className="fixed inset-x-0 top-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30">
@@ -110,39 +118,21 @@ export const MapPage = () => {
             <BeerFilterChip beerId={filters.beerId} onRemove={() => applyFilters({ ...filters, beerId: null })} />
           </div>
         )}
-        {hasPointPrompt && (
-          <Alert status="default" className="pointer-events-auto">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{t(pickedPoint === null ? "pages.map.propose.pickHint" : "pages.map.propose.pickedHint")}</Alert.Title>
-            </Alert.Content>
-            <div className="flex flex-wrap gap-2">
-              {pickedPoint !== null && (
-                <Button variant="primary" size="lg" onPress={() => setIsProposeOpen(true)}>
-                  {t("pages.map.propose.confirmPoint")}
+        {banner !== null && (
+          <MapBanner message={banner}>
+            {hasPointPrompt && (
+              <div className="flex flex-wrap gap-2">
+                {pickedPoint !== null && (
+                  <Button variant="primary" size="lg" onPress={() => setIsProposeOpen(true)}>
+                    {t("pages.map.propose.confirmPoint")}
+                  </Button>
+                )}
+                <Button variant="tertiary" size="lg" onPress={cancelPointPicking}>
+                  {t("pages.map.propose.cancel")}
                 </Button>
-              )}
-              <Button variant="tertiary" size="lg" onPress={cancelPointPicking}>
-                {t("pages.map.propose.cancel")}
-              </Button>
-            </div>
-          </Alert>
-        )}
-        {locateErrorKey !== null && (
-          <Alert status="danger" role="alert" className="pointer-events-auto">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{t(locateErrorKey)}</Alert.Title>
-            </Alert.Content>
-          </Alert>
-        )}
-        {tilesUnavailable && (
-          <Alert status="default">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{t("pages.map.tilesUnavailable")}</Alert.Title>
-            </Alert.Content>
-          </Alert>
+              </div>
+            )}
+          </MapBanner>
         )}
       </div>
       <VenueSheet venue={selectedVenue} onClose={() => setSelectedVenue(null)} />

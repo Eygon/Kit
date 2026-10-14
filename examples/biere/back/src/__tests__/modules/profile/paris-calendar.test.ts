@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { toParisDayKey as commonToParisDayKey } from "@/common/time/paris-day-key";
 import {
   addDaysToDayKey,
   computeDayStreaks,
@@ -42,6 +43,12 @@ describe("toParisDayKey", () => {
     expect(toParisDayKey("2026-10-24T22:30:00.000Z")).toBe("2026-10-25");
     expect(toParisDayKey("2026-10-25T22:30:00.000Z")).toBe("2026-10-25");
     expect(toParisDayKey("2026-10-25T23:30:00.000Z")).toBe("2026-10-26");
+  });
+});
+
+describe("toParisDayKey of the common time module", () => {
+  it("is the very function paris-calendar re-exports", () => {
+    expect(toParisDayKey).toBe(commonToParisDayKey);
   });
 });
 

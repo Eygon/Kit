@@ -35,3 +35,33 @@ export const PHOTO_BY_ID = (photoId: string) => `${API_V1()}/photos/${photoId}`;
 export const ME_BADGES = () => `${API_V1()}/me/badges`;
 
 export const ME_STATS = () => `${API_V1()}/me/stats`;
+
+export const ME_FEED = () => `${API_V1()}/me/feed`;
+
+export const USERS = () => `${API_V1()}/users`;
+
+export const USER_PROFILE = (userId: number) => `${USERS()}/${userId}/profile`;
+
+export const ME_PROFILE = () => `${API_V1()}/me/profile`;
+
+export const USER_FOLLOW = (userId: number) => `${USERS()}/${userId}/follow`;
+
+export const USER_FOLLOWERS = (userId: number) => `${USERS()}/${userId}/followers`;
+
+export const USER_FOLLOWING = (userId: number) => `${USERS()}/${userId}/following`;
+
+export const USER_COLLECTIONS = (userId: number) => `${USERS()}/${userId}/collections`;
+
+export const ME_COLLECTIONS = () => `${API_V1()}/me/collections`;
+
+export const ME_COLLECTIONS_CONTAINING = (beerId: number) => `${ME_COLLECTIONS()}?beerId=${beerId}`;
+
+export const ME_COLLECTION = (collectionId: number) => `${ME_COLLECTIONS()}/${collectionId}`;
+
+export const ME_COLLECTION_BEERS = (collectionId: number) => `${ME_COLLECTION(collectionId)}/beers`;
+
+export const ME_COLLECTION_BEER = (collectionId: number, beerId: number) => `${ME_COLLECTION(collectionId)}/beers/${beerId}`;
+
+export const USER_COLLECTION = (userId: number, collectionId: number) => `${USER_COLLECTIONS(userId)}/${collectionId}`;
+
+export const USER_WISHLIST = (userId: number) => `${USERS()}/${userId}/wishlist`;

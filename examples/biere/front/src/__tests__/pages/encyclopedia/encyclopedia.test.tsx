@@ -825,9 +825,9 @@ describe("EncyclopediaPage tasting stamps", () => {
 
     expect(within(cardOf("Beer 2")).getByText("Bue le 12/10/2026")).toBeInTheDocument();
     expect(within(cardOf("Beer 1")).getByText("???")).toBeInTheDocument();
-    expect(cardOf("Beer 1").className).toContain("opacity-70");
-    expect(cardOf("Beer 3").className).toContain("opacity-70");
-    expect(cardOf("Beer 2").className).not.toContain("opacity-70");
+    expect(cardOf("Beer 1").className).toContain("opacity-85");
+    expect(cardOf("Beer 3").className).toContain("opacity-85");
+    expect(cardOf("Beer 2").className).not.toContain("opacity-85");
     expect(screen.getAllByText("???")).toHaveLength(2);
   });
 

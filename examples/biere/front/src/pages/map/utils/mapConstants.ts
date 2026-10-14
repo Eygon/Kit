@@ -21,3 +21,6 @@ export const VENUE_SEARCH_MAX_LENGTH = 100;
 export const VENUE_SEARCH_DEBOUNCE_MS = 300;
 export const UNDRUNK_ONLY_PARAM = "undrunk";
 export const URL_FLAG_ENABLED_VALUE = "1";
+export const CLUSTER_DISTANCE_PX = MARKER_SIZE_PX;
+export const CLUSTER_MAX_ZOOM = FOCUSED_VENUE_ZOOM;
+export const CLUSTER_COUNT_DISPLAY_MAX = 99;

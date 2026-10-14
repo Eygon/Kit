@@ -9,7 +9,7 @@ import { getCountryName } from "@/utils/country/getCountryName";
 import { formatCheckinDate } from "@/utils/date/formatCheckinDate";
 
 const LINK_CLASSES = "block h-full min-h-11 min-w-0 rounded-mousse focus-visible:focus-ring";
-const UNTASTED_LINK_CLASSES = `${LINK_CLASSES} opacity-70`;
+const UNTASTED_LINK_CLASSES = `${LINK_CLASSES} opacity-85`;
 
 export const BeerCard = ({ beer, discoveredAt }: BeerCardProps) => {
   const { t, i18n } = useTranslation();
@@ -41,7 +41,9 @@ export const BeerCard = ({ beer, discoveredAt }: BeerCardProps) => {
       <Card className="h-full min-w-0">
         <Card.Header className="min-w-0 gap-2">
           {renderLabelZone()}
-          <Card.Title className="font-display text-xl break-words">{beer.name}</Card.Title>
+          <Card.Title render={(props) => <h2 {...props} />} className="font-display text-xl break-words">
+            {beer.name}
+          </Card.Title>
           <Card.Description className="truncate">{beer.breweryName}</Card.Description>
         </Card.Header>
         <Card.Content className="flex min-w-0 flex-col gap-1 text-sm">

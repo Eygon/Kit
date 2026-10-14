@@ -8,11 +8,66 @@
     "photo": {
       "open": "Agrandir la photo",
       "alt": "Photo de la dégustation"
+    },
+    "time": {
+      "justNow": "à l'instant"
     }
+  },
+  "collections": {
+    "title": "Mes collections",
+    "titleOf": "Collections de {{name}}",
+    "wishlist": "À goûter",
+    "beerCount_one": "{{count}} bière",
+    "beerCount_other": "{{count}} bières",
+    "errorTitle": "Collections indisponibles.",
+    "emptyTitle": "Aucune collection pour l'instant",
+    "emptyDescription": "Vos collections apparaîtront ici.",
+    "locked": "Suivez {{name}} pour voir ses collections",
+    "create": {
+      "open": "Nouvelle collection",
+      "title": "Nouvelle collection",
+      "nameLabel": "Nom de la collection",
+      "nameHint": "1 à 40 caractères",
+      "nameError": "Entre 1 et 40 caractères",
+      "save": "Créer",
+      "nameTaken": "Ce nom est déjà pris",
+      "limitReached": "20 collections au plus"
+    }
+  },
+  "follow": {
+    "follow": "Suivre",
+    "following": "Suivi",
+    "label": "Suivre {{name}}",
+    "followed": "Vous suivez {{name}}",
+    "unfollowed": "Vous ne suivez plus {{name}}"
+  },
+  "followList": {
+    "followers": "Abonnés de {{name}}",
+    "following": "Abonnements de {{name}}",
+    "empty": "Aucun profil pour l'instant",
+    "emptyDescription": "Les profils apparaîtront ici.",
+    "errorTitle": "Impossible de charger la liste"
+  },
+  "level": {
+    "short": "Niv. {{level}} · {{title}}",
+    "titles": {
+      "curious": "Curieux",
+      "taster": "Dégustateur",
+      "hopHead": "Houblonneur",
+      "finePalate": "Fin palais",
+      "masterBrewer": "Maître brasseur",
+      "foamLegend": "Légende de la mousse"
+    }
+  },
+  "lazyPage": {
+    "loadingLabel": "Chargement de la page…",
+    "errorTitle": "Impossible de charger la page",
+    "errorDescription": "Vérifiez votre connexion, puis réessayez."
   },
   "nav": {
     "label": "Navigation principale",
-    "encyclopedia": "Encyclopédie",
+    "home": "Accueil",
+    "encyclopedia": "Bières",
     "map": "Carte",
     "journal": "Journal",
     "profile": "Profil"
@@ -23,6 +78,24 @@
       "captured": "Mousse, le houblon mascotte, fête une bière capturée",
       "confused": "Mousse, le houblon mascotte, se gratte la tête",
       "loaded": "Mousse, le houblon mascotte, sac à dos chargé de badges"
+    }
+  },
+  "avatar": {
+    "label": "Avatar {{name}}",
+    "pickerLabel": "Choisir un avatar",
+    "names": {
+      "hop": "Houblon",
+      "malt": "Malt",
+      "glass": "Verre",
+      "mug": "Chope",
+      "bottle": "Bouteille",
+      "can": "Canette",
+      "barrel": "Tonneau",
+      "tap": "Tireuse",
+      "cap": "Capsule",
+      "foam": "Mousse",
+      "wheat": "Blé",
+      "pretzel": "Bretzel"
     }
   },
   "beer": {
@@ -145,6 +218,27 @@
     }
   },
   "pages": {
+    "home": {
+      "title": "Accueil",
+      "subtitle": "Les dernières dégustations des profils que vous suivez.",
+      "findProfiles": "Trouver des profils",
+      "feed": {
+        "title": "Fil d'actualité",
+        "emptyTitle": "Suivez des profils pour voir leurs dégustations",
+        "emptyDescription": "Leurs dégustations, découvertes et avis apparaîtront ici.",
+        "emptyAction": "Trouver des profils",
+        "errorTitle": "Impossible de charger le fil",
+        "loadMore": "Voir plus",
+        "drank": "a bu",
+        "discovery": "Nouvelle découverte",
+        "rating": "{{rating}} / 5",
+        "ratingLabel": "Note {{rating}} sur 5",
+        "discoveries_one": "a découvert {{count}} bière",
+        "discoveries_other": "a découvert {{count}} bières",
+        "levelUp": "passe niveau {{level}} — {{title}}",
+        "reviewed": "a donné son avis sur"
+      }
+    },
     "encyclopedia": {
       "title": "Encyclopédie",
       "emptyTitle": "Aucune bière ne correspond",
@@ -275,6 +369,14 @@
         "added": "Ajoutée à vos envies.",
         "removed": "Retirée de vos envies."
       },
+      "collections": {
+        "open": "Ajouter à une collection",
+        "title": "Ajouter à une collection",
+        "create": "Créer une collection",
+        "errorTitle": "Collections indisponibles.",
+        "added": "Ajoutée à « {{name}} ».",
+        "removed": "Retirée de « {{name}} »."
+      },
       "history": {
         "title": "Mon historique",
         "empty": "Pas encore de dégustation : appuyez sur « Je l'ai bue ».",
@@ -325,6 +427,8 @@
       "title": "Carte",
       "subtitle": "Bars, caves et brasseries autour de vous.",
       "markerLabel": "{{name}}, {{type}}, {{status}}",
+      "clusterLabel_one": "{{count}} lieu, zoomer",
+      "clusterLabel_other": "{{count}} lieux, zoomer",
       "tilesUnavailable": "Fond de carte indisponible : les lieux restent utilisables.",
       "youAreHere": "Vous êtes ici",
       "locate": {
@@ -458,6 +562,44 @@
         "done": "Dégustation supprimée."
       }
     },
+    "people": {
+      "title": "Profils",
+      "subtitle": "Les amateurs de Mousse à suivre.",
+      "you": "Vous",
+      "discovered_one": "{{count}} bière découverte",
+      "discovered_other": "{{count}} bières découvertes",
+      "errorTitle": "Impossible de charger les profils",
+      "emptyTitle": "Aucun profil pour le moment",
+      "emptyDescription": "Les amateurs de Mousse apparaîtront ici."
+    },
+    "collection": {
+      "drunk": "Déjà bue",
+      "undrunk": "Pas encore",
+      "notFoundTitle": "Collection introuvable",
+      "notFoundDescription": "Cette collection n'existe pas ou vous n'y avez pas accès.",
+      "backToProfile": "Retour au profil",
+      "emptyTitle": "Cette collection est vide",
+      "emptyDescription": "Les bières ajoutées apparaîtront ici.",
+      "errorTitle": "Collection indisponible.",
+      "rename": "Renommer",
+      "renameTitle": "Renommer la collection",
+      "renameLabel": "Nouveau nom",
+      "renameSave": "Enregistrer",
+      "renameCancel": "Annuler",
+      "delete": "Supprimer",
+      "deleteTitle": "Supprimer cette collection ?",
+      "deleteCancel": "Annuler",
+      "deleteConfirm": "Supprimer",
+      "deleteSuccess": "Collection supprimée",
+      "remove": "Retirer",
+      "removeLabel": "Retirer {{name}} de la collection",
+      "removeSuccess": "Bière retirée de la collection"
+    },
+    "userProfile": {
+      "notFoundTitle": "Profil introuvable",
+      "notFoundDescription": "Ce profil n'existe pas ou plus.",
+      "seeProfiles": "Voir les profils"
+    },
     "profile": {
       "title": "Profil",
       "subtitle": "Votre compte et vos préférences.",
@@ -574,6 +716,25 @@
         "emptyTitle": "Aucune envie pour l'instant",
         "emptyDescription": "Ajoutez des bières « À goûter » depuis l'Encyclopédie.",
         "errorTitle": "Liste d'envies indisponible."
+      },
+      "social": {
+        "progressLabel": "Progression",
+        "progressToTitle": "{{current}} / {{next}} pour {{title}}",
+        "maxLevel": "Niveau maximal",
+        "followers_one": "{{count}} abonné",
+        "followers_other": "{{count}} abonnés",
+        "following_one": "{{count}} abonnement",
+        "following_other": "{{count}} abonnements",
+        "errorTitle": "Impossible de charger le profil"
+      },
+      "edit": {
+        "open": "Modifier",
+        "title": "Modifier mon profil",
+        "nameLabel": "Nom d'affichage",
+        "nameHint": "2 à 24 caractères",
+        "nameError": "Entre 2 et 24 caractères",
+        "save": "Enregistrer",
+        "saved": "Profil enregistré"
       }
     }
   },

@@ -44,6 +44,10 @@ export class TastingsService {
     return this.tastingsRepository.findCheckinsByUser(userId);
   }
 
+  getCheckinsByUsers(userIds: readonly number[]): Promise<CheckinRecordDto[]> {
+    return this.tastingsRepository.findCheckinsByUsers(userIds);
+  }
+
   async deleteOwnedCheckin(userId: number, id: number): Promise<void> {
     const record = await this.getOwnedCheckin(userId, id);
     await this.tastingsRepository.deleteCheckinWithPhoto(id, record.photoId);
@@ -76,6 +80,11 @@ export class TastingsService {
 
   getDrunkBeerIds(userId: number): Promise<number[]> {
     return this.tastingsRepository.findDrunkBeerIds(userId);
+  }
+
+  async getDiscoveredCounts(userIds: readonly number[]): Promise<ReadonlyMap<number, number>> {
+    const rows = await this.tastingsRepository.countDiscoveredBeersByUsers(userIds);
+    return new Map(rows.map((row) => [row.userId, row.discoveredCount]));
   }
 
   getWishlistBeerIds(userId: number): Promise<number[]> {

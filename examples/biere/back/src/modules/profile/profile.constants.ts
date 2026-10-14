@@ -1,5 +1,4 @@
 export const STATS_ROUNDING_FACTOR = 10;
-export const PARIS_TIME_ZONE = "Europe/Paris";
 export const MONTHLY_CHECKINS_MONTHS = 12;
 export const FIRST_SIP_TARGET = 1;
 export const EXPLORER_TARGET = 10;

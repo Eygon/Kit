@@ -14,6 +14,15 @@ React 19, TypeScript strict, Vite, HeroUI v3 (`@heroui/react` + `@heroui/styles`
 - Lint : `npm run lint`
 - Serveur de dev : `npm run dev` (http://localhost:5173)
 - Build : `npm run build`
+- Build et garde du bundle : `npm run build:check`
+
+## Budget du bundle
+
+- Entrée <= 450 kB et JS initial (entrée + imports statiques du manifeste) <= 900 kB, non compressés.
+- Polices latin / latin-ext seules : la feuille `src/styles/mousseFonts.css` déclare les `@font-face`, aucun CSS fontsource n'est importé.
+- Les pages lourdes passent par `LazyPage` dans `app.tsx`.
+- Mesure au découpage : `npm run build:check` relève l'entrée et le JS initial.
+- En cas de dépassement : passer une page lourde en `LazyPage` ou retirer le code ; ne pas relever le budget sans accord.
 
 ## Conventions
 

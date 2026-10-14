@@ -15,6 +15,27 @@ describe("locales parity", () => {
     expect(getDeepKeys(en).sort()).toEqual(getDeepKeys(fr).sort());
   });
 
+  it("translates the locked collections invitation with the name in every locale", () => {
+    expect(readKey(fr, "collections.locked")).toBe("Suivez {{name}} pour voir ses collections");
+    expect(readKey(en, "collections.locked")).toBe("Follow {{name}} to see their collections");
+  });
+
+  it("translates the remove-beer actions of a collection in every locale", () => {
+    expect(readKey(fr, "pages.collection.remove")).toBe("Retirer");
+    expect(readKey(en, "pages.collection.remove")).toBe("Remove");
+    expect(readKey(fr, "pages.collection.removeLabel")).toBe("Retirer {{name}} de la collection");
+    expect(readKey(en, "pages.collection.removeLabel")).toBe("Remove {{name}} from the collection");
+    expect(readKey(fr, "pages.collection.removeSuccess")).toBe("Bière retirée de la collection");
+    expect(readKey(en, "pages.collection.removeSuccess")).toBe("Beer removed from the collection");
+  });
+
+  it("translates the cluster label with its count in every locale", () => {
+    expect(readKey(fr, "pages.map.clusterLabel_one")).toBe("{{count}} lieu, zoomer");
+    expect(readKey(en, "pages.map.clusterLabel_one")).toBe("{{count}} venue, zoom in");
+    expect(readKey(fr, "pages.map.clusterLabel_other")).toBe("{{count}} lieux, zoomer");
+    expect(readKey(en, "pages.map.clusterLabel_other")).toBe("{{count}} venues, zoom in");
+  });
+
   it("has no empty translation in any locale", () => {
     [fr, en].forEach((locale) => {
       getDeepKeys(locale).forEach((key) =>
@@ -23,19 +44,43 @@ describe("locales parity", () => {
     });
   });
 
-  it("translates the four tab labels in every locale", () => {
-    const keys = ["nav.encyclopedia", "nav.map", "nav.journal", "nav.profile"];
+  it("translates the five tab labels in every locale", () => {
+    const keys = ["nav.home", "nav.encyclopedia", "nav.map", "nav.journal", "nav.profile"];
     expect(keys.map((key) => readKey(fr, key))).toEqual([
-      "Encyclopédie",
+      "Accueil",
+      "Bières",
       "Carte",
       "Journal",
       "Profil",
     ]);
     expect(keys.map((key) => readKey(en, key))).toEqual([
-      "Encyclopedia",
+      "Home",
+      "Beers",
       "Map",
       "Journal",
       "Profile",
+    ]);
+  });
+});
+
+describe("home page copy", () => {
+  const keys = ["pages.home.title", "pages.home.subtitle", "pages.home.findProfiles", "pages.encyclopedia.title"];
+
+  it("translates the home keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Accueil",
+      "Les dernières dégustations des profils que vous suivez.",
+      "Trouver des profils",
+      "Encyclopédie",
+    ]);
+  });
+
+  it("translates the home keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Home",
+      "Latest tastings from the profiles you follow.",
+      "Find profiles",
+      "Encyclopedia",
     ]);
   });
 });
@@ -1448,5 +1493,417 @@ describe("beer review delete copy", () => {
       "Delete",
       "Review deleted",
     ]);
+  });
+});
+describe("avatar keys", () => {
+  const keys = [
+    "avatar.label",
+    "avatar.pickerLabel",
+    "avatar.names.hop",
+    "avatar.names.malt",
+    "avatar.names.glass",
+    "avatar.names.mug",
+    "avatar.names.bottle",
+    "avatar.names.can",
+    "avatar.names.barrel",
+    "avatar.names.tap",
+    "avatar.names.cap",
+    "avatar.names.foam",
+    "avatar.names.wheat",
+    "avatar.names.pretzel",
+  ];
+
+  it("translates the avatar keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Avatar {{name}}",
+      "Choisir un avatar",
+      "Houblon",
+      "Malt",
+      "Verre",
+      "Chope",
+      "Bouteille",
+      "Canette",
+      "Tonneau",
+      "Tireuse",
+      "Capsule",
+      "Mousse",
+      "Blé",
+      "Bretzel",
+    ]);
+  });
+
+  it("translates the avatar keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "{{name}} avatar",
+      "Choose an avatar",
+      "Hop",
+      "Malt",
+      "Glass",
+      "Mug",
+      "Bottle",
+      "Can",
+      "Barrel",
+      "Tap",
+      "Cap",
+      "Foam",
+      "Wheat",
+      "Pretzel",
+    ]);
+  });
+});
+
+describe("feed card keys", () => {
+  const expected: [string, string, string][] = [
+    ["pages.home.feed.drank", "a bu", "drank"],
+    ["pages.home.feed.discovery", "Nouvelle découverte", "New discovery"],
+    ["pages.home.feed.rating", "{{rating}} / 5", "{{rating}} / 5"],
+    ["pages.home.feed.ratingLabel", "Note {{rating}} sur 5", "Rated {{rating}} out of 5"],
+    ["level.short", "Niv. {{level}} · {{title}}", "Lvl {{level}} · {{title}}"],
+    ["level.titles.curious", "Curieux", "Curious"],
+    ["level.titles.taster", "Dégustateur", "Taster"],
+    ["level.titles.hopHead", "Houblonneur", "Hop head"],
+    ["level.titles.finePalate", "Fin palais", "Fine palate"],
+    ["level.titles.masterBrewer", "Maître brasseur", "Master brewer"],
+    ["level.titles.foamLegend", "Légende de la mousse", "Foam legend"],
+    ["common.time.justNow", "à l'instant", "just now"],
+  ];
+
+  it.each(expected)("translates %s in French and in English", (key, french, english) => {
+    expect(readKey(fr, key)).toBe(french);
+    expect(readKey(en, key)).toBe(english);
+  });
+});
+
+describe("home feed copy", () => {
+  const keys = [
+    "pages.home.feed.title",
+    "pages.home.feed.emptyTitle",
+    "pages.home.feed.emptyDescription",
+    "pages.home.feed.emptyAction",
+    "pages.home.feed.errorTitle",
+    "pages.home.feed.loadMore",
+  ];
+
+  it("translates the feed keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Fil d'actualité",
+      "Suivez des profils pour voir leurs dégustations",
+      "Leurs dégustations, découvertes et avis apparaîtront ici.",
+      "Trouver des profils",
+      "Impossible de charger le fil",
+      "Voir plus",
+    ]);
+  });
+
+  it("translates the feed keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Activity feed",
+      "Follow profiles to see their tastings",
+      "Their tastings, discoveries and reviews will show up here.",
+      "Find profiles",
+      "Could not load the feed",
+      "Load more",
+    ]);
+  });
+});
+
+describe("profile social keys", () => {
+  const keys = [
+    "pages.profile.social.progressLabel",
+    "pages.profile.social.progressToTitle",
+    "pages.profile.social.maxLevel",
+    "pages.profile.social.followers_one",
+    "pages.profile.social.followers_other",
+    "pages.profile.social.following_one",
+    "pages.profile.social.following_other",
+    "pages.profile.social.errorTitle",
+  ];
+
+  it("translates the social keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Progression",
+      "{{current}} / {{next}} pour {{title}}",
+      "Niveau maximal",
+      "{{count}} abonné",
+      "{{count}} abonnés",
+      "{{count}} abonnement",
+      "{{count}} abonnements",
+      "Impossible de charger le profil",
+    ]);
+  });
+
+  it("translates the social keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Progress",
+      "{{current}} / {{next}} to {{title}}",
+      "Max level",
+      "{{count}} follower",
+      "{{count}} followers",
+      "{{count}} following",
+      "{{count}} following",
+      "Could not load the profile",
+    ]);
+  });
+});
+
+describe("profile edit keys", () => {
+  const keys = [
+    "pages.profile.edit.open",
+    "pages.profile.edit.title",
+    "pages.profile.edit.nameLabel",
+    "pages.profile.edit.nameHint",
+    "pages.profile.edit.nameError",
+    "pages.profile.edit.save",
+    "pages.profile.edit.saved",
+  ];
+
+  it("translates the edit keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Modifier",
+      "Modifier mon profil",
+      "Nom d'affichage",
+      "2 à 24 caractères",
+      "Entre 2 et 24 caractères",
+      "Enregistrer",
+      "Profil enregistré",
+    ]);
+  });
+
+  it("translates the edit keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Edit",
+      "Edit my profile",
+      "Display name",
+      "2 to 24 characters",
+      "Between 2 and 24 characters",
+      "Save",
+      "Profile saved",
+    ]);
+  });
+});
+
+describe("people keys", () => {
+  const keys = [
+    "pages.people.title",
+    "pages.people.subtitle",
+    "pages.people.you",
+    "pages.people.discovered_one",
+    "pages.people.discovered_other",
+    "pages.people.errorTitle",
+  ];
+
+  it("translates the people keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Profils",
+      "Les amateurs de Mousse à suivre.",
+      "Vous",
+      "{{count}} bière découverte",
+      "{{count}} bières découvertes",
+      "Impossible de charger les profils",
+    ]);
+  });
+
+  it("translates the people keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Profiles",
+      "Mousse fans to follow.",
+      "You",
+      "{{count}} beer discovered",
+      "{{count}} beers discovered",
+      "Could not load the profiles",
+    ]);
+  });
+});
+
+describe("follow keys", () => {
+  const keys = ["follow.follow", "follow.following", "follow.label", "follow.followed", "follow.unfollowed"];
+
+  it("translates the follow keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Suivre",
+      "Suivi",
+      "Suivre {{name}}",
+      "Vous suivez {{name}}",
+      "Vous ne suivez plus {{name}}",
+    ]);
+  });
+
+  it("translates the follow keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Follow",
+      "Following",
+      "Follow {{name}}",
+      "You follow {{name}}",
+      "You no longer follow {{name}}",
+    ]);
+  });
+});
+
+describe("user profile keys", () => {
+  const keys = ["pages.userProfile.notFoundTitle", "pages.userProfile.notFoundDescription", "pages.userProfile.seeProfiles"];
+
+  it("translates the user profile keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual(["Profil introuvable", "Ce profil n'existe pas ou plus.", "Voir les profils"]);
+  });
+
+  it("translates the user profile keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual(["Profile not found", "This profile does not exist.", "See profiles"]);
+  });
+});
+
+describe("follow list keys", () => {
+  const keys = [
+    "followList.followers",
+    "followList.following",
+    "followList.empty",
+    "followList.emptyDescription",
+    "followList.errorTitle",
+  ];
+
+  it("translates the follow list keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Abonnés de {{name}}",
+      "Abonnements de {{name}}",
+      "Aucun profil pour l'instant",
+      "Les profils apparaîtront ici.",
+      "Impossible de charger la liste",
+    ]);
+  });
+
+  it("translates the follow list keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "{{name}}'s followers",
+      "Followed by {{name}}",
+      "No profile yet",
+      "Profiles will show up here.",
+      "Could not load the list",
+    ]);
+  });
+});
+
+describe("collection creation keys", () => {
+  const keys = [
+    "collections.create.open",
+    "collections.create.title",
+    "collections.create.nameLabel",
+    "collections.create.nameHint",
+    "collections.create.nameError",
+    "collections.create.save",
+    "collections.create.nameTaken",
+    "collections.create.limitReached",
+  ];
+
+  it("translates the collection creation keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Nouvelle collection",
+      "Nouvelle collection",
+      "Nom de la collection",
+      "1 à 40 caractères",
+      "Entre 1 et 40 caractères",
+      "Créer",
+      "Ce nom est déjà pris",
+      "20 collections au plus",
+    ]);
+  });
+
+  it("translates the collection creation keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "New collection",
+      "New collection",
+      "Collection name",
+      "1 to 40 characters",
+      "Between 1 and 40 characters",
+      "Create",
+      "This name is already taken",
+      "20 collections at most",
+    ]);
+  });
+});
+
+describe("collection page copy", () => {
+  const keys = [
+    "pages.collection.drunk",
+    "pages.collection.undrunk",
+    "pages.collection.notFoundTitle",
+    "pages.collection.notFoundDescription",
+    "pages.collection.backToProfile",
+    "pages.collection.emptyTitle",
+    "pages.collection.emptyDescription",
+    "pages.collection.errorTitle",
+  ];
+
+  it("translates the collection page keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Déjà bue",
+      "Pas encore",
+      "Collection introuvable",
+      "Cette collection n'existe pas ou vous n'y avez pas accès.",
+      "Retour au profil",
+      "Cette collection est vide",
+      "Les bières ajoutées apparaîtront ici.",
+      "Collection indisponible.",
+    ]);
+  });
+
+  it("translates the collection page keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Already tasted",
+      "Not yet",
+      "Collection not found",
+      "This collection does not exist or you cannot see it.",
+      "Back to profile",
+      "This collection is empty",
+      "Added beers will show up here.",
+      "Collection unavailable.",
+    ]);
+  });
+});
+
+describe("collection rename and delete copy", () => {
+  const keys = [
+    "pages.collection.rename",
+    "pages.collection.renameLabel",
+    "pages.collection.renameSave",
+    "pages.collection.renameCancel",
+    "pages.collection.delete",
+    "pages.collection.deleteTitle",
+    "pages.collection.deleteCancel",
+    "pages.collection.deleteConfirm",
+    "pages.collection.deleteSuccess",
+  ];
+
+  it("translates the rename and delete keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Renommer",
+      "Nouveau nom",
+      "Enregistrer",
+      "Annuler",
+      "Supprimer",
+      "Supprimer cette collection ?",
+      "Annuler",
+      "Supprimer",
+      "Collection supprimée",
+    ]);
+  });
+
+  it("translates the rename and delete keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Rename",
+      "New name",
+      "Save",
+      "Cancel",
+      "Delete",
+      "Delete this collection?",
+      "Cancel",
+      "Delete",
+      "Collection deleted",
+    ]);
+  });
+});
+
+describe("lazy page loading label", () => {
+  it("translates the lazy page loading label in every locale", () => {
+    expect(readKey(fr, "lazyPage.loadingLabel")).toBe("Chargement de la page…");
+    expect(readKey(en, "lazyPage.loadingLabel")).toBe("Loading the page…");
   });
 });

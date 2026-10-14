@@ -48,6 +48,18 @@ describe("DeleteCheckinButton", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("shows a discreet ghost icon button with a trash icon, a Supprimer name and a 44 px target", () => {
+    renderButton();
+
+    const button = screen.getByRole("button", { name: "Supprimer" });
+    expect(button).toHaveClass("button--ghost", "button--icon-only", "button--lg", "shrink-0");
+    expect(button).not.toHaveClass("button--danger-soft");
+    expect(button).not.toHaveTextContent("Supprimer");
+    const icon = button.querySelector("svg");
+    expect(icon).not.toBeNull();
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("asks Supprimer cette dégustation ? with a Supprimer and an Annuler button when pressed", async () => {
     const { user } = renderButton();
 

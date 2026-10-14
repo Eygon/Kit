@@ -104,6 +104,29 @@ describe("CheckinEntry", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps the text column shrinkable and the thumbnail, rating and actions at their own size", () => {
+    renderEntry({
+      checkin: buildCheckin({ photoId: "0b6f1c1e-6a34-4c8e-9f3a-2f6d7b1c9a10" }),
+      actions: <button type="button">Supprimer</button>,
+    });
+
+    const item = screen.getByRole("listitem");
+    const text = screen.getByText("Chez Paul").parentElement as HTMLElement;
+    expect(text).toHaveClass("min-w-0", "flex-1");
+    const trailing = screen.getByRole("button", { name: "Agrandir la photo" }).parentElement as HTMLElement;
+    expect(trailing).toHaveClass("flex", "shrink-0", "items-center");
+    expect(trailing.parentElement).toBe(item);
+    expect(within(trailing).getByText("★ 4,5")).toBeInTheDocument();
+    expect(within(trailing).getByRole("button", { name: "Supprimer" })).toBeInTheDocument();
+    expect(text.contains(trailing)).toBe(false);
+  });
+
+  it("renders no empty trailing group for a tasting without photo, rating or actions", () => {
+    renderEntry({ checkin: buildCheckin({ rating: null }) });
+
+    expect(screen.getByRole("listitem").children).toHaveLength(1);
+  });
+
   it("lets a long unbroken place and beer name wrap", async () => {
     const place = "Brasserie-Artisanale-du-Mont-Blanc-".repeat(4);
     const beerName = "Triple-Karmeliet-Reserve-".repeat(4);

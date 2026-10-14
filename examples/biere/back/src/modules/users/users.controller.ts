@@ -7,12 +7,6 @@ import { UsersService } from "@/modules/users/users.service";
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Get()
-  @HttpCode(HttpStatus.OK)
-  getAll(): Promise<UserDto[]> {
-    return this.usersService.getUsers();
-  }
-
   @Get("me")
   @HttpCode(HttpStatus.OK)
   getMe(@CurrentUserId() userId: number): Promise<UserDto> {

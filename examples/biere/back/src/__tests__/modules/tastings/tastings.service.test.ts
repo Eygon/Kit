@@ -33,7 +33,7 @@ const BOB_CHECKIN: CheckinRecordDto = {
 };
 
 describe("TastingsService", () => {
-  const repository = { createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), findCheckinById: vi.fn(), countCheckins: vi.fn(), findPhoto: vi.fn(), findCheckinPage: vi.fn(), deleteCheckinWithPhoto: vi.fn(), findWishlist: vi.fn(), existsWishlistItem: vi.fn(), addWishlistItem: vi.fn(), removeWishlistItem: vi.fn(), findDiscoveries: vi.fn(), findCheckinsByUser: vi.fn(), findBeerStates: vi.fn(), findDrunkBeerIds: vi.fn(), findWishlistBeerIds: vi.fn() };
+  const repository = { createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), findCheckinById: vi.fn(), countCheckins: vi.fn(), findPhoto: vi.fn(), findCheckinPage: vi.fn(), deleteCheckinWithPhoto: vi.fn(), findWishlist: vi.fn(), existsWishlistItem: vi.fn(), addWishlistItem: vi.fn(), removeWishlistItem: vi.fn(), findDiscoveries: vi.fn(), findCheckinsByUser: vi.fn(), findCheckinsByUsers: vi.fn(), findBeerStates: vi.fn(), findDrunkBeerIds: vi.fn(), findWishlistBeerIds: vi.fn(), countDiscoveredBeersByUsers: vi.fn() };
   let service: TastingsService;
 
   beforeEach(async () => {
@@ -250,6 +250,16 @@ describe("TastingsService", () => {
     });
   });
 
+  describe("getCheckinsByUsers", () => {
+    it("returns the check-ins the repository finds for the users", async () => {
+      const records = [BOB_CHECKIN];
+      repository.findCheckinsByUsers.mockResolvedValue(records);
+
+      expect(await service.getCheckinsByUsers([BOB, ALICE])).toBe(records);
+      expect(repository.findCheckinsByUsers).toHaveBeenCalledExactlyOnceWith([BOB, ALICE]);
+    });
+  });
+
   describe("getDiscoveries", () => {
     it("returns the discoveries the repository finds for the user", async () => {
       const discoveries = [{ beerId: BEER, firstCheckinAt: "2025-10-01T18:00:00.000Z", lastCheckinAt: "2025-10-10T18:00:00.000Z" }];
@@ -282,6 +292,32 @@ describe("TastingsService", () => {
 
       expect(await service.getWishlistBeerIds(ALICE)).toBe(ids);
       expect(repository.findWishlistBeerIds).toHaveBeenCalledExactlyOnceWith(ALICE);
+    });
+  });
+
+  describe("discovered counts", () => {
+    it("maps each user id to its discovered count and leaves out a user without tasting", async () => {
+      repository.countDiscoveredBeersByUsers.mockResolvedValue([
+        { userId: BOB, discoveredCount: 4 },
+        { userId: 3, discoveredCount: 1 },
+      ]);
+
+      const counts = await service.getDiscoveredCounts([ALICE, BOB, 3]);
+
+      expect(counts).toEqual(
+        new Map([
+          [BOB, 4],
+          [3, 1],
+        ]),
+      );
+      expect(counts.has(ALICE)).toBe(false);
+      expect(repository.countDiscoveredBeersByUsers).toHaveBeenCalledExactlyOnceWith([ALICE, BOB, 3]);
+    });
+
+    it("answers an empty map when nobody tasted", async () => {
+      repository.countDiscoveredBeersByUsers.mockResolvedValue([]);
+
+      expect((await service.getDiscoveredCounts([ALICE])).size).toBe(0);
     });
   });
 

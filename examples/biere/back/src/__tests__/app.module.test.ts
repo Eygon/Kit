@@ -11,6 +11,8 @@ import { BeersController } from "@/modules/beers/beers.controller";
 import { HealthController } from "@/modules/health/health.controller";
 import { CheckinsController } from "@/modules/pokedex/checkins.controller";
 import { StatsController } from "@/modules/profile/stats.controller";
+import { ProfilesController } from "@/modules/social/profiles.controller";
+import { SocialService } from "@/modules/social/social.service";
 import { TastingsService } from "@/modules/tastings/tastings.service";
 import { UsersController } from "@/modules/users/users.controller";
 import { UsersService } from "@/modules/users/users.service";
@@ -44,6 +46,11 @@ describe("AppModule", () => {
 
   it("mounts the profile module so the stats controller is served", () => {
     expect(app.get(StatsController)).toBeInstanceOf(StatsController);
+  });
+
+  it("mounts the social module so the profiles controller is served", () => {
+    expect(app.get(ProfilesController)).toBeInstanceOf(ProfilesController);
+    expect(app.get(SocialService)).toBeInstanceOf(SocialService);
   });
 
   it("registers the identity guard, the validation pipe and the exception filter globally", () => {

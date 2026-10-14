@@ -58,14 +58,17 @@ describe("MonthlyCheckinsChart", () => {
     ]);
   });
 
-  it("writes the short month in french under each bar", () => {
+  it("writes one capital letter per month under each bar, never truncated", () => {
     renderChart(YEAR_MONTHS);
 
     const items = screen.getAllByRole("listitem");
-    expect(items[0]).toHaveTextContent("nov.");
-    expect(items[2]).toHaveTextContent("janv.");
+    const letters = items.map((item) => item.textContent);
+    expect(letters).toEqual(["N", "D", "J", "F", "M", "A", "M", "J", "J", "A", "S", "O"]);
     expect(items[2]).toHaveClass("min-w-0");
-    expect(within(items[2]).getByText("janv.")).toHaveClass("text-xs", "truncate");
+    const label = within(items[2]).getByText("J");
+    expect(label).toHaveClass("text-xs");
+    expect(label).not.toHaveClass("truncate");
+    expect(items[2]).toHaveAccessibleName("janvier 2026 : 8 dégustations");
   });
 
   it("writes the month names and the plural in english", async () => {
@@ -77,7 +80,7 @@ describe("MonthlyCheckinsChart", () => {
     expect(items[0]).toHaveAccessibleName("November 2025: 3 tastings");
     expect(items[1]).toHaveAccessibleName("December 2025: 0 tastings");
     expect(items[3]).toHaveAccessibleName("February 2026: 1 tasting");
-    expect(items[2]).toHaveTextContent("Jan");
+    expect(items.map((item) => item.textContent)).toEqual(["N", "D", "J", "F", "M", "A", "M", "J", "J", "A", "S", "O"]);
   });
 
   it("sizes each bar against the busiest month", () => {
@@ -134,9 +137,9 @@ describe("MonthlyCheckinsChart", () => {
 
       const items = screen.getAllByRole("listitem");
       expect(items[0]).toHaveAccessibleName("janvier 2026 : 1 dégustation");
-      expect(items[0]).toHaveTextContent("janv.");
+      expect(items[0]).toHaveTextContent(/^J$/);
       expect(items[1]).toHaveAccessibleName("décembre 2026 : 2 dégustations");
-      expect(items[1]).toHaveTextContent("déc.");
+      expect(items[1]).toHaveTextContent(/^D$/);
     },
   );
 });

@@ -1,11 +1,17 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { getRepositoryToken, TypeOrmModule } from "@nestjs/typeorm";
 import { Test } from "@nestjs/testing";
 import type { TestingModule } from "@nestjs/testing";
+import { DataSource } from "typeorm";
 import type { Repository } from "typeorm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { APP_CONFIG } from "@/config/app-config.constants";
 import { DataSeeder } from "@/database/data-seeder";
 import { ALICE_USER_ID, BOB_USER_ID, CAROL_USER_ID, SEED_VOTE_BATCH_SIZE } from "@/database/seed.constants";
 import beersSeed from "@/database/seed/data/beers.json";
+import demoCheckinsSeed from "@/database/seed/data/demo-checkins.json";
 import breweriesSeed from "@/database/seed/data/breweries.json";
 import reviewsSeed from "@/database/seed/data/reviews.json";
 import venueBeersSeed from "@/database/seed/data/venue-beers.json";
@@ -15,13 +21,16 @@ import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
+import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
 import { Review } from "@/modules/beers/entities/review.entity";
+import { Follow } from "@/modules/social/entities/follow.entity";
 import { Checkin } from "@/modules/tastings/entities/checkin.entity";
 import { User } from "@/modules/users/entities/user.entity";
 import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
 import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
 import { Venue } from "@/modules/venues/entities/venue.entity";
 import { VoteSenseEnum } from "@/modules/venues/enums/vote-sense.enum";
+import { TEST_CONFIG } from "@/__tests__/support/test-config";
 import { inMemoryDatabase } from "@/__tests__/support/test-database";
 
 const SEEDED_STYLE_COUNT = 34;
@@ -34,6 +43,9 @@ const SEEDED_REVIEW_COUNT = reviewsSeed.length;
 const LOAD_TIME = new Date("2026-03-15T12:00:00.000Z");
 const DAY_MS = 86_400_000;
 const WINDOW_DAYS = 30;
+const BOB_DEMO_COUNT = 10;
+const CAROL_DEMO_COUNT = 11;
+const appConfig = { ...TEST_CONFIG };
 
 interface StoredVote {
   readonly sense: string;
@@ -75,11 +87,13 @@ describe("DataSeeder", () => {
   let votes: Repository<AvailabilityVote>;
   let reviews: Repository<Review>;
   let checkins: Repository<Checkin>;
+  let follows: Repository<Follow>;
 
   beforeEach(async () => {
+    Object.assign(appConfig, TEST_CONFIG);
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer, Venue, VenueBeer, AvailabilityVote, Review, Checkin])],
-      providers: [DataSeeder],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer, Venue, VenueBeer, AvailabilityVote, Review, Checkin, Follow])],
+      providers: [DataSeeder, { provide: APP_CONFIG, useValue: appConfig }],
     }).compile();
     users = moduleRef.get<Repository<User>>(getRepositoryToken(User));
     styles = moduleRef.get<Repository<BeerStyle>>(getRepositoryToken(BeerStyle));
@@ -90,6 +104,7 @@ describe("DataSeeder", () => {
     votes = moduleRef.get<Repository<AvailabilityVote>>(getRepositoryToken(AvailabilityVote));
     reviews = moduleRef.get<Repository<Review>>(getRepositoryToken(Review));
     checkins = moduleRef.get<Repository<Checkin>>(getRepositoryToken(Checkin));
+    follows = moduleRef.get<Repository<Follow>>(getRepositoryToken(Follow));
   });
 
   afterEach(async () => {
@@ -101,6 +116,7 @@ describe("DataSeeder", () => {
 
     const seeded = await users.find({ order: { id: "ASC" } });
     expect(seeded.map((user) => user.displayName)).toEqual(["Alice", "Bob", "Carol"]);
+    expect(seeded.map((user) => user.avatar)).toEqual(["hop", "malt", "glass"]);
   });
 
   it("is idempotent", async () => {
@@ -118,6 +134,14 @@ describe("DataSeeder", () => {
     await moduleRef.get(DataSeeder).seed();
 
     expect(await users.count()).toBe(1);
+  });
+
+  it("gives an existing user created without avatar the hop avatar", async () => {
+    await users.insert({ id: 10, displayName: "Dave", avatarColor: "#000000" });
+
+    await moduleRef.get(DataSeeder).seed();
+
+    expect((await users.findOneByOrFail({ id: 10 })).avatar).toBe("hop");
   });
 
   it("loads 34 styles and 70 breweries into an empty database", async () => {
@@ -703,5 +727,136 @@ describe("DataSeeder", () => {
 
     expect(await reviews.count()).toBe(SEEDED_REVIEW_COUNT);
     expect(await checkins.count()).toBe(0);
+  });
+
+  describe("demo activity", () => {
+    const enableDemo = (): void => {
+      Object.assign(appConfig, { seedDemoActivity: true });
+    };
+
+    const demoCheckin = (userId: number) => ({
+      userId,
+      beerId: 1,
+      drankAt: LOAD_TIME,
+      place: "Paris",
+      rating: null,
+      aromas: [],
+      format: BeerFormatEnum.DRAFT,
+      price: null,
+      comment: "",
+      photoId: null,
+    });
+
+    it("creates no tasting and no follow when the demo is off", async () => {
+      await moduleRef.get(DataSeeder).seed();
+
+      expect(await checkins.count()).toBe(0);
+      expect(await follows.count()).toBe(0);
+    });
+
+    it("gives Bob 10 and Carol 11 tastings dated in the last 30 days when the demo is on", async () => {
+      enableDemo();
+      const before = Date.now();
+
+      await moduleRef.get(DataSeeder).seed();
+
+      const bob = await checkins.findBy({ userId: BOB_USER_ID });
+      const carol = await checkins.findBy({ userId: CAROL_USER_ID });
+      expect([bob.length, carol.length]).toEqual([BOB_DEMO_COUNT, CAROL_DEMO_COUNT]);
+      expect(await checkins.count()).toBe(demoCheckinsSeed.length);
+      for (const { drankAt } of [...bob, ...carol]) {
+        const age = (before - drankAt.getTime()) / DAY_MS;
+        expect(age).toBeGreaterThanOrEqual(0);
+        expect(age).toBeLessThanOrEqual(WINDOW_DAYS);
+      }
+    });
+
+    it("makes Alice follow Bob and Carol and gives Alice no tasting", async () => {
+      enableDemo();
+
+      await moduleRef.get(DataSeeder).seed();
+
+      const stored = await follows.find({ order: { followedId: "ASC" } });
+      expect(stored.map(({ followerId, followedId }) => [followerId, followedId])).toEqual([
+        [ALICE_USER_ID, BOB_USER_ID],
+        [ALICE_USER_ID, CAROL_USER_ID],
+      ]);
+      expect(await checkins.countBy({ userId: ALICE_USER_ID })).toBe(0);
+    });
+
+    it("duplicates nothing on a second seed", async () => {
+      enableDemo();
+      const seeder = moduleRef.get(DataSeeder);
+      await seeder.seed();
+      const before = [await checkins.find({ order: { id: "ASC" } }), await follows.find({ order: { id: "ASC" } })];
+
+      await seeder.seed();
+
+      expect([await checkins.find({ order: { id: "ASC" } }), await follows.find({ order: { id: "ASC" } })]).toEqual(before);
+    });
+
+    it("does not reload the tastings of a user who already has some, and still loads the other user", async () => {
+      enableDemo();
+      await moduleRef.get(DataSeeder).seed();
+      await checkins.clear();
+      await checkins.insert(demoCheckin(BOB_USER_ID));
+
+      await moduleRef.get(DataSeeder).seed();
+
+      expect(await checkins.countBy({ userId: BOB_USER_ID })).toBe(1);
+      expect(await checkins.countBy({ userId: CAROL_USER_ID })).toBe(CAROL_DEMO_COUNT);
+    });
+
+    it("does not touch the follows of an Alice who already follows someone", async () => {
+      enableDemo();
+      await moduleRef.get(DataSeeder).seed();
+      await follows.clear();
+      await follows.insert({ followerId: ALICE_USER_ID, followedId: CAROL_USER_ID });
+
+      await moduleRef.get(DataSeeder).seed();
+
+      const stored = await follows.find();
+      expect(stored.map(({ followerId, followedId }) => [followerId, followedId])).toEqual([[ALICE_USER_ID, CAROL_USER_ID]]);
+    });
+
+    it("loads the demo tastings of Bob and Carol although Alice already has a tasting", async () => {
+      enableDemo();
+      await checkins.insert(demoCheckin(ALICE_USER_ID));
+
+      await moduleRef.get(DataSeeder).seed();
+
+      expect(await checkins.countBy({ userId: ALICE_USER_ID })).toBe(1);
+      expect(await checkins.countBy({ userId: BOB_USER_ID })).toBe(BOB_DEMO_COUNT);
+      expect(await checkins.countBy({ userId: CAROL_USER_ID })).toBe(CAROL_DEMO_COUNT);
+    });
+  });
+});
+
+describe("users table created before F5", () => {
+  it("gives every existing user the hop avatar when the application starts", async () => {
+    const root = mkdtempSync(join(tmpdir(), "mousse-pre-f5-"));
+    const database = join(root, "mousse.db");
+    const legacy = new DataSource({ type: "better-sqlite3", database });
+    await legacy.initialize();
+    await legacy.query(
+      'CREATE TABLE "users" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "displayName" varchar(50) NOT NULL, "avatarColor" varchar(7) NOT NULL)',
+    );
+    await legacy.query(`INSERT INTO "users" ("id", "displayName", "avatarColor") VALUES (1, 'Alice', '#F59E0B'), (2, 'Bob', '#10B981')`);
+    await legacy.destroy();
+    const upgraded = new DataSource({ type: "better-sqlite3", database, entities: [User], synchronize: true });
+
+    try {
+      await upgraded.initialize();
+      const stored = await upgraded.getRepository(User).find({ order: { id: "ASC" } });
+      expect(stored.map((user) => [user.displayName, user.avatar])).toEqual([
+        ["Alice", "hop"],
+        ["Bob", "hop"],
+      ]);
+    } finally {
+      if (upgraded.isInitialized) {
+        await upgraded.destroy();
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

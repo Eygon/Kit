@@ -3,6 +3,7 @@ import { BEER_PAGE_SIZE_DEFAULT, REVIEW_PAGE_SIZE } from "@/modules/beers/beers.
 import { BeersRepository } from "@/modules/beers/beers.repository";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import type { ReviewDto } from "@/modules/beers/dtos/review.dto";
+import type { ReviewRecordDto } from "@/modules/beers/dtos/review-record.dto";
 import type { ReviewPageDto } from "@/modules/beers/dtos/review-page.dto";
 import type { ReviewsQueryDto } from "@/modules/beers/dtos/reviews-query.dto";
 import type { UpsertReviewDto } from "@/modules/beers/dtos/upsert-review.dto";
@@ -113,6 +114,10 @@ export class BeersService {
 
   getBeersByIds(ids: readonly number[]): Promise<BeerDto[]> {
     return this.beersRepository.findByIds(ids);
+  }
+
+  getReviewsByUsers(userIds: readonly number[]): Promise<ReviewRecordDto[]> {
+    return this.beersRepository.findReviewsByUsers(userIds);
   }
 
   async getCatalogTotals(): Promise<CatalogTotalsDto> {

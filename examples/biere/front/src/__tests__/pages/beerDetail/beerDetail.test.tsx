@@ -31,6 +31,20 @@ const mockVenues = vi.hoisted(() => ({ useBeerVenuesQuery: vi.fn() }));
 
 vi.mock("@/pages/beerDetail/hooks/useBeerVenuesQuery", () => mockVenues);
 
+const mockMyCollections = vi.hoisted(() => ({ useMyCollectionsQuery: vi.fn() }));
+
+vi.mock("@/pages/beerDetail/hooks/useMyCollectionsQuery", () => mockMyCollections);
+
+const mockMembership = vi.hoisted(() => ({
+  useCollectionMembershipToggle: vi.fn(),
+  toggleMembership: vi.fn(),
+  isTogglePending: vi.fn(),
+}));
+
+vi.mock("@/pages/beerDetail/hooks/useCollectionMembershipToggle", () => ({
+  useCollectionMembershipToggle: mockMembership.useCollectionMembershipToggle,
+}));
+
 const CHIMAY: Beer = {
   id: 1,
   name: "Chimay Rouge",
@@ -102,6 +116,20 @@ describe("BeerDetailPage", () => {
     refetch.mockResolvedValue(undefined);
     stubQuery();
     mockWishlist.useWishlistToggle.mockReturnValue({ toggleWishlist: mockWishlist.toggleWishlist, isPending: false });
+    mockMyCollections.useMyCollectionsQuery.mockReturnValue({
+      collections: [
+        { id: null, kind: "wishlist", name: "", beerCount: 1, containsBeer: true },
+        { id: 5, kind: "custom", name: "Trappistes", beerCount: 0, containsBeer: false },
+      ],
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+    mockMembership.isTogglePending.mockReturnValue(false);
+    mockMembership.useCollectionMembershipToggle.mockReturnValue({
+      toggleMembership: mockMembership.toggleMembership,
+      isTogglePending: mockMembership.isTogglePending,
+    });
     mockVenues.useBeerVenuesQuery.mockReturnValue({
       venues: [],
       isPending: false,
@@ -228,7 +256,7 @@ describe("BeerDetailPage", () => {
         <Route path={RoutePathEnum.ENCYCLOPEDIA} element={<GridWithLink />} />
         <Route path={RoutePathEnum.BEER_DETAIL} element={<BeerDetailPage />} />
       </Routes>,
-      { initialPath: "/?family=trappist" },
+      { initialPath: "/bieres?family=trappist" },
     );
 
     await user.click(screen.getByRole("link", { name: "open Chimay" }));
@@ -245,7 +273,7 @@ describe("BeerDetailPage", () => {
     await user.click(screen.getByRole("button", { name: "Retour" }));
 
     expect(screen.getByText("encyclopedia grid")).toBeInTheDocument();
-    expect(screen.getByLabelText("pathname")).toHaveTextContent(/^\/$/);
+    expect(screen.getByLabelText("pathname")).toHaveTextContent(/^\/bieres$/);
     expect(screen.queryByRole("heading", { level: 1, name: "Chimay Rouge" })).not.toBeInTheDocument();
   });
 
@@ -277,7 +305,7 @@ describe("BeerDetailPage", () => {
     expect(screen.getByRole("heading", { name: "Bière inconnue" })).toBeInTheDocument();
     expect(screen.getByText("Cette bière n'est pas dans l'encyclopédie.")).toBeInTheDocument();
     expect(container.querySelector('[data-slot="mascot"]')).toHaveAttribute("data-mood", "confused");
-    expect(screen.getByRole("link", { name: "Retour à l'Encyclopédie" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Retour à l'Encyclopédie" })).toHaveAttribute("href", "/bieres");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -289,7 +317,7 @@ describe("BeerDetailPage", () => {
     expect(mockBeer.useBeerQuery).toHaveBeenCalledWith(null);
     expect(mockBeer.useBeerQuery).not.toHaveBeenCalledWith(expect.any(Number));
     expect(screen.getByRole("heading", { name: "Bière inconnue" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Retour à l'Encyclopédie" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Retour à l'Encyclopédie" })).toHaveAttribute("href", "/bieres");
   });
 
   it("shows a danger alert with Réessayer on a server error and retries", async () => {
@@ -697,6 +725,45 @@ describe("BeerDetailPage", () => {
       stubQuery({ data: null, isPending: false });
       renderDetail();
       expect(screen.queryByText("Amertume")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("add to a collection", () => {
+    it("shows an add to a collection button in the actions row, after the wishlist toggle", () => {
+      renderDetail();
+
+      const toggle = screen.getByRole("button", { name: "À goûter" });
+      const open = screen.getByRole("button", { name: "Ajouter à une collection" });
+
+      expect(toggle.compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(toggle.parentElement).toBe(open.parentElement);
+    });
+
+    it("does not read the collections of the beer before the sheet is opened", () => {
+      renderDetail();
+
+      expect(mockMyCollections.useMyCollectionsQuery).toHaveBeenCalledWith(1, false);
+      expect(mockMembership.useCollectionMembershipToggle).toHaveBeenCalledWith(1);
+    });
+
+    it("opens the sheet for this beer and toggles the membership of the checked collection", async () => {
+      const user = userEvent.setup();
+      renderDetail();
+
+      await user.click(screen.getByRole("button", { name: "Ajouter à une collection" }));
+      await user.click(await screen.findByRole("checkbox", { name: "Trappistes" }));
+
+      expect(mockMyCollections.useMyCollectionsQuery).toHaveBeenLastCalledWith(1, true);
+      expect(screen.getByRole("checkbox", { name: "À goûter" })).toBeChecked();
+      expect(mockMembership.toggleMembership).toHaveBeenCalledTimes(1);
+      expect(mockMembership.toggleMembership).toHaveBeenCalledWith(expect.objectContaining({ id: 5, name: "Trappistes" }), true);
+    });
+
+    it("is not shown for an unknown beer", () => {
+      stubQuery({ data: null });
+      renderDetail();
+
+      expect(screen.queryByRole("button", { name: "Ajouter à une collection" })).not.toBeInTheDocument();
     });
   });
 });

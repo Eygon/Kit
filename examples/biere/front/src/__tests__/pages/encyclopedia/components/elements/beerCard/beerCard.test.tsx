@@ -3,6 +3,8 @@ import { BeerCard } from "@/pages/encyclopedia/components/elements/beerCard/beer
 import i18n from "@/i18n/i18n";
 import type { Beer } from "@/types/models/beer/beer";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
+import { blendOver, contrastRatio } from "@/__tests__/utils/color/contrast";
+import { resolveThemeColor } from "@/__tests__/utils/color/resolveThemeColor";
 
 const BEER: Beer = {
   id: 12,
@@ -88,6 +90,27 @@ describe("BeerCard", () => {
     expect(screen.getByRole("link").className).toContain("min-w-0");
   });
 
+  it("renders the beer name as a level 2 heading under the page title without changing its look", () => {
+    renderCard();
+
+    const title = screen.getByRole("heading", { level: 2, name: "Orval" });
+    expect(title.tagName).toBe("H2");
+    expect(title.className).toContain("font-display");
+    expect(title.className).toContain("text-xl");
+  });
+
+  it("keeps the secondary text of a not tasted card at 4.5:1 once the card is dimmed", () => {
+    renderCard();
+
+    const opacity = Number(/opacity-(\d+)/.exec(screen.getByRole("link").className)?.[1]) / 100;
+    const paper = resolveThemeColor("var(--mousse-paper)");
+    const dimmedMuted = blendOver(resolveThemeColor("var(--muted)"), opacity, paper);
+    const dimmedCream = blendOver(resolveThemeColor("var(--mousse-cream)"), opacity, paper);
+
+    expect(opacity).toBeGreaterThan(0);
+    expect(contrastRatio(dimmedMuted, dimmedCream)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it("AC1 greys out a beer that was not drunk and shows ??? announced as not tasted yet", () => {
     renderCard();
 
@@ -96,7 +119,7 @@ describe("BeerCard", () => {
     expect(label.className).toContain("font-display");
     expect(label.parentElement?.className).toContain("bg-default");
     expect(screen.getByText("Pas encore goûtée").className).toContain("sr-only");
-    expect(screen.getByRole("link", { name: /Pas encore goûtée/ }).className).toContain("opacity-70");
+    expect(screen.getByRole("link", { name: /Pas encore goûtée/ }).className).toContain("opacity-85");
   });
 
   it("AC1 keeps the name and the brewery readable and the link to the sheet on a beer not drunk", () => {
@@ -123,7 +146,7 @@ describe("BeerCard", () => {
     expect(stamp.closest("[class*='-rotate-']")).not.toBeNull();
     expect(screen.queryByText("???")).not.toBeInTheDocument();
     expect(screen.queryByText("Pas encore goûtée")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Orval/ }).className).not.toContain("opacity-70");
+    expect(screen.getByRole("link", { name: /Orval/ }).className).not.toContain("opacity-85");
     expect(screen.getByRole("heading", { name: "Orval" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Orval/ })).toHaveAttribute("href", "/bieres/12");
   });

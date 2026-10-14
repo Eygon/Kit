@@ -64,6 +64,12 @@ describe("TabBarItem", () => {
     expect(screen.getByRole("link", { name: "Carte" })).not.toHaveAttribute("aria-current");
   });
 
+  it.each(["/profils", "/profils/3"])("is current on %s when its activePaths are the people paths", (path) => {
+    renderItem(path, [RoutePathEnum.PEOPLE, RoutePathEnum.USER_PROFILE]);
+
+    expect(screen.getByRole("link", { name: "Carte" })).toHaveAttribute("aria-current", "page");
+  });
+
   it("stays marked on its own route when activePaths are given", () => {
     renderItem(RoutePathEnum.MAP, [RoutePathEnum.BEER_DETAIL]);
 

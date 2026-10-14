@@ -671,6 +671,65 @@ describe("BeersRepository reviews", () => {
   });
   const reviews = () => moduleRef.get<Repository<Review>>(getRepositoryToken(Review));
 
+  describe("findReviewsByUsers", () => {
+    const CAROL = 3;
+    const DAVE = 4;
+    const LATER_MOMENT = new Date("2026-03-09T08:00:00.000Z");
+
+    it("answers an empty list for no user, even when reviews exist", async () => {
+      await reviews().insert(row());
+
+      expect(await repository.findReviewsByUsers([])).toEqual([]);
+    });
+
+    it("finds the reviews of the given users only, the most recently modified first, as records with ISO dates", async () => {
+      await reviews().insert([
+        row({ userId: DAVE, beerId: 7, text: "Dave", updatedAt: LATER_MOMENT }),
+        row({ userId: BOB, text: "Bob", rating: 3, updatedAt: FIRST_MOMENT }),
+        row({ userId: CAROL, beerId: 5, text: "Carol", rating: 2, updatedAt: SECOND_MOMENT }),
+      ]);
+
+      expect(await repository.findReviewsByUsers([BOB, CAROL])).toEqual([
+        {
+          id: 3,
+          userId: CAROL,
+          beerId: 5,
+          rating: 2,
+          text: "Carol",
+          sweetness: 2,
+          acidity: null,
+          body: null,
+          createdAt: FIRST_MOMENT.toISOString(),
+          updatedAt: SECOND_MOMENT.toISOString(),
+        },
+        {
+          id: 2,
+          userId: BOB,
+          beerId: ORVAL,
+          rating: 3,
+          text: "Bob",
+          sweetness: 2,
+          acidity: null,
+          body: null,
+          createdAt: FIRST_MOMENT.toISOString(),
+          updatedAt: FIRST_MOMENT.toISOString(),
+        },
+      ]);
+    });
+
+    it("breaks a tie on the modification date by the highest id", async () => {
+      await reviews().insert([
+        row({ userId: BOB, beerId: 1, text: "first" }),
+        row({ userId: BOB, beerId: 2, text: "second" }),
+        row({ userId: BOB, beerId: 3, text: "third" }),
+      ]);
+
+      const found = await repository.findReviewsByUsers([BOB]);
+
+      expect(found.map((record) => record.text)).toEqual(["third", "second", "first"]);
+    });
+  });
+
   it("finds nothing for a pair without review, even when other pairs have one", async () => {
     await reviews().insert([row({ userId: BOB }), row({ beerId: 5 })]);
 

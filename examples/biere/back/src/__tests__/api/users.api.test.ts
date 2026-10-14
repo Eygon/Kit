@@ -18,14 +18,14 @@ describe("users API", () => {
     await app.close();
   });
 
-  it("GET /api/v1/users returns the three seeded users ordered by display name", async () => {
+  it("GET /api/v1/users returns the three seeded profile summaries ordered by display name, without the avatar color", async () => {
     const response = await request(app.getHttpServer()).get("/api/v1/users").set(USER_ID_HEADER_NAME, "1");
 
     expect(response.status).toBe(HttpStatus.OK);
     expect(response.body).toEqual([
-      { id: 1, displayName: "Alice", avatarColor: "#F59E0B" },
-      { id: 2, displayName: "Bob", avatarColor: "#10B981" },
-      { id: 3, displayName: "Carol", avatarColor: "#8B5CF6" },
+      { id: 1, displayName: "Alice", avatar: "hop", level: 1, title: "curious", discoveredCount: 0, isFollowed: false, isMe: true },
+      { id: 2, displayName: "Bob", avatar: "malt", level: 1, title: "curious", discoveredCount: 0, isFollowed: false, isMe: false },
+      { id: 3, displayName: "Carol", avatar: "glass", level: 1, title: "curious", discoveredCount: 0, isFollowed: false, isMe: false },
     ]);
   });
 
@@ -35,7 +35,7 @@ describe("users API", () => {
       .set(USER_ID_HEADER_NAME, String(BOB_USER_ID));
 
     expect(response.status).toBe(HttpStatus.OK);
-    expect(response.body).toEqual({ id: BOB_USER_ID, displayName: "Bob", avatarColor: "#10B981" });
+    expect(response.body).toEqual({ id: BOB_USER_ID, displayName: "Bob", avatarColor: "#10B981", avatar: "malt" });
   });
 
   it("GET /api/v1/users/me returns 401 with the canonical message for a well-formed but unknown user id", async () => {

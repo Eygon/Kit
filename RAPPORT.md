@@ -663,6 +663,20 @@ Défauts du kit révélés par F1, et corrigés :
 
 **Mousse** (`examples/biere`, front React + HeroUI, back NestJS) : projet réel construit avec le kit, feature par feature. Le kit détecte maintenant les trois piles (front React, back .NET, back NestJS) : conditions `ts`, `node`, `front`, `back` dans `brief-fill`, gate vitest pour le front et le back Node, bloc `if:node` dans `us-sonnet.md`. Script de slots du banc : `examples/biere/mousse-impl.py`.
 
+## Nuit du 13 au 14 octobre : Mousse livrée jusqu'à F9, ce que le kit a appris
+
+**Résultat produit** (`examples/biere`, voir son `README.md` et `JOURNAL.md`) : l'appli Mousse tourne de bout en bout, 9 features construites avec le kit (F1 catalogue, F2 dégustations/Pokédex, F3 carte et disponibilité, F4 profil/badges/stats, F5 profil social + collections, F6 recherche de lieux + « déjà bue », F7 amertume/notes/avis, F8 regroupement des repères, F9 pages à la demande). Chiffres : front 247 fichiers / 2 642 tests, back 165 fichiers / 1 993 tests ; tests réels navigateur (API réelle, 390 et 360 px) : F1 37, F2 37, F3 29, F4 29, F5 68 + collections 62, F6 39, F7 46, F8 17, F9 16, carte+point 35 ; audit d'accessibilité axe : 0 violation (fr).
+
+**Ce que le kit a changé** (10 commits, 168 lignes) :
+- `sk-prep` : mapper, fichier de props, enum du contrat, `isEnabled` d'un hook, prop de titre d'une section réutilisée sont des chemins de tâche obligatoires (chaque oubli avait coûté une escalade) ; `audit-lint` contrôle maintenant `contract-enum-without-file`, `component-without-props-file`, `dto-without-mapper` (testé sur 6 trios réels : 3 vrais manques, 0 faux positif après réglage).
+- Moteur : arguments compacts `{root, dir, banc, ids}` (20 Ko → 0,5 Ko), relance propre après escalade (facts-add + fix worker + fresh run).
+- Oracles navigateur : `covered`, `a11y` (axe-core), `unreachable` (texte masqué, tolérance 2 px), `watch` (annulation tardive d'une requête déjà répondue).
+- `sk-e2e.md` : pièges que seul le navigateur réel montre (import dynamique en échec gardé en mémoire, bascule et cases HeroUI).
+
+**Constat** : à chaque feature le navigateur réel a trouvé au moins un défaut que les milliers de tests unitaires ne voyaient pas (F3 : repères recouverts par la barre ; F6 : cible tactile de 20 px ; F5 : cases empilées ; F9 : « Réessayer » inopérant). La revue Opus + la loupe de tests (mutation à la main) attrapent surtout les défauts de logique, l'E2E réel les défauts de rendu et de plateforme : les deux sont nécessaires.
+
+**Limites** : escalades de préparation restantes (~1 par grosse feature, 4 sur 31 US en F5) ; les décisions prises « au nom de Thomas » sont toutes tracées dans les `plan.md` et le `JOURNAL.md` et attendent ta confirmation ; tuiles OpenStreetMap injoignables dans le banc.
+
 ## À faire de ton côté
 1. **Copier `agents/sk-worker.md` et `agents/sk-reviewer.md`** dans `~/.claude/agents/` (et `~/.cursor/agents/`). Les workflows les appellent désormais.
 2. **Index front** : 4 standards existaient sans être indexés, donc n'étaient jamais appliqués : `api/multipart-upload`, `api/request-timeouts`, `react/grid-filters`, `react/paginated-grids`. Ils sont ajoutés dans `agent-os/front/standards/index.yml` du dépôt : à reporter dans MySepteoWeb.

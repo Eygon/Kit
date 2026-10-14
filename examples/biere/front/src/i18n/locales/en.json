@@ -8,11 +8,66 @@
     "photo": {
       "open": "Enlarge the photo",
       "alt": "Tasting photo"
+    },
+    "time": {
+      "justNow": "just now"
     }
+  },
+  "collections": {
+    "title": "My collections",
+    "titleOf": "{{name}}'s collections",
+    "wishlist": "To taste",
+    "beerCount_one": "{{count}} beer",
+    "beerCount_other": "{{count}} beers",
+    "errorTitle": "Collections unavailable.",
+    "emptyTitle": "No collection yet",
+    "emptyDescription": "Your collections will show up here.",
+    "locked": "Follow {{name}} to see their collections",
+    "create": {
+      "open": "New collection",
+      "title": "New collection",
+      "nameLabel": "Collection name",
+      "nameHint": "1 to 40 characters",
+      "nameError": "Between 1 and 40 characters",
+      "save": "Create",
+      "nameTaken": "This name is already taken",
+      "limitReached": "20 collections at most"
+    }
+  },
+  "follow": {
+    "follow": "Follow",
+    "following": "Following",
+    "label": "Follow {{name}}",
+    "followed": "You follow {{name}}",
+    "unfollowed": "You no longer follow {{name}}"
+  },
+  "followList": {
+    "followers": "{{name}}'s followers",
+    "following": "Followed by {{name}}",
+    "empty": "No profile yet",
+    "emptyDescription": "Profiles will show up here.",
+    "errorTitle": "Could not load the list"
+  },
+  "level": {
+    "short": "Lvl {{level}} · {{title}}",
+    "titles": {
+      "curious": "Curious",
+      "taster": "Taster",
+      "hopHead": "Hop head",
+      "finePalate": "Fine palate",
+      "masterBrewer": "Master brewer",
+      "foamLegend": "Foam legend"
+    }
+  },
+  "lazyPage": {
+    "loadingLabel": "Loading the page…",
+    "errorTitle": "The page could not be loaded",
+    "errorDescription": "Check your connection, then try again."
   },
   "nav": {
     "label": "Main navigation",
-    "encyclopedia": "Encyclopedia",
+    "home": "Home",
+    "encyclopedia": "Beers",
     "map": "Map",
     "journal": "Journal",
     "profile": "Profile"
@@ -23,6 +78,24 @@
       "captured": "Mousse, the hop mascot, celebrating a captured beer",
       "confused": "Mousse, the hop mascot, scratching its head",
       "loaded": "Mousse, the hop mascot, backpack loaded with badges"
+    }
+  },
+  "avatar": {
+    "label": "{{name}} avatar",
+    "pickerLabel": "Choose an avatar",
+    "names": {
+      "hop": "Hop",
+      "malt": "Malt",
+      "glass": "Glass",
+      "mug": "Mug",
+      "bottle": "Bottle",
+      "can": "Can",
+      "barrel": "Barrel",
+      "tap": "Tap",
+      "cap": "Cap",
+      "foam": "Foam",
+      "wheat": "Wheat",
+      "pretzel": "Pretzel"
     }
   },
   "beer": {
@@ -145,6 +218,27 @@
     }
   },
   "pages": {
+    "home": {
+      "title": "Home",
+      "subtitle": "Latest tastings from the profiles you follow.",
+      "findProfiles": "Find profiles",
+      "feed": {
+        "title": "Activity feed",
+        "emptyTitle": "Follow profiles to see their tastings",
+        "emptyDescription": "Their tastings, discoveries and reviews will show up here.",
+        "emptyAction": "Find profiles",
+        "errorTitle": "Could not load the feed",
+        "loadMore": "Load more",
+        "drank": "drank",
+        "discovery": "New discovery",
+        "rating": "{{rating}} / 5",
+        "ratingLabel": "Rated {{rating}} out of 5",
+        "discoveries_one": "discovered {{count}} beer",
+        "discoveries_other": "discovered {{count}} beers",
+        "levelUp": "reached level {{level}} — {{title}}",
+        "reviewed": "reviewed"
+      }
+    },
     "encyclopedia": {
       "title": "Encyclopedia",
       "emptyTitle": "No beer matches",
@@ -275,6 +369,14 @@
         "added": "Added to your wishlist.",
         "removed": "Removed from your wishlist."
       },
+      "collections": {
+        "open": "Add to a collection",
+        "title": "Add to a collection",
+        "create": "Create a collection",
+        "errorTitle": "Collections unavailable.",
+        "added": "Added to \"{{name}}\".",
+        "removed": "Removed from \"{{name}}\"."
+      },
       "history": {
         "title": "My history",
         "empty": "No tasting yet: tap “I drank it”.",
@@ -325,6 +427,8 @@
       "title": "Map",
       "subtitle": "Bars, bottle shops and breweries around you.",
       "markerLabel": "{{name}}, {{type}}, {{status}}",
+      "clusterLabel_one": "{{count}} venue, zoom in",
+      "clusterLabel_other": "{{count}} venues, zoom in",
       "tilesUnavailable": "Map background unavailable: places still work.",
       "youAreHere": "You are here",
       "locate": {
@@ -458,6 +562,44 @@
         "done": "Tasting deleted."
       }
     },
+    "people": {
+      "title": "Profiles",
+      "subtitle": "Mousse fans to follow.",
+      "you": "You",
+      "discovered_one": "{{count}} beer discovered",
+      "discovered_other": "{{count}} beers discovered",
+      "errorTitle": "Could not load the profiles",
+      "emptyTitle": "No profiles yet",
+      "emptyDescription": "Mousse fans will show up here."
+    },
+    "collection": {
+      "drunk": "Already tasted",
+      "undrunk": "Not yet",
+      "notFoundTitle": "Collection not found",
+      "notFoundDescription": "This collection does not exist or you cannot see it.",
+      "backToProfile": "Back to profile",
+      "emptyTitle": "This collection is empty",
+      "emptyDescription": "Added beers will show up here.",
+      "errorTitle": "Collection unavailable.",
+      "rename": "Rename",
+      "renameTitle": "Rename the collection",
+      "renameLabel": "New name",
+      "renameSave": "Save",
+      "renameCancel": "Cancel",
+      "delete": "Delete",
+      "deleteTitle": "Delete this collection?",
+      "deleteCancel": "Cancel",
+      "deleteConfirm": "Delete",
+      "deleteSuccess": "Collection deleted",
+      "remove": "Remove",
+      "removeLabel": "Remove {{name}} from the collection",
+      "removeSuccess": "Beer removed from the collection"
+    },
+    "userProfile": {
+      "notFoundTitle": "Profile not found",
+      "notFoundDescription": "This profile does not exist.",
+      "seeProfiles": "See profiles"
+    },
     "profile": {
       "title": "Profile",
       "subtitle": "Your account and preferences.",
@@ -574,6 +716,25 @@
         "emptyTitle": "No wishlist yet",
         "emptyDescription": "Add beers “To taste” from the encyclopedia.",
         "errorTitle": "Wishlist unavailable."
+      },
+      "social": {
+        "progressLabel": "Progress",
+        "progressToTitle": "{{current}} / {{next}} to {{title}}",
+        "maxLevel": "Max level",
+        "followers_one": "{{count}} follower",
+        "followers_other": "{{count}} followers",
+        "following_one": "{{count}} following",
+        "following_other": "{{count}} following",
+        "errorTitle": "Could not load the profile"
+      },
+      "edit": {
+        "open": "Edit",
+        "title": "Edit my profile",
+        "nameLabel": "Display name",
+        "nameHint": "2 to 24 characters",
+        "nameError": "Between 2 and 24 characters",
+        "save": "Save",
+        "saved": "Profile saved"
       }
     }
   },

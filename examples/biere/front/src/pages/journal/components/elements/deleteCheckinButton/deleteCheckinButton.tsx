@@ -1,3 +1,4 @@
+import TrashBin from "@gravity-ui/icons/TrashBin";
 import { AlertDialog, Button } from "@heroui/react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -25,8 +26,8 @@ export const DeleteCheckinButton = ({ checkinId }: DeleteCheckinButtonProps) => 
 
   return (
     <AlertDialog isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button variant="danger-soft" size="lg" className="shrink-0">
-        {t("pages.journal.delete.action")}
+      <Button isIconOnly variant="ghost" size="lg" aria-label={t("pages.journal.delete.action")} className="shrink-0">
+        <TrashBin aria-hidden="true" />
       </Button>
       <AlertDialog.Backdrop>
         <AlertDialog.Container>

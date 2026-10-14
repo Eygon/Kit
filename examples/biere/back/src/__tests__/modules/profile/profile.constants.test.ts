@@ -6,8 +6,8 @@ describe("profile constants", () => {
     expect(constants.STATS_ROUNDING_FACTOR).toBe(10);
   });
 
-  it("reads the calendar days and months in the Paris time zone", () => {
-    expect(constants.PARIS_TIME_ZONE).toBe("Europe/Paris");
+  it("leaves the Paris time zone to the common time constants", () => {
+    expect("PARIS_TIME_ZONE" in constants).toBe(false);
   });
 
   it("lists the last 12 months of check-ins", () => {

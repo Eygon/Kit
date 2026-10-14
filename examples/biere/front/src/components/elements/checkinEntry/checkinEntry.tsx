@@ -21,9 +21,12 @@ export const CheckinEntry = ({
           maximumFractionDigits: 1,
         }).format(checkin.rating);
 
+  const hasTrailing =
+    checkin.photoId !== null || ratingText !== null || Boolean(actions);
+
   return (
     <li className="flex min-w-0 items-center justify-between gap-3 rounded-mousse border-mousse bg-surface p-3 shadow-mousse">
-      <div className="flex min-w-0 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <span className="text-sm text-muted">
           {formatCheckinDate(checkin.drankAt, i18n.language)}
         </span>
@@ -37,20 +40,29 @@ export const CheckinEntry = ({
         )}
         <span className="break-words">{checkin.place}</span>
       </div>
-      {checkin.photoId !== null && (
-        <CheckinPhoto photoId={checkin.photoId} alt={t("common.photo.alt")} />
+      {hasTrailing && (
+        <div className="flex shrink-0 items-center gap-2">
+          {checkin.photoId !== null && (
+            <CheckinPhoto
+              photoId={checkin.photoId}
+              alt={t("common.photo.alt")}
+            />
+          )}
+          {ratingText !== null && (
+            <span className="shrink-0 rounded-full border-mousse bg-highlight px-3 py-0.5 font-display text-sm text-highlight-foreground">
+              <span aria-hidden="true">
+                {t("pages.beerDetail.history.rating", { rating: ratingText })}
+              </span>
+              <span className="sr-only">
+                {t("pages.beerDetail.history.ratingLabel", {
+                  rating: ratingText,
+                })}
+              </span>
+            </span>
+          )}
+          {actions}
+        </div>
       )}
-      {ratingText !== null && (
-        <span className="shrink-0 rounded-full border-mousse bg-highlight px-3 py-0.5 font-display text-sm text-highlight-foreground">
-          <span aria-hidden="true">
-            {t("pages.beerDetail.history.rating", { rating: ratingText })}
-          </span>
-          <span className="sr-only">
-            {t("pages.beerDetail.history.ratingLabel", { rating: ratingText })}
-          </span>
-        </span>
-      )}
-      {actions}
     </li>
   );
 };

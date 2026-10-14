@@ -1,7 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { OnApplicationBootstrap } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import type { AppConfig } from "@/config/app-config";
+import { APP_CONFIG } from "@/config/app-config.constants";
+import demoCheckinsSeed from "@/database/seed/data/demo-checkins.json";
 import breweriesSeed from "@/database/seed/data/breweries.json";
 import beersSeed from "@/database/seed/data/beers.json";
 import stylesSeed from "@/database/seed/data/styles.json";
@@ -10,12 +13,15 @@ import venueBeersSeed from "@/database/seed/data/venue-beers.json";
 import venuesSeed from "@/database/seed/data/venues.json";
 import { buildBeerRows, buildBreweryRows, buildStyleRows } from "@/database/seed/catalog-seed";
 import { buildReviewRows } from "@/database/seed/review-seed";
+import { buildDemoCheckinRows, buildDemoFollowRows } from "@/database/seed/social-seed";
 import { buildSeedVotes, buildVenueBeerRows, buildVenueRows } from "@/database/seed/venue-seed";
-import { SEED_USERS, SEED_VOTE_BATCH_SIZE } from "@/database/seed.constants";
+import { ALICE_USER_ID, DEMO_CHECKIN_USER_IDS, SEED_USERS, SEED_VOTE_BATCH_SIZE } from "@/database/seed.constants";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
 import { Review } from "@/modules/beers/entities/review.entity";
+import { Follow } from "@/modules/social/entities/follow.entity";
+import { Checkin } from "@/modules/tastings/entities/checkin.entity";
 import { User } from "@/modules/users/entities/user.entity";
 import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
 import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
@@ -41,6 +47,9 @@ export class DataSeeder implements OnApplicationBootstrap {
     @InjectRepository(VenueBeer) private readonly venueBeers: Repository<VenueBeer>,
     @InjectRepository(AvailabilityVote) private readonly availabilityVotes: Repository<AvailabilityVote>,
     @InjectRepository(Review) private readonly reviews: Repository<Review>,
+    @InjectRepository(Checkin) private readonly checkins: Repository<Checkin>,
+    @InjectRepository(Follow) private readonly follows: Repository<Follow>,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -55,6 +64,7 @@ export class DataSeeder implements OnApplicationBootstrap {
     await this.seedVenues();
     await this.seedVenueBeers();
     await this.seedReviews();
+    await this.seedDemoActivity();
   }
 
   private async seedUsers(): Promise<void> {
@@ -129,5 +139,21 @@ export class DataSeeder implements OnApplicationBootstrap {
     }
     const beerIdsByName = toIdsByLowerName(await this.beers.find());
     await this.reviews.insert(buildReviewRows(reviewsSeed, beerIdsByName, new Date()));
+  }
+
+  private async seedDemoActivity(): Promise<void> {
+    if (!this.config.seedDemoActivity) {
+      return;
+    }
+    const beerIdsByName = toIdsByLowerName(await this.beers.find());
+    const checkinRows = buildDemoCheckinRows(demoCheckinsSeed, beerIdsByName, new Date());
+    for (const userId of DEMO_CHECKIN_USER_IDS) {
+      if ((await this.checkins.countBy({ userId })) === 0) {
+        await this.checkins.insert(checkinRows.filter((row) => row.userId === userId));
+      }
+    }
+    if ((await this.follows.countBy({ followerId: ALICE_USER_ID })) === 0) {
+      await this.follows.insert(buildDemoFollowRows());
+    }
   }
 }

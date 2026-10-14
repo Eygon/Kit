@@ -5,11 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UserDto } from "@/modules/users/dtos/user.dto";
 import { UsersController } from "@/modules/users/users.controller";
 import { UsersService } from "@/modules/users/users.service";
+import { AvatarEnum } from "@/modules/users/enums/avatar.enum";
 
-const BOB: UserDto = { id: 2, displayName: "Bob", avatarColor: "#10B981" };
+const BOB: UserDto = { id: 2, displayName: "Bob", avatarColor: "#10B981", avatar: AvatarEnum.MALT };
 
 describe("UsersController", () => {
-  const service = { getUsers: vi.fn(), getUser: vi.fn() };
+  const service = { getUser: vi.fn() };
   let controller: UsersController;
 
   beforeEach(async () => {
@@ -21,10 +22,8 @@ describe("UsersController", () => {
     controller = moduleRef.get(UsersController);
   });
 
-  it("lists the users", async () => {
-    service.getUsers.mockResolvedValue([BOB]);
-
-    expect(await controller.getAll()).toEqual([BOB]);
+  it("serves no route of its own for the list of users, which belongs to the profiles controller", () => {
+    expect(Object.getOwnPropertyNames(UsersController.prototype).sort()).toEqual(["constructor", "getMe"]);
   });
 
   it("returns the current user", async () => {
@@ -34,8 +33,7 @@ describe("UsersController", () => {
     expect(service.getUser).toHaveBeenCalledWith(2);
   });
 
-  it("declares 200 on every action", () => {
-    expect(Reflect.getMetadata(HTTP_CODE_METADATA, UsersController.prototype.getAll)).toBe(HttpStatus.OK);
+  it("declares 200 on its action", () => {
     expect(Reflect.getMetadata(HTTP_CODE_METADATA, UsersController.prototype.getMe)).toBe(HttpStatus.OK);
   });
 });

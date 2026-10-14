@@ -19,6 +19,11 @@ export class UsersRepository {
     return entity === null ? null : toUserDto(entity);
   }
 
+  async updateProfile(id: number, changes: Pick<User, "displayName" | "avatar">): Promise<UserDto> {
+    await this.users.update({ id }, changes);
+    return toUserDto(await this.users.findOneByOrFail({ id }));
+  }
+
   existsById(id: number): Promise<boolean> {
     return this.users.existsBy({ id });
   }

@@ -1,0 +1,9 @@
+export const COLLECTION_NAME_MAX_LENGTH = 40;
+
+export const COLLECTIONS_PER_USER_MAX = 20;
+
+export const COLLECTION_BEERS_MAX = 200;
+
+export const NEW_COLLECTION_BEER_COUNT = 0;
+
+export const COLLECTION_NAME_LOCALE = "fr";

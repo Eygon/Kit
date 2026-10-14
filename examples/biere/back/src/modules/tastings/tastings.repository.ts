@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import type { BeerUserStateDto } from "@/modules/tastings/dtos/beer-user-state.dto";
+import type { DiscoveryCountDto } from "@/modules/tastings/dtos/discovery-count.dto";
 import type { DiscoveryDto } from "@/modules/tastings/dtos/discovery.dto";
 import type { CheckinRecordSliceDto } from "@/modules/tastings/dtos/checkin-record-slice.dto";
 import type { PhotoContentDto } from "@/modules/tastings/dtos/photo-content.dto";
@@ -12,6 +13,7 @@ import { Photo } from "@/modules/tastings/entities/photo.entity";
 import { WishlistItem } from "@/modules/tastings/entities/wishlist-item.entity";
 import type { PhotoContentTypeEnum } from "@/modules/tastings/enums/photo-content-type.enum";
 import { toCheckinRecordDto } from "@/modules/tastings/mappers/checkin-record.mapper";
+import { toDiscoveryCountDto, type RawDiscoveryCountRow } from "@/modules/tastings/mappers/discovery-count.mapper";
 import { toPhotoContentDto } from "@/modules/tastings/mappers/photo-content.mapper";
 import { toWishlistItemRecordDto } from "@/modules/tastings/mappers/wishlist-item-record.mapper";
 
@@ -83,6 +85,17 @@ export class TastingsRepository {
     return entities.map(toCheckinRecordDto);
   }
 
+  async findCheckinsByUsers(userIds: readonly number[]): Promise<CheckinRecordDto[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+    const entities = await this.checkins.find({
+      where: { userId: In([...userIds]) },
+      order: { drankAt: "ASC", id: "ASC" },
+    });
+    return entities.map(toCheckinRecordDto);
+  }
+
   deleteCheckinWithPhoto(id: number, photoId: string | null): Promise<void> {
     return this.checkins.manager.transaction(async (manager) => {
       await manager.delete(Checkin, { id });
@@ -113,6 +126,21 @@ export class TastingsRepository {
       .addOrderBy("checkin.beerId", "ASC")
       .getRawMany<RawDiscoveryRow>();
     return rows.map(toDiscoveryDto);
+  }
+
+  async countDiscoveredBeersByUsers(userIds: readonly number[]): Promise<DiscoveryCountDto[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+    const rows = await this.checkins
+      .createQueryBuilder("checkin")
+      .select("checkin.userId", "userId")
+      .addSelect("COUNT(DISTINCT checkin.beerId)", "discoveredCount")
+      .where("checkin.userId IN (:...userIds)", { userIds })
+      .groupBy("checkin.userId")
+      .orderBy("checkin.userId", "ASC")
+      .getRawMany<RawDiscoveryCountRow>();
+    return rows.map(toDiscoveryCountDto);
   }
 
   async findWishlist(userId: number): Promise<WishlistItemRecordDto[]> {

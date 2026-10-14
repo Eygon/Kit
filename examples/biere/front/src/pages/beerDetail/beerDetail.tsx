@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStatePanel";
 import { PageHeader } from "@/components/elements/pageHeader/pageHeader";
 import { BeerLevels } from "@/pages/beerDetail/components/elements/beerLevels/beerLevels";
+import { AddToCollectionSheet } from "@/pages/beerDetail/components/widgets/addToCollectionSheet/addToCollectionSheet";
 import { CheckinHistory } from "@/pages/beerDetail/components/widgets/checkinHistory/checkinHistory";
 import { CheckinSheet } from "@/pages/beerDetail/components/widgets/checkinSheet/checkinSheet";
 import { ReviewsSection } from "@/pages/beerDetail/components/widgets/reviewsSection/reviewsSection";
@@ -102,6 +103,7 @@ export const BeerDetailPage = () => {
           >
             {t("pages.beerDetail.wishlist.toggle")}
           </ToggleButton>
+          <AddToCollectionSheet beerId={beer.id} />
         </div>
         <dl className="flex flex-col gap-3 rounded-mousse border-mousse bg-surface p-4 shadow-mousse">
           {facts.map(({ key, label, value }) => (

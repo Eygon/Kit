@@ -11,7 +11,7 @@ const getMonthDate = (month: string): Date => {
 
 export const MonthlyCheckinsChart = ({ months }: MonthlyCheckinsChartProps) => {
   const { t, i18n } = useTranslation();
-  const shortFormat = new Intl.DateTimeFormat(i18n.language, { month: "short", timeZone: "UTC" });
+  const narrowFormat = new Intl.DateTimeFormat(i18n.language, { month: "narrow", timeZone: "UTC" });
   const longFormat = new Intl.DateTimeFormat(i18n.language, { month: "long", year: "numeric", timeZone: "UTC" });
   const max = Math.max(0, ...months.map(({ count }) => count));
 
@@ -31,7 +31,9 @@ export const MonthlyCheckinsChart = ({ months }: MonthlyCheckinsChartProps) => {
               <div className="flex min-h-0 w-full flex-1 items-end">
                 <div data-testid="month-bar" className="w-full rounded-control bg-accent" style={{ height: `${percent}%` }} />
               </div>
-              <span className="w-full truncate text-center text-xs">{shortFormat.format(date)}</span>
+              <span aria-hidden="true" className="w-full text-center text-xs">
+                {narrowFormat.format(date).toLocaleUpperCase(i18n.language)}
+              </span>
             </li>
           );
         })}

@@ -1,8 +1,8 @@
-import { RoutePathEnum, buildBeerDetailPath, buildMapPathForBeer, parseBeerIdParam } from "@/types/enums/routing/routePathEnum";
+import { RoutePathEnum, buildBeerDetailPath, buildMapPathForBeer, buildUserProfilePath, parseBeerIdParam } from "@/types/enums/routing/routePathEnum";
 
 describe("RoutePathEnum", () => {
   it("keeps the public url segments", () => {
-    expect(Object.values(RoutePathEnum)).toEqual(["/", "/carte", "/journal", "/profil", "/bieres/:beerId"]);
+    expect(Object.values(RoutePathEnum)).toEqual(["/", "/bieres", "/carte", "/journal", "/profil", "/profils", "/profils/:userId", "/bieres/:beerId", "/profils/:userId/collections/:collectionId", "/profils/:userId/wishlist"]);
   });
 
   it("exposes the beer detail pattern", () => {
@@ -13,6 +13,13 @@ describe("RoutePathEnum", () => {
 describe("buildBeerDetailPath", () => {
   it("fills the beer id in the pattern", () => {
     expect(buildBeerDetailPath(12)).toBe("/bieres/12");
+  });
+});
+
+describe("buildUserProfilePath", () => {
+  it("fills the user id in the pattern", () => {
+    expect(buildUserProfilePath(3)).toBe("/profils/3");
+    expect(RoutePathEnum.USER_PROFILE).toBe("/profils/:userId");
   });
 });
 

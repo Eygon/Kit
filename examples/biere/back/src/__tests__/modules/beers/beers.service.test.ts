@@ -12,6 +12,7 @@ import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
 import { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
 import { BeerStatusEnum } from "@/modules/beers/enums/beer-status.enum";
+import { AvatarEnum } from "@/modules/users/enums/avatar.enum";
 
 const CHIMAY: BeerDto = {
   id: 1,
@@ -70,6 +71,7 @@ describe("BeersService", () => {
     findByIds: vi.fn(),
     findStyleGroups: vi.fn(),
     findReview: vi.fn(),
+    findReviewsByUsers: vi.fn(),
     upsertReview: vi.fn(),
     deleteReview: vi.fn(),
     findReviewPage: vi.fn(),
@@ -440,8 +442,36 @@ describe("BeersService", () => {
     expect(await service.getBeersByIds([])).toEqual([]);
   });
 
+  describe("getReviewsByUsers", () => {
+    const RECORD = {
+      id: 7,
+      userId: 2,
+      beerId: 1,
+      rating: 4.5,
+      text: "Superbe amertume",
+      sweetness: null,
+      acidity: null,
+      body: null,
+      createdAt: "2026-03-01T10:00:00.000Z",
+      updatedAt: "2026-03-02T10:00:00.000Z",
+    };
+
+    it("returns the reviews the repository finds for the users, untouched", async () => {
+      repository.findReviewsByUsers.mockResolvedValue([RECORD]);
+
+      expect(await service.getReviewsByUsers([2, 3])).toStrictEqual([RECORD]);
+      expect(repository.findReviewsByUsers).toHaveBeenCalledExactlyOnceWith([2, 3]);
+    });
+
+    it("returns an empty list when the repository finds no review", async () => {
+      repository.findReviewsByUsers.mockResolvedValue([]);
+
+      expect(await service.getReviewsByUsers([])).toStrictEqual([]);
+    });
+  });
+
   describe("saveMyReview", () => {
-    const AUTHOR = { id: ALICE, displayName: "Alice", avatarColor: "#F59E0B" };
+    const AUTHOR = { id: ALICE, displayName: "Alice", avatarColor: "#F59E0B", avatar: AvatarEnum.HOP };
     const DTO = { rating: 4.5, text: "Superbe amertume", sweetness: 2 };
     const RECORD = {
       id: 7,
@@ -567,9 +597,9 @@ describe("BeersService", () => {
 
   describe("getReviewPage", () => {
     const USERS = [
-      { id: 1, displayName: "Alice", avatarColor: "#F59E0B" },
-      { id: 2, displayName: "Bob", avatarColor: "#10B981" },
-      { id: 3, displayName: "Carol", avatarColor: "#8B5CF6" },
+      { id: 1, displayName: "Alice", avatarColor: "#F59E0B", avatar: AvatarEnum.HOP },
+      { id: 2, displayName: "Bob", avatarColor: "#10B981", avatar: AvatarEnum.MALT },
+      { id: 3, displayName: "Carol", avatarColor: "#8B5CF6", avatar: AvatarEnum.GLASS },
     ];
     const record = (id: number, userId: number) => ({
       id,

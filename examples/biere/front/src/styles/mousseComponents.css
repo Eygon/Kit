@@ -139,3 +139,9 @@
   color: var(--foreground);
   border-radius: 0;
 }
+
+/* Attribution de la carte : liens soulignes (axe link-in-text-block : le lien doit se distinguer sans la couleur) */
+.leaflet-container .leaflet-control-attribution a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

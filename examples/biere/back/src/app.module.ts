@@ -6,9 +6,11 @@ import { CurrentUserGuard } from "@/common/security/current-user.guard";
 import { AppConfigModule } from "@/config/app-config.module";
 import { DatabaseModule } from "@/database/database.module";
 import { BeersModule } from "@/modules/beers/beers.module";
+import { CollectionsModule } from "@/modules/collections/collections.module";
 import { HealthModule } from "@/modules/health/health.module";
 import { PokedexModule } from "@/modules/pokedex/pokedex.module";
 import { ProfileModule } from "@/modules/profile/profile.module";
+import { SocialModule } from "@/modules/social/social.module";
 import { TastingsModule } from "@/modules/tastings/tastings.module";
 import { UsersModule } from "@/modules/users/users.module";
 import { VenuesModule } from "@/modules/venues/venues.module";
@@ -24,6 +26,8 @@ import { VenuesModule } from "@/modules/venues/venues.module";
     PokedexModule,
     VenuesModule,
     ProfileModule,
+    SocialModule,
+    CollectionsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: CurrentUserGuard },

@@ -300,6 +300,35 @@ describe("TastingsRepository", () => {
     });
   });
 
+  describe("findCheckinsByUsers", () => {
+    const CAROL = 3;
+    const at = (drankAt: string): Partial<Omit<Checkin, "id" | "createdAt">> => ({ drankAt: new Date(drankAt) });
+
+    it("lists the check-ins of the given users only, oldest first, then lowest id first on the same date", async () => {
+      await repository.createCheckin(newCheckin(CAROL, BEER, at("2026-03-02T08:00:00.000Z")));
+      const bobLatest = await repository.createCheckin(newCheckin(BOB, BEER, at("2026-03-20T08:00:00.000Z")));
+      const aliceTiedFirst = await repository.createCheckin(newCheckin(ALICE, OTHER_BEER, at("2026-03-10T08:00:00.000Z")));
+      const bobTiedSecond = await repository.createCheckin(newCheckin(BOB, BEER, at("2026-03-10T08:00:00.000Z")));
+      const aliceEarliest = await repository.createCheckin(newCheckin(ALICE, BEER, at("2026-03-05T08:00:00.000Z")));
+
+      const records = await repository.findCheckinsByUsers([ALICE, BOB]);
+
+      expect(records).toStrictEqual([aliceEarliest, aliceTiedFirst, bobTiedSecond, bobLatest]);
+    });
+
+    it("returns an empty array for an empty list of users, even when check-ins exist", async () => {
+      await repository.createCheckin(newCheckin(BOB, BEER));
+
+      expect(await repository.findCheckinsByUsers([])).toStrictEqual([]);
+    });
+
+    it("returns an empty array when none of the given users has a check-in", async () => {
+      await repository.createCheckin(newCheckin(BOB, BEER));
+
+      expect(await repository.findCheckinsByUsers([ALICE, CAROL])).toStrictEqual([]);
+    });
+  });
+
   describe("findDiscoveries", () => {
     const at = (drankAt: string): Partial<Omit<Checkin, "id" | "createdAt">> => ({ drankAt: new Date(drankAt) });
 
@@ -468,6 +497,39 @@ describe("TastingsRepository", () => {
       await wishlist(BOB, BEER);
 
       expect(await repository.findWishlistBeerIds(ALICE)).toStrictEqual([]);
+    });
+  });
+
+  describe("discovery counts", () => {
+    const CAROL = 3;
+
+    it("counts the distinct beers of each requested user, ordered by user id, ignoring repeated tastings and other users", async () => {
+      await repository.createCheckin(newCheckin(CAROL, BEER));
+      await repository.createCheckin(newCheckin(BOB, BEER));
+      await repository.createCheckin(newCheckin(BOB, BEER));
+      await repository.createCheckin(newCheckin(BOB, OTHER_BEER));
+      await repository.createCheckin(newCheckin(BOB, 12));
+      await repository.createCheckin(newCheckin(ALICE, BEER));
+      await repository.createCheckin(newCheckin(ALICE, BEER));
+
+      expect(await repository.countDiscoveredBeersByUsers([BOB, ALICE])).toStrictEqual([
+        { userId: ALICE, discoveredCount: 1 },
+        { userId: BOB, discoveredCount: 3 },
+      ]);
+    });
+
+    it("leaves out a requested user without tasting", async () => {
+      await repository.createCheckin(newCheckin(BOB, BEER));
+
+      expect(await repository.countDiscoveredBeersByUsers([ALICE, BOB])).toStrictEqual([
+        { userId: BOB, discoveredCount: 1 },
+      ]);
+    });
+
+    it("answers an empty list for an empty list of users without querying", async () => {
+      await repository.createCheckin(newCheckin(BOB, BEER));
+
+      expect(await repository.countDiscoveredBeersByUsers([])).toStrictEqual([]);
     });
   });
 

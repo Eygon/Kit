@@ -5,4 +5,5 @@ export const TEST_CONFIG: AppConfig = {
   port: DEFAULT_PORT,
   databasePath: IN_MEMORY_DATABASE_PATH,
   corsOrigins: DEFAULT_CORS_ORIGINS,
+  seedDemoActivity: false,
 };
