@@ -64,3 +64,9 @@
 - Passage réel : F5 profil social 67/68 (1 erreur de mon script), collections 61/62 (1 erreur de mon script, corrigée) : API 409 casse + accents (« Été »/« été »), limite de 20, 403 non-abonné, 404 avant 403, retrait 204/404 ; UI : création, renommage par feuille, suppression avec confirmation, A goûter non modifiable, collections d'un profil suivi seulement. Deux défauts vus au navigateur seulement : cases à cocher empilées dans la feuille « Ajouter à une collection », bouton « Retirer » flottant sous la carte → polish 2.
 - Audit axe-core (fr/en, 19 écrans) : 3 violations réelles (contraste du gris secondaire 3,57:1, liens du fil sans soulignement, ordre des titres sur /bieres) → polish 3. Reste le lien Leaflet de l'attribution (bibliothèque).
 - Chiffres : front 235 fichiers / 2524 tests, back 165 fichiers / 1993 tests.
+
+## F8 Regroupement des repères (14 octobre, matin) et polish 3
+- Front seul, 1 US : prep Opus avec 3 questions (regroupement glouton en pixels absolus plutôt que grille écran, pastille brun cuir pour ne pas se lire comme « confirmé », hypothèses) ; moteur sans contrat ni voie back (arguments compacts sans `hashPrompt`) ; PASS sans escalade ; review-lens 4 pistes.
+- Passage réel : 17/17 (3 pastilles « 3 / 6 / 3 » + 1 repère à Paris au lieu de 14 icônes superposées, 0 paire d'icônes à moins de 40 px, tap = zoom sans fiche, recherche → fiche + zoom 16, filtre recalcule, mode Proposer, 360 px). Défaut de script uniquement (nom accessible lu dans `title`).
+- Polish 3 (audit axe) : le gris à 3,57:1 ne venait pas du jeton `--muted` (7,3:1) mais d'un `opacity-70` sur les cartes non goûtées → 85 ; liens du fil soulignés ; titres de cartes en h2 ; attribution Leaflet soulignée. Audit axe : 0 violation (fr).
+- Kit : règle `contract-enum-without-file` dans `audit-lint` (+ test, 86 passent).
