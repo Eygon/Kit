@@ -648,6 +648,32 @@ export const lintSpec = (dir, opts = {}) => {
     }
   }
 
+  // Conventions de decomposition du depot (standard react/file-decomposition present) : un composant cree porte son fichier de props
+  // `types/<composant>.ts`, un DTO front cree porte son mapper. Omissions vues 6 fois (props) et 2 fois (mapper) sur Mousse : chaque fois
+  // le worker declarait l ecart et la revue escaladait. Le controle ne tourne que si le depot a le standard (pas de faux positif ailleurs).
+  {
+    const decompRoot = findRepoRoot(dir);
+    const hasDecomp = decompRoot && existsSync(join(decompRoot, "agent-os", "standards", "react", "file-decomposition.md"));
+    if (hasDecomp) {
+      const stem = (pth) => pth.split("/").pop().replace(/\.tsx?$/, "");
+      for (const t of tasks) {
+        // seul l objet direct de « Creer `chemin.tsx` » est un composant cree (un .tsx cite comme modele ou comme dossier ne l est pas)
+        const created = matchAll(t.body, /\b(?:create|creer|crée|créer)s?\s+`([^`\s]+\.tsx)`/gi).map((m) => normPath(m[1]));
+        const comps = created.filter((q) => !isTestPath(q) && !/(^|\/)(app|main)\.tsx$/.test(q) && !/\/pages\/[^/]+\/[^/]+\.tsx$/.test(q));
+        for (const c of comps) {
+          const hasProps = t.paths.some((q) => /\/types\//.test(q) && /\.ts$/.test(q) && !isTestPath(q) && q.toLowerCase().includes(stem(c).toLowerCase()));
+          if (!hasProps) add("medium", "component-without-props-file", `${t.id || "tache"} cree ${c} sans son fichier de props \`types/${stem(c)}.ts\` dans ses chemins (standard react/file-decomposition : le worker declare l'ecart, la revue escalade ; ignore ce finding si le composant n'a aucune prop)`, `tasks.md:${t.line}`);
+        }
+        const dtos = t.paths.filter((q) => /\/types\/dtos\/.*\.ts$/.test(q) && !isTestPath(q));
+        for (const d of dtos) {
+          const base = stem(d).replace(/Dto$/, "").toLowerCase();
+          const hasMapper = tasks.some((u) => u.story === t.story && u.paths.some((q) => /\/mappers\//.test(q) && !isTestPath(q)));
+          if (!hasMapper) add("high", "dto-without-mapper", `${t.id || "tache"} cree le DTO ${d} sans aucun mapper \`types/mappers/...\` dans les chemins de l'US (triade dto + model + mapper)`, `tasks.md:${t.line}`);
+        }
+      }
+    }
+  }
+
   for (const [story, list] of stories) {
     if (story === "unassigned") continue;
     const { prod, companionFiles } = countStory(list);

@@ -672,3 +672,27 @@ test("audit-lint flags a contract enum with no file in the task paths", async ()
   assert.match(run("- [ ] T001 [US1] Create `src/modules/c/dtos/summary.dto.ts` — Test: `src/__tests__/t.test.ts`"), /contract-enum-without-file/);
   assert.doesNotMatch(run("- [ ] T001 [US1] Create `src/modules/c/enums/collection-kind.enum.ts` (`CollectionKindEnum`) — Test: `src/__tests__/t.test.ts`"), /contract-enum-without-file/);
 });
+
+test("audit-lint flags a created component without props file and a DTO without mapper (only in a repo with file-decomposition)", async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join, dirname } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const lint = join(dirname(fileURLToPath(import.meta.url)), "..", "audit-lint.mjs");
+  const run = (withStandard, lines) => {
+    const root = mkdtempSync(join(tmpdir(), "lint-decomp-"));
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    if (withStandard) { mkdirSync(join(root, "agent-os", "standards", "react"), { recursive: true }); writeFileSync(join(root, "agent-os", "standards", "react", "file-decomposition.md"), "# d\n"); }
+    const d = join(root, "specs", "001-x"); mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, "tasks.md"), `# Tasks\n\n## [US1] X\n${lines.join("\n")}\n`);
+    writeFileSync(join(d, "spec.md"), "# s\n"); writeFileSync(join(d, "plan.md"), "# p\n");
+    try { return execFileSync("node", [lint, d], { encoding: "utf8" }); } catch (e) { return String(e.stdout); }
+  };
+  const bad = ["- [ ] T001 [US1] Create `src/pages/a/components/elements/card/card.tsx` — Test: `src/__tests__/pages/a/card.test.tsx`", "- [ ] T002 [US1] Create `src/types/dtos/x/thingDto.ts` — Test: `src/__tests__/types/dtos/x/thingDto.test.ts`"];
+  const out = run(true, bad);
+  assert.match(out, /component-without-props-file/); assert.match(out, /dto-without-mapper/);
+  assert.doesNotMatch(run(false, bad), /component-without-props-file|dto-without-mapper/);
+  const good = ["- [ ] T001 [US1] Create `src/pages/a/components/elements/card/card.tsx` and its props `src/pages/a/types/card.ts` — Test: `src/__tests__/pages/a/card.test.tsx`", "- [ ] T002 [US1] Create `src/types/dtos/x/thingDto.ts` and its mapper `src/types/mappers/x/thingMapper.ts` — Test: `src/__tests__/types/mappers/x/thingMapper.test.ts`"];
+  assert.doesNotMatch(run(true, good), /component-without-props-file|dto-without-mapper/);
+});

@@ -511,6 +511,12 @@ Elle nomme donc :
   une seule prop de plus. Omission vue 6 fois sur Mousse (F3 US11, US14, US17,
   US18 ; F2 US15 : type d un formulaire existant) : chaque fois, le worker s est
   arrete ou a declare l ecart et la revue a escalade ;
+- `audit-lint` controle maintenant lui-meme (depot avec le standard
+  react/file-decomposition) : `component-without-props-file` (medium : un composant
+  cree sans `types/<composant>.ts`, a ignorer s'il n'a aucune prop),
+  `dto-without-mapper` (high : un DTO front cree sans aucun mapper dans l'US) et
+  `contract-enum-without-file` (high). Un finding n'est pas a contourner : ajoute
+  le chemin a la tache ;
 - pour tout enum du contrat OpenAPI (CollectionKindEnum, AvatarEnum...) : son
   fichier `enums/<nom>.enum.ts` (back) ou `types/enums/<domaine>/<nom>Enum.ts`
   (front) dans les chemins de la PREMIERE US qui type un champ avec lui ; un
