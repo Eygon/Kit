@@ -1,17 +1,21 @@
 import { Alert, Button, Card, Skeleton } from "@heroui/react";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
 import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStatePanel";
 import { PageHeader } from "@/components/elements/pageHeader/pageHeader";
 import { BeerCard } from "@/pages/encyclopedia/components/elements/beerCard/beerCard";
 import { DiscoveryProgress } from "@/pages/encyclopedia/components/elements/discoveryProgress/discoveryProgress";
 import { CatalogSearchField } from "@/pages/encyclopedia/components/elements/catalogSearchField/catalogSearchField";
 import { BeerFiltersDrawer } from "@/pages/encyclopedia/components/widgets/beerFiltersDrawer/beerFiltersDrawer";
+import { ProposeBeerDrawer } from "@/pages/encyclopedia/components/widgets/proposeBeerDrawer/proposeBeerDrawer";
 import { FamilyChips } from "@/pages/encyclopedia/components/elements/familyChips/familyChips";
 import { useBeerCatalogQuery } from "@/pages/encyclopedia/hooks/useBeerCatalogQuery";
 import { useBeerFilters } from "@/pages/encyclopedia/hooks/useBeerFilters";
 import { useDexQuery } from "@/hooks/dex/useDexQuery";
 import { MascotMoodEnum } from "@/types/enums/mascot/mascotMoodEnum";
+import type { Beer } from "@/types/models/beer/beer";
+import { buildBeerDetailPath } from "@/types/enums/routing/routePathEnum";
 
 const SKELETON_CARD_COUNT = 8;
 const SKELETON_CARD_KEYS = Array.from({ length: SKELETON_CARD_COUNT }, (_, index) => index);
@@ -50,6 +54,8 @@ export const EncyclopediaPage = () => {
   const { beers, total, facets, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useBeerCatalogQuery(query);
   const { dex, isPending: isDexPending, refetch: refetchDex } = useDexQuery();
+  const navigate = useNavigate();
+  const [proposal, setProposal] = useState({ isOpen: false, initialName: "" });
   const isLoadingMore = useRef(false);
   const discoveredAtById = useMemo(
     () => new Map((dex?.beers ?? []).map((dexBeer) => [dexBeer.beerId, dexBeer.firstCheckinAt])),
@@ -65,6 +71,20 @@ export const EncyclopediaPage = () => {
       isLoadingMore.current = false;
     }
   };
+
+  const openProposal = (initialName: string) => setProposal({ isOpen: true, initialName });
+
+  const handleProposalOpenChange = (isOpen: boolean) => setProposal((previous) => ({ ...previous, isOpen }));
+
+  const handleBeerCreated = (beer: Beer) => {
+    void navigate(buildBeerDetailPath(beer.id));
+  };
+
+  const addBeerButton = (initialName: string) => (
+    <Button variant="tertiary" size="lg" className="self-start" onPress={() => openProposal(initialName)}>
+      {t("pages.encyclopedia.propose.open")}
+    </Button>
+  );
 
   const hasBeers = beers.length > 0;
   const retry = hasBeers ? loadMore : refetch;
@@ -103,11 +123,14 @@ export const EncyclopediaPage = () => {
     if (!hasBeers && isError) return errorAlert;
     if (!hasBeers)
       return (
-        <EmptyStatePanel
-          mood={MascotMoodEnum.SEARCHING}
-          title={t("pages.encyclopedia.emptyTitle")}
-          description={t("pages.encyclopedia.emptyDescription")}
-        />
+        <>
+          <EmptyStatePanel
+            mood={MascotMoodEnum.SEARCHING}
+            title={t("pages.encyclopedia.emptyTitle")}
+            description={t("pages.encyclopedia.emptyDescription")}
+          />
+          {addBeerButton(query.search)}
+        </>
       );
     return (
       <>
@@ -138,6 +161,7 @@ export const EncyclopediaPage = () => {
         </div>
         {!isPending && <BeerFiltersDrawer appliedQuery={query} onApply={applyQuery} />}
       </div>
+      {!isPending && addBeerButton("")}
       <FamilyChips families={facets?.families ?? []} selectedFamily={query.family} onFamilyChange={setFamily} />
       {hasActiveFilters && !isPending && (
         <p aria-live="polite" className="text-sm text-muted">
@@ -145,6 +169,12 @@ export const EncyclopediaPage = () => {
         </p>
       )}
       {renderContent()}
+      <ProposeBeerDrawer
+        isOpen={proposal.isOpen}
+        onOpenChange={handleProposalOpenChange}
+        initialName={proposal.initialName}
+        onCreated={handleBeerCreated}
+      />
     </div>
   );
 };

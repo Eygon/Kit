@@ -1,4 +1,4 @@
-import { RoutePathEnum, buildBeerDetailPath, buildMapPathForBeer, buildUserProfilePath, parseBeerIdParam } from "@/types/enums/routing/routePathEnum";
+import { RoutePathEnum, buildBeerDetailPath, buildMapPathForBeer, buildMapPathForVenue, buildUserProfilePath, parseBeerIdParam, parseVenueIdParam } from "@/types/enums/routing/routePathEnum";
 
 describe("RoutePathEnum", () => {
   it("keeps the public url segments", () => {
@@ -38,5 +38,33 @@ describe("buildMapPathForBeer", () => {
   it("points the map at the beer through the beer query parameter", () => {
     expect(buildMapPathForBeer(12)).toBe("/carte?beer=12");
     expect(buildMapPathForBeer(1)).toBe(`${RoutePathEnum.MAP}?beer=1`);
+  });
+});
+
+describe("buildMapPathForVenue", () => {
+  it("points the map at the venue through the venue query parameter", () => {
+    expect(buildMapPathForVenue(42)).toBe("/carte?venue=42");
+    expect(buildMapPathForVenue(1)).toBe(`${RoutePathEnum.MAP}?venue=1`);
+  });
+
+  it("is read back by parseVenueIdParam", () => {
+    const params = new URLSearchParams(buildMapPathForVenue(42).split("?")[1]);
+
+    expect(parseVenueIdParam(params.get("venue"))).toBe(42);
+  });
+});
+
+describe("parseVenueIdParam", () => {
+  it("reads a positive integer", () => {
+    expect(parseVenueIdParam("12")).toBe(12);
+    expect(parseVenueIdParam("1")).toBe(1);
+  });
+
+  it.each([null, "", "0", "-1", "1.5", "abc", "12abc", " 12", "1e3"])("rejects %s", (value) => {
+    expect(parseVenueIdParam(value)).toBeNull();
+  });
+
+  it("adds no route and no tab: the member list is unchanged", () => {
+    expect(Object.values(RoutePathEnum)).toHaveLength(10);
   });
 });

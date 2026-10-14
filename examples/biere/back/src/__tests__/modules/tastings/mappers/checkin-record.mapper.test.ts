@@ -13,6 +13,7 @@ describe("toCheckinRecordDto", () => {
       beerId: 12,
       drankAt: new Date("2026-03-14T18:30:00.000Z"),
       place: "Chez Alice",
+      venueId: 14,
       rating: 4.5,
       aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
       format: BeerFormatEnum.BOTTLE,
@@ -28,6 +29,7 @@ describe("toCheckinRecordDto", () => {
       beerId: 12,
       drankAt: "2026-03-14T18:30:00.000Z",
       place: "Chez Alice",
+      venueId: 14,
       rating: 4.5,
       aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
       format: BeerFormatEnum.BOTTLE,
@@ -44,6 +46,7 @@ describe("toCheckinRecordDto", () => {
       beerId: 3,
       drankAt: new Date("2026-01-01T00:00:00.000Z"),
       place: "Bar",
+      venueId: null,
       rating: null,
       aromas: [],
       format: BeerFormatEnum.DRAFT,
@@ -55,6 +58,7 @@ describe("toCheckinRecordDto", () => {
 
     const dto = toCheckinRecordDto(entity);
 
+    expect(dto.venueId).toBeNull();
     expect(dto.rating).toBeNull();
     expect(dto.price).toBeNull();
     expect(dto.photoId).toBeNull();
@@ -70,6 +74,7 @@ describe("toNewCheckin", () => {
     beerId: 12,
     drankAt: "2026-03-14T20:30:00+02:00",
     place: "  Le Bistrot  ",
+    venueId: 14,
     rating: 4.5,
     aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
     format: BeerFormatEnum.BOTTLE,
@@ -85,6 +90,7 @@ describe("toNewCheckin", () => {
       beerId: 12,
       drankAt: new Date("2026-03-14T18:30:00.000Z"),
       place: "Le Bistrot",
+      venueId: 14,
       rating: 4.5,
       aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
       format: BeerFormatEnum.BOTTLE,
@@ -105,6 +111,7 @@ describe("toNewCheckin", () => {
       beerId: 3,
       drankAt: new Date("2026-01-01T00:00:00.000Z"),
       place: "Bar",
+      venueId: null,
       rating: null,
       aromas: [],
       format: BeerFormatEnum.DRAFT,
@@ -112,6 +119,13 @@ describe("toNewCheckin", () => {
       comment: "",
       photoId: null,
     });
+  });
+
+  it("keeps the trimmed place text unchanged when a venue is linked", () => {
+    const record = toNewCheckin({ ...complete, place: " La Fine Mousse ", venueId: 3 }, 4);
+
+    expect(record.venueId).toBe(3);
+    expect(record.place).toBe("La Fine Mousse");
   });
 
   it("keeps a zero price and an empty aromas list given by the caller", () => {

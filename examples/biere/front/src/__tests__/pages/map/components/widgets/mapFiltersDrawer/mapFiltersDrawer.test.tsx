@@ -14,7 +14,7 @@ import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 
 const onApply = vi.fn();
 
-const EMPTY: MapFilters = { types: [], family: null, beerId: null, confirmedOnly: false, undiscovered: false, radiusKm: null };
+const EMPTY: MapFilters = { types: [], family: null, beerId: null, confirmedOnly: false, undiscovered: false, visited: false, radiusKm: null };
 
 const renderDrawer = (appliedFilters: MapFilters = EMPTY, hasPosition = false) => {
   return renderWithProviders(<MapFiltersDrawer appliedFilters={appliedFilters} hasPosition={hasPosition} onApply={onApply} />);
@@ -101,6 +101,67 @@ describe("MapFiltersDrawer", () => {
     expect(screen.getByText("1 filtre actif")).toBeInTheDocument();
   });
 
+  it("US9 AC1 shows the visited switch after the undiscovered one, off, in a 44px clickable row", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = await openDrawer(user);
+
+    const undiscovered = within(dialog).getByRole("switch", { name: "Lieux avec des bières à découvrir" });
+    const visited = within(dialog).getByRole("switch", { name: "Lieux où j'ai bu" });
+    expect(visited).not.toBeChecked();
+    expect(undiscovered.compareDocumentPosition(visited) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const row = visited.closest('[data-slot="switch-content"]');
+    expect(row).toHaveClass("flex-row", "min-h-11", "w-full");
+    expect(row).toContainElement(within(dialog).getByText("Lieux où j'ai bu"));
+  });
+
+  it("US9 AC1 applies only the visited choice", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = await openDrawer(user);
+    await user.click(within(dialog).getByRole("switch", { name: "Lieux où j'ai bu" }));
+    await user.click(within(dialog).getByRole("button", { name: "Appliquer" }));
+
+    expect(onApply).toHaveBeenCalledWith({ ...EMPTY, visited: true });
+  });
+
+  it("US9 AC4 applies visited together with undiscovered and a type", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = await openDrawer(user);
+    await user.click(within(dialog).getByRole("checkbox", { name: "Bar" }));
+    await user.click(within(dialog).getByRole("switch", { name: "Lieux avec des bières à découvrir" }));
+    await user.click(within(dialog).getByRole("switch", { name: "Lieux où j'ai bu" }));
+    await user.click(within(dialog).getByRole("button", { name: "Appliquer" }));
+
+    expect(onApply).toHaveBeenCalledWith({ ...EMPTY, types: [VenueTypeEnum.BAR], undiscovered: true, visited: true });
+  });
+
+  it("US9 AC2 opens with the visited switch on when the applied filters carry it", async () => {
+    const user = userEvent.setup();
+    renderDrawer({ ...EMPTY, visited: true });
+    const dialog = await openDrawer(user);
+
+    expect(within(dialog).getByRole("switch", { name: "Lieux où j'ai bu" })).toBeChecked();
+    expect(within(dialog).getByRole("switch", { name: "Lieux avec des bières à découvrir" })).not.toBeChecked();
+  });
+
+  it("US9 AC1 counts the visited filter on the Filtres button", () => {
+    renderDrawer({ ...EMPTY, visited: true });
+
+    expect(screen.getByText("1 filtre actif")).toBeInTheDocument();
+  });
+
+  it("US9 AC6 applies the empty filters after Réinitialiser when only visited was on", async () => {
+    const user = userEvent.setup();
+    renderDrawer({ ...EMPTY, visited: true });
+    const dialog = await openDrawer(user);
+    await user.click(within(dialog).getByRole("button", { name: "Réinitialiser" }));
+    await user.click(within(dialog).getByRole("button", { name: "Appliquer" }));
+
+    expect(onApply).toHaveBeenCalledWith(EMPTY_MAP_FILTERS);
+  });
+
   it("AC1 applies the type, family and confirmed choices the user made", async () => {
     const user = userEvent.setup();
     renderDrawer();
@@ -120,6 +181,7 @@ describe("MapFiltersDrawer", () => {
       beerId: null,
       confirmedOnly: true,
       undiscovered: true,
+      visited: false,
       radiusKm: null,
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -207,7 +269,7 @@ describe("MapFiltersDrawer", () => {
   it("AC3 clears every choice with Réinitialiser, including the beer, and applies the empty filters", async () => {
     const user = userEvent.setup();
     renderDrawer(
-      { types: [VenueTypeEnum.BAR], family: BeerFamilyEnum.STOUT, beerId: 7, confirmedOnly: true, undiscovered: true, radiusKm: 2 },
+      { types: [VenueTypeEnum.BAR], family: BeerFamilyEnum.STOUT, beerId: 7, confirmedOnly: true, undiscovered: true, visited: true, radiusKm: 2 },
       true,
     );
     const dialog = await openDrawer(user);
@@ -218,6 +280,7 @@ describe("MapFiltersDrawer", () => {
     expect(within(dialog).getByRole("button", { name: /Famille de bière/ })).toHaveTextContent("Toutes");
     expect(within(dialog).getByRole("switch", { name: "Disponibilité confirmée seulement" })).not.toBeChecked();
     expect(within(dialog).getByRole("switch", { name: "Lieux avec des bières à découvrir" })).not.toBeChecked();
+    expect(within(dialog).getByRole("switch", { name: "Lieux où j'ai bu" })).not.toBeChecked();
     expect(onApply).not.toHaveBeenCalled();
     await user.click(within(dialog).getByRole("button", { name: "Appliquer" }));
     expect(onApply).toHaveBeenCalledWith(EMPTY_MAP_FILTERS);

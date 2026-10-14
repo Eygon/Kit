@@ -58,6 +58,16 @@ describe("VenuesRepository", () => {
     await moduleRef.close();
   });
 
+  it("tells whether a venue exists by its id", async () => {
+    expect(await repository.existsById(ZYTHOS_ID)).toBe(true);
+    expect(await repository.existsById(BORD_ID)).toBe(true);
+  });
+
+  it("does not find an id that no venue has", async () => {
+    expect(await repository.existsById(0)).toBe(false);
+    expect(await repository.existsById(BORD_ID + 1)).toBe(false);
+  });
+
   it("lists every venue ordered by name when there is no filter", async () => {
     const venues = await repository.findVenues({ bounds: null, types: [], search: "" });
 

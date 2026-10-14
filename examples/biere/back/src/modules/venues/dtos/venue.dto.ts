@@ -12,4 +12,6 @@ export interface VenueDto {
   readonly description: string;
   readonly distanceKm: number | null;
   readonly status: AvailabilityStatusEnum;
+  readonly checkinCount: number;
+  readonly lastCheckinAt: string | null;
 }

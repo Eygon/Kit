@@ -9,10 +9,11 @@ import { PokedexService } from "@/modules/pokedex/pokedex.service";
 import { WishlistController } from "@/modules/pokedex/wishlist.controller";
 import { BeersModule } from "@/modules/beers/beers.module";
 import { TastingsModule } from "@/modules/tastings/tastings.module";
+import { VenuesModule } from "@/modules/venues/venues.module";
 import { inMemoryDatabase } from "@/__tests__/support/test-database";
 
 describe("PokedexModule", () => {
-  it("wires the controllers and the service on top of the beers and tastings modules", async () => {
+  it("wires the controllers and the service on top of the beers, tastings and venues modules", async () => {
     const moduleRef = await Test.createTestingModule({ imports: [inMemoryDatabase(), PokedexModule] }).compile();
 
     expect(moduleRef.get(CheckinsController)).toBeInstanceOf(CheckinsController);
@@ -20,7 +21,7 @@ describe("PokedexModule", () => {
     expect(moduleRef.get(PhotosController)).toBeInstanceOf(PhotosController);
     expect(moduleRef.get(WishlistController)).toBeInstanceOf(WishlistController);
     expect(moduleRef.get(PokedexService)).toBeInstanceOf(PokedexService);
-    expect(Reflect.getMetadata(MODULE_METADATA.IMPORTS, PokedexModule)).toEqual([BeersModule, TastingsModule]);
+    expect(Reflect.getMetadata(MODULE_METADATA.IMPORTS, PokedexModule)).toEqual([BeersModule, TastingsModule, VenuesModule]);
     expect(Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, PokedexModule)).toEqual([CheckinsController, PhotosController, WishlistController, DexController]);
     expect(Reflect.getMetadata(MODULE_METADATA.PROVIDERS, PokedexModule)).toEqual([PokedexService]);
 

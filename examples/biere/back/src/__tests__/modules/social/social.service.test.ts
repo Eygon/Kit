@@ -329,6 +329,7 @@ describe("SocialService", () => {
       beerId,
       drankAt,
       place: "Paris",
+      venueId: null,
       rating: 4,
       aromas: [],
       format: "bottle",

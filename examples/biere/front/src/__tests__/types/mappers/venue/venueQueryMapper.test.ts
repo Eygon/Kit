@@ -13,6 +13,7 @@ describe("EMPTY_VENUE_QUERY", () => {
       beerId: null,
       confirmedOnly: false,
       undiscovered: false,
+      visited: false,
       position: null,
       radiusKm: null,
       q: "",
@@ -35,13 +36,14 @@ describe("venueQueryToSearchParams", () => {
       beerId: 7,
       confirmedOnly: true,
       undiscovered: true,
+      visited: true,
       position: { latitude: 48.85, longitude: 2.35 },
       radiusKm: 5,
       q: "acad",
     };
 
     expect(venueQueryToSearchParams(query).toString()).toBe(
-      "north=48.9&south=48.8&east=2.4&west=2.2&type=bar&type=shop&beer=7&family=ipa&confirmedOnly=true&undiscovered=true&latitude=48.85&longitude=2.35&radiusKm=5&q=acad",
+      "north=48.9&south=48.8&east=2.4&west=2.2&type=bar&type=shop&beer=7&family=ipa&confirmedOnly=true&undiscovered=true&visited=true&latitude=48.85&longitude=2.35&radiusKm=5&q=acad",
     );
   });
 
@@ -67,6 +69,11 @@ describe("venueQueryToSearchParams", () => {
   it("US9 sends undiscovered=true only when it is on", async () => {
     expect(venueQueryToSearchParams({ ...EMPTY_VENUE_QUERY, undiscovered: true }).toString()).toBe("undiscovered=true");
     expect(venueQueryToSearchParams({ ...EMPTY_VENUE_QUERY, undiscovered: false }).has("undiscovered")).toBe(false);
+  });
+
+  it("US9 sends visited=true only when it is on", async () => {
+    expect(venueQueryToSearchParams({ ...EMPTY_VENUE_QUERY, visited: true }).toString()).toBe("visited=true");
+    expect(venueQueryToSearchParams({ ...EMPTY_VENUE_QUERY, visited: false }).has("visited")).toBe(false);
   });
 
   it("sends the trimmed search text as q", async () => {

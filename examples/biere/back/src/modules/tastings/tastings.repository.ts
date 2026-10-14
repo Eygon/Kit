@@ -5,6 +5,7 @@ import type { BeerUserStateDto } from "@/modules/tastings/dtos/beer-user-state.d
 import type { DiscoveryCountDto } from "@/modules/tastings/dtos/discovery-count.dto";
 import type { DiscoveryDto } from "@/modules/tastings/dtos/discovery.dto";
 import type { CheckinRecordSliceDto } from "@/modules/tastings/dtos/checkin-record-slice.dto";
+import type { VenueVisitDto } from "@/modules/tastings/dtos/venue-visit.dto";
 import type { PhotoContentDto } from "@/modules/tastings/dtos/photo-content.dto";
 import type { CheckinRecordDto } from "@/modules/tastings/dtos/checkin-record.dto";
 import type { WishlistItemRecordDto } from "@/modules/tastings/dtos/wishlist-item-record.dto";
@@ -15,6 +16,7 @@ import type { PhotoContentTypeEnum } from "@/modules/tastings/enums/photo-conten
 import { toCheckinRecordDto } from "@/modules/tastings/mappers/checkin-record.mapper";
 import { toDiscoveryCountDto, type RawDiscoveryCountRow } from "@/modules/tastings/mappers/discovery-count.mapper";
 import { toPhotoContentDto } from "@/modules/tastings/mappers/photo-content.mapper";
+import { toIsoDate, toVenueVisitDto, type RawVenueVisitRow } from "@/modules/tastings/mappers/venue-visit.mapper";
 import { toWishlistItemRecordDto } from "@/modules/tastings/mappers/wishlist-item-record.mapper";
 
 interface RawDiscoveryRow {
@@ -27,8 +29,6 @@ interface RawCheckinCountRow {
   readonly beerId: number;
   readonly checkinCount: number;
 }
-
-const toIsoDate = (stored: string): string => new Date(`${stored.replace(" ", "T")}Z`).toISOString();
 
 const toDiscoveryDto = (row: RawDiscoveryRow): DiscoveryDto => ({
   beerId: row.beerId,
@@ -141,6 +141,23 @@ export class TastingsRepository {
       .orderBy("checkin.userId", "ASC")
       .getRawMany<RawDiscoveryCountRow>();
     return rows.map(toDiscoveryCountDto);
+  }
+
+  async findVenueVisits(userId: number, venueIds: readonly number[]): Promise<VenueVisitDto[]> {
+    if (venueIds.length === 0) {
+      return [];
+    }
+    const rows = await this.checkins
+      .createQueryBuilder("checkin")
+      .select("checkin.venueId", "venueId")
+      .addSelect("COUNT(*)", "checkinCount")
+      .addSelect("MAX(checkin.drankAt)", "lastCheckinAt")
+      .where("checkin.userId = :userId", { userId })
+      .andWhere("checkin.venueId IN (:...venueIds)", { venueIds })
+      .groupBy("checkin.venueId")
+      .orderBy("checkin.venueId", "ASC")
+      .getRawMany<RawVenueVisitRow>();
+    return rows.map(toVenueVisitDto);
   }
 
   async findWishlist(userId: number): Promise<WishlistItemRecordDto[]> {

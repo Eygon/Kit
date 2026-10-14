@@ -1,0 +1,326 @@
+[
+  {
+    "name": "La Fine Mousse",
+    "type": "bar",
+    "city": "Paris",
+    "address": "6 avenue Jean Aicard, 75011 Paris",
+    "latitude": 48.8655,
+    "longitude": 2.3802,
+    "description": "Bar à bières artisanales de Ménilmontant, une vingtaine de tireuses qui tournent souvent."
+  },
+  {
+    "name": "Le Supercoin",
+    "type": "bar",
+    "city": "Paris",
+    "address": "3 rue Baudelique, 75018 Paris",
+    "latitude": 48.8927,
+    "longitude": 2.349,
+    "description": "Bar et cave de quartier dédiés aux bières françaises artisanales."
+  },
+  {
+    "name": "Académie de la Bière",
+    "type": "bar",
+    "city": "Paris",
+    "address": "88 bis boulevard de Port-Royal, 75005 Paris",
+    "latitude": 48.8398,
+    "longitude": 2.3388,
+    "description": "Institution de Port-Royal à la grande carte belge, moules-frites et terrasse."
+  },
+  {
+    "name": "Au Trappiste",
+    "type": "bar",
+    "city": "Paris",
+    "address": "4 rue Saint-Denis, 75001 Paris",
+    "latitude": 48.8586,
+    "longitude": 2.3477,
+    "description": "Brasserie du Châtelet tournée vers les bières belges et d'abbaye."
+  },
+  {
+    "name": "Le Bombardier",
+    "type": "bar",
+    "city": "Paris",
+    "address": "2 place du Panthéon, 75005 Paris",
+    "latitude": 48.8466,
+    "longitude": 2.3463,
+    "description": "Pub anglais au pied du Panthéon, ales britanniques et stouts à la pression."
+  },
+  {
+    "name": "Frog & Rosbif",
+    "type": "bar",
+    "city": "Paris",
+    "address": "116 rue Saint-Denis, 75002 Paris",
+    "latitude": 48.865,
+    "longitude": 2.3505,
+    "description": "Pub britannique historique de la rue Saint-Denis, ambiance match et pintes."
+  },
+  {
+    "name": "Les Trois 8",
+    "type": "bar",
+    "city": "Paris",
+    "address": "11 rue Victor Letalle, 75020 Paris",
+    "latitude": 48.8668,
+    "longitude": 2.3878,
+    "description": "Petit bar de Ménilmontant aux bières artisanales pointues et vins nature."
+  },
+  {
+    "name": "La Robe et la Mousse",
+    "type": "bar",
+    "city": "Paris",
+    "address": "3 rue Monge, 75005 Paris",
+    "latitude": 48.8496,
+    "longitude": 2.3512,
+    "description": "Bar à bières du Quartier latin, tireuses craft et sélection en bouteille."
+  },
+  {
+    "name": "Au Général La Fayette",
+    "type": "bar",
+    "city": "Paris",
+    "address": "52 rue La Fayette, 75009 Paris",
+    "latitude": 48.8752,
+    "longitude": 2.3424,
+    "description": "Brasserie Belle Époque du 9e, réputée pour son choix de bières pression."
+  },
+  {
+    "name": "La Taverne de Cluny",
+    "type": "bar",
+    "city": "Paris",
+    "address": "51 rue de la Harpe, 75005 Paris",
+    "latitude": 48.8517,
+    "longitude": 2.3437,
+    "description": "Taverne du Quartier latin aux bières allemandes, tchèques et belges."
+  },
+  {
+    "name": "La Cave à Bulles",
+    "type": "shop",
+    "city": "Paris",
+    "address": "45 rue Quincampoix, 75004 Paris",
+    "latitude": 48.8616,
+    "longitude": 2.351,
+    "description": "Cave pionnière des bières artisanales françaises, à deux pas de Beaubourg."
+  },
+  {
+    "name": "Bières Cultes",
+    "type": "shop",
+    "city": "Paris",
+    "address": "14 rue des Petits Carreaux, 75002 Paris",
+    "latitude": 48.867,
+    "longitude": 2.3475,
+    "description": "Cave spécialisée en bières rares, trappistes, lambics et craft étrangères."
+  },
+  {
+    "name": "Brewberry Cave",
+    "type": "shop",
+    "city": "Paris",
+    "address": "11 rue du Pot de Fer, 75005 Paris",
+    "latitude": 48.8427,
+    "longitude": 2.3487,
+    "description": "Cave de la rue Mouffetard orientée craft américaine et européenne."
+  },
+  {
+    "name": "Le Triangle",
+    "type": "brewery",
+    "city": "Paris",
+    "address": "13 rue Jacques Louvel-Tessier, 75010 Paris",
+    "latitude": 48.8713,
+    "longitude": 2.37,
+    "description": "Microbrasserie-restaurant du canal Saint-Martin, bières brassées sur place."
+  },
+  {
+    "name": "Les Berthom Lyon",
+    "type": "bar",
+    "city": "Lyon",
+    "address": "3 rue Pizay, 69001 Lyon",
+    "latitude": 45.767,
+    "longitude": 4.8355,
+    "description": "Bar à bières belges et artisanales près de l'Hôtel de Ville."
+  },
+  {
+    "name": "Le Smoking Dog",
+    "type": "bar",
+    "city": "Lyon",
+    "address": "16 rue Lainerie, 69005 Lyon",
+    "latitude": 45.7647,
+    "longitude": 4.8276,
+    "description": "Pub anglais du Vieux Lyon, ales et stouts britanniques."
+  },
+  {
+    "name": "The Wallace Bar",
+    "type": "bar",
+    "city": "Lyon",
+    "address": "2 rue Octavio Mey, 69005 Lyon",
+    "latitude": 45.7628,
+    "longitude": 4.8288,
+    "description": "Pub écossais du Vieux Lyon, pintes et retransmissions sportives."
+  },
+  {
+    "name": "Dikkenek Café",
+    "type": "bar",
+    "city": "Lyon",
+    "address": "6 rue Saint-Polycarpe, 69001 Lyon",
+    "latitude": 45.7681,
+    "longitude": 4.834,
+    "description": "Bar belge des Pentes de la Croix-Rousse."
+  },
+  {
+    "name": "Ninkasi Gerland",
+    "type": "brewery",
+    "city": "Lyon",
+    "address": "267 rue Marcel Mérieux, 69007 Lyon",
+    "latitude": 45.733,
+    "longitude": 4.833,
+    "description": "Lieu historique de la brasserie lyonnaise Ninkasi : bières maison, burgers et concerts."
+  },
+  {
+    "name": "Brasserie Georges",
+    "type": "brewery",
+    "city": "Lyon",
+    "address": "30 cours de Verdun Perrache, 69002 Lyon",
+    "latitude": 45.7483,
+    "longitude": 4.8268,
+    "description": "Grande brasserie lyonnaise fondée en 1836, qui brasse sa propre bière."
+  },
+  {
+    "name": "La Capsule",
+    "type": "bar",
+    "city": "Lille",
+    "address": "25 rue des Trois Mollettes, 59800 Lille",
+    "latitude": 50.6402,
+    "longitude": 3.0624,
+    "description": "Bar à bières artisanales du Vieux-Lille, une des références de la ville."
+  },
+  {
+    "name": "Au Vieux de la Vieille",
+    "type": "bar",
+    "city": "Lille",
+    "address": "2 rue des Vieux Murs, 59800 Lille",
+    "latitude": 50.6413,
+    "longitude": 3.0633,
+    "description": "Estaminet traditionnel du Vieux-Lille, bières du Nord et jeux anciens."
+  },
+  {
+    "name": "Estaminet T'Rijsel",
+    "type": "bar",
+    "city": "Lille",
+    "address": "25 rue de Gand, 59800 Lille",
+    "latitude": 50.642,
+    "longitude": 3.0665,
+    "description": "Estaminet flamand de la rue de Gand, cuisine du Nord et bières régionales."
+  },
+  {
+    "name": "Les Berthom Lille",
+    "type": "bar",
+    "city": "Lille",
+    "address": "31 rue Royale, 59800 Lille",
+    "latitude": 50.64,
+    "longitude": 3.059,
+    "description": "Bar à bières belges et trappistes du Vieux-Lille."
+  },
+  {
+    "name": "L'Abbaye des Saveurs",
+    "type": "shop",
+    "city": "Lille",
+    "address": "13 rue des Vieux Murs, 59800 Lille",
+    "latitude": 50.6415,
+    "longitude": 3.0628,
+    "description": "Cave à bières du Vieux-Lille, trappistes, abbayes et bières du Nord."
+  },
+  {
+    "name": "Les 3 Brasseurs Lille",
+    "type": "brewery",
+    "city": "Lille",
+    "address": "22 place de la Gare, 59800 Lille",
+    "latitude": 50.6368,
+    "longitude": 3.0703,
+    "description": "Brasserie-restaurant face à la gare Lille-Flandres, bières brassées sur place."
+  },
+  {
+    "name": "Delirium Café",
+    "type": "bar",
+    "city": "Bruxelles",
+    "address": "Impasse de la Fidélité 4, 1000 Bruxelles",
+    "latitude": 50.8484,
+    "longitude": 4.354,
+    "description": "Bar mythique de l'Ilot Sacré, connu pour sa carte de plus de deux mille bières."
+  },
+  {
+    "name": "À la Mort Subite",
+    "type": "bar",
+    "city": "Bruxelles",
+    "address": "Rue Montagne-aux-Herbes-Potagères 7, 1000 Bruxelles",
+    "latitude": 50.8476,
+    "longitude": 4.3558,
+    "description": "Café Belle Époque près des Galeries royales, temple de la gueuze et de la kriek."
+  },
+  {
+    "name": "Moeder Lambic Fontainas",
+    "type": "bar",
+    "city": "Bruxelles",
+    "address": "Place Fontainas 8, 1000 Bruxelles",
+    "latitude": 50.8456,
+    "longitude": 4.3472,
+    "description": "Bar de référence pour le lambic et les bières artisanales belges à la pression."
+  },
+  {
+    "name": "Poechenellekelder",
+    "type": "bar",
+    "city": "Bruxelles",
+    "address": "Rue du Chêne 5, 1000 Bruxelles",
+    "latitude": 50.8451,
+    "longitude": 4.3499,
+    "description": "Café rempli de marionnettes face au Manneken-Pis, belle carte de bières belges."
+  },
+  {
+    "name": "Bier Circus",
+    "type": "bar",
+    "city": "Bruxelles",
+    "address": "Rue de l'Enseignement 57, 1000 Bruxelles",
+    "latitude": 50.8499,
+    "longitude": 4.3633,
+    "description": "Bar-restaurant à la carte de bières belges très fournie, lambics compris."
+  },
+  {
+    "name": "Brasserie Cantillon",
+    "type": "brewery",
+    "city": "Bruxelles",
+    "address": "Rue Gheude 56, 1070 Anderlecht",
+    "latitude": 50.8417,
+    "longitude": 4.3355,
+    "description": "Brasserie familiale de lambic et musée bruxellois de la gueuze, visite et dégustation."
+  },
+  {
+    "name": "Brasserie de la Senne",
+    "type": "brewery",
+    "city": "Bruxelles",
+    "address": "Drève Anna Boch 19, 1000 Bruxelles",
+    "latitude": 50.8665,
+    "longitude": 4.348,
+    "description": "Brasserie bruxelloise de Tour & Taxis, bières sèches et houblonnées."
+  },
+  {
+    "name": "Brussels Beer Project",
+    "type": "brewery",
+    "city": "Bruxelles",
+    "address": "Rue Antoine Dansaert 188, 1000 Bruxelles",
+    "latitude": 50.853,
+    "longitude": 4.3425,
+    "description": "Brasserie et bar de dégustation de la rue Dansaert."
+  },
+  {
+    "name": "Beermania",
+    "type": "shop",
+    "city": "Bruxelles",
+    "address": "Chaussée de Wavre 174, 1050 Ixelles",
+    "latitude": 50.8378,
+    "longitude": 4.3717,
+    "description": "Cave et bar de dégustation d'Ixelles, plusieurs centaines de bières belges."
+  },
+  {
+    "name": "Délices et Caprices",
+    "type": "shop",
+    "city": "Bruxelles",
+    "address": "Rue du Marché aux Herbes 68, 1000 Bruxelles",
+    "latitude": 50.8475,
+    "longitude": 4.353,
+    "description": "Petite boutique de bières belges et de produits du terroir près de la Grand-Place."
+  }
+]

@@ -37,6 +37,8 @@ const CREATED: Venue = {
   id: 40,
   type: VenueTypeEnum.BAR,
   distanceKm: null,
+  checkinCount: 0,
+  lastCheckinAt: null,
   status: AvailabilityStatusEnum.UNKNOWN,
 };
 

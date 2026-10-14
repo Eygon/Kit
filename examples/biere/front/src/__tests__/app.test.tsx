@@ -123,6 +123,8 @@ describe("App", () => {
         reviewCount: 0,
         ratingDistribution: [],
         criteria: [],
+        source: "official",
+        createdByName: null,
       },
       isPending: false,
       isError: false,

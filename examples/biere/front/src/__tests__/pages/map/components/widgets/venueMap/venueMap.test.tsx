@@ -148,6 +148,8 @@ const buildVenues = (count: number): Venue[] => {
     longitude: 2.3 + index / 1000,
     description: "",
     distanceKm: null,
+    checkinCount: 0,
+    lastCheckinAt: null,
     status: statuses[index % statuses.length],
   }));
 };

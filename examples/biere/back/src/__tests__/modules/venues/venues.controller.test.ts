@@ -42,6 +42,8 @@ const VENUE: VenueDto = {
   description: "Un bar.",
   distanceKm: null,
   status: AvailabilityStatusEnum.CONFIRMED,
+  checkinCount: 2,
+  lastCheckinAt: "2026-10-09T18:30:00.000Z",
 };
 
 const VENUE_BEER: VenueBeerDto = {
@@ -80,11 +82,11 @@ describe("VenuesController", () => {
     expect(service.getVenues).toHaveBeenCalledWith(5, query);
   });
 
-  it("returns one venue by id", async () => {
+  it("returns one venue by id read by the service for the current user", async () => {
     service.getVenue.mockResolvedValue(VENUE);
 
-    expect(await controller.getOne(7)).toBe(VENUE);
-    expect(service.getVenue).toHaveBeenCalledWith(7);
+    expect(await controller.getOne(5, 7)).toBe(VENUE);
+    expect(service.getVenue).toHaveBeenCalledExactlyOnceWith(5, 7);
   });
 
   it("is mounted on venues and declares 200 on both actions", () => {
@@ -94,14 +96,12 @@ describe("VenuesController", () => {
     expect(Reflect.getMetadata(PATH_METADATA, VenuesController.prototype.getOne)).toBe(":id");
   });
 
-  it("binds the id through a pipe", () => {
-    const args: Record<string, { pipes: unknown[] }> = Reflect.getMetadata(
-      ROUTE_ARGS_METADATA,
-      VenuesController,
-      "getOne",
-    );
+  it("binds the current user first and the id through a ParseIntPipe second on the one venue action", () => {
+    const bindings = bindingsOf("getOne");
 
-    expect(Object.values(args)[0].pipes).toHaveLength(1);
+    expect(Object.values(bindings)).toHaveLength(2);
+    expect(currentUserBindingOf("getOne")?.index).toBe(0);
+    expect(bindings[`${RouteParamtypes.PARAM}:1`]).toMatchObject({ index: 1, data: "id", pipes: [ParseIntPipe] });
   });
 
   it("returns the beers of the venue read by the service for the current user and the query", async () => {

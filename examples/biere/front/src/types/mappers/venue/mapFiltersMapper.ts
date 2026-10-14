@@ -9,12 +9,14 @@ export const EMPTY_MAP_FILTERS: MapFilters = {
   beerId: null,
   confirmedOnly: false,
   undiscovered: false,
+  visited: false,
   radiusKm: null,
 };
 
 const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/;
 const CONFIRMED_VALUE = "1";
 const UNDISCOVERED_VALUE = "1";
+const VISITED_VALUE = "1";
 
 const parseBeerId = (value: string | null): number | null =>
   value !== null && POSITIVE_INTEGER_PATTERN.test(value) ? Number(value) : null;
@@ -34,6 +36,7 @@ export const searchParamsToMapFilters = (params: URLSearchParams): MapFilters =>
     beerId: parseBeerId(params.get("beer")),
     confirmedOnly: params.get("confirmed") === CONFIRMED_VALUE,
     undiscovered: params.get("undiscovered") === UNDISCOVERED_VALUE,
+    visited: params.get("visited") === VISITED_VALUE,
     radiusKm: parseRadius(params.get("radius")),
   };
 };
@@ -45,6 +48,7 @@ export const mapFiltersToSearchParams = (filters: MapFilters): URLSearchParams =
   if (filters.beerId !== null) params.append("beer", filters.beerId.toString());
   if (filters.confirmedOnly) params.append("confirmed", CONFIRMED_VALUE);
   if (filters.undiscovered) params.append("undiscovered", UNDISCOVERED_VALUE);
+  if (filters.visited) params.append("visited", VISITED_VALUE);
   if (filters.radiusKm !== null) params.append("radius", filters.radiusKm.toString());
   return params;
 };
@@ -54,6 +58,7 @@ export const countMapFilters = (filters: MapFilters): number => {
   const hasBeer = filters.beerId !== null ? 1 : 0;
   const hasConfirmedOnly = filters.confirmedOnly ? 1 : 0;
   const hasUndiscovered = filters.undiscovered ? 1 : 0;
+  const hasVisited = filters.visited ? 1 : 0;
   const hasRadius = filters.radiusKm !== null ? 1 : 0;
-  return filters.types.length + hasFamily + hasBeer + hasConfirmedOnly + hasUndiscovered + hasRadius;
+  return filters.types.length + hasFamily + hasBeer + hasConfirmedOnly + hasUndiscovered + hasVisited + hasRadius;
 };

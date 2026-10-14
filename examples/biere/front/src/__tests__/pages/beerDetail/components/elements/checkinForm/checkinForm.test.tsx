@@ -3,9 +3,17 @@ import { resolve } from "node:path";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
+import VenueService from "@/api/venues/venueService";
 import { CheckinForm } from "@/pages/beerDetail/components/elements/checkinForm/checkinForm";
 import { BeerAromaEnum } from "@/types/enums/beer/beerAromaEnum";
+import { AvailabilityStatusEnum } from "@/types/enums/venue/availabilityStatusEnum";
+import { VenueTypeEnum } from "@/types/enums/venue/venueTypeEnum";
 import type { CreatedCheckin } from "@/types/models/checkin/createdCheckin";
+import type { Venue } from "@/types/models/venue/venue";
+
+vi.mock("@/api/venues/venueService", () => ({
+  default: { getAll: vi.fn() },
+}));
 
 const mockMutation = vi.hoisted(() => ({ useCreateCheckinMutation: vi.fn(), saveCheckin: vi.fn() }));
 
@@ -26,8 +34,24 @@ const CREATED: CreatedCheckin = {
     price: null,
     comment: "",
     photoId: null,
+    venueId: null,
   },
   isFirstDiscovery: true,
+};
+
+const CLUNY: Venue = {
+  id: 5,
+  name: "La Taverne de Cluny",
+  type: VenueTypeEnum.BAR,
+  city: "Paris",
+  address: "1 rue de Cluny",
+  latitude: 48.85,
+  longitude: 2.35,
+  description: "",
+  distanceKm: null,
+  checkinCount: 0,
+  lastCheckinAt: null,
+  status: AvailabilityStatusEnum.CONFIRMED,
 };
 
 const NOW = new Date(2026, 9, 12, 12, 0);
@@ -46,13 +70,18 @@ const deferred = <T,>() => {
 const renderForm = () => renderWithProviders(<CheckinForm beerId={7} onSaved={onSaved} />);
 
 const dateInput = () => screen.getByLabelText("Date et heure") as HTMLInputElement;
-const placeInput = () => screen.getByLabelText(/^Lieu/) as HTMLInputElement;
+const placeInput = () => screen.getByRole("combobox", { name: /^Lieu/ }) as HTMLInputElement;
 const submitButton = () => screen.getByRole("button", { name: "Enregistrer" });
 const aromaRows = () => screen.getAllByRole("row");
 const aromaRow = (name: string) => screen.getByRole("row", { name });
 
+const typePlace = async (user: ReturnType<typeof userEvent.setup>, text: string) => {
+  await user.type(placeInput(), text);
+  await user.tab();
+};
+
 const fillValidForm = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.type(placeInput(), "Chez Paul");
+  await typePlace(user, "Chez Paul");
   await user.click(screen.getByRole("radio", { name: "Bouteille" }));
 };
 
@@ -70,6 +99,7 @@ describe("CheckinForm", () => {
     vi.setSystemTime(NOW);
     Object.defineProperty(URL, "createObjectURL", { configurable: true, writable: true, value: vi.fn((file: File) => `blob:${file.name}`) });
     Object.defineProperty(URL, "revokeObjectURL", { configurable: true, writable: true, value: vi.fn() });
+    vi.mocked(VenueService.getAll).mockResolvedValue([CLUNY]);
     mockMutation.saveCheckin.mockResolvedValue(CREATED);
     mockMutation.useCreateCheckinMutation.mockReturnValue({ saveCheckin: mockMutation.saveCheckin, isSaving: false });
   });
@@ -143,7 +173,7 @@ describe("CheckinForm", () => {
     it("still refuses an empty submit with the format message", async () => {
       const user = userEvent.setup();
       renderForm();
-      await user.type(placeInput(), "Chez Paul");
+      await typePlace(user, "Chez Paul");
 
       await user.click(submitButton());
 
@@ -171,7 +201,7 @@ describe("CheckinForm", () => {
     it("refuses a place made only of spaces", async () => {
       const user = userEvent.setup();
       renderForm();
-      await user.type(placeInput(), "     ");
+      await typePlace(user, "     ");
       await user.click(screen.getByRole("radio", { name: "Canette" }));
 
       await user.click(submitButton());
@@ -207,6 +237,104 @@ describe("CheckinForm", () => {
     });
   });
 
+  describe("the link with a venue", () => {
+    const chooseCluny = async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.type(placeInput(), "taverne");
+      await waitFor(() => expect(VenueService.getAll).toHaveBeenLastCalledWith(expect.objectContaining({ q: "taverne" })), { timeout: 4000 });
+      await user.click(await screen.findByRole("option", { name: /La Taverne de Cluny/ }));
+      await waitFor(() => expect(placeInput().value).toBe("La Taverne de Cluny"));
+    };
+
+    it("proposes La Taverne de Cluny with its city when taverne is typed in the place", async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.type(placeInput(), "taverne");
+
+      expect(await screen.findByRole("option", { name: /La Taverne de Cluny/ })).toHaveTextContent("Paris");
+    });
+
+    it("sends the chosen suggestion as the place text and the reference of that venue", async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await chooseCluny(user);
+      await user.click(screen.getByRole("radio", { name: "Bouteille" }));
+
+      await user.click(submitButton());
+
+      await waitFor(() => expect(mockMutation.saveCheckin).toHaveBeenCalledTimes(1));
+      expect(mockMutation.saveCheckin.mock.calls[0][0]).toMatchObject({ place: "La Taverne de Cluny", venueId: 5 });
+    });
+
+    it("sends a free text with the text and no venue", async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await typePlace(user, "Chez moi");
+      await user.click(screen.getByRole("radio", { name: "Bouteille" }));
+
+      await user.click(submitButton());
+
+      await waitFor(() => expect(mockMutation.saveCheckin).toHaveBeenCalledTimes(1));
+      expect(mockMutation.saveCheckin.mock.calls[0][0]).toMatchObject({ place: "Chez moi", venueId: null });
+    });
+
+    it("sends the edited text and no venue once the chosen suggestion is modified", async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await chooseCluny(user);
+      await typePlace(user, " (terrasse)");
+      await user.click(screen.getByRole("radio", { name: "Bouteille" }));
+
+      await user.click(submitButton());
+
+      await waitFor(() => expect(mockMutation.saveCheckin).toHaveBeenCalledTimes(1));
+      expect(mockMutation.saveCheckin.mock.calls[0][0]).toMatchObject({
+        place: "La Taverne de Cluny (terrasse)",
+        venueId: null,
+      });
+    });
+
+    it("still shows the required message for an empty place and sends nothing", async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await user.click(screen.getByRole("radio", { name: "Bouteille" }));
+
+      await user.click(submitButton());
+
+      expect(await screen.findByText("Indiquez le lieu.")).toBeInTheDocument();
+      expect(mockMutation.saveCheckin).not.toHaveBeenCalled();
+    });
+
+    it("asks for the place again when the chosen suggestion is erased entirely", async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await chooseCluny(user);
+      await user.clear(placeInput());
+      await user.tab();
+      await user.click(screen.getByRole("radio", { name: "Bouteille" }));
+
+      await user.click(submitButton());
+
+      expect(await screen.findByText("Indiquez le lieu.")).toBeInTheDocument();
+      expect(mockMutation.saveCheckin).not.toHaveBeenCalled();
+    });
+
+    it("keeps the free text saveable when the suggestions are unavailable", async () => {
+      const user = userEvent.setup();
+      vi.mocked(VenueService.getAll).mockRejectedValue(new Error("boom"));
+      renderForm();
+      await user.type(placeInput(), "Chez moi");
+      expect(await screen.findByText("Suggestions indisponibles")).toBeInTheDocument();
+      await user.tab();
+      await user.click(screen.getByRole("radio", { name: "Bouteille" }));
+
+      await user.click(submitButton());
+
+      await waitFor(() => expect(mockMutation.saveCheckin).toHaveBeenCalledTimes(1));
+      expect(mockMutation.saveCheckin.mock.calls[0][0]).toMatchObject({ place: "Chez moi", venueId: null });
+    });
+  });
+
   describe("aromas", () => {
     it("blocks the other aromas as soon as five are chosen, and frees them when one is removed", async () => {
       const user = userEvent.setup();
@@ -237,7 +365,7 @@ describe("CheckinForm", () => {
     it("sends the whole tasting built from the form values and hands back the created checkin", async () => {
       const user = userEvent.setup();
       renderForm();
-      await user.type(placeInput(), "  Chez Paul  ");
+      await typePlace(user, "  Chez Paul  ");
       await user.click(screen.getByRole("radio", { name: "Pression" }));
       await user.click(aromaRow("Houblonné"));
       await user.click(aromaRow("Floral"));
@@ -255,6 +383,7 @@ describe("CheckinForm", () => {
         beerId: 7,
         drankAt: NOW.toISOString(),
         place: "Chez Paul",
+        venueId: null,
         format: "draft",
         rating: 1.5,
         aromas: [BeerAromaEnum.HOPPY, BeerAromaEnum.FLORAL],
@@ -278,6 +407,7 @@ describe("CheckinForm", () => {
         beerId: 7,
         drankAt: NOW.toISOString(),
         place: "Chez Paul",
+        venueId: null,
         format: "bottle",
         rating: null,
         aromas: [],
@@ -298,6 +428,12 @@ describe("CheckinForm", () => {
       await user.type(screen.getByLabelText("Commentaire"), "Très bonne");
 
       expect(screen.getByText("10 / 500")).toBeInTheDocument();
+    });
+
+    it("gives the price group the 44px height, since the group clips an input taller than itself", () => {
+      renderForm();
+
+      expect(screen.getByRole("textbox", { name: "Prix" }).closest(".number-field__group")).toHaveClass("min-h-11");
     });
 
     it("never sends a negative price or a price above 1000", async () => {
@@ -433,7 +569,7 @@ describe("CheckinForm", () => {
       const user = userEvent.setup();
       mockMutation.saveCheckin.mockRejectedValueOnce(new Error("boom"));
       renderForm();
-      await user.type(placeInput(), "Chez Paul");
+      await typePlace(user, "Chez Paul");
       await user.click(screen.getByRole("radio", { name: "Canette" }));
       await user.click(aromaRow("Agrumes"));
       await user.type(screen.getByLabelText("Commentaire"), "Top");

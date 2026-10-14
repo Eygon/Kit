@@ -206,6 +206,22 @@ export const MapFiltersDrawer = ({
                   </Label>
                 </Switch.Content>
               </Switch>
+              <Switch
+                isSelected={draft.visited}
+                onChange={(visited) =>
+                  setDraft((previous) => ({ ...previous, visited }))
+                }
+                className="w-full"
+              >
+                <Switch.Content className="min-h-11 w-full flex-row gap-3">
+                  <Switch.Control>
+                    <Switch.Thumb />
+                  </Switch.Control>
+                  <Label className="min-w-0 break-words">
+                    {t("pages.map.filters.visited")}
+                  </Label>
+                </Switch.Content>
+              </Switch>
               <Select
                 fullWidth
                 isDisabled={!hasPosition}

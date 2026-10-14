@@ -38,7 +38,7 @@ export interface BeerSeedRow {
   readonly imageUrl?: string | null;
 }
 
-export type BeerInsertRow = Omit<Beer, "id" | "brewery" | "style">;
+export type BeerInsertRow = Omit<Beer, "id" | "brewery" | "style" | "createdBy" | "createdAt">;
 
 const toStyleRow = ({ family, ...fields }: StyleSeedRow): Omit<BeerStyle, "id"> => {
   if (!Object.hasOwn(BEER_FAMILY_BY_SEED_LABEL, family)) {

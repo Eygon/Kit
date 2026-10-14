@@ -6,6 +6,7 @@ import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 import i18n from "@/i18n/i18n";
 import { BeerDetailPage } from "@/pages/beerDetail/beerDetail";
 import { BeerAromaEnum } from "@/types/enums/beer/beerAromaEnum";
+import { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
 import { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
 import { BeerFormatEnum } from "@/types/enums/beer/beerFormatEnum";
 import {
@@ -85,6 +86,8 @@ const CHIMAY: Beer = {
   reviewCount: 0,
   ratingDistribution: [],
   criteria: [],
+  source: BeerSourceEnum.OFFICIAL,
+  createdByName: null,
 };
 
 const refetch = vi.fn();
@@ -196,6 +199,25 @@ describe("BeerDetailPage", () => {
 
   afterEach(async () => {
     await i18n.changeLanguage("fr");
+  });
+
+  it("US5 AC8 shows the markup of a proposed beer as plain text, never as HTML", () => {
+    stubQuery({
+      data: {
+        ...CHIMAY,
+        name: "<b>gras</b>",
+        breweryName: "<i>Brasserie</i>",
+        description: "<u>souligné</u>",
+        source: BeerSourceEnum.COMMUNITY,
+        createdByName: "Alice",
+      },
+    });
+    const { container } = renderDetail();
+
+    expect(screen.getByRole("heading", { level: 1, name: "<b>gras</b>" })).toBeInTheDocument();
+    expect(screen.getByText("<i>Brasserie</i>")).toBeInTheDocument();
+    expect(screen.getByText("<u>souligné</u>")).toBeInTheDocument();
+    expect(container.querySelector("b, i, u")).toBeNull();
   });
 
   it("mounts the reviews section between the description and the history", () => {
@@ -621,6 +643,7 @@ describe("BeerDetailPage", () => {
             price: null,
             comment: "",
             photoId: null,
+            venueId: null,
           },
         ],
         total: 1,
@@ -990,6 +1013,42 @@ describe("BeerDetailPage", () => {
       expect(
         screen.queryByRole("button", { name: "Ajouter à une collection" }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("proposed by chip", () => {
+    it("US8 AC2 shows the Proposée par Alice chip right under the title of a community beer", () => {
+      stubQuery({ data: { ...CHIMAY, source: BeerSourceEnum.COMMUNITY, createdByName: "Alice" } });
+      renderDetail();
+
+      const title = screen.getByRole("heading", { level: 1, name: "Chimay Rouge" });
+      const chip = screen.getByText("Proposée par Alice");
+      const checkin = screen.getByRole("button", { name: "À goûter" });
+      expect(title.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(chip.compareDocumentPosition(checkin) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("US8 AC2 writes the chip in English when the language is English", async () => {
+      await i18n.changeLanguage("en");
+      stubQuery({ data: { ...CHIMAY, source: BeerSourceEnum.COMMUNITY, createdByName: "Alice" } });
+      renderDetail();
+
+      expect(screen.getByText("Suggested by Alice")).toBeInTheDocument();
+    });
+
+    it("US8 AC3 shows no chip on an official beer", () => {
+      stubQuery({ data: { ...CHIMAY, source: BeerSourceEnum.OFFICIAL, createdByName: "Alice" } });
+      renderDetail();
+
+      expect(screen.getByRole("heading", { level: 1, name: "Chimay Rouge" })).toBeInTheDocument();
+      expect(screen.queryByText(/Proposée par/)).not.toBeInTheDocument();
+    });
+
+    it("US8 AC3 shows no chip on a community beer whose author is unknown", () => {
+      stubQuery({ data: { ...CHIMAY, source: BeerSourceEnum.COMMUNITY, createdByName: null } });
+      renderDetail();
+
+      expect(screen.queryByText(/Proposée par/)).not.toBeInTheDocument();
     });
   });
 });

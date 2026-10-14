@@ -49,6 +49,8 @@ interface VenueBody {
   readonly description: string;
   readonly distanceKm: number | null;
   readonly status: string;
+  readonly checkinCount: number;
+  readonly lastCheckinAt: string | null;
 }
 
 const STATUS_RANK: Readonly<Record<string, number>> = { confirmed: 0, maybeGone: 1, unknown: 2, gone: 3 };
@@ -96,6 +98,9 @@ describe("venues API", () => {
     return beer as { id: number; styleId: number };
   };
 
+  const getAsDelete = (checkinId: number) =>
+    request(app.getHttpServer()).delete(`${CHECKINS_PATH}/${checkinId}`).set(USER_ID_HEADER_NAME, ALICE_ID);
+
   const findBeerId = async (name: string): Promise<number> => (await findBeer(name)).id;
 
   const findStyleId = async (name: string): Promise<number> => (await findBeer(name)).styleId;
@@ -130,6 +135,8 @@ describe("venues API", () => {
           description: seeded?.description,
           distanceKm: null,
           status: expect.any(String),
+          checkinCount: 0,
+          lastCheckinAt: null,
         });
       });
     });
@@ -778,6 +785,201 @@ describe("venues API", () => {
     it("returns 400 for a bad filter before reading the drunk beers and 401 without identity", async () => {
       const badZone = await getAs(ALICE_ID, `north=50&${UNDISCOVERED}`);
       const anonymous = await request(app.getHttpServer()).get(`${VENUES_PATH}?${UNDISCOVERED}`);
+
+      expect(badZone.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(badZone.body).toEqual({ message: "north, south, east and west must be supplied together." });
+      expect(anonymous.status).toBe(HttpStatus.UNAUTHORIZED);
+      expect(anonymous.body).toEqual({ message: UNIDENTIFIED_USER_MESSAGE });
+    });
+  });
+
+  describe("check-in visits", () => {
+    const DELIRIUM = "Delirium Café";
+    const NO_VISIT = { checkinCount: 0, lastCheckinAt: null };
+
+    const getAs = (userId: string, path: string) =>
+      request(app.getHttpServer()).get(path).set(USER_ID_HEADER_NAME, userId);
+
+    const drink = async (userId: string, drankAt: string, venueId: number | null): Promise<number> => {
+      const call = request(app.getHttpServer())
+        .post(CHECKINS_PATH)
+        .set(USER_ID_HEADER_NAME, userId)
+        .field("beerId", String(orvalId))
+        .field("drankAt", drankAt)
+        .field("place", DELIRIUM)
+        .field("format", "bottle");
+      const response = await (venueId === null ? call : call.field("venueId", String(venueId)));
+      expect(response.status).toBe(HttpStatus.CREATED);
+      return (response.body as { checkin: { id: number } }).checkin.id;
+    };
+
+    const listAs = async (userId: string): Promise<VenueBody[]> => {
+      const response = await getAs(userId, VENUES_PATH);
+      expect(response.status).toBe(HttpStatus.OK);
+      return response.body as VenueBody[];
+    };
+
+    const venueOf = (venues: readonly VenueBody[], name: string): VenueBody => {
+      const venue = venues.find((item) => item.name === name);
+      expect(venue).toBeDefined();
+      return venue as VenueBody;
+    };
+
+    const visitOf = (venue: VenueBody) => ({ checkinCount: venue.checkinCount, lastCheckinAt: venue.lastCheckinAt });
+
+    it("does not count a check-in whose place text names the venue but that has no venue reference", async () => {
+      await drink(ALICE_ID, "2026-10-12T18:00:00.000Z", null);
+
+      const venues = await listAs(ALICE_ID);
+
+      expect(venues).toHaveLength(VENUE_COUNT);
+      expect(venues.map(visitOf)).toEqual(venues.map(() => NO_VISIT));
+    });
+
+    it("gives Delirium Café the count and the latest date of the linked check-ins of Alice and zero and null to every other venue", async () => {
+      const deliriumId = venueOf(await listAs(ALICE_ID), DELIRIUM).id;
+      await drink(ALICE_ID, "2026-10-09T18:00:00.000Z", deliriumId);
+      await drink(ALICE_ID, "2026-10-02T18:00:00.000Z", deliriumId);
+      await drink(BOB_ID, "2026-10-11T18:00:00.000Z", venueOf(await listAs(BOB_ID), "La Fine Mousse").id);
+
+      const venues = await listAs(ALICE_ID);
+
+      expect(venues).toHaveLength(VENUE_COUNT);
+      expect(visitOf(venueOf(venues, DELIRIUM))).toEqual({ checkinCount: 2, lastCheckinAt: "2026-10-09T18:00:00.000Z" });
+      const others = venues.filter((venue) => venue.name !== DELIRIUM);
+      expect(others).toHaveLength(VENUE_COUNT - 1);
+      expect(others.map(visitOf)).toEqual(others.map(() => NO_VISIT));
+    });
+
+    it("gives Bob zero and null on Delirium Café in the list and by id, and his own count on another venue", async () => {
+      const bobVenues = await listAs(BOB_ID);
+      const delirium = venueOf(bobVenues, DELIRIUM);
+
+      const detail = await getAs(BOB_ID, `${VENUES_PATH}/${delirium.id}`);
+
+      expect(visitOf(delirium)).toEqual(NO_VISIT);
+      expect(detail.status).toBe(HttpStatus.OK);
+      expect(detail.body).toEqual({ ...delirium, ...NO_VISIT });
+      expect(visitOf(venueOf(bobVenues, "La Fine Mousse"))).toEqual({
+        checkinCount: 1,
+        lastCheckinAt: "2026-10-11T18:00:00.000Z",
+      });
+    });
+
+    it("gives the detail of a venue the same values as the list", async () => {
+      const delirium = venueOf(await listAs(ALICE_ID), DELIRIUM);
+
+      const detail = await getAs(ALICE_ID, `${VENUES_PATH}/${delirium.id}`);
+
+      expect(detail.status).toBe(HttpStatus.OK);
+      expect(detail.body).toEqual(delirium);
+      expect(visitOf(detail.body as VenueBody)).toEqual({ checkinCount: 2, lastCheckinAt: "2026-10-09T18:00:00.000Z" });
+    });
+
+    it("sends the venue back to zero and null when Alice deletes her only linked check-in", async () => {
+      const triangleId = venueOf(await listAs(ALICE_ID), VENUE_WITHOUT_BEER).id;
+      const checkinId = await drink(ALICE_ID, "2026-10-05T18:00:00.000Z", triangleId);
+      expect(visitOf(venueOf(await listAs(ALICE_ID), VENUE_WITHOUT_BEER))).toEqual({
+        checkinCount: 1,
+        lastCheckinAt: "2026-10-05T18:00:00.000Z",
+      });
+
+      const removal = await getAsDelete(checkinId);
+      const venues = await listAs(ALICE_ID);
+
+      expect(removal.status).toBe(HttpStatus.NO_CONTENT);
+      expect(visitOf(venueOf(venues, VENUE_WITHOUT_BEER))).toEqual(NO_VISIT);
+      expect(visitOf(venueOf(venues, DELIRIUM))).toEqual({ checkinCount: 2, lastCheckinAt: "2026-10-09T18:00:00.000Z" });
+    });
+  });
+
+  describe("GET /api/v1/venues with visited", () => {
+    const VISITED = "visited=true";
+    const DELIRIUM = "Delirium Café";
+    const FINE_MOUSSE_NAME = "La Fine Mousse";
+    const VISITED_NOT_A_BOOLEAN_MESSAGE = "visited must be a boolean value";
+
+    const getAs = (userId: string, query: string) =>
+      request(app.getHttpServer()).get(`${VENUES_PATH}?${query}`).set(USER_ID_HEADER_NAME, userId);
+
+    const listAs = async (userId: string, query: string): Promise<VenueBody[]> => {
+      const response = await getAs(userId, query);
+      expect(response.status).toBe(HttpStatus.OK);
+      return response.body as VenueBody[];
+    };
+
+    const visitOf = (venue: VenueBody) => ({ checkinCount: venue.checkinCount, lastCheckinAt: venue.lastCheckinAt });
+
+    it("gives Alice only Delirium Café and La Fine Mousse, each with its visits", async () => {
+      const everything = await listAs(ALICE_ID, "");
+      const fineMousseId = (everything.find((venue) => venue.name === FINE_MOUSSE_NAME) as VenueBody).id;
+      const linked = await request(app.getHttpServer())
+        .post(CHECKINS_PATH)
+        .set(USER_ID_HEADER_NAME, ALICE_ID)
+        .field("beerId", String(orvalId))
+        .field("drankAt", "2026-10-07T18:00:00.000Z")
+        .field("place", FINE_MOUSSE_NAME)
+        .field("format", "bottle")
+        .field("venueId", String(fineMousseId));
+      expect(linked.status).toBe(HttpStatus.CREATED);
+
+      const venues = await listAs(ALICE_ID, VISITED);
+
+      expect(venues).toHaveLength(2);
+      expect(namesOf(venues).sort(byName)).toEqual([DELIRIUM, FINE_MOUSSE_NAME].sort(byName));
+      expect(venues).toEqual(everything.filter((venue) => [DELIRIUM, FINE_MOUSSE_NAME].includes(venue.name)).map((venue) => ({
+        ...venue,
+        ...(venue.name === DELIRIUM
+          ? { checkinCount: 2, lastCheckinAt: "2026-10-09T18:00:00.000Z" }
+          : { checkinCount: 1, lastCheckinAt: "2026-10-07T18:00:00.000Z" }),
+      })));
+    });
+
+    it("returns 200 and an empty list for Carol who has no linked check-in", async () => {
+      const response = await getAs(CAROL_ID, VISITED);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.body).toEqual([]);
+    });
+
+    it("gives Bob only the venue he visited, not the venues of Alice", async () => {
+      const venues = await listAs(BOB_ID, VISITED);
+
+      expect(venues).toHaveLength(1);
+      expect(venues[0].name).toBe(FINE_MOUSSE_NAME);
+      expect(visitOf(venues[0])).toEqual({ checkinCount: 1, lastCheckinAt: "2026-10-11T18:00:00.000Z" });
+    });
+
+    it("keeps only Delirium Café with the text bruxelles and only La Fine Mousse around Paris", async () => {
+      const brussels = await listAs(ALICE_ID, `q=bruxelles&${VISITED}`);
+      const paris = await listAs(ALICE_ID, `${PARIS_ZONE}&${VISITED}`);
+
+      expect(namesOf(brussels)).toEqual([DELIRIUM]);
+      expect(visitOf(brussels[0])).toEqual({ checkinCount: 2, lastCheckinAt: "2026-10-09T18:00:00.000Z" });
+      expect(namesOf(paris)).toEqual([FINE_MOUSSE_NAME]);
+      expect(visitOf(paris[0])).toEqual({ checkinCount: 1, lastCheckinAt: "2026-10-07T18:00:00.000Z" });
+    });
+
+    it.each(["visited=false", ""])("answers the same body as without the filter for %j", async (query) => {
+      const baseline = await get(VENUES_PATH);
+
+      const response = await getAs(ALICE_ID, query);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.body).toEqual(baseline.body);
+      expect(response.body).toHaveLength(VENUE_COUNT);
+    });
+
+    it.each(["yes", "1", "TRUE"])("returns 400 for visited=%s", async (value) => {
+      const response = await getAs(ALICE_ID, `visited=${value}`);
+
+      expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(response.body).toEqual({ message: VISITED_NOT_A_BOOLEAN_MESSAGE });
+    });
+
+    it("returns 400 for a bad zone before reading the visits and 401 without identity", async () => {
+      const badZone = await getAs(ALICE_ID, `north=50&${VISITED}`);
+      const anonymous = await request(app.getHttpServer()).get(`${VENUES_PATH}?${VISITED}`);
 
       expect(badZone.status).toBe(HttpStatus.BAD_REQUEST);
       expect(badZone.body).toEqual({ message: "north, south, east and west must be supplied together." });

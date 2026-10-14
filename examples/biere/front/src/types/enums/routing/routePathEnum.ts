@@ -21,5 +21,10 @@ export const buildUserProfilePath = (userId: number): string =>
 
 export const buildMapPathForBeer = (beerId: number): string => `${RoutePathEnum.MAP}?beer=${beerId}`;
 
+export const buildMapPathForVenue = (venueId: number): string => `${RoutePathEnum.MAP}?venue=${venueId}`;
+
 export const parseBeerIdParam = (value: string | undefined): number | null =>
   value !== undefined && POSITIVE_INTEGER_PATTERN.test(value) ? Number(value) : null;
+
+export const parseVenueIdParam = (value: string | null): number | null =>
+  value !== null && POSITIVE_INTEGER_PATTERN.test(value) ? Number(value) : null;

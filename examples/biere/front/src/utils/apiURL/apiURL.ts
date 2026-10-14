@@ -6,6 +6,8 @@ export const BEERS = () => `${API_V1()}/beers`;
 
 export const BEER_STYLES = () => `${API_V1()}/beer-styles`;
 
+export const BREWERIES = () => `${API_V1()}/breweries`;
+
 export const BEER_BY_ID = (beerId: number) => `${BEERS()}/${beerId}`;
 
 export const BEER_VENUES = (beerId: number) => `${BEER_BY_ID(beerId)}/venues`;
@@ -25,6 +27,8 @@ export const CHECKINS = () => `${API_V1()}/checkins`;
 export const CHECKIN_BY_ID = (checkinId: number) => `${CHECKINS()}/${checkinId}`;
 
 export const VENUES = () => `${API_V1()}/venues`;
+
+export const VENUE_BY_ID = (venueId: number) => `${VENUES()}/${venueId}`;
 
 export const VENUE_BEERS = (venueId: number) => `${VENUES()}/${venueId}/beers`;
 

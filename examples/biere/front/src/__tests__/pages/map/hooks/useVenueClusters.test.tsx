@@ -21,6 +21,8 @@ const buildVenue = (
   longitude,
   description: "",
   distanceKm: null,
+  checkinCount: 0,
+  lastCheckinAt: null,
   status: AvailabilityStatusEnum.CONFIRMED,
 });
 

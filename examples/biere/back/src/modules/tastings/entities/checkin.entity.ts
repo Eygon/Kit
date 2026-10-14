@@ -25,6 +25,9 @@ export class Checkin {
   @Column({ type: "varchar", length: CHECKIN_PLACE_MAX_LENGTH })
   place!: string;
 
+  @Column({ type: "integer", nullable: true })
+  venueId!: number | null;
+
   @Column({ type: "real", nullable: true })
   rating!: number | null;
 

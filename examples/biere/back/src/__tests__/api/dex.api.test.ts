@@ -7,6 +7,7 @@ import { USER_ID_HEADER_NAME } from "@/__tests__/support/user-header";
 import { UNIDENTIFIED_USER_MESSAGE } from "@/common/exceptions/exception-messages.constants";
 import { ALICE_USER_ID, BOB_USER_ID } from "@/database/seed.constants";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
+import type { BeerDetailDto } from "@/modules/beers/dtos/beer-detail.dto";
 import type { BeerPageDto } from "@/modules/beers/dtos/beer-page.dto";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import type { CreatedCheckinDto } from "@/modules/pokedex/dtos/created-checkin.dto";
@@ -21,6 +22,7 @@ const TRAPPIST_TOTAL = 11;
 const ORVAL_FIRST_DATE = "2025-10-01T18:00:00.000Z";
 const ORVAL_LAST_DATE = "2025-10-10T18:00:00.000Z";
 const DUVEL_DATE = "2025-10-05T18:00:00.000Z";
+const COMMUNITY_DATE = "2025-10-07T18:00:00.000Z";
 
 describe("dex API", () => {
   let app: INestApplication;
@@ -164,6 +166,43 @@ describe("dex API", () => {
       expect(dex.discovered).toBe(1);
       expect(dex.beers.map((beer) => beer.beerId)).toEqual([orval.id]);
       expect(familiesWithDiscovery(dex).map((family) => family.family)).toEqual([BeerFamilyEnum.TRAPPIST]);
+    });
+  });
+
+  describe("a community beer proposed by Alice", () => {
+    let community: BeerDetailDto;
+    let before: DexDto;
+
+    beforeAll(async () => {
+      before = await readDex(BOB_USER_ID);
+      const response = await request(app.getHttpServer())
+        .post(BEERS_PATH)
+        .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID))
+        .send({ styleId: orval.styleId, name: "Brune du Mont", breweryName: "Brasserie du Mont", country: "FR", abv: 6.5 });
+      expect(response.status).toBe(HttpStatus.CREATED);
+      community = response.body as BeerDetailDto;
+    });
+
+    it("keeps the total at 120 and the family totals unchanged for Bob", async () => {
+      const dex = await readDex(BOB_USER_ID);
+
+      expect(dex.total).toBe(CATALOG_SIZE);
+      expect(dex.families).toEqual(before.families);
+      expect(dex.families.find((family) => family.family === orval.family)?.total).toBe(TRAPPIST_TOTAL);
+      expect(dex.families.reduce((sum, family) => sum + family.total, 0)).toBe(CATALOG_SIZE);
+    });
+
+    it("keeps discovered at 0 and the family still, but keeps the discovery date, once Bob drinks it", async () => {
+      expect(community.source).toBe("community");
+
+      await drink(BOB_USER_ID, community.id, COMMUNITY_DATE);
+      const dex = await readDex(BOB_USER_ID);
+
+      expect(dex.discovered).toBe(0);
+      expect(dex.total).toBe(CATALOG_SIZE);
+      expect(dex.families).toEqual(before.families);
+      expect(familiesWithDiscovery(dex)).toEqual([]);
+      expect(dex.beers).toEqual([{ beerId: community.id, firstCheckinAt: COMMUNITY_DATE, lastCheckinAt: COMMUNITY_DATE }]);
     });
   });
 });

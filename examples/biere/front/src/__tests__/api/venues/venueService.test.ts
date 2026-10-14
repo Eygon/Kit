@@ -6,6 +6,7 @@ import { VenueTypeEnum } from "@/types/enums/venue/venueTypeEnum";
 import { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
 import VenueService from "@/api/venues/venueService";
 import { HttpError } from "@/api/httpError";
+import { venueDtoToModel } from "@/types/mappers/venue/venueMapper";
 import { VoteSenseEnum } from "@/types/enums/venue/voteSenseEnum";
 import i18n from "@/i18n/i18n";
 import type { NewVenue } from "@/types/models/venue/newVenue";
@@ -28,6 +29,8 @@ const venueDto = {
   longitude: 2.3522,
   description: "",
   distanceKm: null,
+  checkinCount: 0,
+  lastCheckinAt: null,
   status: "confirmed",
 };
 
@@ -52,6 +55,7 @@ describe("VenueService.getAll", () => {
       family: BeerFamilyEnum.STOUT,
       beerId: 7,
       confirmedOnly: true,
+      visited: true,
       position: { latitude: 48.85, longitude: 2.35 },
       radiusKm: 10,
     };
@@ -62,7 +66,7 @@ describe("VenueService.getAll", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(
-      `${VENUES_URL}?north=48.9&south=48.8&east=2.4&west=2.2&type=bar&type=brewery&beer=7&family=stout&confirmedOnly=true&latitude=48.85&longitude=2.35&radiusKm=10`,
+      `${VENUES_URL}?north=48.9&south=48.8&east=2.4&west=2.2&type=bar&type=brewery&beer=7&family=stout&confirmedOnly=true&visited=true&latitude=48.85&longitude=2.35&radiusKm=10`,
     );
     expect(init.method).toBe("GET");
   });
@@ -596,5 +600,76 @@ describe("VenueService.getForBeer", () => {
 
     await expect(VenueService.getForBeer(7)).rejects.toBe(networkError);
     expect(toast.danger).not.toHaveBeenCalled();
+  });
+});
+
+describe("VenueService.getById", () => {
+  const gone = "Ce lieu n'est plus sur la carte.";
+
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.mocked(toast.danger).mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("AC1 requests /venues/{id} with a GET and returns the whole venue as a model without a toast", async () => {
+    const dto = { ...venueDto, checkinCount: 3, lastCheckinAt: "2026-03-02T21:30:00.000Z" };
+    mockFetch.mockImplementation(async () => json(dto));
+
+    const venue = await VenueService.getById(12);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${VENUES_URL}/12`);
+    expect(init.method).toBe("GET");
+    expect(venue).toEqual(venueDtoToModel(dto));
+    expect(venue).toMatchObject({ id: 12, name: "Le Trappiste", checkinCount: 3 });
+    expect(venue?.lastCheckinAt).toEqual(new Date("2026-03-02T21:30:00.000Z"));
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it("returns null on a 204 answer without a toast", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(VenueService.getById(12)).resolves.toBeNull();
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it("AC2 on a 404 returns null and shows one toast with the gone text only", async () => {
+    mockFetch.mockImplementation(async () => json({ message: "unknown" }, 404));
+
+    await expect(VenueService.getById(99)).resolves.toBeNull();
+
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith(gone);
+  });
+
+  it.each([
+    [400, "La demande est invalide."],
+    [401, "Vous devez être identifié."],
+    [500, "Une erreur est survenue. Réessayez."],
+  ])("AC3 on status %s returns null and shows one toast with its own text, not the gone text", async (status, text) => {
+    mockFetch.mockImplementation(async () => json({ message: "x" }, status));
+
+    await expect(VenueService.getById(12)).resolves.toBeNull();
+
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith(text);
+    expect(toast.danger).not.toHaveBeenCalledWith(gone);
+  });
+
+  it("AC3 on a network failure returns null and shows one generic toast", async () => {
+    mockFetch.mockImplementation(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+
+    await expect(VenueService.getById(12)).resolves.toBeNull();
+
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith("Une erreur est survenue. Réessayez.");
   });
 });

@@ -19,6 +19,7 @@ const checkin = (id: number, userId: number, beerId: number, drankAt: string, ov
   beerId,
   drankAt,
   place: "Paris",
+  venueId: null,
   rating: 4,
   aromas: [],
   format: BeerFormatEnum.BOTTLE,

@@ -1,0 +1,202 @@
+[
+  {
+    "userName": "Bob",
+    "beerName": "Pilsner Urquell",
+    "rating": 4.5,
+    "text": "Pils de référence, amertume noble franche et finale sèche. Je n'en bois pas d'autre en terrasse.",
+    "sweetness": 2,
+    "acidity": 1,
+    "body": 3,
+    "daysAgo": 3
+  },
+  {
+    "userName": "Carol",
+    "beerName": "Pilsner Urquell",
+    "rating": 4,
+    "text": "Très belle blonde tchèque, un peu de caramel en bouche et une amertume bien dosée.",
+    "sweetness": 2,
+    "acidity": 1,
+    "body": 3,
+    "daysAgo": 14
+  },
+  {
+    "userName": "Bob",
+    "beerName": "Sierra Nevada Pale Ale",
+    "rating": 4,
+    "text": "Pale ale américaine équilibrée : agrumes, résine et une belle présence de malt.",
+    "sweetness": 2,
+    "acidity": 2,
+    "body": 3,
+    "daysAgo": 5
+  },
+  {
+    "userName": "Carol",
+    "beerName": "Sierra Nevada Pale Ale",
+    "rating": 4.5,
+    "text": "Un classique qui n'a pas pris une ride. Houblon pamplemousse, très désaltérante.",
+    "sweetness": 1,
+    "acidity": 2,
+    "body": 2,
+    "daysAgo": 21
+  },
+  {
+    "userName": "Bob",
+    "beerName": "Torpedo Extra IPA",
+    "rating": 5,
+    "text": "Houblonnée à souhait, résineuse et agrumée, avec une amertume qui reste longtemps.",
+    "sweetness": 1,
+    "acidity": 2,
+    "body": 4,
+    "daysAgo": 8
+  },
+  {
+    "userName": "Carol",
+    "beerName": "Torpedo Extra IPA",
+    "rating": 3.5,
+    "text": "Puissante et très amère, un peu trop pour moi, mais le nez est superbe.",
+    "sweetness": 1,
+    "acidity": 2,
+    "body": 4,
+    "daysAgo": 30
+  },
+  {
+    "userName": "Bob",
+    "beerName": "Goose Island IPA",
+    "rating": 3.5,
+    "text": "IPA correcte, fruitée et facile à boire, sans grande surprise.",
+    "sweetness": 2,
+    "acidity": 2,
+    "body": 3,
+    "daysAgo": 12
+  },
+  {
+    "userName": "Carol",
+    "beerName": "Goose Island IPA",
+    "rating": 4,
+    "text": "Jolie IPA de Chicago, notes de fruits tropicaux et finale nette.",
+    "sweetness": 2,
+    "acidity": 3,
+    "body": 3,
+    "daysAgo": 45
+  },
+  {
+    "userName": "Bob",
+    "beerName": "Lagunitas IPA",
+    "rating": 4,
+    "text": "Houblon généreux, un peu de caramel en soutien. Idéale pour l'apéro.",
+    "sweetness": 2,
+    "acidity": 2,
+    "body": 3,
+    "daysAgo": 2
+  },
+  {
+    "userName": "Carol",
+    "beerName": "Lagunitas IPA",
+    "rating": 4.5,
+    "text": "Aromatique et ronde, une IPA que je reprends volontiers à chaque fois.",
+    "sweetness": 3,
+    "acidity": 2,
+    "body": 3,
+    "daysAgo": 27
+  },
+  {
+    "userName": "Bob",
+    "beerName": "Jupiler",
+    "rating": 2.5,
+    "text": "Pils belge très simple, légère et rafraîchissante, mais sans grand relief.",
+    "sweetness": 3,
+    "acidity": 1,
+    "body": 1,
+    "daysAgo": 18
+  },
+  {
+    "userName": "Carol",
+    "beerName": "Jupiler",
+    "rating": 3,
+    "text": "Fait le travail en été, bien froide. Peu de caractère.",
+    "sweetness": 3,
+    "acidity": 1,
+    "body": 2,
+    "daysAgo": 41
+  },
+  {
+    "userName": "Bob",
+    "beerName": "Stella Artois",
+    "rating": 3,
+    "text": "Lager classique, un peu sucrée au nez, finale courte et propre.",
+    "sweetness": 3,
+    "acidity": 1,
+    "body": 2,
+    "daysAgo": 9
+  },
+  {
+    "userName": "Carol",
+    "beerName": "Stella Artois",
+    "rating": 2.5,
+    "text": "Correcte mais standard, je préfère les pils plus houblonnées.",
+    "sweetness": 3,
+    "acidity": 1,
+    "body": 1,
+    "daysAgo": 55
+  },
+  {
+    "userName": "Bob",
+    "beerName": "Punk IPA",
+    "rating": 4,
+    "text": "Le houblon néo-zélandais éclate : fruits exotiques, amertume nette et tonique.",
+    "sweetness": 1,
+    "acidity": 2,
+    "body": 3,
+    "daysAgo": 6
+  },
+  {
+    "userName": "Carol",
+    "beerName": "Punk IPA",
+    "rating": 4.5,
+    "text": "Une IPA fraîche et pleine de fruits, parfaite avec un plat épicé.",
+    "sweetness": 2,
+    "acidity": 2,
+    "body": 3,
+    "daysAgo": 33
+  },
+  {
+    "userName": "Bob",
+    "beerName": "La Chouffe",
+    "rating": 4,
+    "text": "Blonde belge épicée à la coriandre, ronde et fruitée, dangereusement facile.",
+    "sweetness": 3,
+    "acidity": 2,
+    "body": 4,
+    "daysAgo": 16
+  },
+  {
+    "userName": "Carol",
+    "beerName": "La Chouffe",
+    "rating": 3.5,
+    "text": "Épices douces et belle rondeur, un peu sucrée à mon goût.",
+    "sweetness": 4,
+    "acidity": 2,
+    "body": 4,
+    "daysAgo": 60
+  },
+  {
+    "userName": "Bob",
+    "beerName": "Delirium Tremens",
+    "rating": 3.5,
+    "text": "Forte et aromatique, banane et épices, mais l'alcool se sent en finale.",
+    "sweetness": 4,
+    "acidity": 2,
+    "body": 5,
+    "daysAgo": 24
+  },
+  {
+    "userName": "Carol",
+    "beerName": "Delirium Tremens",
+    "rating": 4,
+    "text": "Complexe et gourmande, à partager. Belle mousse et longue finale.",
+    "sweetness": 4,
+    "acidity": 2,
+    "body": 4,
+    "daysAgo": 1
+  }
+]

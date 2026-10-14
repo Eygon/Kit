@@ -7,6 +7,7 @@ export interface CheckinDto {
   readonly beerName: string;
   readonly drankAt: string;
   readonly place: string;
+  readonly venueId: number | null;
   readonly rating: number | null;
   readonly aromas: readonly BeerAromaEnum[];
   readonly format: BeerFormatEnum;

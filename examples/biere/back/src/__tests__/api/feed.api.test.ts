@@ -161,6 +161,26 @@ describe("feed API", () => {
     expect(feed.items[0].beerName).not.toBe("");
   });
 
+  it("keeps the place text and no venue reference on the card of a tasting linked to a venue", async () => {
+    await follow(ALICE_USER_ID, BOB_USER_ID);
+    const linked = await request(app.getHttpServer())
+      .post(CHECKINS_PATH)
+      .set(USER_ID_HEADER_NAME, String(BOB_USER_ID))
+      .field("beerId", String(beerIds[0]))
+      .field("drankAt", "2025-10-01T18:00:00.000Z")
+      .field("place", "La Fine Mousse")
+      .field("venueId", "1")
+      .field("format", "bottle");
+    expect(linked.status).toBe(HttpStatus.CREATED);
+    expect((linked.body as CreatedCheckinDto).checkin.venueId).toBe(1);
+
+    const feed = await feedOf(ALICE_USER_ID);
+
+    expect(feed.items).toHaveLength(1);
+    expect(feed.items[0].place).toBe("La Fine Mousse");
+    expect(feed.items[0]).not.toHaveProperty("venueId");
+  });
+
   it("shows on each card the name of the beer of its own tasting", async () => {
     await follow(ALICE_USER_ID, BOB_USER_ID);
     const first = await drink(BOB_USER_ID, beerIds[0], "2025-10-01T18:00:00.000Z");

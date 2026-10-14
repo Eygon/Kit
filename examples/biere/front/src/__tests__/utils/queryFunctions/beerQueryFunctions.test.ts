@@ -1,11 +1,11 @@
 import type { Mock } from "vitest";
 import BeerService from "@/api/beers/beerService";
-import { fetchBeer, fetchBeerPage } from "@/utils/queryFunctions/beerQueryFunctions";
+import { createBeer, fetchBeer, fetchBeerPage } from "@/utils/queryFunctions/beerQueryFunctions";
 import { EMPTY_BEER_QUERY } from "@/types/mappers/beer/beerQueryMapper";
 
 
 vi.mock("@/api/beers/beerService", () => ({
-  default: { getPage: vi.fn(), getById: vi.fn() },
+  default: { getPage: vi.fn(), getById: vi.fn(), create: vi.fn() },
 }));
 
 describe("fetchBeerPage", () => {
@@ -57,5 +57,31 @@ describe("fetchBeer", () => {
     (BeerService.getById as Mock).mockRejectedValue(new Error("down"));
 
     await expect(fetchBeer(7)).rejects.toThrow("down");
+  });
+});
+
+const NEW_BEER_STUB = { name: "Orval", breweryName: "Brasserie", country: "BE", styleId: 12, abv: 6.2, description: "" };
+
+describe("createBeer", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("delegates to BeerService.create with the new beer and returns the created beer", async () => {
+    const newBeer = { name: "Orval", breweryName: "Brasserie d'Orval", country: "BE", styleId: 12, abv: 6.2, description: "" };
+    const created = { id: 90, name: "Orval" };
+    (BeerService.create as Mock).mockResolvedValue(created);
+
+    const result = await createBeer(newBeer);
+
+    expect(BeerService.create).toHaveBeenCalledTimes(1);
+    expect(BeerService.create).toHaveBeenCalledWith(newBeer);
+    expect(result).toBe(created);
+  });
+
+  it("lets the service rejection through", async () => {
+    (BeerService.create as Mock).mockRejectedValue(new Error("down"));
+
+    await expect(createBeer(NEW_BEER_STUB)).rejects.toThrow("down");
   });
 });

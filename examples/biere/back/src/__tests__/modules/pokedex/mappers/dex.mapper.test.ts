@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { toDexDto } from "@/modules/pokedex/mappers/dex.mapper";
@@ -19,6 +20,8 @@ const buildBeer = (id: number, family: BeerFamilyEnum): BeerDto => ({
   bitternessLevel: null,
   colorLevel: null,
   styleColorRange: null,
+  source: BeerSourceEnum.OFFICIAL,
+  createdBy: null,
 });
 
 const DUVEL_DISCOVERY: DiscoveryDto = { beerId: 5, firstCheckinAt: "2025-10-05T18:00:00.000Z", lastCheckinAt: "2025-10-05T18:00:00.000Z" };
@@ -60,6 +63,59 @@ describe("toDexDto", () => {
       { family: BeerFamilyEnum.TRAPPIST, discovered: 1, total: 11 },
       { family: BeerFamilyEnum.BELGIAN_STRONG, discovered: 1, total: 9 },
     ]);
+  });
+
+  describe("community beers", () => {
+    const communityBeer = (id: number, family: BeerFamilyEnum): BeerDto => ({
+      ...buildBeer(id, family),
+      source: BeerSourceEnum.COMMUNITY,
+      createdBy: 2,
+    });
+    const COMMUNITY_DISCOVERY: DiscoveryDto = {
+      beerId: 77,
+      firstCheckinAt: "2025-10-07T18:00:00.000Z",
+      lastCheckinAt: "2025-10-08T18:00:00.000Z",
+    };
+    const TOTALS = { total: 20, families: [{ value: "trappist", count: 11 }, { value: "belgianStrong", count: 9 }] };
+
+    it("counts neither the overall discovery nor the family progress of a community beer", () => {
+      const dex = toDexDto(TOTALS, [COMMUNITY_DISCOVERY], [communityBeer(77, BeerFamilyEnum.TRAPPIST)]);
+
+      expect(dex.discovered).toBe(0);
+      expect(dex.total).toBe(20);
+      expect(dex.families.find((family) => family.family === BeerFamilyEnum.TRAPPIST)).toStrictEqual({
+        family: BeerFamilyEnum.TRAPPIST,
+        discovered: 0,
+        total: 11,
+      });
+      expect(dex.families.every((family) => family.discovered === 0)).toBe(true);
+    });
+
+    it("keeps the discovery of a community beer in beers with its dates, in the order received", () => {
+      const discoveries = [COMMUNITY_DISCOVERY, DUVEL_DISCOVERY];
+      const beers = [communityBeer(77, BeerFamilyEnum.TRAPPIST), buildBeer(5, BeerFamilyEnum.BELGIAN_STRONG)];
+
+      expect(toDexDto(TOTALS, discoveries, beers).beers).toStrictEqual(discoveries);
+      expect(toDexDto(TOTALS, [...discoveries].reverse(), [...beers].reverse()).beers).toStrictEqual([
+        DUVEL_DISCOVERY,
+        COMMUNITY_DISCOVERY,
+      ]);
+    });
+
+    it("counts only the official discoveries when official and community beers of one family are mixed", () => {
+      const dex = toDexDto(
+        TOTALS,
+        [COMMUNITY_DISCOVERY, ORVAL_DISCOVERY, DUVEL_DISCOVERY],
+        [communityBeer(77, BeerFamilyEnum.TRAPPIST), buildBeer(12, BeerFamilyEnum.TRAPPIST), buildBeer(5, BeerFamilyEnum.BELGIAN_STRONG)],
+      );
+
+      expect(dex.discovered).toBe(2);
+      expect(dex.beers).toHaveLength(3);
+      expect(dex.families.filter((family) => family.discovered > 0)).toStrictEqual([
+        { family: BeerFamilyEnum.TRAPPIST, discovered: 1, total: 11 },
+        { family: BeerFamilyEnum.BELGIAN_STRONG, discovered: 1, total: 9 },
+      ]);
+    });
   });
 
   it("keeps the discoveries in the order received, with exactly the three date fields", () => {

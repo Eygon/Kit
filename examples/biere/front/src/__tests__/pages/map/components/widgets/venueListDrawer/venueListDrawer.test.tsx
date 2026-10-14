@@ -29,6 +29,8 @@ const buildVenues = async (count: number): Promise<Venue[]> => {
     longitude: 2.35,
     description: "",
     distanceKm: null,
+    checkinCount: 0,
+    lastCheckinAt: null,
     status: statuses[index % statuses.length],
   }));
 };

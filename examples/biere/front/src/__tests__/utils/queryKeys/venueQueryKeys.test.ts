@@ -14,6 +14,7 @@ describe("venueKeys", () => {
     expect(venueKeys.list({ ...EMPTY_VENUE_QUERY })).toEqual(venueKeys.list(EMPTY_VENUE_QUERY));
     expect(venueKeys.list({ ...EMPTY_VENUE_QUERY, beerId: 7 })).not.toEqual(venueKeys.list(EMPTY_VENUE_QUERY));
     expect(venueKeys.list({ ...EMPTY_VENUE_QUERY, confirmedOnly: true })).not.toEqual(venueKeys.list(EMPTY_VENUE_QUERY));
+    expect(venueKeys.list({ ...EMPTY_VENUE_QUERY, visited: true })).not.toEqual(venueKeys.list(EMPTY_VENUE_QUERY));
   });
 });
 
@@ -28,5 +29,18 @@ describe("venueKeys.beers", () => {
     expect(venueKeys.beers(5)).toEqual(venueKeys.beers(5));
     expect(venueKeys.beers(5)).not.toEqual(venueKeys.beers(6));
     expect(venueKeys.beers(5)).not.toEqual(venueKeys.beers(null));
+  });
+});
+
+describe("venueKeys.detail", () => {
+  it("roots the detail of a venue under all, apart from the lists and the beers", () => {
+    expect(venueKeys.detail(5)).toEqual(["venues", "detail", 5]);
+    expect(venueKeys.detail(5).slice(0, 2)).not.toEqual(venueKeys.lists());
+    expect(venueKeys.detail(5)).not.toEqual(venueKeys.beers(5));
+  });
+
+  it("gives equal keys to the same venue and distinct keys to distinct venues", () => {
+    expect(venueKeys.detail(5)).toEqual(venueKeys.detail(5));
+    expect(venueKeys.detail(5)).not.toEqual(venueKeys.detail(6));
   });
 });

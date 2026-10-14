@@ -21,8 +21,8 @@ export class VenuesController {
 
   @Get(":id")
   @HttpCode(HttpStatus.OK)
-  getOne(@Param("id", ParseIntPipe) id: number): Promise<VenueDto> {
-    return this.venuesService.getVenue(id);
+  getOne(@CurrentUserId() userId: number, @Param("id", ParseIntPipe) id: number): Promise<VenueDto> {
+    return this.venuesService.getVenue(userId, id);
   }
 
   @Get(":id/beers")

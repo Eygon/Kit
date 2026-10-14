@@ -18,6 +18,9 @@ const ROW = {
   format: "draft",
   daysAgo: 3,
 };
+const FINE_MOUSSE_ID = 3;
+const VENUE_IDS = new Map([["La Fine Mousse", FINE_MOUSSE_ID]]);
+const REAL_VENUE_IDS = new Map(venuesSeed.map((venue, index) => [venue.name, index + 1]));
 const rowsOf = (userName: string) => demoCheckinsSeed.filter((row) => row.userName === userName);
 const distinctBeersOf = (userName: string): number => new Set(rowsOf(userName).map((row) => row.beerName)).size;
 const namesReviewedBy = (userName: string): string[] =>
@@ -38,6 +41,7 @@ describe("buildDemoCheckinRows", () => {
         ["pilsner urquell", 7],
         ["orval", 4],
       ]),
+      VENUE_IDS,
       NOW,
     );
 
@@ -48,13 +52,14 @@ describe("buildDemoCheckinRows", () => {
   });
 
   it("builds the whole row: date, empty comment, no aroma, no photo, no price", () => {
-    const [row] = buildDemoCheckinRows([ROW], new Map([["pilsner urquell", 7]]), NOW);
+    const [row] = buildDemoCheckinRows([ROW], new Map([["pilsner urquell", 7]]), VENUE_IDS, NOW);
 
     expect(row).toEqual({
       userId: BOB_USER_ID,
       beerId: 7,
       drankAt: new Date(NOW.getTime() - 3 * DAY_MS),
       place: "La Fine Mousse",
+      venueId: FINE_MOUSSE_ID,
       rating: 4.5,
       aromas: [],
       format: BeerFormatEnum.DRAFT,
@@ -64,10 +69,41 @@ describe("buildDemoCheckinRows", () => {
     });
   });
 
+  it.each([
+    ["a name that matches no venue", "Chez Personne"],
+    ["a name with another case", "la fine mousse"],
+    ["a name without its accents", "Academie de la Biere"],
+    ["a name with surrounding spaces", " La Fine Mousse "],
+    ["an empty text", ""],
+  ])("leaves the venue empty and still builds the row for %s", (_label, place) => {
+    const rows = buildDemoCheckinRows(
+      [{ ...ROW, place }, ROW],
+      new Map([["pilsner urquell", 7]]),
+      new Map([...VENUE_IDS, ["Académie de la Bière", 9]]),
+      NOW,
+    );
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toEqual({ ...rows[1], place, venueId: null });
+    expect(rows[1].venueId).toBe(FINE_MOUSSE_ID);
+  });
+
+  it("links each row to the venue of its exact name, accents included", () => {
+    const rows = buildDemoCheckinRows(
+      [{ ...ROW, place: "Académie de la Bière" }, ROW],
+      new Map([["pilsner urquell", 7]]),
+      new Map([...VENUE_IDS, ["Académie de la Bière", 9]]),
+      NOW,
+    );
+
+    expect(rows.map((row) => row.venueId)).toEqual([9, FINE_MOUSSE_ID]);
+  });
+
   it("keeps a null rating and a fractional number of days", () => {
     const [row] = buildDemoCheckinRows(
       [{ ...ROW, rating: null, daysAgo: 0.5 }],
       new Map([["pilsner urquell", 7]]),
+      VENUE_IDS,
       NOW,
     );
 
@@ -76,19 +112,19 @@ describe("buildDemoCheckinRows", () => {
   });
 
   it("rejects an unknown user", () => {
-    expect(() => buildDemoCheckinRows([{ ...ROW, userName: "Zoe" }], BEER_IDS, NOW)).toThrow(
+    expect(() => buildDemoCheckinRows([{ ...ROW, userName: "Zoe" }], BEER_IDS, VENUE_IDS, NOW)).toThrow(
       'Demo tasting of "Pilsner Urquell" has an unknown user "Zoe".',
     );
   });
 
   it("rejects an unknown beer", () => {
-    expect(() => buildDemoCheckinRows([{ ...ROW, beerName: "Nope" }], BEER_IDS, NOW)).toThrow(
+    expect(() => buildDemoCheckinRows([{ ...ROW, beerName: "Nope" }], BEER_IDS, VENUE_IDS, NOW)).toThrow(
       'Demo tasting by "Bob" has an unknown beer "Nope".',
     );
   });
 
   it("rejects an unknown format", () => {
-    expect(() => buildDemoCheckinRows([{ ...ROW, format: "keg" }], BEER_IDS, NOW)).toThrow(
+    expect(() => buildDemoCheckinRows([{ ...ROW, format: "keg" }], BEER_IDS, VENUE_IDS, NOW)).toThrow(
       'Demo tasting of "Pilsner Urquell" has an unknown format "keg".',
     );
   });
@@ -162,6 +198,14 @@ describe("demo-checkins.json", () => {
   });
 
   it("builds without error against the real catalog", () => {
-    expect(buildDemoCheckinRows(demoCheckinsSeed, BEER_IDS, NOW)).toHaveLength(demoCheckinsSeed.length);
+    expect(buildDemoCheckinRows(demoCheckinsSeed, BEER_IDS, REAL_VENUE_IDS, NOW)).toHaveLength(demoCheckinsSeed.length);
+  });
+
+  it("links the 21 demo tastings to the venue named in their text", () => {
+    const rows = buildDemoCheckinRows(demoCheckinsSeed, BEER_IDS, REAL_VENUE_IDS, NOW);
+
+    expect(rows).toHaveLength(demoCheckinsSeed.length);
+    expect(rows.map((row) => row.venueId)).toEqual(demoCheckinsSeed.map((row) => REAL_VENUE_IDS.get(row.place)));
+    expect(rows.filter((row) => row.venueId === null)).toEqual([]);
   });
 });

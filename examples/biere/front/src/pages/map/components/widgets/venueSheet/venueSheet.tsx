@@ -1,6 +1,7 @@
 import { Button, Chip, Drawer } from "@heroui/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { VenueVisitSummary } from "@/pages/map/components/elements/venueVisitSummary/venueVisitSummary";
 import { ReportBeerDrawer } from "@/pages/map/components/widgets/reportBeerDrawer/reportBeerDrawer";
 import { VenueBeerList } from "@/pages/map/components/widgets/venueBeerList/venueBeerList";
 import type { VenueSheetProps } from "@/pages/map/types/venueSheet";
@@ -29,6 +30,7 @@ export const VenueSheet = ({ venue, onClose }: VenueSheetProps) => {
                     <Drawer.Heading className="min-w-0 break-words">{venue.name}</Drawer.Heading>
                   </Drawer.Header>
                   <Drawer.Body className="flex max-h-[70dvh] min-w-0 flex-col gap-3 overflow-y-auto p-1">
+                    <VenueVisitSummary checkinCount={venue.checkinCount} lastCheckinAt={venue.lastCheckinAt} />
                     {venue.type !== null && (
                       <div className="flex">
                         <Chip size="sm">{t(VENUE_TYPE_LABEL_KEYS[venue.type])}</Chip>

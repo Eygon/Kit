@@ -18,6 +18,7 @@ const CHECKIN: CheckinDto = {
   beerName: "Orval",
   drankAt: "2026-03-14T17:00:00.000Z",
   place: "Le Bistrot",
+  venueId: null,
   rating: 4.5,
   aromas: [BeerAromaEnum.FRUITY],
   format: BeerFormatEnum.BOTTLE,

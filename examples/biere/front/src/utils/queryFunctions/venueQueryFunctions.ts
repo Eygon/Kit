@@ -5,6 +5,8 @@ import type { VenueQuery } from "@/types/models/venue/venueQuery";
 
 export const fetchVenues = (query: VenueQuery) => VenueService.getAll(query);
 
+export const fetchVenue = (venueId: number) => VenueService.getById(venueId);
+
 export const fetchVenueBeers = (venueId: number) => VenueService.getBeers(venueId);
 
 export const fetchBeerVenues = (beerId: number) => VenueService.getForBeer(beerId);

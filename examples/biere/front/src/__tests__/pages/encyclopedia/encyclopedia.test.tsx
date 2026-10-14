@@ -9,6 +9,7 @@ import { BeerFormatEnum } from "@/types/enums/beer/beerFormatEnum";
 import { BeerSortEnum } from "@/types/enums/beer/beerSortEnum";
 import { BeerStatusEnum } from "@/types/enums/beer/beerStatusEnum";
 import { EMPTY_BEER_QUERY, isEmptyBeerQuery } from "@/types/mappers/beer/beerQueryMapper";
+import { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
 import type { Beer } from "@/types/models/beer/beer";
 import type { BeerQuery } from "@/types/models/beer/beerQuery";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
@@ -31,6 +32,18 @@ const mockPreview = vi.hoisted(() => ({
 }));
 
 vi.mock("@/pages/encyclopedia/hooks/useBeerPreviewQuery", () => mockPreview);
+
+const mockStyles = vi.hoisted(() => ({
+  useBeerStyleGroupsQuery: vi.fn<() => Record<string, unknown>>(() => ({ groups: [], isPending: false, isError: false, refetch: vi.fn() })),
+}));
+
+vi.mock("@/pages/encyclopedia/hooks/useBeerStyleGroupsQuery", () => mockStyles);
+
+const mockBreweries = vi.hoisted(() => ({
+  useBreweriesQuery: vi.fn(() => ({ breweries: [], isPending: false, isError: false })),
+}));
+
+vi.mock("@/pages/encyclopedia/hooks/useBreweriesQuery", () => mockBreweries);
 
 const SKELETON_CARD_COUNT = 8;
 
@@ -56,6 +69,8 @@ const buildBeer = (id: number, overrides: Partial<Beer> = {}): Beer => ({
   reviewCount: 0,
   ratingDistribution: [],
   criteria: [],
+  source: BeerSourceEnum.OFFICIAL,
+  createdByName: null,
   ...overrides,
 });
 
@@ -995,5 +1010,171 @@ describe("EncyclopediaPage rating filter and sort", () => {
     expect(screen.queryByText(/filtres? actifs?/)).not.toBeInTheDocument();
     const dialog = await openFilters(user);
     expect(within(within(dialog).getByRole("radiogroup", { name: "Note minimale" })).getByRole("radio", { name: "Toutes" })).toBeChecked();
+  });
+});
+
+const PROPOSE_GROUPS = [{ family: "trappist", styles: [{ id: 12, name: "Tripel", description: "" }] }];
+
+const CREATED_BEER_DTO = {
+  id: 90,
+  name: "Orval",
+  breweryName: "Brasserie d'Orval",
+  country: "BE",
+  styleId: 12,
+  styleName: "Tripel",
+  family: "trappist",
+  abv: 6.2,
+  aromas: [],
+  formats: [],
+  description: "",
+  drunk: false,
+  checkinCount: 0,
+  inWishlist: false,
+};
+
+const PathProbe = () => {
+  const location = useLocation();
+  return <output aria-label="path">{location.pathname}</output>;
+};
+
+const renderProposePage = (initialPath = "/") =>
+  renderWithProviders(
+    <>
+      <EncyclopediaPage />
+      <PathProbe />
+    </>,
+    { initialPath },
+  );
+
+const addButtons = () => screen.queryAllByRole("button", { name: "Ajouter une bière" });
+
+describe("EncyclopediaPage propose a beer", () => {
+  const mockFetch = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    fetchNextPage.mockResolvedValue(undefined);
+    refetch.mockResolvedValue(undefined);
+    stubCatalog();
+    mockFetch.mockReset();
+    mockFetch.mockImplementation(async () => new Response(JSON.stringify(CREATED_BEER_DTO), { status: 201 }));
+    vi.stubGlobal("fetch", mockFetch);
+    mockStyles.useBeerStyleGroupsQuery.mockReturnValue({
+      groups: PROPOSE_GROUPS,
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("AC1 shows one discreet permanent Add a beer button right under the search and filters row, with no sheet open", () => {
+    renderProposePage();
+
+    expect(addButtons()).toHaveLength(1);
+    const button = addButtons()[0];
+    expect(button).toHaveClass("button--tertiary");
+    expect(button).toHaveClass("button--lg");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const search = screen.getByRole("searchbox", { name: "Rechercher une bière ou une brasserie" });
+    const filters = screen.getByRole("button", { name: /Filtres/ });
+    const families = screen.getByRole("grid", { name: "Familles" });
+    expect(search.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(filters.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(button.compareDocumentPosition(families) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("AC1 opens the sheet with the six fields and an empty name when the permanent button is pressed, even with a search typed", async () => {
+    const user = userEvent.setup();
+    renderProposePage("/?q=ipa");
+
+    await user.click(addButtons()[0]);
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Ajouter une bière" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("textbox", { name: /Nom de la bière/ })).toHaveValue("");
+    expect(within(dialog).getByRole("combobox", { name: /Brasserie/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Pays/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Style/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("textbox", { name: /Degré/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("textbox", { name: /Description/ })).toBeInTheDocument();
+  });
+
+  it("AC2 shows a second Add a beer button under the no-result panel that opens the sheet with the search as the name", async () => {
+    const user = userEvent.setup();
+    stubCatalog({ beers: [], total: 0, hasNextPage: false });
+    renderProposePage("/?q=zzz");
+
+    expect(addButtons()).toHaveLength(2);
+    const emptyTitle = screen.getByRole("heading", { level: 2, name: "Aucune bière ne correspond" });
+    const [permanentButton, emptyStateButton] = addButtons();
+    expect(emptyTitle.compareDocumentPosition(emptyStateButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(emptyTitle.compareDocumentPosition(permanentButton) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+
+    await user.click(emptyStateButton);
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("textbox", { name: /Nom de la bière/ })).toHaveValue("zzz");
+  });
+
+  it("AC2 opens with an empty name from the permanent button and with the search from the empty state, each time afresh", async () => {
+    const user = userEvent.setup();
+    stubCatalog({ beers: [], total: 0, hasNextPage: false });
+    renderProposePage("/?q=zzz");
+
+    await user.click(addButtons()[0]);
+    expect(await within(await screen.findByRole("dialog")).findByRole("textbox", { name: /Nom de la bière/ })).toHaveValue("");
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Fermer" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await user.click(addButtons()[1]);
+
+    expect(await within(await screen.findByRole("dialog")).findByRole("textbox", { name: /Nom de la bière/ })).toHaveValue("zzz");
+  });
+
+  it("shows no add button in the empty state when the catalog failed to load", () => {
+    stubCatalog({ beers: [], total: 0, isError: true, hasNextPage: false });
+    renderProposePage();
+
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(addButtons()).toHaveLength(1);
+  });
+
+  it("shows no add button while the catalog is loading", () => {
+    stubCatalog({ beers: [], total: 0, isPending: true, hasNextPage: false });
+    renderProposePage();
+
+    expect(addButtons()).toHaveLength(0);
+  });
+
+  it("AC6 opens the detail of the created beer and closes the sheet, and stays on the list when the sheet is closed without creating", async () => {
+    const user = userEvent.setup();
+    renderProposePage("/bieres");
+    await user.click(addButtons()[0]);
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Fermer" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByLabelText("path")).toHaveTextContent("/bieres");
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    await user.click(addButtons()[0]);
+    const form = within(await screen.findByRole("dialog"));
+    await user.click(form.getByRole("textbox", { name: /Nom de la bière/ }));
+    await user.paste("Orval");
+    await user.click(form.getByRole("combobox", { name: /Brasserie/ }));
+    await user.paste("Brasserie d'Orval");
+    await user.click(form.getByRole("button", { name: /Pays/ }));
+    await user.click(await screen.findByRole("option", { name: "Belgique" }));
+    await user.click(form.getByRole("button", { name: /Style/ }));
+    await user.click(await screen.findByRole("option", { name: "Tripel" }));
+    await user.click(form.getByRole("textbox", { name: /Degré/ }));
+    await user.paste("6,2");
+    await user.click(form.getByRole("button", { name: "Ajouter" }));
+
+    await waitFor(() => expect(screen.getByLabelText("path")).toHaveTextContent("/bieres/90"));
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 });

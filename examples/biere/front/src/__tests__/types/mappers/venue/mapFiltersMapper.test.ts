@@ -9,18 +9,19 @@ const FULL_FILTERS: MapFilters = {
   beerId: 7,
   confirmedOnly: true,
   undiscovered: true,
+  visited: true,
   radiusKm: 5,
 };
 
 describe("mapFiltersMapper", () => {
   it("exposes an empty filter set with nothing active", () => {
-    expect(EMPTY_MAP_FILTERS).toEqual({ types: [], family: null, beerId: null, confirmedOnly: false, undiscovered: false, radiusKm: null });
+    expect(EMPTY_MAP_FILTERS).toEqual({ types: [], family: null, beerId: null, confirmedOnly: false, undiscovered: false, visited: false, radiusKm: null });
     expect(countMapFilters(EMPTY_MAP_FILTERS)).toBe(0);
   });
 
   it("reads every filter of the address", () => {
 
-    const filters = searchParamsToMapFilters(new URLSearchParams("type=bar&type=shop&family=stout&beer=7&confirmed=1&undiscovered=1&radius=5"));
+    const filters = searchParamsToMapFilters(new URLSearchParams("type=bar&type=shop&family=stout&beer=7&confirmed=1&undiscovered=1&visited=1&radius=5"));
     expect(filters).toEqual(FULL_FILTERS);
   });
 
@@ -59,6 +60,24 @@ describe("mapFiltersMapper", () => {
     expect(mapFiltersToSearchParams({ ...EMPTY_MAP_FILTERS, undiscovered: false }).has("undiscovered")).toBe(false);
   });
 
+  it("US9 AC2 turns visited on for the value 1 only", () => {
+    expect(searchParamsToMapFilters(new URLSearchParams({ visited: "1" })).visited).toBe(true);
+    expect(searchParamsToMapFilters(new URLSearchParams({ visited: "1" })).undiscovered).toBe(false);
+  });
+
+  it.each(["0", "true", "yes", "2", ""])("US9 AC3 keeps visited off for the value %j", (value) => {
+    expect(searchParamsToMapFilters(new URLSearchParams({ visited: value })).visited).toBe(false);
+  });
+
+  it("US9 AC1 writes visited=1 only when it is on", () => {
+    expect(mapFiltersToSearchParams({ ...EMPTY_MAP_FILTERS, visited: true }).toString()).toBe("visited=1");
+    expect(mapFiltersToSearchParams({ ...EMPTY_MAP_FILTERS, visited: false }).has("visited")).toBe(false);
+  });
+
+  it("US9 AC4 combines visited with undiscovered and a type in the address", () => {
+    expect(mapFiltersToSearchParams({ ...EMPTY_MAP_FILTERS, types: [VenueTypeEnum.BAR], undiscovered: true, visited: true }).toString()).toBe("type=bar&undiscovered=1&visited=1");
+  });
+
   it.each(["1", "2", "5", "10"])("accepts the radius option %s", (value) => {
     expect(searchParamsToMapFilters(new URLSearchParams({ radius: value })).radiusKm).toBe(Number(value));
   });
@@ -70,11 +89,11 @@ describe("mapFiltersMapper", () => {
   it("keeps the valid filters when others are invalid", () => {
 
     const filters = searchParamsToMapFilters(new URLSearchParams("type=bar&family=wine&beer=abc&confirmed=1&radius=3"));
-    expect(filters).toEqual({ types: [VenueTypeEnum.BAR], family: null, beerId: null, confirmedOnly: true, undiscovered: false, radiusKm: null });
+    expect(filters).toEqual({ types: [VenueTypeEnum.BAR], family: null, beerId: null, confirmedOnly: true, undiscovered: false, visited: false, radiusKm: null });
   });
 
   it("writes every active filter into the address", () => {
-    expect(mapFiltersToSearchParams(FULL_FILTERS).toString()).toBe("type=bar&type=shop&family=stout&beer=7&confirmed=1&undiscovered=1&radius=5");
+    expect(mapFiltersToSearchParams(FULL_FILTERS).toString()).toBe("type=bar&type=shop&family=stout&beer=7&confirmed=1&undiscovered=1&visited=1&radius=5");
   });
 
   it("writes nothing for the empty filters", () => {
@@ -86,12 +105,13 @@ describe("mapFiltersMapper", () => {
   });
 
   it("counts one per place type and one per other active filter", () => {
-    expect(countMapFilters(FULL_FILTERS)).toBe(7);
+    expect(countMapFilters(FULL_FILTERS)).toBe(8);
     expect(countMapFilters({ ...EMPTY_MAP_FILTERS, types: [VenueTypeEnum.SHOP] })).toBe(1);
     expect(countMapFilters({ ...EMPTY_MAP_FILTERS, family: BeerFamilyEnum.STOUT })).toBe(1);
     expect(countMapFilters({ ...EMPTY_MAP_FILTERS, beerId: 7 })).toBe(1);
     expect(countMapFilters({ ...EMPTY_MAP_FILTERS, confirmedOnly: true })).toBe(1);
     expect(countMapFilters({ ...EMPTY_MAP_FILTERS, undiscovered: true })).toBe(1);
+    expect(countMapFilters({ ...EMPTY_MAP_FILTERS, visited: true })).toBe(1);
     expect(countMapFilters({ ...EMPTY_MAP_FILTERS, radiusKm: 2 })).toBe(1);
   });
 });

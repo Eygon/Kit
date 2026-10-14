@@ -24,4 +24,6 @@ export interface BeerDto {
   reviewCount?: number;
   ratingDistribution?: RatingBucketDto[];
   criteria?: CriterionAverageDto[];
+  source?: string;
+  createdByName?: string | null;
 }

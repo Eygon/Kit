@@ -11,4 +11,5 @@ export interface BeerFilters {
   readonly minRating?: number;
   readonly beerIds?: readonly number[];
   readonly excludedBeerIds?: readonly number[];
+  readonly officialOnly?: boolean;
 }

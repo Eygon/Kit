@@ -23,10 +23,11 @@ const checkinDto = {
   price: 3.5,
   comment: "Top",
   photoId: "6f1c0a52-8d3e-4c7b-9a1f-2b5e7d9c0a11",
+  venueId: 42,
 };
 
 const pageDto = {
-  items: [checkinDto, { ...checkinDto, id: 10, rating: null, format: "keg", price: null, photoId: null }],
+  items: [checkinDto, { ...checkinDto, id: 10, rating: null, format: "keg", price: null, photoId: null, venueId: null }],
   total: 25,
   page: 2,
   size: 20,
@@ -85,6 +86,7 @@ describe("CheckinService.getPage", () => {
       format: null,
       price: null,
       photoId: null,
+      venueId: null,
       aromas: ["fruity"],
     });
   });
@@ -118,6 +120,7 @@ describe("CheckinService.create", () => {
     beerId: 7,
     drankAt: "2026-10-12T12:00:00.000Z",
     place: "Chez Paul",
+    venueId: 5,
     format: "bottle",
     rating: 4.5,
     aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
@@ -129,6 +132,7 @@ describe("CheckinService.create", () => {
     beerId: 7,
     drankAt: "2026-10-12T12:00:00.000Z",
     place: "Chez Paul",
+    venueId: null,
     format: "can",
     rating: null,
     aromas: [],
@@ -176,6 +180,7 @@ describe("CheckinService.create", () => {
       beerId: "7",
       drankAt: "2026-10-12T12:00:00.000Z",
       place: "Chez Paul",
+      venueId: "5",
       format: "bottle",
       rating: "4.5",
       aromas: "fruity,hoppy",
@@ -195,6 +200,17 @@ describe("CheckinService.create", () => {
       place: "Chez Paul",
       format: "can",
     });
+  });
+
+  it("sends the venue id as a string only when the place is linked to a venue", async () => {
+    mockFetch.mockImplementation(async () => json(createdDto, 201));
+
+    await CheckinService.create({ ...minimalCheckin, venueId: 12 });
+    expect(sentBody().get("venueId")).toBe("12");
+
+    mockFetch.mockClear();
+    await CheckinService.create(minimalCheckin);
+    expect(sentBody().has("venueId")).toBe(false);
   });
 
   it("keeps a zero price and a zero rating, since they are filled in", async () => {
@@ -224,6 +240,7 @@ describe("CheckinService.create", () => {
       "beerId",
       "drankAt",
       "place",
+      "venueId",
       "format",
       "rating",
       "aromas",

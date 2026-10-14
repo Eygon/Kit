@@ -7,6 +7,7 @@ export const EMPTY_VENUE_QUERY: VenueQuery = {
   beerId: null,
   confirmedOnly: false,
   undiscovered: false,
+  visited: false,
   position: null,
   radiusKm: null,
   q: "",
@@ -25,6 +26,7 @@ export const venueQueryToSearchParams = (query: VenueQuery): URLSearchParams => 
   if (query.family !== null) params.append("family", query.family);
   if (query.confirmedOnly) params.append("confirmedOnly", "true");
   if (query.undiscovered) params.append("undiscovered", "true");
+  if (query.visited) params.append("visited", "true");
   if (query.position !== null) {
     params.append("latitude", query.position.latitude.toString());
     params.append("longitude", query.position.longitude.toString());

@@ -7,5 +7,6 @@ export interface MapFilters {
   beerId: number | null;
   confirmedOnly: boolean;
   undiscovered: boolean;
+  visited: boolean;
   radiusKm: number | null;
 }

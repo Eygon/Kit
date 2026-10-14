@@ -3,11 +3,13 @@ import {
   BEERS,
   BEER_BY_ID,
   BEER_STYLES,
+  BREWERIES,
   ME_BADGES,
   ME_DEX,
   ME_STATS,
   VENUES,
   VENUE_BEERS,
+  VENUE_BY_ID,
   VENUE_BEER_VOTES,
 } from "@/utils/apiURL/apiURL";
 import { API_BASE_URL } from "@/config/apiConfig";
@@ -25,6 +27,11 @@ describe("apiURL", () => {
   it("builds the beer styles route from the api root", () => {
     expect(BEER_STYLES()).toBe(`${API_V1()}/beer-styles`);
     expect(BEER_STYLES()).toMatch(/\/api\/v1\/beer-styles$/);
+  });
+
+  it("builds the breweries route from the api root", () => {
+    expect(BREWERIES()).toBe(`${API_V1()}/breweries`);
+    expect(BREWERIES()).toMatch(/\/api\/v1\/breweries$/);
   });
 
   it("builds the beer route from the beers collection and the id", () => {
@@ -68,5 +75,12 @@ describe("VENUE_BEER_VOTES", () => {
   it("builds the votes route from the venue beers route, the venue id and the beer id", () => {
     expect(VENUE_BEER_VOTES(12, 7)).toBe(`${VENUE_BEERS(12)}/7/votes`);
     expect(VENUE_BEER_VOTES(12, 7)).toMatch(/\/api\/v1\/venues\/12\/beers\/7\/votes$/);
+  });
+});
+
+describe("VENUE_BY_ID", () => {
+  it("builds the venue route from the venues collection and the venue id", () => {
+    expect(VENUE_BY_ID(12)).toBe(`${VENUES()}/12`);
+    expect(VENUE_BY_ID(12)).toMatch(/\/api\/v1\/venues\/12$/);
   });
 });

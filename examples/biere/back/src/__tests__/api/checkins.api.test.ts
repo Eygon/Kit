@@ -15,9 +15,11 @@ import type { CreatedCheckinDto } from "@/modules/pokedex/dtos/created-checkin.d
 
 const CHECKINS_PATH = "/api/v1/checkins";
 const BEERS_PATH = "/api/v1/beers";
+const VENUES_PATH = "/api/v1/venues";
 const MINUTE_MS = 60_000;
 const UNKNOWN_BEER_ID = 999_999;
 const UNKNOWN_CHECKIN_ID = 999_999;
+const UNKNOWN_VENUE_ID = 999_999;
 const PAST_DATE = "2026-03-14T17:00:00.000Z";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -99,6 +101,7 @@ describe("checkins API", () => {
           beerName: "Orval",
           drankAt: PAST_DATE,
           place: "Le Bistrot",
+          venueId: null,
           rating: 4.5,
           aromas: ["fruity", "hoppy"],
           format: "bottle",
@@ -143,6 +146,7 @@ describe("checkins API", () => {
         beerName: "Chimay Rouge",
         drankAt: "2026-03-14T18:30:00.000Z",
         place: "Chez moi",
+        venueId: null,
         rating: null,
         aromas: [],
         format: "can",
@@ -459,6 +463,193 @@ describe("checkins API", () => {
 
       expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
       expect(response.body).toEqual({ message: UNIDENTIFIED_USER_MESSAGE });
+    });
+  });
+
+  describe("venue link", () => {
+    let fineMousseId: number;
+
+    const findVenueId = async (name: string): Promise<number> => {
+      const response = await request(app.getHttpServer())
+        .get(VENUES_PATH)
+        .query({ q: name })
+        .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+      expect(response.status).toBe(HttpStatus.OK);
+      const venue = (response.body as { id: number; name: string }[]).find((item) => item.name === name);
+      if (venue === undefined) {
+        throw new Error(`${name} is not seeded`);
+      }
+      return venue.id;
+    };
+
+    const listByBeer = (beerId: number): request.Test =>
+      request(app.getHttpServer())
+        .get(CHECKINS_PATH)
+        .query({ beerId: String(beerId) })
+        .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+
+    beforeAll(async () => {
+      fineMousseId = await findVenueId("La Fine Mousse");
+    });
+
+    it("creates a check-in linked to a seeded venue and returns it in the creation, the detail and the list", async () => {
+      const response = await post(ALICE_USER_ID, {
+        ...VALID_FORM,
+        beerId: String(orvalId),
+        place: "La Fine Mousse",
+        venueId: String(fineMousseId),
+      });
+
+      expect(response.status).toBe(HttpStatus.CREATED);
+      const created = (response.body as CreatedCheckinDto).checkin;
+      expect(created).toEqual({
+        id: expect.any(Number),
+        beerId: orvalId,
+        beerName: "Orval",
+        drankAt: PAST_DATE,
+        place: "La Fine Mousse",
+        venueId: fineMousseId,
+        rating: 4.5,
+        aromas: ["fruity", "hoppy"],
+        format: "bottle",
+        price: 6.5,
+        comment: "Superbe soirée",
+        photoId: null,
+      });
+      const detail = await get(ALICE_USER_ID, created.id);
+      expect(detail.status).toBe(HttpStatus.OK);
+      expect(detail.body).toEqual(created);
+      const listed = await listByBeer(orvalId);
+      const items = (listed.body as { items: CheckinDto[] }).items;
+      expect(items.find((item) => item.id === created.id)).toEqual(created);
+    });
+
+    it("creates a free place check-in without venue and returns a null venueId everywhere", async () => {
+      const response = await post(ALICE_USER_ID, { ...VALID_FORM, beerId: String(chimayId), place: "Chez moi" });
+
+      expect(response.status).toBe(HttpStatus.CREATED);
+      const created = (response.body as CreatedCheckinDto).checkin;
+      expect(created).toEqual({
+        id: expect.any(Number),
+        beerId: chimayId,
+        beerName: "Chimay Rouge",
+        drankAt: PAST_DATE,
+        place: "Chez moi",
+        venueId: null,
+        rating: 4.5,
+        aromas: ["fruity", "hoppy"],
+        format: "bottle",
+        price: 6.5,
+        comment: "Superbe soirée",
+        photoId: null,
+      });
+      expect((await get(ALICE_USER_ID, created.id)).body).toEqual(created);
+      const items = ((await listByBeer(chimayId)).body as { items: CheckinDto[] }).items;
+      expect(items.find((item) => item.id === created.id)).toEqual(created);
+    });
+
+    it("answers 404 and writes no check-in nor photo for an unknown venue and a known beer", async () => {
+      const checkinsBefore = await count("checkins");
+      const photosBefore = await count("photos");
+
+      const response = await post(ALICE_USER_ID, {
+        ...VALID_FORM,
+        beerId: String(orvalId),
+        venueId: String(UNKNOWN_VENUE_ID),
+      }).attach("file", PNG_BUFFER, { filename: "photo.png", contentType: "image/png" });
+
+      expect(response.status).toBe(HttpStatus.NOT_FOUND);
+      expect(response.body).toEqual({ message: `Venue ${UNKNOWN_VENUE_ID} not found.` });
+      expect(await count("checkins")).toBe(checkinsBefore);
+      expect(await count("photos")).toBe(photosBefore);
+    });
+
+    it("answers 404 and writes nothing for an unknown venue without photo", async () => {
+      const checkinsBefore = await count("checkins");
+
+      const response = await post(ALICE_USER_ID, {
+        ...VALID_FORM,
+        beerId: String(orvalId),
+        venueId: String(UNKNOWN_VENUE_ID),
+      });
+
+      expect(response.status).toBe(HttpStatus.NOT_FOUND);
+      expect(response.body).toEqual({ message: `Venue ${UNKNOWN_VENUE_ID} not found.` });
+      expect(await count("checkins")).toBe(checkinsBefore);
+    });
+
+    it("answers the 404 of the beer when the beer and the venue are both unknown", async () => {
+      const response = await post(ALICE_USER_ID, {
+        ...VALID_FORM,
+        beerId: String(UNKNOWN_BEER_ID),
+        venueId: String(UNKNOWN_VENUE_ID),
+      });
+
+      expect(response.status).toBe(HttpStatus.NOT_FOUND);
+      expect(response.body).toEqual({ message: `Beer ${UNKNOWN_BEER_ID} not found.` });
+    });
+
+    it("answers 400 before 404 when the date is in the future and the venue is unknown", async () => {
+      const response = await post(ALICE_USER_ID, {
+        ...VALID_FORM,
+        beerId: String(orvalId),
+        venueId: String(UNKNOWN_VENUE_ID),
+        drankAt: minutesFromNow(60),
+      });
+
+      expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(response.body).toEqual({ message: "drankAt must not be in the future." });
+    });
+
+    it("answers 400 before 404 when the photo is invalid and the venue is unknown", async () => {
+      const checkinsBefore = await count("checkins");
+
+      const response = await post(ALICE_USER_ID, {
+        ...VALID_FORM,
+        beerId: String(orvalId),
+        venueId: String(UNKNOWN_VENUE_ID),
+      }).attach("file", TEXT_BUFFER, { filename: "photo.jpg", contentType: "image/jpeg" });
+
+      expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(response.body).toEqual({ message: "The photo must be a JPEG, PNG or WebP image." });
+      expect(await count("checkins")).toBe(checkinsBefore);
+    });
+
+    it("creates a check-in with a photo for a known venue", async () => {
+      const response = await post(ALICE_USER_ID, {
+        ...VALID_FORM,
+        beerId: String(orvalId),
+        venueId: String(fineMousseId),
+      }).attach("file", PNG_BUFFER, { filename: "photo.png", contentType: "image/png" });
+
+      expect(response.status).toBe(HttpStatus.CREATED);
+      const created = (response.body as CreatedCheckinDto).checkin;
+      expect(created.venueId).toBe(fineMousseId);
+      expect(created.photoId).toMatch(UUID_PATTERN);
+    });
+
+    it("answers 401 without identity before the venue control", async () => {
+      const response = await request(app.getHttpServer())
+        .post(CHECKINS_PATH)
+        .field("beerId", String(orvalId))
+        .field("venueId", String(UNKNOWN_VENUE_ID));
+
+      expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
+      expect(response.body).toEqual({ message: UNIDENTIFIED_USER_MESSAGE });
+    });
+
+    it.each([
+      ["abc", "venueId must not be less than 1; venueId must be an integer number"],
+      ["0", "venueId must not be less than 1"],
+      ["-3", "venueId must not be less than 1"],
+    ])("answers 400 for a venueId of %s and writes nothing", async (venueId, expectedMessage) => {
+      const before = await count("checkins");
+
+      const response = await post(ALICE_USER_ID, { ...VALID_FORM, beerId: String(orvalId), venueId });
+
+      expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(response.body).toEqual({ message: expectedMessage });
+      expect(await count("checkins")).toBe(before);
     });
   });
 });

@@ -16,6 +16,7 @@ const buildCheckin = (overrides: Partial<Checkin> = {}): Checkin => ({
   price: null,
   comment: "",
   photoId: null,
+  venueId: null,
   ...overrides,
 });
 
@@ -136,5 +137,34 @@ describe("CheckinEntry", () => {
     expect(screen.getByRole("link", { name: beerName })).toHaveClass(
       "break-words",
     );
+  });
+
+  it("shows a free place as plain text without a link", () => {
+    renderEntry({ showBeer: false, checkin: buildCheckin({ place: "Chez moi", venueId: null }) });
+
+    expect(screen.getByText("Chez moi").tagName).toBe("SPAN");
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("links a place tied to a venue to the map opened on that venue", () => {
+    renderEntry({ showBeer: false, checkin: buildCheckin({ place: "Delirium Café", venueId: 42 }) });
+
+    const link = screen.getByRole("link", { name: "Delirium Café" });
+    expect(link).toHaveAttribute("href", "/carte?venue=42");
+    expect(link).toHaveClass("min-h-11", "break-words", "text-accent", "focus-visible:focus-ring");
+  });
+
+  it("keeps the beer link and the venue link side by side", () => {
+    renderEntry({ checkin: buildCheckin({ place: "Delirium Café", venueId: 42 }) });
+
+    const links = within(screen.getByRole("listitem")).getAllByRole("link");
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/bieres/7", "/carte?venue=42"]);
+  });
+
+  it("lets a long unbroken venue name wrap", () => {
+    const place = "Brasserie-Artisanale-du-Mont-Blanc-".repeat(4);
+    renderEntry({ showBeer: false, checkin: buildCheckin({ place, venueId: 3 }) });
+
+    expect(screen.getByRole("link", { name: place })).toHaveClass("break-words");
   });
 });

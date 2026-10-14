@@ -126,4 +126,26 @@ describe("CreateCheckinDto", () => {
 
     expect(messages).toEqual(["rating must be divisible by 0.5"]);
   });
+
+  it("converts a venueId sent as a string and keeps it optional", async () => {
+    const dto = plainToInstance(CreateCheckinDto, { ...VALID_FORM, venueId: "14" });
+
+    expect(await validate(dto, { whitelist: true, forbidNonWhitelisted: true })).toEqual([]);
+    expect(dto.venueId).toBe(14);
+    expect(plainToInstance(CreateCheckinDto, VALID_FORM).venueId).toBeUndefined();
+  });
+
+  it("accepts a venueId of 1 and rejects 0 and -1", async () => {
+    expect(await messagesFor({ ...VALID_FORM, venueId: "1" })).toEqual([]);
+    expect(await messagesFor({ ...VALID_FORM, venueId: "0" })).toEqual(["venueId must not be less than 1"]);
+    expect(await messagesFor({ ...VALID_FORM, venueId: "-1" })).toEqual(["venueId must not be less than 1"]);
+  });
+
+  it.each([
+    ["abc", "venueId must not be less than 1; venueId must be an integer number"],
+    ["-3", "venueId must not be less than 1"],
+    ["1.5", "venueId must be an integer number"],
+  ])("rejects the venueId %s", async (venueId, expected) => {
+    expect((await messagesFor({ ...VALID_FORM, venueId })).join("; ")).toBe(expected);
+  });
 });

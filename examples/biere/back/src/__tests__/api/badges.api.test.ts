@@ -9,7 +9,10 @@ import { ALICE_USER_ID, BOB_USER_ID, CAROL_USER_ID } from "@/database/seed.const
 import type { BeerPageDto } from "@/modules/beers/dtos/beer-page.dto";
 import type { CatalogBeerDto } from "@/modules/beers/dtos/catalog-beer.dto";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
+import type { CheckinPageDto } from "@/modules/pokedex/dtos/checkin-page.dto";
 import type { CreatedCheckinDto } from "@/modules/pokedex/dtos/created-checkin.dto";
+import type { StatsDto } from "@/modules/profile/dtos/stats.dto";
+import type { BeerDetailDto } from "@/modules/beers/dtos/beer-detail.dto";
 import type { BadgeDto } from "@/modules/profile/dtos/badge.dto";
 import { BadgeKindEnum } from "@/modules/profile/enums/badge-kind.enum";
 import type { VenueBeerDto } from "@/modules/venues/dtos/venue-beer.dto";
@@ -19,6 +22,7 @@ import { VoteSenseEnum } from "@/modules/venues/enums/vote-sense.enum";
 const BADGES_PATH = "/api/v1/me/badges";
 const BEERS_PATH = "/api/v1/beers";
 const CHECKINS_PATH = "/api/v1/checkins";
+const STATS_PATH = "/api/v1/me/stats";
 const VENUES_PATH = "/api/v1/venues";
 const SENTINEL_TARGET = 10;
 const NOW = "2025-10-13T12:00:00.000Z";
@@ -382,6 +386,57 @@ describe("badges API", () => {
       current: 0,
       target: 1,
       comingSoon: true,
+    });
+  });
+
+  describe("a first tasting of a community beer", () => {
+    it("unlocks First sip, counts in the statistics and the journal, and moves neither Completist nor the family badge", async () => {
+      const [official] = findBeers(() => true, 1);
+      const proposal = await request(app.getHttpServer())
+        .post(BEERS_PATH)
+        .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID))
+        .send({ styleId: official.styleId, name: "Brune du Mont", breweryName: "Brasserie du Mont", country: "FR", abv: 6.5 });
+      expect(proposal.status).toBe(HttpStatus.CREATED);
+      const community = proposal.body as BeerDetailDto;
+      const readStats = async (): Promise<StatsDto> => {
+        const response = await request(app.getHttpServer()).get(STATS_PATH).set(USER_ID_HEADER_NAME, String(CAROL_USER_ID));
+        expect(response.status).toBe(HttpStatus.OK);
+        return response.body as StatsDto;
+      };
+      const before = (await readBadges(CAROL_USER_ID)).body as BadgeDto[];
+      const statsBefore = await readStats();
+      const familyBadgeId = `specialist-${official.family}`;
+      const completionistBefore = before.find((badge) => badge.id === "completionist");
+      const explorerBefore = before.find((badge) => badge.id === "explorer");
+
+      const communityTastingDate = minute("2025-06-01", 0);
+      expect(before.find((badge) => badge.id === "firstSip")?.unlockedAt).not.toBeNull();
+
+      const created = await drink(CAROL_USER_ID, community.id, communityTastingDate);
+
+      const after = (await readBadges(CAROL_USER_ID)).body as BadgeDto[];
+      expect(after.find((badge) => badge.id === "firstSip")).toMatchObject({
+        unlocked: true,
+        current: 1,
+        unlockedAt: communityTastingDate,
+      });
+      expect(after.find((badge) => badge.id === "completionist")).toEqual(completionistBefore);
+      expect(after.find((badge) => badge.id === familyBadgeId)).toEqual(before.find((badge) => badge.id === familyBadgeId));
+      expect(after.filter((badge) => badge.kind === BadgeKindEnum.SPECIALIST)).toEqual(
+        before.filter((badge) => badge.kind === BadgeKindEnum.SPECIALIST),
+      );
+      expect(after.find((badge) => badge.id === "explorer")?.current).toBe((explorerBefore?.current ?? 0) + 1);
+      const statsAfter = await readStats();
+      expect(statsAfter.checkinCount).toBe(statsBefore.checkinCount + 1);
+      expect(statsAfter.discoveredCount).toBe(statsBefore.discoveredCount + 1);
+      const journal = await request(app.getHttpServer())
+        .get(CHECKINS_PATH)
+        .query({ beerId: community.id })
+        .set(USER_ID_HEADER_NAME, String(CAROL_USER_ID));
+      expect(journal.status).toBe(HttpStatus.OK);
+      expect(
+        (journal.body as CheckinPageDto).items.map((item) => ({ id: item.id, beerId: item.beerId, beerName: item.beerName })),
+      ).toEqual([{ id: created.checkin.id, beerId: community.id, beerName: community.name }]);
     });
   });
 });

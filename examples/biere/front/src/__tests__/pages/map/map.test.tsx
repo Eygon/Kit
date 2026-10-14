@@ -28,6 +28,7 @@ const mockBeer = vi.hoisted(() => ({ useFilteredBeerQuery: vi.fn() }));
 const mockGeolocation = vi.hoisted(() => ({ useGeolocation: vi.fn() }));
 const mockVenueBeers = vi.hoisted(() => ({ useVenueBeersQuery: vi.fn() }));
 const mockSearch = vi.hoisted(() => ({ useVenueSearch: vi.fn() }));
+const mockLinked = vi.hoisted(() => ({ useLinkedVenue: vi.fn() }));
 const leaflet = vi.hoisted(() => ({
   dragEnd: undefined as
     | undefined
@@ -60,7 +61,8 @@ vi.mock("@/pages/map/hooks/useVenuesQuery", () => mockVenues);
 vi.mock("@/pages/map/hooks/useFilteredBeerQuery", () => mockBeer);
 vi.mock("@/pages/map/hooks/useGeolocation", () => mockGeolocation);
 vi.mock("@/pages/map/hooks/useVenueBeersQuery", () => mockVenueBeers);
-vi.mock("@/pages/map/hooks/useVenueSearch", () => mockSearch);
+vi.mock("@/hooks/venue/useVenueSearch", () => mockSearch);
+vi.mock("@/pages/map/hooks/useLinkedVenue", () => mockLinked);
 vi.mock("react-leaflet", () => ({
   MapContainer: ({
     children,
@@ -137,6 +139,13 @@ const urlSearch = () => screen.getByLabelText("search").textContent;
 
 const refetch = vi.fn();
 const locate = vi.fn();
+const clearLinkedVenue = vi.fn();
+
+const stubLinkedVenue = (linkedVenue: unknown = null) => {
+  mockLinked.useLinkedVenue.mockReturnValue({ linkedVenue, clearLinkedVenue });
+};
+
+beforeEach(() => stubLinkedVenue());
 
 const stubGeolocation = (overrides: Record<string, unknown> = {}) => {
   mockGeolocation.useGeolocation.mockReturnValue({
@@ -187,6 +196,8 @@ const SEARCH_RESULT = {
   latitude: 45.76,
   longitude: 4.83,
   distanceKm: null,
+  checkinCount: 0,
+  lastCheckinAt: null,
 };
 
 const stubbedSearch = (overrides: Record<string, unknown> = {}) => ({
@@ -642,6 +653,119 @@ describe("MapPage", () => {
     expect(mockSearch.useVenueSearch).toHaveBeenLastCalledWith({
       ...EMPTY_VENUE_QUERY,
       undiscovered: true,
+    });
+  });
+
+  it("US9 AC1 asks the venue list for the visited filter and counts it in the Filtres badge", () => {
+    renderMap("/carte?visited=1");
+
+    expect(mockVenues.useVenuesQuery).toHaveBeenLastCalledWith({
+      ...EMPTY_VENUE_QUERY,
+      bounds: BOUNDS,
+      visited: true,
+    });
+    expect(screen.getByText("1 filtre actif")).toBeInTheDocument();
+  });
+
+  it("US9 AC2 opens the filters with the visited switch on when the address carries the filter", async () => {
+    const user = userEvent.setup();
+    renderMap("/carte?visited=1");
+
+    await user.click(screen.getByRole("button", { name: "Filtres" }));
+    const dialog = await screen.findByRole("dialog", { name: "Filtres" });
+
+    expect(within(dialog).getByRole("switch", { name: "Lieux où j'ai bu" })).toBeChecked();
+    expect(within(dialog).getByRole("switch", { name: "Lieux avec des bières à découvrir" })).not.toBeChecked();
+  });
+
+  it("US9 AC3 treats another visited value of the address as inactive", () => {
+    renderMap("/carte?visited=true");
+
+    expect(mockVenues.useVenuesQuery).toHaveBeenLastCalledWith({
+      ...EMPTY_VENUE_QUERY,
+      bounds: BOUNDS,
+    });
+    expect(screen.queryByText(/filtres? actifs?/)).not.toBeInTheDocument();
+  });
+
+  it("US9 AC1 writes the visited filter into the address when the user applies the switch", async () => {
+    const user = userEvent.setup();
+    renderMap();
+    await user.click(screen.getByRole("button", { name: "Filtres" }));
+    const dialog = await screen.findByRole("dialog", { name: "Filtres" });
+
+    await user.click(within(dialog).getByRole("switch", { name: "Lieux où j'ai bu" }));
+    await user.click(within(dialog).getByRole("button", { name: "Appliquer" }));
+
+    expect(urlSearch()).toBe("?visited=1");
+    expect(mockVenues.useVenuesQuery).toHaveBeenLastCalledWith({
+      ...EMPTY_VENUE_QUERY,
+      bounds: BOUNDS,
+      visited: true,
+    });
+    expect(screen.getByText("1 filtre actif")).toBeInTheDocument();
+  });
+
+  it("US9 AC4 combines visited with a type and undiscovered, keeps undrunk and gives all of them to the search", async () => {
+    const user = userEvent.setup();
+    renderMap("/carte?type=bar&undiscovered=1&undrunk=1");
+    await user.click(screen.getByRole("button", { name: "Filtres" }));
+    const dialog = await screen.findByRole("dialog", { name: "Filtres" });
+
+    await user.click(within(dialog).getByRole("switch", { name: "Lieux où j'ai bu" }));
+    await user.click(within(dialog).getByRole("button", { name: "Appliquer" }));
+
+    expect(urlSearch()).toBe("?type=bar&undiscovered=1&visited=1&undrunk=1");
+    expect(mockVenues.useVenuesQuery).toHaveBeenLastCalledWith({
+      ...EMPTY_VENUE_QUERY,
+      bounds: BOUNDS,
+      types: [VenueTypeEnum.BAR],
+      undiscovered: true,
+      visited: true,
+    });
+    expect(mockSearch.useVenueSearch).toHaveBeenLastCalledWith({
+      ...EMPTY_VENUE_QUERY,
+      types: [VenueTypeEnum.BAR],
+      undiscovered: true,
+      visited: true,
+    });
+    expect(screen.getByText("3 filtres actifs")).toBeInTheDocument();
+  });
+
+  it("US9 AC4 gives the search the visited filter", () => {
+    renderMap("/carte?visited=1");
+
+    expect(mockSearch.useVenueSearch).toHaveBeenLastCalledWith({
+      ...EMPTY_VENUE_QUERY,
+      visited: true,
+    });
+  });
+
+  it("US9 AC5 keeps the empty list state of the list drawer with the visited filter on and no venue", async () => {
+    const user = userEvent.setup();
+    stubVenues({ venues: [] });
+    renderMap("/carte?visited=1");
+
+    await user.click(screen.getByRole("button", { name: "Lieux (0)" }));
+
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Aucun lieu ici" }),
+    ).toBeInTheDocument();
+  });
+
+  it("US9 AC6 removes the visited filter from the address with Réinitialiser", async () => {
+    const user = userEvent.setup();
+    renderMap("/carte?visited=1&type=bar");
+    await user.click(screen.getByRole("button", { name: "Filtres" }));
+    const dialog = await screen.findByRole("dialog", { name: "Filtres" });
+
+    await user.click(within(dialog).getByRole("button", { name: "Réinitialiser" }));
+    await user.click(within(dialog).getByRole("button", { name: "Appliquer" }));
+
+    expect(urlSearch()).toBe("");
+    expect(mockVenues.useVenuesQuery).toHaveBeenLastCalledWith({
+      ...EMPTY_VENUE_QUERY,
+      bounds: BOUNDS,
     });
   });
 
@@ -1104,6 +1228,8 @@ const createdDto = {
   longitude: 2.35,
   description: "",
   distanceKm: null,
+  checkinCount: 0,
+  lastCheckinAt: null,
   status: "unknown",
 };
 
@@ -1712,5 +1838,124 @@ describe("MapPage venue search", () => {
     rerender(<MapPage />);
 
     expect(mockSearch.useVenueSearch.mock.calls.at(-1)?.[0]).toBe(first);
+  });
+});
+
+describe("MapPage venue linked from the address", () => {
+  const LINKED_VENUE = {
+    ...VENUES[0],
+    id: 99,
+    name: "Delirium Café",
+    city: "Bruxelles",
+    address: "Impasse de la Fidélité 4",
+    latitude: 50.85,
+    longitude: 4.35,
+    distanceKm: null,
+    checkinCount: 2,
+    lastCheckinAt: new Date("2026-10-09T12:00:00Z"),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    leaflet.fakeMap.getBounds.mockImplementation(() => ({
+      getNorth: () => leaflet.bounds.north,
+      getSouth: () => leaflet.bounds.south,
+      getEast: () => leaflet.bounds.east,
+      getWest: () => leaflet.bounds.west,
+    }));
+    stubVenues();
+    stubGeolocation();
+    mockVenueBeers.useVenueBeersQuery.mockReturnValue({
+      beers: [],
+      isPending: false,
+      isError: false,
+      refetch,
+    });
+    stubSearch();
+    stubLinkedVenue(LINKED_VENUE);
+  });
+
+  it("US11 AC1 centers the map on the linked venue at zoom 16 and opens its sheet with the drinking sentence", async () => {
+    renderWithProviders(<MapPage />, { initialPath: "/carte?venue=99" });
+
+    const sheet = await screen.findByRole("dialog", { name: "Delirium Café" });
+    expect(leaflet.fakeMap.flyTo).toHaveBeenCalledTimes(1);
+    expect(leaflet.fakeMap.flyTo).toHaveBeenCalledWith([50.85, 4.35], 16);
+    expect(within(sheet).getByText("Impasse de la Fidélité 4")).toBeInTheDocument();
+    expect(within(sheet).getByText("Vous avez bu ici 2 fois (dernière fois le 9 oct. 2026)")).toBeInTheDocument();
+    expect(mockVenueBeers.useVenueBeersQuery).toHaveBeenCalledWith(99);
+  });
+
+  it("US11 AC1 opens the sheet of a linked venue that the map filters leave out of the loaded venues", async () => {
+    stubVenues({ venues: [VENUES[0]] });
+
+    renderMap("/carte?type=bar&venue=99");
+
+    expect(await screen.findByRole("dialog", { name: "Delirium Café" })).toBeInTheDocument();
+    expect(leaflet.fakeMap.flyTo).toHaveBeenCalledWith([50.85, 4.35], 16);
+    expect(urlSearch()).toBe("?type=bar&venue=99");
+    expect(mockVenues.useVenuesQuery).toHaveBeenLastCalledWith({
+      ...EMPTY_VENUE_QUERY,
+      bounds: BOUNDS,
+      types: [VenueTypeEnum.BAR],
+    });
+    expect(mockSearch.useVenueSearch).toHaveBeenLastCalledWith({
+      ...EMPTY_VENUE_QUERY,
+      types: [VenueTypeEnum.BAR],
+    });
+  });
+
+  it("US11 AC1 shows no drinking sentence when no check-in is linked to the venue", async () => {
+    stubLinkedVenue({ ...LINKED_VENUE, checkinCount: 0, lastCheckinAt: null });
+
+    renderWithProviders(<MapPage />, { initialPath: "/carte?venue=99" });
+
+    const sheet = await screen.findByRole("dialog", { name: "Delirium Café" });
+    expect(within(sheet).queryByText(/Vous avez bu ici/)).not.toBeInTheDocument();
+  });
+
+  it("US11 AC1 does not centre the map again on a re-render that keeps the same linked venue", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<MapPage />, { initialPath: "/carte?venue=99" });
+    await screen.findByRole("dialog", { name: "Delirium Café" });
+
+    await user.click(screen.getByRole("button", { name: "tile", hidden: true }));
+
+    expect(leaflet.fakeMap.flyTo).toHaveBeenCalledTimes(1);
+  });
+
+  it("US11 AC1 centres the map again when the address names another venue", async () => {
+    const { rerender } = renderWithProviders(<MapPage />, { initialPath: "/carte?venue=99" });
+    await screen.findByRole("dialog", { name: "Delirium Café" });
+
+    stubLinkedVenue({ ...LINKED_VENUE, id: 5, name: "La Fine Mousse", latitude: 45.1, longitude: 5.2 });
+    rerender(<MapPage />);
+
+    expect(await screen.findByRole("dialog", { name: "La Fine Mousse" })).toBeInTheDocument();
+    expect(leaflet.fakeMap.flyTo).toHaveBeenCalledTimes(2);
+    expect(leaflet.fakeMap.flyTo).toHaveBeenLastCalledWith([45.1, 5.2], 16);
+  });
+
+  it("US11 AC2 closes the sheet and removes the venue reference from the address once", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<MapPage />, { initialPath: "/carte?venue=99" });
+    const sheet = await screen.findByRole("dialog", { name: "Delirium Café" });
+    expect(clearLinkedVenue).not.toHaveBeenCalled();
+
+    await user.click(within(sheet).getByRole("button", { name: "Fermer" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Delirium Café" })).not.toBeInTheDocument());
+    expect(clearLinkedVenue).toHaveBeenCalledTimes(1);
+  });
+
+  it("US11 AC4 AC5 opens no sheet and does not centre the map when there is no linked venue", async () => {
+    stubLinkedVenue(null);
+
+    renderWithProviders(<MapPage />, { initialPath: "/carte?venue=abc" });
+
+    expect(screen.queryByRole("dialog", { name: "Delirium Café" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(leaflet.fakeMap.flyTo).not.toHaveBeenCalled();
+    expect(clearLinkedVenue).not.toHaveBeenCalled();
   });
 });

@@ -99,6 +99,7 @@
     }
   },
   "beer": {
+    "proposedBy": "Suggested by {{name}}",
     "rating": {
       "summary": "{{rating}} ({{count}})",
       "label_one": "Average rating {{rating}} out of 5, {{count}} review",
@@ -290,6 +291,33 @@
         "apply_other": "Show {{count}} beers",
         "applyUnknown": "Show beers",
         "facetOption": "{{label}} ({{count}})"
+      },
+      "propose": {
+        "open": "Add a beer",
+        "title": "Add a beer",
+        "name": "Beer name",
+        "brewery": "Brewery",
+        "country": "Country",
+        "style": "Style",
+        "family": "Family: {{family}}",
+        "abv": "ABV (%)",
+        "description": "Description",
+        "submit": "Add",
+        "close": "Close",
+        "saved": "Beer added",
+        "duplicate": "This beer already exists",
+        "limitReached": "Limit reached: 10 proposals per day.",
+        "openExisting": "Open it",
+        "errors": {
+          "nameLength": "The name must be 2 to 80 characters long",
+          "breweryLength": "The brewery must be 2 to 60 characters long",
+          "countryRequired": "The country is required",
+          "styleRequired": "The style is required",
+          "abvRequired": "The ABV is required",
+          "abvRange": "The ABV must be between 0 and 20",
+          "abvStep": "The ABV allows only one digit after the decimal point",
+          "descriptionLength": "The description must not exceed 500 characters"
+        }
       }
     },
     "beerDetail": {
@@ -401,6 +429,11 @@
         "drankAtFuture": "The date cannot be in the future.",
         "place": "Place",
         "placeRequired": "Enter the place.",
+        "venue": {
+          "searching": "Searching places…",
+          "unavailable": "Suggestions unavailable",
+          "noMatch": "No place on the map: your text will be kept as is"
+        },
         "rating": "Rating",
         "noRating": "No rating",
         "ratingValue": "{{rating}} / 5",
@@ -461,7 +494,14 @@
       "venue": {
         "address": "Address",
         "city": "City",
-        "close": "Close"
+        "close": "Close",
+        "gone": "This place is no longer on the map.",
+        "visits": {
+          "count_one": "You drank here {{count}} time",
+          "count_other": "You drank here {{count}} times",
+          "countWithDate_one": "You drank here {{count}} time (last on {{date}})",
+          "countWithDate_other": "You drank here {{count}} times (last on {{date}})"
+        }
       },
       "venueBeers": {
         "discovery": {
@@ -541,6 +581,7 @@
         "anyFamily": "All",
         "confirmedOnly": "Confirmed availability only",
         "undiscovered": "Places with beers to discover",
+        "visited": "Places where I drank",
         "radius": "Radius",
         "radiusOption": "{{count}} km",
         "radiusNeedsPosition": "Use Near me to pick a radius.",
@@ -754,6 +795,7 @@
     "forbidden": "You do not have access to this resource.",
     "notFound": "The requested resource cannot be found.",
     "conflict": "This action conflicts with the current state.",
-    "payloadTooLarge": "The file is too large."
+    "payloadTooLarge": "The file is too large.",
+    "tooManyRequests": "Too many requests, try again later."
   }
 }

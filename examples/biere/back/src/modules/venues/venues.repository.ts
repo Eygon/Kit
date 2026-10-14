@@ -124,6 +124,10 @@ export class VenuesRepository {
     return this.venues.existsBy({ nameKey });
   }
 
+  existsById(id: number): Promise<boolean> {
+    return this.venues.existsBy({ id });
+  }
+
   async createVenue(data: Omit<Venue, "id">): Promise<VenueRecordDto> {
     const entity = await this.venues.save(this.venues.create(data));
     return toVenueRecordDto(entity);

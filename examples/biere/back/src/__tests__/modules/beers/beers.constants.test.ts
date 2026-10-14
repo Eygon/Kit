@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  BEER_ABV_MAX_DECIMAL_PLACES,
+  BEER_ABV_MAX_PERCENT,
   BEER_DESCRIPTION_MAX_LENGTH,
   BEER_NAME_MAX_LENGTH,
+  BEER_NAME_MIN_LENGTH,
+  BEER_PROPOSAL_ABV_MAX_PERCENT,
+  BEER_PROPOSAL_WINDOW_MS,
+  BEER_PROPOSALS_PER_WINDOW_MAX,
   BEER_SEARCH_TEXT_MAX_LENGTH,
   BEER_STYLE_DESCRIPTION_MAX_LENGTH,
   BEER_STYLE_NAME_MAX_LENGTH,
   BREWERY_CITY_MAX_LENGTH,
   BREWERY_NAME_MAX_LENGTH,
+  BREWERY_NAME_MIN_LENGTH,
   COUNTRY_CODE_LENGTH,
+  COUNTRY_CODES,
 } from "@/modules/beers/beers.constants";
 
 describe("beers constants", () => {
@@ -26,6 +34,43 @@ describe("beers constants", () => {
       name: BEER_NAME_MAX_LENGTH,
       description: BEER_DESCRIPTION_MAX_LENGTH,
       searchText: BEER_SEARCH_TEXT_MAX_LENGTH,
-    }).toEqual({ name: 60, description: 300, searchText: 120 });
+    }).toEqual({ name: 80, description: 500, searchText: 141 });
+  });
+
+  it("derives the search text length from the beer name, a space and the brewery name", () => {
+    expect(BEER_SEARCH_TEXT_MAX_LENGTH).toBe(BEER_NAME_MAX_LENGTH + 1 + BREWERY_NAME_MAX_LENGTH);
+  });
+
+  it("sets the proposal rules without touching the filter ceiling", () => {
+    expect({
+      beerNameMin: BEER_NAME_MIN_LENGTH,
+      breweryNameMin: BREWERY_NAME_MIN_LENGTH,
+      proposalAbvMax: BEER_PROPOSAL_ABV_MAX_PERCENT,
+      abvDecimals: BEER_ABV_MAX_DECIMAL_PLACES,
+      perWindow: BEER_PROPOSALS_PER_WINDOW_MAX,
+      windowMs: BEER_PROPOSAL_WINDOW_MS,
+      filterAbvMax: BEER_ABV_MAX_PERCENT,
+    }).toEqual({
+      beerNameMin: 2,
+      breweryNameMin: 2,
+      proposalAbvMax: 20,
+      abvDecimals: 1,
+      perWindow: 10,
+      windowMs: 86_400_000,
+      filterAbvMax: 14,
+    });
+  });
+
+  it("lists the 249 ISO 3166-1 alpha-2 country codes in alphabetical order without duplicate", () => {
+    expect(COUNTRY_CODES).toHaveLength(249);
+    expect(new Set(COUNTRY_CODES).size).toBe(249);
+    expect([...COUNTRY_CODES].sort()).toEqual([...COUNTRY_CODES]);
+    expect(COUNTRY_CODES.every((code) => /^[A-Z]{2}$/.test(code))).toBe(true);
+  });
+
+  it("knows the countries of the seeded breweries and rejects codes outside the standard", () => {
+    expect(COUNTRY_CODES).toEqual(expect.arrayContaining(["FR", "BE", "DE", "GB", "US", "ZW", "AD", "AX"]));
+    expect(COUNTRY_CODES).not.toContain("XX");
+    expect(COUNTRY_CODES).not.toContain("UK");
   });
 });

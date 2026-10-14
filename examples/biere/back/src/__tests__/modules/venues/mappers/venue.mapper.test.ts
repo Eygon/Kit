@@ -52,19 +52,35 @@ describe("toVenueDto", () => {
     description: "Un bar a bieres.",
   };
 
-  it("adds the status and a null distance to the record", () => {
-    expect(toVenueDto(RECORD, AvailabilityStatusEnum.MAYBE_GONE, null)).toEqual({
+  const VISIT = { venueId: 7, checkinCount: 2, lastCheckinAt: "2026-10-09T18:30:00.000Z" };
+
+  it("adds the status, a null distance and no visit to the record", () => {
+    expect(toVenueDto(RECORD, AvailabilityStatusEnum.MAYBE_GONE, null, undefined)).toEqual({
       ...RECORD,
       distanceKm: null,
       status: AvailabilityStatusEnum.MAYBE_GONE,
+      checkinCount: 0,
+      lastCheckinAt: null,
     });
   });
 
   it("keeps a given distance", () => {
-    expect(toVenueDto(RECORD, AvailabilityStatusEnum.GONE, 1.25)).toEqual({
+    expect(toVenueDto(RECORD, AvailabilityStatusEnum.GONE, 1.25, undefined)).toEqual({
       ...RECORD,
       distanceKm: 1.25,
       status: AvailabilityStatusEnum.GONE,
+      checkinCount: 0,
+      lastCheckinAt: null,
+    });
+  });
+
+  it("carries the count and the last date of the visit", () => {
+    expect(toVenueDto(RECORD, AvailabilityStatusEnum.CONFIRMED, null, VISIT)).toEqual({
+      ...RECORD,
+      distanceKm: null,
+      status: AvailabilityStatusEnum.CONFIRMED,
+      checkinCount: 2,
+      lastCheckinAt: "2026-10-09T18:30:00.000Z",
     });
   });
 });

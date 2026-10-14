@@ -27,6 +27,7 @@ export default class CheckinService {
       formData.append("beerId", String(newCheckin.beerId));
       formData.append("drankAt", newCheckin.drankAt);
       formData.append("place", newCheckin.place);
+      if (newCheckin.venueId !== null) formData.append("venueId", String(newCheckin.venueId));
       formData.append("format", newCheckin.format);
       if (newCheckin.rating !== null) formData.append("rating", String(newCheckin.rating));
       if (newCheckin.aromas.length > 0) formData.append("aromas", newCheckin.aromas.join(","));

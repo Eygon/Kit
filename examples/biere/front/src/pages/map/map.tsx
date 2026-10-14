@@ -1,6 +1,6 @@
 import { MapPinPlus } from "@gravity-ui/icons";
 import { Button } from "@heroui/react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BeerFilterChip } from "@/pages/map/components/elements/beerFilterChip/beerFilterChip";
 import { MapBanner } from "@/pages/map/components/elements/mapBanner/mapBanner";
@@ -10,6 +10,7 @@ import { VenueListDrawer } from "@/pages/map/components/widgets/venueListDrawer/
 import { VenueSearchSheet } from "@/pages/map/components/widgets/venueSearchSheet/venueSearchSheet";
 import { VenueSheet } from "@/pages/map/components/widgets/venueSheet/venueSheet";
 import { VenueMap } from "@/pages/map/components/widgets/venueMap/venueMap";
+import { useLinkedVenue } from "@/pages/map/hooks/useLinkedVenue";
 import { useGeolocation } from "@/pages/map/hooks/useGeolocation";
 import { useMapFilters } from "@/pages/map/hooks/useMapFilters";
 import { useVenuesQuery } from "@/pages/map/hooks/useVenuesQuery";
@@ -45,6 +46,7 @@ export const MapPage = () => {
       beerId: filters.beerId,
       confirmedOnly: filters.confirmedOnly,
       undiscovered: filters.undiscovered,
+      visited: filters.visited,
       radiusKm,
     }),
     [
@@ -54,6 +56,7 @@ export const MapPage = () => {
       filters.beerId,
       filters.confirmedOnly,
       filters.undiscovered,
+      filters.visited,
       radiusKm,
     ],
   );
@@ -61,17 +64,30 @@ export const MapPage = () => {
     ...filterQuery,
     bounds,
   });
-  const selectVenue = (venue: Venue) => {
+  const { linkedVenue, clearLinkedVenue } = useLinkedVenue();
+  const selectVenue = useCallback((venue: Venue) => {
     setIsListOpen(false);
     setSelectedVenue(venue);
+  }, []);
+  const selectSearchedVenue = useCallback(
+    (venue: Venue) => {
+      setFocusedPosition({
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+      });
+      selectVenue(venue);
+    },
+    [selectVenue],
+  );
+  const closeVenueSheet = () => {
+    setSelectedVenue(null);
+    clearLinkedVenue();
   };
-  const selectSearchedVenue = (venue: Venue) => {
-    setFocusedPosition({
-      latitude: venue.latitude,
-      longitude: venue.longitude,
-    });
-    selectVenue(venue);
-  };
+
+  useEffect(() => {
+    if (linkedVenue !== null) selectSearchedVenue(linkedVenue);
+  }, [linkedVenue, selectSearchedVenue]);
+
   const hasPointPrompt = isPickingPoint || pickedPoint !== null;
   const cancelPointPicking = () => {
     setIsPickingPoint(false);
@@ -190,7 +206,7 @@ export const MapPage = () => {
       </div>
       <VenueSheet
         venue={selectedVenue}
-        onClose={() => setSelectedVenue(null)}
+        onClose={closeVenueSheet}
       />
       <ProposeVenueDrawer
         position={pickedPoint}

@@ -13,4 +13,5 @@ export interface Checkin {
   price: number | null;
   comment: string;
   photoId: string | null;
+  venueId: number | null;
 }

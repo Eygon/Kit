@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { BeerReviewsController } from "@/modules/beers/beer-reviews.controller";
 import { BeerStylesController } from "@/modules/beers/beer-styles.controller";
+import { BreweriesController } from "@/modules/beers/breweries.controller";
 import { BeersController } from "@/modules/beers/beers.controller";
 import { BeersRepository } from "@/modules/beers/beers.repository";
 import { BeersService } from "@/modules/beers/beers.service";
@@ -14,7 +15,7 @@ import { UsersModule } from "@/modules/users/users.module";
 
 @Module({
   imports: [TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review]), TastingsModule, UsersModule],
-  controllers: [BeersController, BeerStylesController, BeerReviewsController],
+  controllers: [BeersController, BeerStylesController, BeerReviewsController, BreweriesController],
   providers: [BeersService, BeersRepository],
   exports: [BeersService],
 })

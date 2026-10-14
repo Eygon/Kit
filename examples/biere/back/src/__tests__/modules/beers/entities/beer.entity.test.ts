@@ -24,17 +24,19 @@ describe("Beer entity", () => {
 
     expect(columns).toEqual([
       ["id", Number, undefined, undefined, undefined],
-      ["name", "varchar", 60, true, undefined],
+      ["name", "varchar", 80, undefined, undefined],
       ["breweryId", "integer", undefined, undefined, undefined],
       ["styleId", "integer", undefined, undefined, undefined],
       ["abv", "real", undefined, undefined, undefined],
       ["ibu", "integer", undefined, undefined, true],
       ["ebc", "integer", undefined, undefined, true],
-      ["description", "varchar", 300, undefined, undefined],
+      ["description", "varchar", 500, undefined, undefined],
       ["aromas", "simple-array", undefined, undefined, undefined],
       ["formats", "simple-array", undefined, undefined, undefined],
       ["country", "varchar", 2, undefined, undefined],
-      ["searchText", "varchar", 120, undefined, undefined],
+      ["searchText", "varchar", 141, undefined, undefined],
+      ["createdBy", "integer", undefined, undefined, true],
+      ["createdAt", "datetime", undefined, undefined, true],
     ]);
     expect(getMetadataArgsStorage().generations.find((entry) => entry.target === Beer)?.propertyName).toBe("id");
   });

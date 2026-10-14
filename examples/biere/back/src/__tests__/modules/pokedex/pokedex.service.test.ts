@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import type { BeersService } from "@/modules/beers/beers.service";
 import { PokedexService } from "@/modules/pokedex/pokedex.service";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
@@ -7,6 +8,7 @@ import { BeerAromaEnum } from "@/modules/beers/enums/beer-aroma.enum";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
 import type { CreateCheckinDto } from "@/modules/tastings/dtos/create-checkin.dto";
+import type { VenuesService } from "@/modules/venues/venues.service";
 import type { TastingsService } from "@/modules/tastings/tastings.service";
 import type { CheckinRecordDto } from "@/modules/tastings/dtos/checkin-record.dto";
 import type { PhotoContentDto } from "@/modules/tastings/dtos/photo-content.dto";
@@ -38,6 +40,8 @@ const ORVAL: BeerDto = {
   bitternessLevel: null,
   colorLevel: null,
   styleColorRange: null,
+  source: BeerSourceEnum.OFFICIAL,
+  createdBy: null,
 };
 
 const buildDto = (drankAt: string): CreateCheckinDto => ({
@@ -59,6 +63,7 @@ const RECORD: CheckinRecordDto = {
   beerId: ORVAL.id,
   drankAt: "2026-03-14T17:00:00.000Z",
   place: "Le Bistrot",
+  venueId: null,
   rating: 4.5,
   aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
   format: BeerFormatEnum.BOTTLE,
@@ -71,8 +76,14 @@ describe("PokedexService", () => {
   const beersService = { getBeer: vi.fn(), getBeersByIds: vi.fn(), getCatalogTotals: vi.fn() };
   const tastingsService = { isFirstCheckin: vi.fn(), createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), getOwnedCheckin: vi.fn(), getPhoto: vi.fn(), getCheckinPage: vi.fn(), deleteOwnedCheckin: vi.fn(), getWishlist: vi.fn(), addToWishlist: vi.fn(), removeFromWishlist: vi.fn(), getDiscoveries: vi.fn() };
 
+  const venuesService = { ensureVenueExists: vi.fn() };
+
   const buildService = (): PokedexService =>
-    new PokedexService(beersService as unknown as BeersService, tastingsService as unknown as TastingsService);
+    new PokedexService(
+      beersService as unknown as BeersService,
+      tastingsService as unknown as TastingsService,
+      venuesService as unknown as VenuesService,
+    );
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -83,6 +94,7 @@ describe("PokedexService", () => {
     tastingsService.createCheckin.mockResolvedValue(RECORD);
     tastingsService.createCheckinWithPhoto.mockResolvedValue({ ...RECORD, photoId: PHOTO_ID });
     tastingsService.getOwnedCheckin.mockResolvedValue(RECORD);
+    venuesService.ensureVenueExists.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -90,6 +102,22 @@ describe("PokedexService", () => {
   });
 
   describe("createCheckin", () => {
+    it("links the check-in to the venue of the form and returns it, the place text unchanged", async () => {
+      tastingsService.createCheckin.mockResolvedValueOnce({ ...RECORD, place: "La Fine Mousse", venueId: 14 });
+      const service = buildService();
+
+      const created = await service.createCheckin(
+        USER_ID,
+        { ...buildDto("2026-03-14T17:00:00.000Z"), place: "La Fine Mousse", venueId: 14 },
+        undefined,
+      );
+
+      expect(tastingsService.createCheckin).toHaveBeenCalledWith(
+        expect.objectContaining({ place: "La Fine Mousse", venueId: 14 }),
+      );
+      expect(created.checkin).toMatchObject({ place: "La Fine Mousse", venueId: 14 });
+    });
+
     it("writes the mapped check-in for the user and returns it with the beer name and a first discovery", async () => {
       const service = buildService();
 
@@ -100,6 +128,7 @@ describe("PokedexService", () => {
         beerId: ORVAL.id,
         drankAt: new Date("2026-03-14T17:00:00.000Z"),
         place: "Le Bistrot",
+        venueId: null,
         rating: 4.5,
         aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
         format: BeerFormatEnum.BOTTLE,
@@ -114,6 +143,7 @@ describe("PokedexService", () => {
           beerName: "Orval",
           drankAt: "2026-03-14T17:00:00.000Z",
           place: "Le Bistrot",
+          venueId: null,
           rating: 4.5,
           aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
           format: BeerFormatEnum.BOTTLE,
@@ -191,6 +221,94 @@ describe("PokedexService", () => {
     });
   });
 
+  describe("createCheckin venue control", () => {
+    const DRANK_AT = "2026-03-14T17:00:00.000Z";
+    const VENUE_ID = 14;
+    const withVenue = (drankAt: string): CreateCheckinDto => ({ ...buildDto(drankAt), venueId: VENUE_ID });
+    const unknownVenue = (): void => {
+      venuesService.ensureVenueExists.mockRejectedValue(new NotFoundException(`Venue ${VENUE_ID} not found.`));
+    };
+
+    it("checks the venue of the form after the beer and before reading the history or writing", async () => {
+      const service = buildService();
+
+      await service.createCheckin(USER_ID, withVenue(DRANK_AT), undefined);
+
+      expect(venuesService.ensureVenueExists).toHaveBeenCalledExactlyOnceWith(VENUE_ID);
+      expect(beersService.getBeer.mock.invocationCallOrder[0]).toBeLessThan(
+        venuesService.ensureVenueExists.mock.invocationCallOrder[0],
+      );
+      expect(venuesService.ensureVenueExists.mock.invocationCallOrder[0]).toBeLessThan(
+        tastingsService.isFirstCheckin.mock.invocationCallOrder[0],
+      );
+      expect(venuesService.ensureVenueExists.mock.invocationCallOrder[0]).toBeLessThan(
+        tastingsService.createCheckin.mock.invocationCallOrder[0],
+      );
+    });
+
+    it("does not check any venue when the form has none", async () => {
+      const service = buildService();
+
+      await service.createCheckin(USER_ID, buildDto(DRANK_AT), undefined);
+
+      expect(venuesService.ensureVenueExists).not.toHaveBeenCalled();
+    });
+
+    it("lets the 404 of an unknown venue through without reading the history or writing", async () => {
+      unknownVenue();
+      const service = buildService();
+
+      const rejection = service.createCheckin(USER_ID, withVenue(DRANK_AT), undefined);
+
+      await expect(rejection).rejects.toThrow(new NotFoundException("Venue 14 not found."));
+      expect(tastingsService.isFirstCheckin).not.toHaveBeenCalled();
+      expect(tastingsService.createCheckin).not.toHaveBeenCalled();
+      expect(tastingsService.createCheckinWithPhoto).not.toHaveBeenCalled();
+    });
+
+    it("lets the 404 of an unknown venue through without writing the photo", async () => {
+      unknownVenue();
+      const service = buildService();
+
+      await expect(
+        service.createCheckin(USER_ID, withVenue(DRANK_AT), buildFile(PNG_BUFFER, "image/png")),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(tastingsService.createCheckinWithPhoto).not.toHaveBeenCalled();
+      expect(tastingsService.createCheckin).not.toHaveBeenCalled();
+    });
+
+    it("answers the 404 of an unknown beer before the venue", async () => {
+      unknownVenue();
+      beersService.getBeer.mockRejectedValue(new NotFoundException("Beer 12 not found."));
+      const service = buildService();
+
+      const rejection = service.createCheckin(USER_ID, withVenue(DRANK_AT), undefined);
+
+      await expect(rejection).rejects.toThrow(new NotFoundException("Beer 12 not found."));
+      expect(venuesService.ensureVenueExists).not.toHaveBeenCalled();
+    });
+
+    it("answers the future date 400 before the venue", async () => {
+      unknownVenue();
+      const service = buildService();
+
+      const rejection = service.createCheckin(USER_ID, withVenue(minutesFromNow(60)), undefined);
+
+      await expect(rejection).rejects.toBeInstanceOf(BadRequestException);
+      expect(venuesService.ensureVenueExists).not.toHaveBeenCalled();
+    });
+
+    it("answers the photo type 400 before the venue", async () => {
+      unknownVenue();
+      const service = buildService();
+
+      const rejection = service.createCheckin(USER_ID, withVenue(DRANK_AT), buildFile(TEXT_BUFFER, "image/jpeg"));
+
+      await expect(rejection).rejects.toBeInstanceOf(BadRequestException);
+      expect(venuesService.ensureVenueExists).not.toHaveBeenCalled();
+    });
+  });
+
   describe("createCheckin with a photo", () => {
     const DRANK_AT = "2026-03-14T17:00:00.000Z";
     const EXPECTED_NEW_CHECKIN = {
@@ -198,6 +316,7 @@ describe("PokedexService", () => {
       beerId: ORVAL.id,
       drankAt: new Date(DRANK_AT),
       place: "Le Bistrot",
+      venueId: null,
       rating: 4.5,
       aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
       format: BeerFormatEnum.BOTTLE,
@@ -296,6 +415,7 @@ describe("PokedexService", () => {
         beerName: "Orval",
         drankAt: "2026-03-14T17:00:00.000Z",
         place: "Le Bistrot",
+        venueId: null,
         rating: 4.5,
         aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
         format: BeerFormatEnum.BOTTLE,

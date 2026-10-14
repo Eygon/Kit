@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStatePanel";
 import { PageHeader } from "@/components/elements/pageHeader/pageHeader";
+import { ProposedByChip } from "@/components/elements/proposedByChip/proposedByChip";
 import { BeerLevels } from "@/pages/beerDetail/components/elements/beerLevels/beerLevels";
 import { AddToCollectionSheet } from "@/pages/beerDetail/components/widgets/addToCollectionSheet/addToCollectionSheet";
 import { CheckinHistory } from "@/pages/beerDetail/components/widgets/checkinHistory/checkinHistory";
@@ -14,6 +15,7 @@ import { useWishlistToggle } from "@/pages/beerDetail/hooks/useWishlistToggle";
 import { BEER_AROMA_LABEL_KEYS } from "@/types/enums/beer/beerAromaEnum";
 import { BEER_FAMILY_LABEL_KEYS } from "@/types/enums/beer/beerFamilyEnum";
 import { BEER_FORMAT_LABEL_KEYS } from "@/types/enums/beer/beerFormatEnum";
+import { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
 import { MascotMoodEnum } from "@/types/enums/mascot/mascotMoodEnum";
 import { RoutePathEnum, parseBeerIdParam } from "@/types/enums/routing/routePathEnum";
 import { formatAbv } from "@/utils/beer/formatAbv";
@@ -92,6 +94,9 @@ export const BeerDetailPage = () => {
     return (
       <>
         <PageHeader title={beer.name} />
+        {beer.source === BeerSourceEnum.COMMUNITY && beer.createdByName !== null && (
+          <ProposedByChip name={beer.createdByName} />
+        )}
         <div className="flex flex-wrap gap-3">
           <CheckinSheet beer={beer} />
           <ToggleButton

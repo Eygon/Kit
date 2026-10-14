@@ -1,7 +1,7 @@
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { queryTimes } from "@/config/tanstackQuery";
-import { VENUE_SEARCH_DEBOUNCE_MS } from "@/pages/map/utils/mapConstants";
+import { VENUE_SEARCH_DEBOUNCE_MS } from "@/constants/venueSearchConstants";
 import type { VenueQuery } from "@/types/models/venue/venueQuery";
 import { fetchVenues } from "@/utils/queryFunctions/venueQueryFunctions";
 import { venueKeys } from "@/utils/queryKeys/venueQueryKeys";

@@ -40,6 +40,8 @@ describe("beerDtoToModel", () => {
       reviewCount: 0,
       ratingDistribution: [],
       criteria: [],
+      source: "official",
+      createdByName: null,
     });
   });
 
@@ -202,5 +204,35 @@ describe("beerDtoToModel", () => {
 
     expect(model.ratingDistribution).toEqual([]);
     expect(model.criteria).toEqual([]);
+  });
+
+  it("maps a community beer with its source and the name of its author", () => {
+    const model = beerDtoToModel({ ...dto, source: "community", createdByName: "Alice" });
+
+    expect(model.source).toBe("community");
+    expect(model.createdByName).toBe("Alice");
+    expect(model).toEqual({ ...beerDtoToModel(dto), source: "community", createdByName: "Alice" });
+  });
+
+  it("keeps a null author name for a community beer whose author is unknown", () => {
+    expect(beerDtoToModel({ ...dto, source: "community", createdByName: null })).toEqual({
+      ...beerDtoToModel(dto),
+      source: "community",
+      createdByName: null,
+    });
+  });
+
+  it("defaults to an official beer without author when source and author name are absent", () => {
+    const model = beerDtoToModel(baseDto);
+
+    expect(model.source).toBe("official");
+    expect(model.createdByName).toBeNull();
+  });
+
+  it("falls back to official for an unknown source and keeps the author name as given", () => {
+    const model = beerDtoToModel({ ...dto, source: "partner", createdByName: "Alice" });
+
+    expect(model.source).toBe("official");
+    expect(model.createdByName).toBe("Alice");
   });
 });

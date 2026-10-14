@@ -3,13 +3,11 @@ import { Alert, Button, Drawer, SearchField, Skeleton } from "@heroui/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStatePanel";
-import { useVenueSearch } from "@/pages/map/hooks/useVenueSearch";
+import { VENUE_SEARCH_MAX_LENGTH } from "@/constants/venueSearchConstants";
+import { useVenueSearch } from "@/hooks/venue/useVenueSearch";
 import type { VenueSearchSheetProps } from "@/pages/map/types/venueSearchSheet";
 import { formatDistance } from "@/pages/map/utils/formatDistance";
-import {
-  MAP_TOOLBAR_CONTROL_CLASSES,
-  VENUE_SEARCH_MAX_LENGTH,
-} from "@/pages/map/utils/mapConstants";
+import { MAP_TOOLBAR_CONTROL_CLASSES } from "@/pages/map/utils/mapConstants";
 import { MascotMoodEnum } from "@/types/enums/mascot/mascotMoodEnum";
 import { VENUE_TYPE_LABEL_KEYS } from "@/types/enums/venue/venueTypeEnum";
 import type { Venue } from "@/types/models/venue/venue";

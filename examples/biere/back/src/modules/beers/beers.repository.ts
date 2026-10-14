@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Brackets, In, Not, Repository } from "typeorm";
+import { Brackets, In, MoreThanOrEqual, Not, Repository } from "typeorm";
 import type { SelectQueryBuilder } from "typeorm";
 import { escapeLikePattern } from "@/common/text/escape-like-pattern";
 import { normalizeSearchText } from "@/common/text/normalize-search-text";
@@ -13,10 +13,12 @@ import type { RatingSummaryDto } from "@/modules/beers/dtos/rating-summary.dto";
 import type { ReviewStatsDto } from "@/modules/beers/dtos/review-stats.dto";
 import type { ReviewRecordDto } from "@/modules/beers/dtos/review-record.dto";
 import type { ReviewRecordSliceDto } from "@/modules/beers/dtos/review-record-slice.dto";
+import type { BreweryDto } from "@/modules/beers/dtos/brewery.dto";
 import type { BeerStyleGroupDto } from "@/modules/beers/dtos/beer-style-group.dto";
 import { REVIEW_RATING_BUCKET_ROUNDING_OFFSET } from "@/modules/beers/beers.constants";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
+import { Brewery } from "@/modules/beers/entities/brewery.entity";
 import { Review } from "@/modules/beers/entities/review.entity";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
@@ -24,6 +26,8 @@ import { ReviewCriterionEnum } from "@/modules/beers/enums/review-criterion.enum
 import { BEER_SORT_ORDERS } from "@/modules/beers/enums/beer-sort.enum";
 import type { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
 import { toBeerDto } from "@/modules/beers/mappers/beer.mapper";
+import type { BeerInsertRow } from "@/modules/beers/mappers/beer.mapper";
+import { toBreweryDto } from "@/modules/beers/mappers/brewery.mapper";
 import { toBeerStyleGroupDtos } from "@/modules/beers/mappers/beer-style.mapper";
 import { toFacetCountDto } from "@/modules/beers/mappers/facet-count.mapper";
 import { toReviewRecordDto } from "@/modules/beers/mappers/review.mapper";
@@ -57,11 +61,21 @@ export class BeersRepository {
     @InjectRepository(Beer) private readonly beers: Repository<Beer>,
     @InjectRepository(BeerStyle) private readonly styles: Repository<BeerStyle>,
     @InjectRepository(Review) private readonly reviews: Repository<Review>,
+    @InjectRepository(Brewery) private readonly breweries: Repository<Brewery>,
   ) {}
 
   async findStyleGroups(): Promise<BeerStyleGroupDto[]> {
     const entities = await this.styles.find({ order: { name: "ASC", id: "ASC" } });
     return toBeerStyleGroupDtos(entities);
+  }
+
+  async findBreweries(): Promise<BreweryDto[]> {
+    const entities = await this.breweries
+      .createQueryBuilder("brewery")
+      .orderBy("LOWER(brewery.name)", "ASC")
+      .addOrderBy("brewery.id", "ASC")
+      .getMany();
+    return entities.map(toBreweryDto);
   }
 
   async findPage(
@@ -92,6 +106,33 @@ export class BeersRepository {
       this.findFormatFacet(search, withoutFormats(filters)),
     ]);
     return { families, countries, formats };
+  }
+
+  async existsStyle(styleId: number): Promise<boolean> {
+    return this.styles.existsBy({ id: styleId });
+  }
+
+  async countCreatedSince(userId: number, since: Date): Promise<number> {
+    return this.beers.countBy({ createdBy: userId, createdAt: MoreThanOrEqual(since) });
+  }
+
+  async findBeersByBrewery(breweryId: number): Promise<BeerDto[]> {
+    const entities = await this.beers.find({
+      where: { breweryId },
+      relations: { brewery: true, style: true },
+      order: { id: "ASC" },
+    });
+    return entities.map(toBeerDto);
+  }
+
+  async createBrewery(data: Omit<Brewery, "id">): Promise<BreweryDto> {
+    const entity = await this.breweries.save(this.breweries.create(data));
+    return toBreweryDto(entity);
+  }
+
+  async createBeer(data: BeerInsertRow): Promise<number> {
+    const entity = await this.beers.save(this.beers.create(data));
+    return entity.id;
   }
 
   async findById(id: number): Promise<BeerDto | null> {
@@ -281,6 +322,9 @@ export class BeersRepository {
     }
     if (filters.excludedBeerIds !== undefined && filters.excludedBeerIds.length > 0) {
       query.andWhere("beer.id NOT IN (:...excludedBeerIds)", { excludedBeerIds: filters.excludedBeerIds });
+    }
+    if (filters.officialOnly === true) {
+      query.andWhere("beer.createdBy IS NULL");
     }
   }
 }

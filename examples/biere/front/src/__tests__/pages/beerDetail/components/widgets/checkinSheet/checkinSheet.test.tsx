@@ -3,16 +3,40 @@ import { QueryClient } from "@tanstack/react-query";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
+import VenueService from "@/api/venues/venueService";
 import { CheckinSheet } from "@/pages/beerDetail/components/widgets/checkinSheet/checkinSheet";
 import { BeerAromaEnum } from "@/types/enums/beer/beerAromaEnum";
 import { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
 import { BeerFormatEnum } from "@/types/enums/beer/beerFormatEnum";
+import { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
+import { AvailabilityStatusEnum } from "@/types/enums/venue/availabilityStatusEnum";
+import { VenueTypeEnum } from "@/types/enums/venue/venueTypeEnum";
 import type { Beer } from "@/types/models/beer/beer";
+import type { Venue } from "@/types/models/venue/venue";
 import { CHECKINS } from "@/utils/apiURL/apiURL";
 import { beerKeys } from "@/utils/queryKeys/beerQueryKeys";
 import { checkinKeys } from "@/utils/queryKeys/checkinQueryKeys";
 import { dexKeys } from "@/utils/queryKeys/dexQueryKeys";
 import { venueKeys } from "@/utils/queryKeys/venueQueryKeys";
+
+vi.mock("@/api/venues/venueService", () => ({
+  default: { getAll: vi.fn() },
+}));
+
+const CLUNY: Venue = {
+  id: 5,
+  name: "La Taverne de Cluny",
+  type: VenueTypeEnum.BAR,
+  city: "Paris",
+  address: "1 rue de Cluny",
+  latitude: 48.85,
+  longitude: 2.35,
+  description: "",
+  distanceKm: null,
+  checkinCount: 0,
+  lastCheckinAt: null,
+  status: AvailabilityStatusEnum.CONFIRMED,
+};
 
 const CHIMAY: Beer = {
   id: 1,
@@ -36,6 +60,8 @@ const CHIMAY: Beer = {
   reviewCount: 0,
   ratingDistribution: [],
   criteria: [],
+  source: BeerSourceEnum.OFFICIAL,
+  createdByName: null,
 };
 
 const checkinDto = {
@@ -50,6 +76,7 @@ const checkinDto = {
   price: null,
   comment: "",
   photoId: null,
+  venueId: null,
 };
 
 const mockFetch = vi.fn();
@@ -67,7 +94,8 @@ const openSheet = async (user: ReturnType<typeof userEvent.setup>) => {
 };
 
 const fillAndSend = async (user: ReturnType<typeof userEvent.setup>, place = "Chez Paul") => {
-  await user.type(screen.getByLabelText(/^Lieu/), place);
+  await user.type(screen.getByRole("combobox", { name: /^Lieu/ }), place);
+  await user.tab();
   await user.click(screen.getByRole("radio", { name: "Bouteille" }));
   await user.click(screen.getByRole("button", { name: "Enregistrer" }));
 };
@@ -78,6 +106,7 @@ describe("CheckinSheet", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(2026, 9, 12, 12, 0));
     vi.stubGlobal("fetch", mockFetch);
+    vi.mocked(VenueService.getAll).mockResolvedValue([CLUNY]);
     vi.spyOn(toast, "success").mockImplementation(() => "toast-id");
     vi.spyOn(toast, "danger").mockImplementation(() => "toast-id");
     answerWith(false);
@@ -209,6 +238,23 @@ describe("CheckinSheet", () => {
       expect(body.get("beerId")).toBe("1");
       expect(body.get("place")).toBe("Chez Paul");
       expect(body.get("format")).toBe("bottle");
+      expect(body.has("venueId")).toBe(false);
+    });
+
+    it("posts the reference of the venue chosen in the place suggestions with its name as the place", async () => {
+      const user = userEvent.setup();
+      renderSheet();
+      await openSheet(user);
+      await user.type(screen.getByRole("combobox", { name: /^Lieu/ }), "taverne");
+      await waitFor(() => expect(VenueService.getAll).toHaveBeenLastCalledWith(expect.objectContaining({ q: "taverne" })), { timeout: 4000 });
+      await user.click(await screen.findByRole("option", { name: /La Taverne de Cluny/ }));
+      await user.click(screen.getByRole("radio", { name: "Bouteille" }));
+      await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+      const body = (mockFetch.mock.calls[0] as [string, RequestInit])[1].body as FormData;
+      expect(body.get("place")).toBe("La Taverne de Cluny");
+      expect(body.get("venueId")).toBe("5");
     });
   });
 
@@ -226,7 +272,7 @@ describe("CheckinSheet", () => {
       await waitFor(() => expect(toast.danger).toHaveBeenCalledTimes(1));
       expect(vi.mocked(toast.danger).mock.calls[0][0]).toEqual(expect.stringMatching(/\S/));
       expect(screen.getByRole("dialog")).toBe(dialog);
-      expect(within(dialog).getByLabelText(/^Lieu/)).toHaveValue("Chez Paul");
+      expect(within(dialog).getByRole("combobox", { name: /^Lieu/ })).toHaveValue("Chez Paul");
       expect(within(dialog).getByRole("radio", { name: "Bouteille" })).toBeChecked();
       expect(within(dialog).queryByText("Nouvelle bière capturée !")).not.toBeInTheDocument();
       expect(toast.success).not.toHaveBeenCalled();
@@ -240,18 +286,19 @@ describe("CheckinSheet", () => {
       const user = userEvent.setup();
       renderSheet();
       const dialog = await openSheet(user);
-      await user.type(within(dialog).getByLabelText(/^Lieu/), "Chez Paul");
+      await user.type(within(dialog).getByRole("combobox", { name: /^Lieu/ }), "Chez Paul");
+      await user.tab();
       await user.click(within(dialog).getByRole("radio", { name: "Canette" }));
       await user.click(within(dialog).getByRole("row", { name: "Fruité" }));
       fireEvent.change(within(dialog).getByLabelText("Date et heure"), { target: { value: "2026-10-01T08:30" } });
-      within(dialog).getByLabelText(/^Lieu/).focus();
+      within(dialog).getByRole("combobox", { name: /^Lieu/ }).focus();
       await user.keyboard("{Escape}");
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
       vi.setSystemTime(new Date(2026, 9, 12, 14, 45));
 
       const reopened = await openSheet(user);
 
-      expect(within(reopened).getByLabelText(/^Lieu/)).toHaveValue("");
+      expect(within(reopened).getByRole("combobox", { name: /^Lieu/ })).toHaveValue("");
       expect(within(reopened).getByLabelText("Date et heure")).toHaveValue("2026-10-12T14:45");
       within(reopened)
         .getAllByRole("radio")
@@ -271,7 +318,7 @@ describe("CheckinSheet", () => {
       const dialog = await openSheet(user);
       await fillAndSend(user);
       await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
-      within(dialog).getByLabelText(/^Lieu/).focus();
+      within(dialog).getByRole("combobox", { name: /^Lieu/ }).focus();
       await user.keyboard("{Escape}");
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
       expect(invalidate).not.toHaveBeenCalled();

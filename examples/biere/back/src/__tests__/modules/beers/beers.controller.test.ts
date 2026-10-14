@@ -3,6 +3,7 @@ import { HTTP_CODE_METADATA, ROUTE_ARGS_METADATA } from "@nestjs/common/constant
 import { RouteParamtypes } from "@nestjs/common/enums/route-paramtypes.enum";
 import { Test } from "@nestjs/testing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import { BeersController } from "@/modules/beers/beers.controller";
 import { BeersService } from "@/modules/beers/beers.service";
 import type { BeerDetailDto } from "@/modules/beers/dtos/beer-detail.dto";
@@ -28,6 +29,9 @@ const CHIMAY: BeerDetailDto = {
   bitternessLevel: null,
   colorLevel: null,
   styleColorRange: null,
+  source: BeerSourceEnum.OFFICIAL,
+  createdBy: null,
+  createdByName: null,
   drunk: true,
   checkinCount: 2,
   inWishlist: false,
@@ -42,7 +46,7 @@ const CHIMAY: BeerDetailDto = {
 };
 
 describe("BeersController", () => {
-  const service = { getBeers: vi.fn(), getBeerForUser: vi.fn() };
+  const service = { getBeers: vi.fn(), getBeerForUser: vi.fn(), createBeer: vi.fn() };
   let controller: BeersController;
 
   beforeEach(async () => {
@@ -74,6 +78,18 @@ describe("BeersController", () => {
 
     expect(await controller.getOne(ALICE, 1)).toBe(CHIMAY);
     expect(service.getBeerForUser).toHaveBeenCalledExactlyOnceWith(ALICE, 1);
+  });
+
+  it("creates a beer for the current user from the body and returns what the service builds", async () => {
+    const body = { name: "Brune du Mont", breweryName: "Brasserie du Mont", country: "FR", styleId: 2, abv: 6.5 };
+    service.createBeer.mockResolvedValue(CHIMAY);
+
+    expect(await controller.create(ALICE, body)).toBe(CHIMAY);
+    expect(service.createBeer).toHaveBeenCalledExactlyOnceWith(ALICE, body);
+  });
+
+  it("declares 201 on the creation", () => {
+    expect(Reflect.getMetadata(HTTP_CODE_METADATA, BeersController.prototype.create)).toBe(HttpStatus.CREATED);
   });
 
   it("parses the beer id of the route with a ParseIntPipe", () => {

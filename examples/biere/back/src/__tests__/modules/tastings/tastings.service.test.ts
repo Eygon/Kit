@@ -24,6 +24,7 @@ const BOB_CHECKIN: CheckinRecordDto = {
   beerId: BEER,
   drankAt: "2026-03-14T18:30:00.000Z",
   place: "Chez Bob",
+  venueId: null,
   rating: null,
   aromas: [],
   format: BeerFormatEnum.CAN,
@@ -33,7 +34,7 @@ const BOB_CHECKIN: CheckinRecordDto = {
 };
 
 describe("TastingsService", () => {
-  const repository = { createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), findCheckinById: vi.fn(), countCheckins: vi.fn(), findPhoto: vi.fn(), findCheckinPage: vi.fn(), deleteCheckinWithPhoto: vi.fn(), findWishlist: vi.fn(), existsWishlistItem: vi.fn(), addWishlistItem: vi.fn(), removeWishlistItem: vi.fn(), findDiscoveries: vi.fn(), findCheckinsByUser: vi.fn(), findCheckinsByUsers: vi.fn(), findBeerStates: vi.fn(), findDrunkBeerIds: vi.fn(), findWishlistBeerIds: vi.fn(), countDiscoveredBeersByUsers: vi.fn() };
+  const repository = { createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), findCheckinById: vi.fn(), countCheckins: vi.fn(), findPhoto: vi.fn(), findCheckinPage: vi.fn(), deleteCheckinWithPhoto: vi.fn(), findWishlist: vi.fn(), existsWishlistItem: vi.fn(), addWishlistItem: vi.fn(), removeWishlistItem: vi.fn(), findDiscoveries: vi.fn(), findCheckinsByUser: vi.fn(), findCheckinsByUsers: vi.fn(), findBeerStates: vi.fn(), findDrunkBeerIds: vi.fn(), findWishlistBeerIds: vi.fn(), countDiscoveredBeersByUsers: vi.fn(), findVenueVisits: vi.fn() };
   let service: TastingsService;
 
   beforeEach(async () => {
@@ -50,6 +51,7 @@ describe("TastingsService", () => {
       beerId: BEER,
       drankAt: new Date(BOB_CHECKIN.drankAt),
       place: "Chez Bob",
+      venueId: null,
       rating: null,
       aromas: [],
       format: BeerFormatEnum.CAN,
@@ -71,6 +73,7 @@ describe("TastingsService", () => {
       beerId: BEER,
       drankAt: new Date(BOB_CHECKIN.drankAt),
       place: "Chez Bob",
+      venueId: null,
       rating: null,
       aromas: [],
       format: BeerFormatEnum.CAN,
@@ -269,6 +272,16 @@ describe("TastingsService", () => {
       expect(repository.findDiscoveries).toHaveBeenCalledExactlyOnceWith(ALICE);
     });
   });
+  describe("getVenueVisits", () => {
+    it("returns the visits the repository finds for the user and the venues", async () => {
+      const visits = [{ venueId: 4, checkinCount: 2, lastCheckinAt: "2026-10-09T18:30:00.000Z" }];
+      repository.findVenueVisits.mockResolvedValue(visits);
+
+      expect(await service.getVenueVisits(ALICE, [4, 5])).toBe(visits);
+      expect(repository.findVenueVisits).toHaveBeenCalledExactlyOnceWith(ALICE, [4, 5]);
+    });
+  });
+
   describe("beer states", () => {
     it("returns the states the repository builds for the user and the beers", async () => {
       const states = [{ beerId: BEER, drunk: true, checkinCount: 2, inWishlist: false }];

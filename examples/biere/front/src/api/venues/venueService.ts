@@ -15,7 +15,7 @@ import type { Venue } from "@/types/models/venue/venue";
 import type { VenueQuery } from "@/types/models/venue/venueQuery";
 import { HttpStatusCodeEnum } from "@/types/enums/http/httpStatusCodeEnum";
 import type { VoteSenseEnum } from "@/types/enums/venue/voteSenseEnum";
-import { BEER_VENUES, VENUES, VENUE_BEERS, VENUE_BEER_VOTES } from "@/utils/apiURL/apiURL";
+import { BEER_VENUES, VENUES, VENUE_BEERS, VENUE_BEER_VOTES, VENUE_BY_ID } from "@/utils/apiURL/apiURL";
 import { DisplayError } from "@/utils/displayError/displayError";
 import { getErrorTranslationKey } from "@/utils/displayError/getErrorTranslationKey";
 
@@ -34,11 +34,27 @@ const getCreateErrorTranslationKey = (error: unknown): string =>
     ? "pages.map.propose.nameTaken"
     : getErrorTranslationKey(error);
 
+const getVenueReadErrorTranslationKey = (error: unknown): string =>
+  error instanceof HttpError && error.status === HttpStatusCodeEnum.NOT_FOUND
+    ? "pages.map.venue.gone"
+    : getErrorTranslationKey(error);
+
 export default class VenueService {
   static async getAll(query: VenueQuery): Promise<Venue[]> {
     const response = await httpClient.get<VenueDto[]>(`${VENUES()}?${venueQueryToSearchParams(query)}`);
     if (response.data === null) return [];
     return response.data.map(venueDtoToModel);
+  }
+
+  static async getById(venueId: number): Promise<Venue | null> {
+    try {
+      const response = await httpClient.get<VenueDto>(VENUE_BY_ID(venueId));
+      if (response.data === null) return null;
+      return venueDtoToModel(response.data);
+    } catch (error) {
+      DisplayError(error, getVenueReadErrorTranslationKey);
+      return null;
+    }
   }
 
   static async getBeers(venueId: number): Promise<VenueBeer[]> {

@@ -10,4 +10,5 @@ export interface CheckinDto {
   price: number | null;
   comment: string;
   photoId: string | null;
+  venueId: number | null;
 }

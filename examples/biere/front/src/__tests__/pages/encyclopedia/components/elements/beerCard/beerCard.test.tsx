@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/react";
 import { BeerCard } from "@/pages/encyclopedia/components/elements/beerCard/beerCard";
 import i18n from "@/i18n/i18n";
+import { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
 import type { Beer } from "@/types/models/beer/beer";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 import { blendOver, contrastRatio } from "@/__tests__/utils/color/contrast";
@@ -28,6 +29,8 @@ const BEER: Beer = {
   reviewCount: 0,
   ratingDistribution: [],
   criteria: [],
+  source: BeerSourceEnum.OFFICIAL,
+  createdByName: null,
 };
 
 const DRUNK_BEER: Beer = { ...BEER, drunk: true, checkinCount: 2 };
@@ -213,5 +216,74 @@ describe("BeerCard", () => {
     expect(content.className).toContain("min-w-0");
     expect(rating).toHaveClass("truncate");
     expect(rating.parentElement).toHaveClass("min-w-0");
+  });
+
+  it("US8 AC1 shows a discreet Proposée par Alice chip under the brewery of a community beer", () => {
+    renderCard({ ...BEER, source: BeerSourceEnum.COMMUNITY, createdByName: "Alice" });
+
+    const chip = screen.getByText("Proposée par Alice");
+    const brewery = screen.getByText("Brasserie d'Orval");
+    expect(brewery.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(brewery.parentElement?.contains(chip)).toBe(true);
+    expect(screen.getByRole("link", { name: /Proposée par Alice/ })).toHaveAttribute("href", "/bieres/12");
+  });
+
+  it("US8 AC1 writes the chip in English when the language is English", async () => {
+    await i18n.changeLanguage("en");
+    renderCard({ ...BEER, source: BeerSourceEnum.COMMUNITY, createdByName: "Alice" });
+
+    expect(screen.getByText("Suggested by Alice")).toBeInTheDocument();
+  });
+
+  it("US8 AC1 truncates a long author name inside the card without overflow", () => {
+    const longName = "Alice-Artisane-Brasseuse-du-Mont-Blanc".repeat(4);
+    renderCard({ ...BEER, source: BeerSourceEnum.COMMUNITY, createdByName: longName });
+
+    const chip = screen.getByText(`Proposée par ${longName}`).closest("[class*='truncate']");
+    expect(chip?.className).toContain("max-w-full");
+    expect(screen.getByRole("link").className).toContain("min-w-0");
+  });
+
+  it("US8 AC3 shows no chip on an official beer", () => {
+    renderCard({ ...BEER, source: BeerSourceEnum.OFFICIAL, createdByName: "Alice" });
+
+    expect(screen.queryByText(/Proposée par/)).not.toBeInTheDocument();
+  });
+
+  it("US8 AC3 shows no chip on a community beer whose author is unknown", () => {
+    renderCard({ ...BEER, source: BeerSourceEnum.COMMUNITY, createdByName: null });
+
+    expect(screen.queryByText(/Proposée par/)).not.toBeInTheDocument();
+  });
+
+  it("US8 AC4 keeps the discovery stamp on a drunk community beer and adds the chip", () => {
+    renderCard({ ...DRUNK_BEER, source: BeerSourceEnum.COMMUNITY, createdByName: "Alice" }, FIRST_CHECKIN);
+
+    const stamp = screen.getByText("Bue le 12/10/2026");
+    expect(stamp.closest("[class*='-rotate-']")).not.toBeNull();
+    expect(screen.getByText("Proposée par Alice")).toBeInTheDocument();
+    expect(screen.queryByText("???")).not.toBeInTheDocument();
+  });
+
+  it("US8 AC4 keeps the question marks on a community beer not drunk yet and adds the chip", () => {
+    renderCard({ ...BEER, source: BeerSourceEnum.COMMUNITY, createdByName: "Alice" });
+
+    expect(screen.getByText("???")).toBeInTheDocument();
+    expect(screen.getByText("Pas encore goûtée")).toBeInTheDocument();
+    expect(screen.getByText("Proposée par Alice")).toBeInTheDocument();
+  });
+
+  it("US5 AC8 shows the markup of a proposed beer name and brewery as plain text, never as HTML", () => {
+    const { container } = renderCard({
+      ...BEER,
+      name: "<b>gras</b>",
+      breweryName: "<i>Brasserie</i>",
+      source: BeerSourceEnum.COMMUNITY,
+      createdByName: "Alice",
+    });
+
+    expect(screen.getByRole("heading", { level: 2, name: "<b>gras</b>" })).toHaveTextContent("<b>gras</b>");
+    expect(screen.getByText("<i>Brasserie</i>")).toBeInTheDocument();
+    expect(container.querySelector("b, i")).toBeNull();
   });
 });

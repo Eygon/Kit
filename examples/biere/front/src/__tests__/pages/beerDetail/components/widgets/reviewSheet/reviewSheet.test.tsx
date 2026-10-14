@@ -7,6 +7,7 @@ import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 import { ReviewSheet } from "@/pages/beerDetail/components/widgets/reviewSheet/reviewSheet";
 import i18n from "@/i18n/i18n";
 import { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
+import { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
 import type { Beer } from "@/types/models/beer/beer";
 import type { Review } from "@/types/models/review/review";
 import { BEER_MY_REVIEW } from "@/utils/apiURL/apiURL";
@@ -35,6 +36,8 @@ const CHIMAY: Beer = {
   reviewCount: 0,
   ratingDistribution: [],
   criteria: [],
+  source: BeerSourceEnum.OFFICIAL,
+  createdByName: null,
 };
 
 const MINE: Review = {

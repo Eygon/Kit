@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
+import i18n from "@/i18n/i18n";
 import { VenueSheet } from "@/pages/map/components/widgets/venueSheet/venueSheet";
 import type { Venue } from "@/types/models/venue/venue";
 import { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
@@ -23,6 +24,8 @@ const VENUE: Venue = {
   longitude: 2.35,
   description: "Vingt pressions en rotation.",
   distanceKm: null,
+  checkinCount: 0,
+  lastCheckinAt: null,
   status: AvailabilityStatusEnum.CONFIRMED,
 };
 
@@ -240,5 +243,104 @@ describe("VenueSheet", () => {
     expect(posts[0][0]).toMatch(/\/api\/v1\/venues\/42\/beers$/);
     expect(await screen.findByRole("dialog", { name: "La Fine Mousse" })).toBeInTheDocument();
     vi.unstubAllGlobals();
+  });
+
+  describe("visit summary", () => {
+    const VISITED: Venue = { ...VENUE, checkinCount: 3, lastCheckinAt: new Date("2026-10-09T12:00:00.000Z") };
+    const buildBeer = (beerId: number, beerName: string, drunk: boolean) => ({
+      beerId,
+      beerName,
+      breweryName: "Chouffe",
+      styleName: "Double IPA",
+      family: BeerFamilyEnum.IPA,
+      status: AvailabilityStatusEnum.CONFIRMED,
+      lastConfirmedAt: null,
+      recentVoterCount: 0,
+      nextVoteAt: null,
+      drunk,
+      checkinCount: drunk ? 5 : 0,
+      lastCheckinAt: null,
+    });
+
+    beforeEach(async () => {
+      vi.stubEnv("TZ", "Europe/Paris");
+      await i18n.changeLanguage("fr");
+    });
+
+    afterEach(async () => {
+      vi.unstubAllEnvs();
+      await i18n.changeLanguage("fr");
+    });
+
+    it("AC1 writes the count and the last date at the very top of the body, before the type", async () => {
+      renderSheet(VISITED);
+
+      const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+      const sentence = within(dialog).getByText("Vous avez bu ici 3 fois (dernière fois le 9 oct. 2026)");
+      const heading = within(dialog).getByRole("heading", { name: "La Fine Mousse" });
+
+      expect(heading.compareDocumentPosition(sentence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(sentence.compareDocumentPosition(within(dialog).getByText("Bar")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("AC2 writes the singular for one check-in", async () => {
+      renderSheet({ ...VISITED, checkinCount: 1 });
+
+      const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+
+      expect(within(dialog).getByText("Vous avez bu ici 1 fois (dernière fois le 9 oct. 2026)")).toBeInTheDocument();
+    });
+
+    it("AC3 shows no sentence when no check-in is linked to the venue", async () => {
+      renderSheet({ ...VENUE, checkinCount: 0, lastCheckinAt: null });
+
+      const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+
+      expect(within(dialog).getByRole("heading", { name: "La Fine Mousse" })).toBeInTheDocument();
+      expect(within(dialog).queryByText(/Vous avez bu ici/)).not.toBeInTheDocument();
+    });
+
+    it("AC4 keeps the stamps of the beers whatever the venue count is", async () => {
+      mockQuery.useVenueBeersQuery.mockReturnValue({
+        beers: [buildBeer(7, "Houblon Chouffe", true), buildBeer(8, "Mc Chouffe", false)],
+        isPending: false,
+        isError: false,
+        refetch: vi.fn(),
+      });
+      renderSheet({ ...VENUE, checkinCount: 0, lastCheckinAt: null });
+
+      const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+
+      expect(within(dialog).getByText("Déjà bue")).toBeInTheDocument();
+      expect(within(dialog).getByText("À découvrir")).toBeInTheDocument();
+      expect(within(dialog).getByText("Bue 5 fois")).toBeInTheDocument();
+      expect(within(dialog).queryByText(/Vous avez bu ici/)).not.toBeInTheDocument();
+    });
+
+    it("AC4 keeps the stamps of the beers when the venue has check-ins", async () => {
+      mockQuery.useVenueBeersQuery.mockReturnValue({
+        beers: [buildBeer(7, "Houblon Chouffe", true), buildBeer(8, "Mc Chouffe", false)],
+        isPending: false,
+        isError: false,
+        refetch: vi.fn(),
+      });
+      renderSheet(VISITED);
+
+      const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+
+      expect(within(dialog).getByText("Vous avez bu ici 3 fois (dernière fois le 9 oct. 2026)")).toBeInTheDocument();
+      expect(within(dialog).getByText("Déjà bue")).toBeInTheDocument();
+      expect(within(dialog).getByText("À découvrir")).toBeInTheDocument();
+      expect(within(dialog).getByText("Bue 5 fois")).toBeInTheDocument();
+    });
+
+    it("AC5 writes the sentence in english", async () => {
+      await i18n.changeLanguage("en");
+      renderSheet(VISITED);
+
+      const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+
+      expect(within(dialog).getByText("You drank here 3 times (last on Oct 9, 2026)")).toBeInTheDocument();
+    });
   });
 });

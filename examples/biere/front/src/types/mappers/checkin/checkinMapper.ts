@@ -15,4 +15,5 @@ export const checkinDtoToModel = (dto: CheckinDto): Checkin => ({
   price: dto.price,
   comment: dto.comment,
   photoId: dto.photoId,
+  venueId: dto.venueId ?? null,
 });

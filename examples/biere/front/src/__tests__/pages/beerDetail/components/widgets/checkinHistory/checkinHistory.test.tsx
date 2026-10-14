@@ -27,6 +27,7 @@ const buildCheckin = (overrides: Partial<Checkin>): Checkin => ({
   price: null,
   comment: "",
   photoId: null,
+  venueId: null,
   ...overrides,
 });
 
@@ -269,6 +270,22 @@ describe("CheckinHistory", () => {
     );
     expect(mockHistory.fetchNextPage).toHaveBeenCalledTimes(1);
     expect(mockHistory.refetch).not.toHaveBeenCalled();
+  });
+
+  it("links the venue of a tasting to the map and leaves a free place as text", () => {
+    stubHistory({
+      checkins: [
+        buildCheckin({ id: 2, place: "Delirium Café", venueId: 42 }),
+        buildCheckin({ id: 1, place: "Chez moi", venueId: null }),
+      ],
+    });
+    renderWithProviders(<CheckinHistory beerId={7} />);
+
+    const items = within(screen.getByRole("list")).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(within(items[0]).getByRole("link", { name: "Delirium Café" })).toHaveAttribute("href", "/carte?venue=42");
+    expect(within(items[1]).queryByRole("link")).not.toBeInTheDocument();
+    expect(within(items[1]).getByText("Chez moi")).toBeInTheDocument();
   });
 
   it("shows a thumbnail only for the tastings that have a photo", () => {

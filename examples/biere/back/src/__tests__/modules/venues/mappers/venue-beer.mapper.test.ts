@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import { VoteSenseEnum } from "@/modules/venues/enums/vote-sense.enum";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
@@ -73,6 +74,8 @@ describe("toVenueBeerDto", () => {
     bitternessLevel: null,
     colorLevel: null,
     styleColorRange: null,
+    source: BeerSourceEnum.OFFICIAL,
+    createdBy: null,
   };
   const NEXT_VOTE_DATE = new Date("2026-03-03T08:00:00.000Z");
   const NEVER_DRUNK: VenueBeerUserStateDto = { drunk: false, checkinCount: 0, lastCheckinAt: null };

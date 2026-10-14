@@ -99,6 +99,7 @@
     }
   },
   "beer": {
+    "proposedBy": "Proposée par {{name}}",
     "rating": {
       "summary": "{{rating}} ({{count}})",
       "label_one": "Note moyenne {{rating}} sur 5, {{count}} avis",
@@ -290,6 +291,33 @@
         "apply_other": "Voir {{count}} bières",
         "applyUnknown": "Voir les bières",
         "facetOption": "{{label}} ({{count}})"
+      },
+      "propose": {
+        "open": "Ajouter une bière",
+        "title": "Ajouter une bière",
+        "name": "Nom de la bière",
+        "brewery": "Brasserie",
+        "country": "Pays",
+        "style": "Style",
+        "family": "Famille : {{family}}",
+        "abv": "Degré (%)",
+        "description": "Description",
+        "submit": "Ajouter",
+        "close": "Fermer",
+        "saved": "Bière ajoutée",
+        "duplicate": "Cette bière existe déjà",
+        "limitReached": "Limite atteinte : 10 propositions par jour.",
+        "openExisting": "L'ouvrir",
+        "errors": {
+          "nameLength": "Le nom doit faire entre 2 et 80 caractères",
+          "breweryLength": "La brasserie doit faire entre 2 et 60 caractères",
+          "countryRequired": "Le pays est requis",
+          "styleRequired": "Le style est requis",
+          "abvRequired": "Le degré est requis",
+          "abvRange": "Le degré doit être compris entre 0 et 20",
+          "abvStep": "Le degré admet un seul chiffre après la virgule",
+          "descriptionLength": "La description ne doit pas dépasser 500 caractères"
+        }
       }
     },
     "beerDetail": {
@@ -401,6 +429,11 @@
         "drankAtFuture": "La date ne peut pas être dans le futur.",
         "place": "Lieu",
         "placeRequired": "Indiquez le lieu.",
+        "venue": {
+          "searching": "Recherche des lieux…",
+          "unavailable": "Suggestions indisponibles",
+          "noMatch": "Aucun lieu de la carte : votre texte sera gardé tel quel"
+        },
         "rating": "Note",
         "noRating": "Sans note",
         "ratingValue": "{{rating}} / 5",
@@ -461,7 +494,14 @@
       "venue": {
         "address": "Adresse",
         "city": "Ville",
-        "close": "Fermer"
+        "close": "Fermer",
+        "gone": "Ce lieu n'est plus sur la carte.",
+        "visits": {
+          "count_one": "Vous avez bu ici {{count}} fois",
+          "count_other": "Vous avez bu ici {{count}} fois",
+          "countWithDate_one": "Vous avez bu ici {{count}} fois (dernière fois le {{date}})",
+          "countWithDate_other": "Vous avez bu ici {{count}} fois (dernière fois le {{date}})"
+        }
       },
       "venueBeers": {
         "discovery": {
@@ -541,6 +581,7 @@
         "anyFamily": "Toutes",
         "confirmedOnly": "Disponibilité confirmée seulement",
         "undiscovered": "Lieux avec des bières à découvrir",
+        "visited": "Lieux où j'ai bu",
         "radius": "Rayon",
         "radiusOption": "{{count}} km",
         "radiusNeedsPosition": "Utilisez Autour de moi pour choisir un rayon.",
@@ -754,6 +795,7 @@
     "forbidden": "Vous n'avez pas accès à cette ressource.",
     "notFound": "La ressource demandée est introuvable.",
     "conflict": "Cette action entre en conflit avec l'état actuel.",
-    "payloadTooLarge": "Le fichier est trop volumineux."
+    "payloadTooLarge": "Le fichier est trop volumineux.",
+    "tooManyRequests": "Trop de demandes, réessayez plus tard."
   }
 }

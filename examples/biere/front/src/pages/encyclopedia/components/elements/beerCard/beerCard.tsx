@@ -2,7 +2,9 @@ import { Card, Chip } from "@heroui/react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { AverageRating } from "@/components/elements/averageRating/averageRating";
+import { ProposedByChip } from "@/components/elements/proposedByChip/proposedByChip";
 import type { BeerCardProps } from "@/pages/encyclopedia/types/beerCard";
+import { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
 import { buildBeerDetailPath } from "@/types/enums/routing/routePathEnum";
 import { formatAbv } from "@/utils/beer/formatAbv";
 import { getCountryName } from "@/utils/country/getCountryName";
@@ -45,6 +47,9 @@ export const BeerCard = ({ beer, discoveredAt }: BeerCardProps) => {
             {beer.name}
           </Card.Title>
           <Card.Description className="truncate">{beer.breweryName}</Card.Description>
+          {beer.source === BeerSourceEnum.COMMUNITY && beer.createdByName !== null && (
+            <ProposedByChip name={beer.createdByName} />
+          )}
         </Card.Header>
         <Card.Content className="flex min-w-0 flex-col gap-1 text-sm">
           <p className="truncate">{beer.styleName}</p>

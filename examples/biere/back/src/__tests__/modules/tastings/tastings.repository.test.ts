@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Test, type TestingModule } from "@nestjs/testing";
 import { getRepositoryToken, TypeOrmModule } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
@@ -28,6 +31,7 @@ const newCheckin = (
   beerId,
   drankAt: new Date("2026-03-14T18:30:00.000Z"),
   place: "Chez Alice",
+  venueId: null,
   rating: null,
   aromas: [],
   format: BeerFormatEnum.BOTTLE,
@@ -82,6 +86,7 @@ describe("TastingsRepository", () => {
       beerId: BEER,
       drankAt: "2026-03-14T18:30:00.000Z",
       place: "Chez Alice",
+      venueId: null,
       rating: null,
       aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
       format: BeerFormatEnum.BOTTLE,
@@ -104,6 +109,37 @@ describe("TastingsRepository", () => {
       comment: "Top",
       photoId,
       format: BeerFormatEnum.DRAFT,
+    });
+  });
+
+  it("stores the venue id of a linked check-in and leaves the decoy without venue", async () => {
+    const decoy = await repository.createCheckin(newCheckin(ALICE, BEER));
+    const linked = await repository.createCheckin(newCheckin(ALICE, BEER, { venueId: 14 }));
+
+    expect((await repository.findCheckinById(linked.id))?.venueId).toBe(14);
+    expect((await repository.findCheckinById(decoy.id))?.venueId).toBeNull();
+  });
+
+  it("reads a check-in saved before the venue column existed with an empty venue and its other fields", async () => {
+    await checkins.query(
+      "INSERT INTO checkins (userId, beerId, drankAt, place, aromas, format, comment) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [ALICE, BEER, "2026-03-14 18:30:00", "Chez Alice", "", BeerFormatEnum.BOTTLE, "Ancien"],
+    );
+    const [stored] = await checkins.find();
+
+    expect(await repository.findCheckinById(stored.id)).toStrictEqual({
+      id: stored.id,
+      userId: ALICE,
+      beerId: BEER,
+      drankAt: "2026-03-14T18:30:00.000Z",
+      place: "Chez Alice",
+      venueId: null,
+      rating: null,
+      aromas: [],
+      format: BeerFormatEnum.BOTTLE,
+      price: null,
+      comment: "Ancien",
+      photoId: null,
     });
   });
 
@@ -141,6 +177,7 @@ describe("TastingsRepository", () => {
         beerId: BEER,
         drankAt: "2026-03-14T18:30:00.000Z",
         place: "Chez Alice",
+        venueId: null,
         rating: 4,
         aromas: [],
         format: BeerFormatEnum.BOTTLE,
@@ -359,6 +396,53 @@ describe("TastingsRepository", () => {
     });
   });
 
+  describe("findVenueVisits", () => {
+    const VENUE = 4;
+    const OTHER_VENUE = 5;
+    const THIRD_VENUE = 6;
+    const visit = (venueId: number | null, drankAt: string): Partial<Omit<Checkin, "id" | "createdAt">> => ({
+      venueId,
+      drankAt: new Date(drankAt),
+    });
+
+    it("counts the linked check-ins of the user per requested venue with the latest date, ordered by venue id", async () => {
+      await repository.createCheckin(newCheckin(BOB, BEER, visit(VENUE, "2026-10-20T08:00:00.000Z")));
+      await repository.createCheckin(newCheckin(ALICE, BEER, visit(VENUE, "2026-10-09T18:30:00.000Z")));
+      await repository.createCheckin(newCheckin(ALICE, OTHER_BEER, visit(VENUE, "2026-10-02T12:00:00.000Z")));
+      await repository.createCheckin(newCheckin(ALICE, BEER, visit(OTHER_VENUE, "2026-10-05T21:15:00.000Z")));
+      await repository.createCheckin(newCheckin(ALICE, BEER, visit(THIRD_VENUE, "2026-10-11T10:00:00.000Z")));
+      await repository.createCheckin(newCheckin(ALICE, BEER, visit(null, "2026-10-12T10:00:00.000Z")));
+
+      const visits = await repository.findVenueVisits(ALICE, [OTHER_VENUE, VENUE, 99]);
+
+      expect(visits).toStrictEqual([
+        { venueId: VENUE, checkinCount: 2, lastCheckinAt: "2026-10-09T18:30:00.000Z" },
+        { venueId: OTHER_VENUE, checkinCount: 1, lastCheckinAt: "2026-10-05T21:15:00.000Z" },
+      ]);
+    });
+
+    it("does not count a check-in without venue reference even when its place text names the venue", async () => {
+      await repository.createCheckin(newCheckin(ALICE, BEER, { place: "Delirium Cafe", venueId: null }));
+
+      expect(await repository.findVenueVisits(ALICE, [VENUE])).toStrictEqual([]);
+    });
+
+    it("returns an empty array for a user without linked check-in, even when another user has some", async () => {
+      await repository.createCheckin(newCheckin(BOB, BEER, visit(VENUE, "2026-10-09T18:30:00.000Z")));
+
+      expect(await repository.findVenueVisits(ALICE, [VENUE])).toStrictEqual([]);
+    });
+
+    it("answers an empty array for an empty list of venues without querying", async () => {
+      await repository.createCheckin(newCheckin(ALICE, BEER, visit(VENUE, "2026-10-09T18:30:00.000Z")));
+      const createQueryBuilder = vi.spyOn(checkins, "createQueryBuilder");
+
+      expect(await repository.findVenueVisits(ALICE, [])).toStrictEqual([]);
+      expect(createQueryBuilder).not.toHaveBeenCalled();
+      createQueryBuilder.mockRestore();
+    });
+  });
+
   describe("wishlist", () => {
     const wishlistRow = (userId: number, beerId: number, addedAt: string): Pick<WishlistItem, "userId" | "beerId" | "addedAt"> => ({
       userId,
@@ -533,4 +617,52 @@ describe("TastingsRepository", () => {
     });
   });
 
+});
+
+describe("checkins table created before F11", () => {
+  it("adds the empty venue column on start-up and leaves the existing rows and their other fields untouched", async () => {
+    const root = mkdtempSync(join(tmpdir(), "mousse-pre-f11-"));
+    const database = join(root, "mousse.db");
+    const legacy = new DataSource({ type: "better-sqlite3", database });
+    await legacy.initialize();
+    try {
+      await legacy.query(
+        'CREATE TABLE "checkins" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "userId" integer NOT NULL, "beerId" integer NOT NULL, "drankAt" datetime NOT NULL, "place" varchar(80) NOT NULL, "rating" real, "aromas" text NOT NULL, "format" varchar CHECK( "format" IN (\'bottle\',\'draft\',\'can\') ) NOT NULL, "price" real, "comment" varchar(500) NOT NULL, "photoId" varchar(36), "createdAt" datetime NOT NULL DEFAULT (datetime(\'now\')))',
+      );
+      await legacy.query(
+        `INSERT INTO "checkins" ("id", "userId", "beerId", "drankAt", "place", "rating", "aromas", "format", "price", "comment", "photoId", "createdAt")
+         VALUES (7, ${ALICE}, ${BEER}, '2026-03-14 18:30:00', 'Chez Alice', 4.5, 'fruity,hoppy', 'bottle', 3.2, 'Ancien', NULL, '2026-03-15 09:00:00')`,
+      );
+    } finally {
+      await legacy.destroy();
+    }
+    const upgraded = new DataSource({ type: "better-sqlite3", database, entities: [Checkin], synchronize: true });
+
+    try {
+      await upgraded.initialize();
+
+      expect(await upgraded.getRepository(Checkin).find()).toEqual([
+        {
+          id: 7,
+          userId: ALICE,
+          beerId: BEER,
+          drankAt: new Date("2026-03-14T18:30:00.000Z"),
+          place: "Chez Alice",
+          venueId: null,
+          rating: 4.5,
+          aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
+          format: BeerFormatEnum.BOTTLE,
+          price: 3.2,
+          comment: "Ancien",
+          photoId: null,
+          createdAt: new Date("2026-03-15T09:00:00.000Z"),
+        },
+      ]);
+    } finally {
+      if (upgraded.isInitialized) {
+        await upgraded.destroy();
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

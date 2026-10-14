@@ -19,6 +19,7 @@ import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { PhotoPicker } from "@/pages/beerDetail/components/elements/photoPicker/photoPicker";
+import { VenuePlaceField } from "@/pages/beerDetail/components/elements/venuePlaceField/venuePlaceField";
 import { useCreateCheckinMutation } from "@/pages/beerDetail/hooks/useCreateCheckinMutation";
 import type { CheckinFormProps } from "@/pages/beerDetail/types/checkinForm";
 import type { CheckinFormValues } from "@/pages/beerDetail/types/checkinFormValues";
@@ -29,7 +30,6 @@ import {
   CHECKIN_MAX_RATING,
   CHECKIN_MIN_PRICE,
   CHECKIN_MIN_RATING,
-  CHECKIN_PLACE_MAX_LENGTH,
   CHECKIN_PRICE_CURRENCY,
   CHECKIN_RATING_STEP,
   createEmptyCheckinForm,
@@ -116,17 +116,12 @@ export const CheckinForm = ({ beerId, onSaved }: CheckinFormProps) => {
         <Input type="datetime-local" max={initialValues.drankAt} className="min-h-11" />
         <FieldError />
       </TextField>
-      <TextField
-        isRequired
-        maxLength={CHECKIN_PLACE_MAX_LENGTH}
-        value={values.place}
-        onChange={(place) => updateValue("place", place)}
-        validate={() => shownError(getPlaceError())}
-      >
-        <Label>{t("pages.beerDetail.checkin.place")}</Label>
-        <Input className="min-h-11" />
-        <FieldError />
-      </TextField>
+      <VenuePlaceField
+        place={values.place}
+        venueId={values.venueId}
+        errorMessage={shownError(getPlaceError())}
+        onChange={(place, venueId) => setValues((previous) => ({ ...previous, place, venueId }))}
+      />
       <Slider
         minValue={CHECKIN_MIN_RATING}
         maxValue={CHECKIN_MAX_RATING}
@@ -181,8 +176,8 @@ export const CheckinForm = ({ beerId, onSaved }: CheckinFormProps) => {
         formatOptions={PRICE_FORMAT_OPTIONS}
       >
         <Label>{t("pages.beerDetail.checkin.price")}</Label>
-        <NumberField.Group>
-          <NumberField.Input className="min-h-11" />
+        <NumberField.Group className="min-h-11">
+          <NumberField.Input />
         </NumberField.Group>
       </NumberField>
       <TextField

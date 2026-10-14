@@ -2,8 +2,7 @@ import type { VenueBeerDto } from "@/types/dtos/venue/venueBeerDto";
 import { isBeerFamily } from "@/types/enums/beer/beerFamilyEnum";
 import { AvailabilityStatusEnum, isAvailabilityStatus } from "@/types/enums/venue/availabilityStatusEnum";
 import type { VenueBeer } from "@/types/models/venue/venueBeer";
-
-const toDateOrNull = (value: string | null): Date | null => (value === null ? null : new Date(value));
+import { toDateOrNull } from "@/utils/date/toDateOrNull";
 
 export const venueBeerDtoToModel = (dto: VenueBeerDto): VenueBeer => ({
   beerId: dto.beerId,

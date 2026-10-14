@@ -60,6 +60,12 @@ export class CreateCheckinDto {
 
   @IsOptional()
   @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  readonly venueId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(CHECKIN_RATING_MIN)
   @Max(CHECKIN_RATING_MAX)

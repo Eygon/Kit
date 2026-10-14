@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import type { BeersService } from "@/modules/beers/beers.service";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import type { TastingsService } from "@/modules/tastings/tastings.service";
@@ -58,11 +59,13 @@ const RADIUS_MESSAGE = "radiusKm requires latitude and longitude.";
 const PARIS = { latitude: 48.8566, longitude: 2.3522 };
 
 const WHOLE_AREA: VenuesQueryDto = {};
+const NO_VISIT = { checkinCount: 0, lastCheckinAt: null };
 
 describe("VenuesService", () => {
   const repository = {
     findVenues: vi.fn(),
     findVenueById: vi.fn(),
+    existsById: vi.fn(),
     findLinks: vi.fn(),
     findLinksByBeer: vi.fn(),
     findVenuesByIds: vi.fn(),
@@ -76,7 +79,12 @@ describe("VenuesService", () => {
     createLink: vi.fn(),
   };
   const beersService = { getBeer: vi.fn(), getBeersByIds: vi.fn() };
-  const tastingsService = { getBeerStates: vi.fn(), getDiscoveries: vi.fn(), getDrunkBeerIds: vi.fn() };
+  const tastingsService = {
+    getBeerStates: vi.fn(),
+    getDiscoveries: vi.fn(),
+    getDrunkBeerIds: vi.fn(),
+    getVenueVisits: vi.fn(),
+  };
   let service: VenuesService;
 
   beforeEach(() => {
@@ -91,6 +99,7 @@ describe("VenuesService", () => {
     tastingsService.getBeerStates.mockResolvedValue([]);
     tastingsService.getDiscoveries.mockResolvedValue([]);
     tastingsService.getDrunkBeerIds.mockResolvedValue([]);
+    tastingsService.getVenueVisits.mockResolvedValue([]);
     repository.findLinksByBeer.mockResolvedValue([]);
     repository.findVenuesByIds.mockResolvedValue([]);
     beersService.getBeer.mockResolvedValue({ id: BEER_ID });
@@ -269,10 +278,10 @@ describe("VenuesService", () => {
       const venues = await service.getVenues(ALICE, WHOLE_AREA);
 
       expect(venues).toEqual([
-        { ...toRecord(1, "Alpha"), distanceKm: null, status: AvailabilityStatusEnum.CONFIRMED },
-        { ...toRecord(2, "Bravo"), distanceKm: null, status: AvailabilityStatusEnum.GONE },
-        { ...toRecord(3, "Charlie"), distanceKm: null, status: AvailabilityStatusEnum.UNKNOWN },
-        { ...toRecord(4, "Delta"), distanceKm: null, status: AvailabilityStatusEnum.MAYBE_GONE },
+        { ...toRecord(1, "Alpha"), distanceKm: null, status: AvailabilityStatusEnum.CONFIRMED, ...NO_VISIT },
+        { ...toRecord(2, "Bravo"), distanceKm: null, status: AvailabilityStatusEnum.GONE, ...NO_VISIT },
+        { ...toRecord(3, "Charlie"), distanceKm: null, status: AvailabilityStatusEnum.UNKNOWN, ...NO_VISIT },
+        { ...toRecord(4, "Delta"), distanceKm: null, status: AvailabilityStatusEnum.MAYBE_GONE, ...NO_VISIT },
       ]);
     });
 
@@ -281,12 +290,36 @@ describe("VenuesService", () => {
       repository.findLinks.mockResolvedValue([toLink(10, 1, GONE_VOTES), toLink(11, 1, [])]);
 
       expect(await service.getVenues(ALICE, WHOLE_AREA)).toEqual([
-        { ...toRecord(1, "Alpha"), distanceKm: null, status: AvailabilityStatusEnum.UNKNOWN },
+        { ...toRecord(1, "Alpha"), distanceKm: null, status: AvailabilityStatusEnum.UNKNOWN, ...NO_VISIT },
       ]);
     });
 
     it("returns an empty list when no venue matches", async () => {
       expect(await service.getVenues(ALICE, WHOLE_AREA)).toEqual([]);
+    });
+
+    it("reads the visits of the user for every venue found in one call", async () => {
+      repository.findVenues.mockResolvedValue([toRecord(1, "Alpha"), toRecord(2, "Bravo")]);
+
+      await service.getVenues(BOB, WHOLE_AREA);
+
+      expect(tastingsService.getVenueVisits).toHaveBeenCalledExactlyOnceWith(BOB, [1, 2]);
+    });
+
+    it("gives each venue the count and the last date of its visit and zero and null to the others", async () => {
+      repository.findVenues.mockResolvedValue([toRecord(1, "Alpha"), toRecord(2, "Bravo"), toRecord(3, "Charlie")]);
+      tastingsService.getVenueVisits.mockResolvedValue([
+        { venueId: 3, checkinCount: 2, lastCheckinAt: "2026-10-09T18:30:00.000Z" },
+        { venueId: 1, checkinCount: 1, lastCheckinAt: "2026-10-02T12:00:00.000Z" },
+      ]);
+
+      const venues = await service.getVenues(ALICE, WHOLE_AREA);
+
+      expect(venues.map(({ id, checkinCount, lastCheckinAt }) => ({ id, checkinCount, lastCheckinAt }))).toEqual([
+        { id: 1, checkinCount: 1, lastCheckinAt: "2026-10-02T12:00:00.000Z" },
+        { id: 2, ...NO_VISIT },
+        { id: 3, checkinCount: 2, lastCheckinAt: "2026-10-09T18:30:00.000Z" },
+      ]);
     });
   });
 
@@ -313,6 +346,8 @@ describe("VenuesService", () => {
       bitternessLevel: null,
       colorLevel: null,
       styleColorRange: null,
+      source: BeerSourceEnum.OFFICIAL,
+      createdBy: null,
     });
 
     const CATALOGUE = [
@@ -579,6 +614,8 @@ describe("VenuesService", () => {
       bitternessLevel: null,
       colorLevel: null,
       styleColorRange: null,
+      source: BeerSourceEnum.OFFICIAL,
+      createdBy: null,
     });
 
     const linkTo = (id: number, venueId: number, beerId: number, votes: VenueLinkDto["votes"]): VenueLinkDto => ({
@@ -807,6 +844,201 @@ describe("VenuesService", () => {
     });
   });
 
+  describe("getVenues visited", () => {
+    const ORVAL_ID = 10;
+    const CHIMAY_ID = 20;
+    const STOUT_ID = 30;
+    const RADIUS_KM = 50;
+    const NEAR = { latitude: 48.86, longitude: 2.35 };
+    const FAR = { latitude: 50.64, longitude: 3.06 };
+
+    const namesOf = (venues: { name: string }[]) => venues.map((venue) => venue.name);
+
+    const visitTo = (venueId: number, checkinCount: number) => ({
+      venueId,
+      checkinCount,
+      lastCheckinAt: "2026-10-09T18:30:00.000Z",
+    });
+
+    const THREE_VENUES = [toRecord(1, "Alpha"), toRecord(2, "Bravo"), toRecord(3, "Charlie")];
+
+    const givenVisits = (visits: ReturnType<typeof visitTo>[]) => {
+      repository.findVenues.mockResolvedValue(THREE_VENUES);
+      tastingsService.getVenueVisits.mockResolvedValue(visits);
+    };
+
+    it("keeps only the venues with a visit and gives each its count", async () => {
+      givenVisits([visitTo(3, 2), visitTo(1, 1)]);
+
+      const venues = await service.getVenues(ALICE, { visited: true });
+
+      expect(venues.map(({ name, checkinCount }) => [name, checkinCount])).toEqual([
+        ["Alpha", 1],
+        ["Charlie", 2],
+      ]);
+    });
+
+    it("returns an empty list for a user without any visit", async () => {
+      givenVisits([]);
+
+      expect(await service.getVenues(BOB, { visited: true })).toEqual([]);
+    });
+
+    it("drops a venue whose visit count is zero", async () => {
+      givenVisits([visitTo(1, 0), visitTo(2, 1)]);
+
+      expect(namesOf(await service.getVenues(ALICE, { visited: true }))).toEqual(["Bravo"]);
+    });
+
+    it.each([
+      ["false", { visited: false }],
+      ["absent", {}],
+    ])("keeps every venue when visited is %s", async (_label, query) => {
+      givenVisits([visitTo(1, 1)]);
+
+      expect(namesOf(await service.getVenues(ALICE, query))).toEqual(["Alpha", "Bravo", "Charlie"]);
+    });
+
+    it("reads the visits of the current user only", async () => {
+      givenVisits([]);
+      tastingsService.getVenueVisits.mockImplementation((userId: number) =>
+        Promise.resolve(userId === ALICE ? [visitTo(2, 1)] : []),
+      );
+
+      expect(namesOf(await service.getVenues(ALICE, { visited: true }))).toEqual(["Bravo"]);
+      expect(await service.getVenues(BOB, { visited: true })).toEqual([]);
+    });
+
+    it("keeps the order of the search text", async () => {
+      repository.findVenues.mockResolvedValue([toRecord(2, "Bravo"), toRecord(1, "Alpha")]);
+      tastingsService.getVenueVisits.mockResolvedValue([visitTo(1, 1), visitTo(2, 1)]);
+
+      const venues = await service.getVenues(ALICE, { q: "lille", visited: true });
+
+      expect(repository.findVenues).toHaveBeenCalledWith(expect.objectContaining({ search: "lille" }));
+      expect(namesOf(venues)).toEqual(["Bravo", "Alpha"]);
+    });
+
+    it("intersects the visits with the undiscovered beers", async () => {
+      givenVisits([visitTo(1, 1), visitTo(2, 1)]);
+      repository.findLinks.mockResolvedValue([
+        { id: 1, venueId: 1, beerId: ORVAL_ID, votes: [] },
+        { id: 2, venueId: 2, beerId: CHIMAY_ID, votes: [] },
+        { id: 3, venueId: 3, beerId: CHIMAY_ID, votes: [] },
+      ]);
+      tastingsService.getDrunkBeerIds.mockResolvedValue([ORVAL_ID]);
+
+      const venues = await service.getVenues(ALICE, { visited: true, undiscovered: true });
+
+      expect(namesOf(venues)).toEqual(["Bravo"]);
+    });
+
+    it("applies confirmedOnly after the visited filter", async () => {
+      givenVisits([visitTo(1, 1), visitTo(2, 1)]);
+      repository.findLinks.mockResolvedValue([
+        { id: 1, venueId: 1, beerId: ORVAL_ID, votes: CONFIRMED_VOTES },
+        { id: 2, venueId: 2, beerId: CHIMAY_ID, votes: GONE_VOTES },
+        { id: 3, venueId: 3, beerId: CHIMAY_ID, votes: CONFIRMED_VOTES },
+      ]);
+
+      expect(namesOf(await service.getVenues(ALICE, { visited: true, confirmedOnly: true }))).toEqual(["Alpha"]);
+    });
+
+    it("applies the radius after the visited filter and sorts by distance", async () => {
+      repository.findVenues.mockResolvedValue([
+        { ...toRecord(1, "Far visited"), ...FAR },
+        { ...toRecord(2, "Near visited"), ...NEAR },
+        { ...toRecord(3, "Near not visited"), ...NEAR },
+      ]);
+      tastingsService.getVenueVisits.mockResolvedValue([visitTo(1, 1), visitTo(2, 1)]);
+
+      expect(namesOf(await service.getVenues(ALICE, { ...PARIS, visited: true }))).toEqual(["Near visited", "Far visited"]);
+      expect(namesOf(await service.getVenues(ALICE, { ...PARIS, radiusKm: RADIUS_KM, visited: true }))).toEqual([
+        "Near visited",
+      ]);
+    });
+
+    describe("combined with the beer filters and the type", () => {
+      const TRAPPIST_STYLE_ID = 100;
+      const STOUT_STYLE_ID = 300;
+
+      const beerOf = (id: number, family: BeerFamilyEnum, styleId: number): BeerDto => ({
+        id,
+        name: `Beer ${id}`,
+        breweryName: `Brasserie ${id}`,
+        country: "BE",
+        styleId,
+        styleName: `Style ${styleId}`,
+        family,
+        abv: 5,
+        aromas: [],
+        formats: [],
+        description: "Une bière.",
+        bitternessLevel: null,
+        colorLevel: null,
+        styleColorRange: null,
+        source: BeerSourceEnum.OFFICIAL,
+        createdBy: null,
+      });
+
+      const FOUR_VENUES = [toRecord(1, "Alpha"), toRecord(2, "Bravo"), toRecord(3, "Charlie"), toRecord(4, "Delta")];
+
+      const givenStoutAndTrappist = () => {
+        repository.findVenues.mockResolvedValue(FOUR_VENUES);
+        repository.findLinks.mockResolvedValue([
+          { id: 1, venueId: 1, beerId: CHIMAY_ID, votes: [] },
+          { id: 2, venueId: 1, beerId: STOUT_ID, votes: [] },
+          { id: 3, venueId: 2, beerId: CHIMAY_ID, votes: [] },
+          { id: 4, venueId: 3, beerId: STOUT_ID, votes: [] },
+          { id: 5, venueId: 4, beerId: STOUT_ID, votes: [] },
+        ]);
+        beersService.getBeersByIds.mockResolvedValue([
+          beerOf(CHIMAY_ID, BeerFamilyEnum.TRAPPIST, TRAPPIST_STYLE_ID),
+          beerOf(STOUT_ID, BeerFamilyEnum.STOUT, STOUT_STYLE_ID),
+        ]);
+        tastingsService.getVenueVisits.mockResolvedValue([visitTo(1, 1), visitTo(2, 1), visitTo(4, 3)]);
+      };
+
+      it.each([
+        ["family", { family: BeerFamilyEnum.STOUT }],
+        ["style", { style: [STOUT_STYLE_ID] }],
+        ["beer", { beer: STOUT_ID }],
+      ])(
+        "keeps the visited venues with a beer matching the %s filter, not the visited without nor the matching not visited",
+        async (_label, filter) => {
+          givenStoutAndTrappist();
+
+          const venues = await service.getVenues(ALICE, { ...filter, visited: true });
+
+          expect(venues.map(({ name, checkinCount }) => [name, checkinCount])).toEqual([
+            ["Alpha", 1],
+            ["Delta", 3],
+          ]);
+        },
+      );
+
+      it("keeps the visited venues of the requested types only", async () => {
+        repository.findVenues.mockResolvedValue([toRecord(1, "Alpha"), toRecord(3, "Charlie")]);
+        tastingsService.getVenueVisits.mockResolvedValue([visitTo(1, 1)]);
+
+        const venues = await service.getVenues(ALICE, { type: [VenueTypeEnum.SHOP], visited: true });
+
+        expect(repository.findVenues).toHaveBeenCalledWith(expect.objectContaining({ types: [VenueTypeEnum.SHOP] }));
+        expect(namesOf(venues)).toEqual(["Alpha"]);
+      });
+    });
+
+    it("rejects an invalid zone, position or radius before reading the visits", async () => {
+      await expect(service.getVenues(ALICE, { north: 50, visited: true })).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.getVenues(ALICE, { latitude: 48.8, visited: true })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      await expect(service.getVenues(ALICE, { radiusKm: 5, visited: true })).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(tastingsService.getVenueVisits).not.toHaveBeenCalled();
+    });
+  });
+
   describe("getVenues search", () => {
     const BRUSSELS_TEXT = "bruxelles";
     const ORVAL_ID = 10;
@@ -932,6 +1164,8 @@ describe("VenuesService", () => {
         bitternessLevel: null,
         colorLevel: null,
         styleColorRange: null,
+        source: BeerSourceEnum.OFFICIAL,
+        createdBy: null,
       });
 
       const linkTo = (id: number, venueId: number, beerId: number, votes: VenueLinkDto["votes"]): VenueLinkDto => ({
@@ -998,29 +1232,69 @@ describe("VenuesService", () => {
       repository.findVenueById.mockResolvedValue(toRecord(5, "Echo"));
       repository.findLinks.mockResolvedValue([toLink(20, 5, CONFIRMED_VOTES)]);
 
-      expect(await service.getVenue(5)).toEqual({
+      expect(await service.getVenue(ALICE, 5)).toEqual({
         ...toRecord(5, "Echo"),
         distanceKm: null,
         status: AvailabilityStatusEnum.CONFIRMED,
+        ...NO_VISIT,
       });
       expect(repository.findLinks).toHaveBeenCalledWith([5]);
+    });
+
+    it("gives the venue the count and the last date of the visits of the user", async () => {
+      repository.findVenueById.mockResolvedValue(toRecord(5, "Echo"));
+      tastingsService.getVenueVisits.mockResolvedValue([
+        { venueId: 5, checkinCount: 2, lastCheckinAt: "2026-10-09T18:30:00.000Z" },
+      ]);
+
+      const venue = await service.getVenue(ALICE, 5);
+
+      expect(venue).toEqual({
+        ...toRecord(5, "Echo"),
+        distanceKm: null,
+        status: AvailabilityStatusEnum.UNKNOWN,
+        checkinCount: 2,
+        lastCheckinAt: "2026-10-09T18:30:00.000Z",
+      });
+      expect(tastingsService.getVenueVisits).toHaveBeenCalledExactlyOnceWith(ALICE, [5]);
     });
 
     it("gives the unknown state to a venue without beer", async () => {
       repository.findVenueById.mockResolvedValue(toRecord(5, "Echo"));
 
-      expect(await service.getVenue(5)).toEqual({
+      expect(await service.getVenue(ALICE, 5)).toEqual({
         ...toRecord(5, "Echo"),
         distanceKm: null,
         status: AvailabilityStatusEnum.UNKNOWN,
+        ...NO_VISIT,
       });
     });
 
     it("throws not found for an unknown venue and reads no link", async () => {
       repository.findVenueById.mockResolvedValue(null);
 
-      await expect(service.getVenue(42)).rejects.toThrow(new NotFoundException("Venue 42 not found."));
+      await expect(service.getVenue(ALICE, 42)).rejects.toThrow(new NotFoundException("Venue 42 not found."));
       expect(repository.findLinks).not.toHaveBeenCalled();
+      expect(tastingsService.getVenueVisits).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("ensureVenueExists", () => {
+    it("resolves with nothing for a known venue", async () => {
+      repository.existsById.mockResolvedValue(true);
+
+      await expect(service.ensureVenueExists(5)).resolves.toBeUndefined();
+      expect(repository.existsById).toHaveBeenCalledExactlyOnceWith(5);
+    });
+
+    it("throws the not found of getVenue for an unknown venue", async () => {
+      repository.existsById.mockResolvedValue(false);
+
+      const rejection = service.ensureVenueExists(42);
+
+      await expect(rejection).rejects.toBeInstanceOf(NotFoundException);
+      await expect(rejection).rejects.toThrow(new NotFoundException("Venue 42 not found."));
+      expect(repository.existsById).toHaveBeenCalledExactlyOnceWith(42);
     });
   });
 
@@ -1216,6 +1490,8 @@ describe("VenuesService", () => {
       bitternessLevel: null,
       colorLevel: null,
       styleColorRange: null,
+      source: BeerSourceEnum.OFFICIAL,
+      createdBy: null,
     });
 
     const linkOf = (beerId: number, votes: VenueLinkDto["votes"] = []): VenueLinkDto => ({
@@ -1228,8 +1504,7 @@ describe("VenuesService", () => {
     const vote = (userId: number | null, sense: VoteSenseEnum, votedAt: Date) => ({ userId, sense, votedAt });
 
     const given = (beers: BeerDto[], links: VenueLinkDto[]) => {
-      repository.findVenueById.mockResolvedValue(toRecord(VENUE_ID, "La Fine Mousse"));
-      repository.findLinks.mockResolvedValue([]);
+      repository.existsById.mockResolvedValue(true);
       repository.findLinksByVenue.mockResolvedValue(links);
       beersService.getBeersByIds.mockResolvedValue(beers);
     };
@@ -1237,13 +1512,15 @@ describe("VenuesService", () => {
     const namesOf = (venueBeers: { beerName: string }[]) => venueBeers.map((venueBeer) => venueBeer.beerName);
 
     it("throws not found for an unknown venue and reads no link nor beer", async () => {
-      repository.findVenueById.mockResolvedValue(null);
+      repository.existsById.mockResolvedValue(false);
 
       await expect(service.getVenueBeers(ALICE, 42, {})).rejects.toThrow(new NotFoundException("Venue 42 not found."));
+      expect(repository.existsById).toHaveBeenCalledExactlyOnceWith(42);
       expect(repository.findLinksByVenue).not.toHaveBeenCalled();
       expect(beersService.getBeersByIds).not.toHaveBeenCalled();
       expect(tastingsService.getBeerStates).not.toHaveBeenCalled();
       expect(tastingsService.getDiscoveries).not.toHaveBeenCalled();
+      expect(tastingsService.getVenueVisits).not.toHaveBeenCalled();
     });
 
     it("returns an empty list for a venue without beer", async () => {
@@ -1422,8 +1699,7 @@ describe("VenuesService", () => {
     const lastVoteAt = (votedAt: Date) => ({ userId: USER_ID, sense: VoteSenseEnum.GONE, votedAt });
 
     const given = (options: { link?: VenueLinkDto | null; lastVote?: ReturnType<typeof lastVoteAt> | null } = {}) => {
-      repository.findVenueById.mockResolvedValue(toRecord(VOTE_VENUE_ID, "Zythos"));
-      repository.findLinks.mockResolvedValue([]);
+      repository.existsById.mockResolvedValue(true);
       repository.findLink.mockResolvedValue(options.link === undefined ? noVotesLink : options.link);
       repository.findLastUserVote.mockResolvedValue(options.lastVote ?? null);
       repository.createVote.mockResolvedValue(undefined);
@@ -1434,12 +1710,14 @@ describe("VenuesService", () => {
 
     it("rejects an unknown venue with a 404 and writes nothing", async () => {
       given();
-      repository.findVenueById.mockResolvedValue(null);
+      repository.existsById.mockResolvedValue(false);
 
       await expect(service.vote(USER_ID, VOTE_VENUE_ID, BEER_ID, STILL_DTO)).rejects.toThrow(
         new NotFoundException("Venue 3 not found."),
       );
+      expect(repository.existsById).toHaveBeenCalledExactlyOnceWith(VOTE_VENUE_ID);
       expect(repository.findLink).not.toHaveBeenCalled();
+      expect(tastingsService.getVenueVisits).not.toHaveBeenCalled();
       expectNoWrite();
     });
 
@@ -1456,7 +1734,7 @@ describe("VenuesService", () => {
 
     it("reports an unknown venue before a vote that is still in its cooldown", async () => {
       given({ lastVote: lastVoteAt(ago(HOUR_MS)) });
-      repository.findVenueById.mockResolvedValue(null);
+      repository.existsById.mockResolvedValue(false);
 
       await expect(service.vote(USER_ID, VOTE_VENUE_ID, BEER_ID, STILL_DTO)).rejects.toBeInstanceOf(NotFoundException);
       expectNoWrite();
@@ -1618,7 +1896,9 @@ describe("VenuesService", () => {
         ...CREATED,
         distanceKm: null,
         status: AvailabilityStatusEnum.UNKNOWN,
+        ...NO_VISIT,
       });
+      expect(tastingsService.getVenueVisits).not.toHaveBeenCalled();
       expect(repository.existsByNameKey).toHaveBeenCalledWith("chez mousse");
       expect(repository.createVenue).toHaveBeenCalledWith({
         name: "Chez Mousse",
@@ -1660,8 +1940,7 @@ describe("VenuesService", () => {
     const DTO = { beerId: REPORT_BEER_ID };
 
     const given = () => {
-      repository.findVenueById.mockResolvedValue(toRecord(REPORT_VENUE_ID, "Zythos"));
-      repository.findLinks.mockResolvedValue([]);
+      repository.existsById.mockResolvedValue(true);
       beersService.getBeer.mockResolvedValue(BEER);
       repository.findLink.mockResolvedValue(null);
       repository.createLink.mockResolvedValue(CREATED_LINK);
@@ -1719,12 +1998,13 @@ describe("VenuesService", () => {
 
     it("rejects an unknown venue with a 404 before reading the beer and writes nothing", async () => {
       given();
-      repository.findVenueById.mockResolvedValue(null);
+      repository.existsById.mockResolvedValue(false);
       beersService.getBeer.mockRejectedValue(new NotFoundException("Beer 4 not found."));
 
       await expect(service.reportBeer(REPORTER_ID, REPORT_VENUE_ID, DTO)).rejects.toThrow(new NotFoundException("Venue 3 not found."));
       expect(beersService.getBeer).not.toHaveBeenCalled();
       expect(repository.findLink).not.toHaveBeenCalled();
+      expect(tastingsService.getVenueVisits).not.toHaveBeenCalled();
       expectNoWrite();
     });
 

@@ -30,6 +30,7 @@ const buildCheckin = (
   price: null,
   comment: "",
   photoId: null,
+  venueId: null,
   ...overrides,
 });
 
@@ -89,6 +90,43 @@ describe("JournalPage", () => {
       screen.getByRole("button", { name: "Voir plus" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("links a venue place to the map opened on it and keeps a free place as plain text", async () => {
+    (CheckinService.getPage as Mock).mockResolvedValue({
+      items: [
+        buildCheckin(2, { place: "Delirium Café", venueId: 42 }),
+        buildCheckin(1, { place: "Chez moi", venueId: null }),
+      ],
+      total: 2,
+      page: 1,
+      size: PAGE_SIZE,
+    });
+
+    renderWithProviders(<JournalPage />);
+
+    const items = within(await screen.findByRole("list")).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    const venueLink = within(items[0]).getByRole("link", { name: "Delirium Café" });
+    expect(venueLink).toHaveAttribute("href", "/carte?venue=42");
+    expect(venueLink).toHaveClass("min-h-11", "text-accent", "focus-visible:focus-ring");
+    expect(within(items[1]).getByText("Chez moi").tagName).toBe("SPAN");
+    expect(within(items[1]).getAllByRole("link")).toHaveLength(1);
+    expect(within(items[1]).queryByRole("link", { name: "Chez moi" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the place text of a tasting whose venue link is stale", async () => {
+    (CheckinService.getPage as Mock).mockResolvedValue({
+      items: [buildCheckin(1, { place: "Le Vieux Zinc", venueId: 999 })],
+      total: 1,
+      page: 1,
+      size: PAGE_SIZE,
+    });
+
+    renderWithProviders(<JournalPage />);
+
+    expect(await screen.findByRole("link", { name: "Le Vieux Zinc" })).toHaveAttribute("href", "/carte?venue=999");
+    expect(screen.getByRole("listitem")).toHaveTextContent("Le Vieux Zinc");
   });
 
   it("adds the 5 other tastings on Voir plus then removes the button", async () => {

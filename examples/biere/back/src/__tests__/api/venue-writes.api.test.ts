@@ -13,6 +13,7 @@ import { VENUE_ADDRESS_MAX_LENGTH, VENUE_NAME_MAX_LENGTH } from "@/modules/venue
 const VENUES_PATH = "/api/v1/venues";
 const BEERS_PATH = "/api/v1/beers";
 const ALICE_ID = "1";
+const BOB_ID = "2";
 const CAROL_ID = "3";
 const UNKNOWN_ID = 999_999;
 const SEEDED_VENUE_COUNT = 36;
@@ -93,6 +94,8 @@ describe("venue writes API", () => {
         description: "Une cave.",
         distanceKm: null,
         status: "unknown",
+        checkinCount: 0,
+        lastCheckinAt: null,
       });
       const after = await listVenues();
       expect(after).toHaveLength(SEEDED_VENUE_COUNT + 1);
@@ -102,6 +105,29 @@ describe("venue writes API", () => {
         .set(USER_ID_HEADER_NAME, ALICE_ID);
       expect(one.status).toBe(HttpStatus.OK);
       expect(one.body).toEqual(response.body);
+    });
+
+    it("returns a venue proposed by a user who has check-ins elsewhere with zero and null, found at once by its name", async () => {
+      const fineMousseId = await venueIdOf("La Fine Mousse");
+      const drink = await request(app.getHttpServer())
+        .post("/api/v1/checkins")
+        .set(USER_ID_HEADER_NAME, BOB_ID)
+        .field("beerId", String(beerId))
+        .field("drankAt", "2026-10-09T18:00:00.000Z")
+        .field("place", "Le Bistrot")
+        .field("venueId", String(fineMousseId))
+        .field("format", "bottle");
+      expect(drink.status).toBe(HttpStatus.CREATED);
+
+      const created = await createVenue({ ...NEW_VENUE, name: "Chez Mousse Visites" }, BOB_ID);
+      const found = await request(app.getHttpServer())
+        .get(`${VENUES_PATH}?q=${encodeURIComponent("Chez Mousse Visites")}`)
+        .set(USER_ID_HEADER_NAME, BOB_ID);
+
+      expect(created.status).toBe(HttpStatus.CREATED);
+      expect(created.body).toMatchObject({ name: "Chez Mousse Visites", checkinCount: 0, lastCheckinAt: null });
+      expect(found.status).toBe(HttpStatus.OK);
+      expect(found.body).toEqual([created.body]);
     });
 
     it("stores the folded search keys of the proposed name and city", async () => {

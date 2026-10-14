@@ -15,7 +15,7 @@ export class Beer {
   @PrimaryGeneratedColumn()
   readonly id!: number;
 
-  @Column({ type: "varchar", length: BEER_NAME_MAX_LENGTH, unique: true })
+  @Column({ type: "varchar", length: BEER_NAME_MAX_LENGTH })
   name!: string;
 
   @Column({ type: "integer" })
@@ -47,6 +47,12 @@ export class Beer {
 
   @Column({ type: "varchar", length: BEER_SEARCH_TEXT_MAX_LENGTH })
   searchText!: string;
+
+  @Column({ type: "integer", nullable: true })
+  createdBy!: number | null;
+
+  @Column({ type: "datetime", nullable: true })
+  createdAt!: Date | null;
 
   @ManyToOne(() => Brewery)
   @JoinColumn({ name: "breweryId" })

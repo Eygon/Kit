@@ -29,11 +29,14 @@ describe("Checkin entity", () => {
         "price",
         "rating",
         "userId",
+        "venueId",
       ].sort(),
     );
     const byName = (name: string) => metadata.columns.find((column) => column.propertyName === name);
     expect(byName("photoId")?.isNullable).toBe(true);
     expect(byName("photoId")?.length).toBe("36");
+    expect(byName("venueId")?.isNullable).toBe(true);
+    expect(byName("venueId")?.type).toBe("integer");
     expect(byName("rating")?.isNullable).toBe(true);
     expect(byName("price")?.isNullable).toBe(true);
     expect(byName("place")?.isNullable).toBe(false);

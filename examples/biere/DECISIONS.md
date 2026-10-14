@@ -30,6 +30,11 @@ Si tu ne dis rien, tout reste tel quel.
 | 26 | **Un lieu inconnu à l'enregistrement = erreur 404 « Venue N not found. »** ; le filtre « Lieux où j'ai bu » est dans l'adresse de la carte (`visited=1`) et une autre valeur côté API = 400 (F11) | Même règle que pour les bières inconnues |
 | 27 | **La carte s'ouvre sur un lieu par l'adresse** (`/carte?venue=N`) ; fermer la fiche retire le lieu de l'adresse ; lieu introuvable = message « Ce lieu n'est plus sur la carte. » ; dans le Journal et l'historique d'une bière, le lieu lié est un lien (F11) | Lien partageable, et Journal et carte se parlent |
 
+| 28 | **Bières proposées (F12) : le Pokédex « N / 120 » reste le catalogue officiel** ; les bières communautaires comptent dans le Journal, les statistiques et les badges de comptage, pas dans la complétion du Pokédex | Le « 120 » reste un objectif fini |
+| 29 | **Doublon = même nom ET même brasserie, sans tenir compte des majuscules ni des accents** (409) ; l'écran propose alors « L'ouvrir » ; 10 propositions par jour et par personne (429) ; nom nettoyé des retours à la ligne, aucun HTML interprété | Évite « Orval » en double sans interdire le même nom chez une autre brasserie |
+| 30 | **Le degré est obligatoire (0 à 20, un chiffre après la virgule)** pour proposer une bière, même règle côté API et côté écran | Une carte sans degré casserait le tri, les statistiques et le filtre |
+| 31 | **Modifier ou supprimer sa bière proposée est reporté** : pour l'instant une proposition est définitive | Réduit le run ; à reprendre si tu le veux |
+
 ## Choix techniques
 
 | # | Décision | Pourquoi |

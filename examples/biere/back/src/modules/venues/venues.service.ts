@@ -15,6 +15,7 @@ import type { VenueBeerUserStateDto } from "@/modules/venues/dtos/venue-beer-use
 import type { VenueBeersQueryDto } from "@/modules/venues/dtos/venue-beers-query.dto";
 import type { VenueDto } from "@/modules/venues/dtos/venue.dto";
 import type { VenueLinkDto } from "@/modules/venues/dtos/venue-link.dto";
+import type { VenueVisitDto } from "@/modules/tastings/dtos/venue-visit.dto";
 import type { VenueRecordDto } from "@/modules/venues/dtos/venue-record.dto";
 import type { VoteRecordDto } from "@/modules/venues/dtos/vote-record.dto";
 import type { VenuesQueryDto } from "@/modules/venues/dtos/venues-query.dto";
@@ -64,8 +65,14 @@ const toVenueWithStatus = (
   links: readonly VenueLinkDto[],
   now: Date,
   distanceKm: number | null,
+  visit: VenueVisitDto | undefined,
 ): VenueDto =>
-  toVenueDto(record, pickBestStatus(links.map((link) => computeAvailability(link.votes, now).status)), distanceKm);
+  toVenueDto(
+    record,
+    pickBestStatus(links.map((link) => computeAvailability(link.votes, now).status)),
+    distanceKm,
+    visit,
+  );
 
 const toPosition = (query: PositionQueryDto): GeoPointDto | null => {
   const { latitude, longitude } = query;
@@ -80,6 +87,8 @@ const toPosition = (query: PositionQueryDto): GeoPointDto | null => {
 
 const isInFamily = (beer: BeerDto, family: BeerFamilyEnum | undefined): boolean =>
   family === undefined || beer.family === family;
+
+const hasVisit = (visit: VenueVisitDto | undefined): boolean => visit !== undefined && visit.checkinCount > 0;
 
 const toRadiusKm = (query: VenuesQueryDto, position: GeoPointDto | null): number | null => {
   if (query.radiusKm === undefined) {
@@ -147,16 +156,22 @@ export class VenuesService {
     const undiscoveredLinks = await this.keepUndiscoveredLinks(userId, retainedLinks, query);
     const linksByVenue = groupByVenue(retainedLinks);
     const undiscoveredVenueIds = new Set(undiscoveredLinks.map((link) => link.venueId));
+    const visitsByVenue = await this.getVisits(
+      userId,
+      records.map((record) => record.id),
+    );
     const now = new Date();
     const venues = records
       .filter((record) => !hasBeerFilter(query) || linksByVenue.has(record.id))
       .filter((record) => query.undiscovered !== true || undiscoveredVenueIds.has(record.id))
+      .filter((record) => query.visited !== true || hasVisit(visitsByVenue.get(record.id)))
       .map((record) =>
         toVenueWithStatus(
           record,
           linksByVenue.get(record.id) ?? [],
           now,
           position === null ? null : computeDistanceKm(position, record),
+          visitsByVenue.get(record.id),
         ),
       )
       .filter((venue) => query.confirmedOnly !== true || venue.status === AvailabilityStatusEnum.CONFIRMED)
@@ -164,13 +179,20 @@ export class VenuesService {
     return position === null || area.search !== "" ? venues : venues.sort(compareVenuesByDistance);
   }
 
-  async getVenue(id: number): Promise<VenueDto> {
+  async getVenue(userId: number, id: number): Promise<VenueDto> {
     const record = await this.venuesRepository.findVenueById(id);
     if (record === null) {
       throw new NotFoundException(`Venue ${id} not found.`);
     }
     const links = await this.venuesRepository.findLinks([id]);
-    return toVenueWithStatus(record, links, new Date(), null);
+    const visitsByVenue = await this.getVisits(userId, [id]);
+    return toVenueWithStatus(record, links, new Date(), null, visitsByVenue.get(id));
+  }
+
+  async ensureVenueExists(id: number): Promise<void> {
+    if (!(await this.venuesRepository.existsById(id))) {
+      throw new NotFoundException(`Venue ${id} not found.`);
+    }
   }
 
   async getBeerVenues(beerId: number, query: PositionQueryDto): Promise<BeerVenueDto[]> {
@@ -192,7 +214,7 @@ export class VenuesService {
   }
 
   async getVenueBeers(userId: number, venueId: number, query: VenueBeersQueryDto): Promise<VenueBeerDto[]> {
-    await this.getVenue(venueId);
+    await this.ensureVenueExists(venueId);
     const links = await this.venuesRepository.findLinksByVenue(venueId);
     const beers = await this.beersService.getBeersByIds(links.map((link) => link.beerId));
     const beersById = new Map(beers.filter((beer) => isInFamily(beer, query.family)).map((beer) => [beer.id, beer]));
@@ -224,7 +246,7 @@ export class VenuesService {
   }
 
   async vote(userId: number, venueId: number, beerId: number, dto: CreateVoteDto): Promise<VenueBeerDto> {
-    await this.getVenue(venueId);
+    await this.ensureVenueExists(venueId);
     const link = await this.getLink(venueId, beerId);
     const now = new Date();
     const lastVote = await this.venuesRepository.findLastUserVote(link.id, userId);
@@ -252,11 +274,11 @@ export class VenuesService {
       throw new ConflictException(`A venue named "${data.name}" already exists.`);
     }
     const record = await this.venuesRepository.createVenue(data);
-    return toVenueDto(record, AvailabilityStatusEnum.UNKNOWN, null);
+    return toVenueDto(record, AvailabilityStatusEnum.UNKNOWN, null, undefined);
   }
 
   async reportBeer(userId: number, venueId: number, dto: ReportVenueBeerDto): Promise<VenueBeerDto> {
-    await this.getVenue(venueId);
+    await this.ensureVenueExists(venueId);
     const beer = await this.beersService.getBeer(dto.beerId);
     if ((await this.venuesRepository.findLink(venueId, dto.beerId)) !== null) {
       throw new ConflictException(`Beer ${dto.beerId} is already listed at venue ${venueId}.`);
@@ -270,6 +292,11 @@ export class VenuesService {
       null,
       userStates.get(dto.beerId) as VenueBeerUserStateDto,
     );
+  }
+
+  private async getVisits(userId: number, venueIds: readonly number[]): Promise<Map<number, VenueVisitDto>> {
+    const visits = await this.tastingsService.getVenueVisits(userId, venueIds);
+    return new Map(visits.map((visit) => [visit.venueId, visit]));
   }
 
   private async getUserStates(userId: number, beerIds: readonly number[]): Promise<Map<number, VenueBeerUserStateDto>> {

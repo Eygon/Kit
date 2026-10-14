@@ -26,6 +26,7 @@ const NEW_CHECKIN: NewCheckin = {
   beerId: 7,
   drankAt: "2026-10-12T12:00:00.000Z",
   place: "Chez Paul",
+  venueId: 5,
   format: "bottle",
   rating: null,
   aromas: [],
@@ -46,6 +47,7 @@ const created = (isFirstDiscovery: boolean): CreatedCheckin => ({
     price: null,
     comment: "",
     photoId: null,
+    venueId: null,
   },
   isFirstDiscovery,
 });

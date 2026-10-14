@@ -10,6 +10,7 @@ export interface VenueQuery {
   beerId: number | null;
   confirmedOnly: boolean;
   undiscovered: boolean;
+  visited: boolean;
   position: GeoPosition | null;
   radiusKm: number | null;
   q: string;

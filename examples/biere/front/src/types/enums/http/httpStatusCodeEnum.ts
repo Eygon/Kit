@@ -8,5 +8,6 @@ export enum HttpStatusCodeEnum {
   NOT_FOUND = 404,
   CONFLICT = 409,
   PAYLOAD_TOO_LARGE = 413,
+  TOO_MANY_REQUESTS = 429,
   INTERNAL_SERVER_ERROR = 500,
 }

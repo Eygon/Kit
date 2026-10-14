@@ -10,6 +10,7 @@ export const toCheckinDto = (record: CheckinRecordDto, beerName: string): Checki
   beerName,
   drankAt: record.drankAt,
   place: record.place,
+  venueId: record.venueId,
   rating: record.rating,
   aromas: record.aromas,
   format: record.format,

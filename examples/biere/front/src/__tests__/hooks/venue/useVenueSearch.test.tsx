@@ -1,3 +1,5 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
@@ -5,12 +7,14 @@ import type { ReactNode } from "react";
 import type { Mock } from "vitest";
 import { createTestQueryClient } from "@/__tests__/utils/renderWithProviders";
 import VenueService from "@/api/venues/venueService";
-import { useVenueSearch } from "@/pages/map/hooks/useVenueSearch";
-import { VENUE_SEARCH_DEBOUNCE_MS, VENUE_SEARCH_MAX_LENGTH } from "@/pages/map/utils/mapConstants";
+import { VENUE_SEARCH_DEBOUNCE_MS, VENUE_SEARCH_MAX_LENGTH } from "@/constants/venueSearchConstants";
+import { useVenueSearch } from "@/hooks/venue/useVenueSearch";
+import * as mapConstants from "@/pages/map/utils/mapConstants";
 import { VenueTypeEnum } from "@/types/enums/venue/venueTypeEnum";
 import { EMPTY_VENUE_QUERY } from "@/types/mappers/venue/venueQueryMapper";
 import type { VenueQuery } from "@/types/models/venue/venueQuery";
 import { venueKeys } from "@/utils/queryKeys/venueQueryKeys";
+
 
 vi.mock("@/api/venues/venueService", () => ({
   default: { getAll: vi.fn() },
@@ -37,6 +41,20 @@ const renderSearch = (filterQuery: VenueQuery = FILTERS, client: QueryClient = c
   return renderHook(() => useVenueSearch(filterQuery), { wrapper: wrapperFor(client) });
 };
 
+const SOURCE_ROOT = resolve(process.cwd(), "src");
+const FORMER_HOOK_PATH = join(SOURCE_ROOT, "pages/map/hooks/useVenueSearch");
+const VENUE_SEARCH_SPECIFIER = /["']([^"'\n]*useVenueSearch)["']/g;
+
+const sourceFiles = (directory: string): string[] =>
+  readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) return entry.name === "__tests__" ? [] : sourceFiles(path);
+    return /\.(ts|tsx)$/.test(entry.name) ? [path] : [];
+  });
+
+const resolveSpecifier = (file: string, specifier: string) =>
+  specifier.startsWith("@/") ? join(SOURCE_ROOT, specifier.slice(2)) : resolve(dirname(file), specifier);
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("useVenueSearch", () => {
@@ -44,9 +62,37 @@ describe("useVenueSearch", () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("exposes the search limits as constants", async () => {
     expect(VENUE_SEARCH_MAX_LENGTH).toBe(100);
     expect(VENUE_SEARCH_DEBOUNCE_MS).toBe(300);
+  });
+
+  it("leaves nothing at the former map location of the search hook", () => {
+    expect(existsSync(resolve(process.cwd(), "src/pages/map/hooks/useVenueSearch.ts"))).toBe(false);
+    expect(existsSync(resolve(process.cwd(), "src/__tests__/pages/map/hooks/useVenueSearch.test.tsx"))).toBe(false);
+  });
+
+  it("AC3 has no module of the app that still points to the former map location of the search hook", () => {
+    const sources = sourceFiles(SOURCE_ROOT);
+    const importers = sources
+      .filter((file) =>
+        [...readFileSync(file, "utf8").matchAll(VENUE_SEARCH_SPECIFIER)].some(
+          ([, specifier]) => resolveSpecifier(file, specifier) === FORMER_HOOK_PATH,
+        ),
+      )
+      .map((file) => relative(SOURCE_ROOT, file));
+
+    expect(sources.length).toBeGreaterThan(100);
+    expect(importers).toEqual([]);
+  });
+
+  it("T020 no longer exports the search limits from the map constants", () => {
+    expect(mapConstants).not.toHaveProperty("VENUE_SEARCH_MAX_LENGTH");
+    expect(mapConstants).not.toHaveProperty("VENUE_SEARCH_DEBOUNCE_MS");
   });
 
   it("is idle and sends nothing before the user types", async () => {
@@ -93,6 +139,28 @@ describe("useVenueSearch", () => {
     expect(result.current.isIdle).toBe(false);
     expect(result.current.isPending).toBe(false);
     expect(result.current.isError).toBe(false);
+    expect(VenueService.getAll).toHaveBeenCalledTimes(1);
+    expect(VenueService.getAll).toHaveBeenCalledWith({ ...FILTERS, bounds: null, q: "acad" });
+  });
+
+  it("AC1 sends nothing 1 ms before the 300 ms pause and one search right at the pause", async () => {
+    vi.useFakeTimers();
+    (VenueService.getAll as Mock).mockResolvedValue(VENUES);
+    const { result } = renderSearch();
+
+    act(() => result.current.setSearchText("acad"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(299);
+    });
+
+    expect(result.current.term).toBe("");
+    expect(VenueService.getAll).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+
+    expect(result.current.term).toBe("acad");
     expect(VenueService.getAll).toHaveBeenCalledTimes(1);
     expect(VenueService.getAll).toHaveBeenCalledWith({ ...FILTERS, bounds: null, q: "acad" });
   });

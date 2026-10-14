@@ -102,6 +102,11 @@ export class VenuesQueryDto {
   readonly undiscovered?: boolean;
 
   @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  readonly visited?: boolean;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(-LATITUDE_MAX_DEGREES)

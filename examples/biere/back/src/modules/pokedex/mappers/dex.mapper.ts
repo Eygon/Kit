@@ -1,6 +1,7 @@
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import type { CatalogTotalsDto } from "@/modules/beers/dtos/catalog-totals.dto";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import type { DexBeerDto } from "@/modules/pokedex/dtos/dex-beer.dto";
 import type { DexFamilyDto } from "@/modules/pokedex/dtos/dex-family.dto";
 import type { DexDto } from "@/modules/pokedex/dtos/dex.dto";
@@ -28,10 +29,12 @@ export const toDexDto = (
   discoveredBeers: readonly BeerDto[],
 ): DexDto => {
   const totalsByFamily = new Map(totals.families.map((facet) => [facet.value, facet.count]));
+  const officialBeers = discoveredBeers.filter((beer) => beer.source === BeerSourceEnum.OFFICIAL);
+  const officialBeerIds = new Set(officialBeers.map((beer) => beer.id));
   return {
-    discovered: discoveries.length,
+    discovered: discoveries.filter((discovery) => officialBeerIds.has(discovery.beerId)).length,
     total: totals.total,
-    families: Object.values(BeerFamilyEnum).map((family) => toDexFamilyDto(family, totalsByFamily, discoveredBeers)),
+    families: Object.values(BeerFamilyEnum).map((family) => toDexFamilyDto(family, totalsByFamily, officialBeers)),
     beers: discoveries.map(toDexBeerDto),
   };
 };

@@ -11,5 +11,7 @@ export interface Venue {
   longitude: number;
   description: string;
   distanceKm: number | null;
+  checkinCount: number;
+  lastCheckinAt: Date | null;
   status: AvailabilityStatusEnum;
 }

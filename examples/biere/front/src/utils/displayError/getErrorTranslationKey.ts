@@ -16,6 +16,8 @@ export const getErrorTranslationKey = (error: unknown): string => {
       return "errors.conflict";
     case HttpStatusCodeEnum.PAYLOAD_TOO_LARGE:
       return "errors.payloadTooLarge";
+    case HttpStatusCodeEnum.TOO_MANY_REQUESTS:
+      return "errors.tooManyRequests";
     default:
       return "errors.generic";
   }

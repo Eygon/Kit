@@ -16,6 +16,7 @@ const padTwoDigits = (value: number): string => String(value).padStart(2, "0");
 export const createEmptyCheckinForm = (now: Date): CheckinFormValues => ({
   drankAt: `${now.getFullYear()}-${padTwoDigits(now.getMonth() + 1)}-${padTwoDigits(now.getDate())}T${padTwoDigits(now.getHours())}:${padTwoDigits(now.getMinutes())}`,
   place: "",
+  venueId: null,
   rating: 0,
   aromas: [],
   format: "",
@@ -28,6 +29,7 @@ export const formValuesToNewCheckin = (values: CheckinFormValues, beerId: number
   beerId,
   drankAt: new Date(values.drankAt).toISOString(),
   place: values.place.trim(),
+  venueId: values.venueId,
   format: values.format,
   rating: values.rating === 0 ? null : values.rating,
   aromas: values.aromas,

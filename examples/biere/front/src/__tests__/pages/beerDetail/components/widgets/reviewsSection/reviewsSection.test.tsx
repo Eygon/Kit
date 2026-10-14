@@ -10,6 +10,7 @@ import ReviewService from "@/api/reviews/reviewService";
 import i18n from "@/i18n/i18n";
 import { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
 import { ReviewCriterionEnum } from "@/types/enums/review/reviewCriterionEnum";
+import { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
 import type { Beer } from "@/types/models/beer/beer";
 import type { Review } from "@/types/models/review/review";
 import type { ReviewPage } from "@/types/models/review/reviewPage";
@@ -91,6 +92,8 @@ const BASE_BEER: Beer = {
   reviewCount: 0,
   ratingDistribution: [],
   criteria: [],
+  source: BeerSourceEnum.OFFICIAL,
+  createdByName: null,
 };
 
 const REVIEWED_BEER: Beer = {

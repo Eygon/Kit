@@ -10,6 +10,7 @@ const RECORD: CheckinRecordDto = {
   beerId: 12,
   drankAt: "2026-03-14T18:30:00.000Z",
   place: "Le Bistrot",
+  venueId: null,
   rating: 4.5,
   aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
   format: BeerFormatEnum.BOTTLE,
@@ -24,6 +25,7 @@ const EXPECTED_CHECKIN = {
   beerName: "Orval",
   drankAt: "2026-03-14T18:30:00.000Z",
   place: "Le Bistrot",
+  venueId: null,
   rating: 4.5,
   aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
   format: BeerFormatEnum.BOTTLE,
@@ -51,6 +53,12 @@ describe("toCheckinDto", () => {
       aromas: [],
       photoId: "3f2b8c1e-5d4a-4e6b-9a7c-1d2e3f4a5b6c",
     });
+  });
+});
+
+describe("toCheckinDto venue", () => {
+  it("copies the venue id of a linked record", () => {
+    expect(toCheckinDto({ ...RECORD, venueId: 14 }, "Orval")).toStrictEqual({ ...EXPECTED_CHECKIN, venueId: 14 });
   });
 });
 

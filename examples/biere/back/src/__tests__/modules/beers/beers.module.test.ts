@@ -3,6 +3,7 @@ import { Test } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { describe, expect, it } from "vitest";
 import { BeerStylesController } from "@/modules/beers/beer-styles.controller";
+import { BreweriesController } from "@/modules/beers/breweries.controller";
 import { BeerReviewsController } from "@/modules/beers/beer-reviews.controller";
 import { BeersController } from "@/modules/beers/beers.controller";
 import { Review } from "@/modules/beers/entities/review.entity";
@@ -46,7 +47,9 @@ describe("BeersModule", () => {
       BeersController,
       BeerStylesController,
       BeerReviewsController,
+      BreweriesController,
     ]);
+    expect(moduleRef.get(BreweriesController)).toBeInstanceOf(BreweriesController);
     expect(moduleRef.get(BeerStylesController)).toBeInstanceOf(BeerStylesController);
     expect(moduleRef.get(BeerReviewsController)).toBeInstanceOf(BeerReviewsController);
 

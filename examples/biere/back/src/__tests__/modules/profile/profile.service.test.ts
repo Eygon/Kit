@@ -1,5 +1,6 @@
 import { Test } from "@nestjs/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import { BeersService } from "@/modules/beers/beers.service";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
@@ -48,6 +49,14 @@ const beer = (id: number, country: string, abv: number, family: BeerFamilyEnum):
   bitternessLevel: null,
   colorLevel: null,
   styleColorRange: null,
+  source: BeerSourceEnum.OFFICIAL,
+  createdBy: null,
+});
+
+const communityBeer = (id: number, country: string, family: BeerFamilyEnum): BeerDto => ({
+  ...beer(id, country, 5, family),
+  source: BeerSourceEnum.COMMUNITY,
+  createdBy: 2,
 });
 
 const checkin = (
@@ -61,6 +70,7 @@ const checkin = (
   beerId,
   drankAt,
   place: "Chez Alice",
+  venueId: null,
   rating,
   aromas: [],
   format: BeerFormatEnum.BOTTLE,
@@ -135,6 +145,24 @@ describe("ProfileService", () => {
       monthlyCheckins: monthly({ "2026-03": 3 }),
     });
     expect(beersService.getBeersByIds).toHaveBeenCalledExactlyOnceWith([12, 40]);
+  });
+
+  it("counts a community beer in the statistics like an official one", async () => {
+    const orval = beer(12, "BE", 6, BeerFamilyEnum.TRAPPIST);
+    const community = communityBeer(77, "FR", BeerFamilyEnum.LAGER);
+    givenTastings([checkin(1, 12, 4), checkin(2, 77, 5), checkin(3, 77)], [orval, community]);
+
+    expect(await service.getStats(ALICE)).toStrictEqual({
+      checkinCount: 3,
+      discoveredCount: 2,
+      averageAbv: 5.5,
+      countries: [{ country: "BE", count: 1 }, { country: "FR", count: 1 }],
+      favoriteFamily: BeerFamilyEnum.LAGER,
+      averageRating: 4.5,
+      currentStreak: 1,
+      bestStreak: 1,
+      monthlyCheckins: monthly({ "2026-03": 3 }),
+    });
   });
 
   it("rounds an average ending in 5 hundredths up to the next tenth", async () => {
@@ -558,6 +586,78 @@ describe("ProfileService", () => {
       givenBadges([], [], { total: CATALOG_SIZE, families: [] });
 
       expect(await badgeOf("specialist-stout")).toMatchObject({ unlocked: false, current: 0, target: 0 });
+    });
+
+    describe("community beers", () => {
+      const COMMUNITY_LAGER = communityBeer(77, "FR", BeerFamilyEnum.LAGER);
+
+      it("unlocks First sip with a first community tasting while Completist and the family badge stay at 0", async () => {
+        givenBadges([checkin(1, 77, null, minute(0))], [COMMUNITY_LAGER]);
+
+        const badges = await service.getBadges(ALICE);
+
+        expect(badges.find((badge) => badge.id === "firstSip")).toMatchObject({ unlocked: true, current: 1, unlockedAt: minute(0) });
+        expect(badges.find((badge) => badge.id === "completionist")).toMatchObject({
+          unlocked: false,
+          current: 0,
+          target: CATALOG_SIZE,
+          unlockedAt: null,
+        });
+        expect(badges.find((badge) => badge.id === "specialist-lager")).toMatchObject({
+          unlocked: false,
+          current: 0,
+          target: FAMILY_SIZE,
+          unlockedAt: null,
+        });
+      });
+
+      it("keeps counting a community beer for Explorer, Collector, Globe-trotter and Photographer", async () => {
+        const countries = ["BE", "FR", "DE", "NL", "IT"];
+        const beers = countries.map((country, index) => communityBeer(index + 1, country, BeerFamilyEnum.LAGER));
+        const photos = Array.from({ length: 10 }, (_, index) => withPhoto(checkin(index + 1, 1, null, minute(index))));
+        givenBadges(
+          [...photos, ...beers.slice(1).map((record, index) => checkin(20 + index, record.id, null, minute(30 + index)))],
+          beers,
+        );
+
+        const badges = await service.getBadges(ALICE);
+
+        expect(badges.find((badge) => badge.id === "explorer")).toMatchObject({ unlocked: false, current: 5, target: 10 });
+        expect(badges.find((badge) => badge.id === "collector")).toMatchObject({ unlocked: false, current: 5, target: 50 });
+        expect(badges.find((badge) => badge.id === "globetrotter")).toMatchObject({ unlocked: true, current: 5, unlockedAt: minute(33) });
+        expect(badges.find((badge) => badge.id === "photographer")).toMatchObject({ unlocked: true, current: 10, unlockedAt: minute(9) });
+      });
+
+      it("dates Completist with the official discoveries only, whatever the community tastings in between", async () => {
+        const official = [beer(1, "BE", 5, BeerFamilyEnum.LAGER), beer(2, "BE", 5, BeerFamilyEnum.LAGER)];
+        const smallCatalog = { total: 2, families: TOTALS.families };
+        givenBadges(
+          [checkin(1, 1, null, minute(0)), checkin(2, 77, null, minute(1)), checkin(3, 2, null, minute(2))],
+          [...official, COMMUNITY_LAGER],
+          smallCatalog,
+        );
+
+        expect(await badgeOf("completionist")).toMatchObject({ unlocked: true, current: 2, target: 2, unlockedAt: minute(2) });
+
+        givenBadges(
+          [checkin(1, 1, null, minute(0)), checkin(2, 77, null, minute(1)), checkin(3, 78, null, minute(2))],
+          [official[0], COMMUNITY_LAGER, communityBeer(78, "BE", BeerFamilyEnum.LAGER)],
+          smallCatalog,
+        );
+
+        expect(await badgeOf("completionist")).toMatchObject({ unlocked: false, current: 1, target: 2, unlockedAt: null });
+      });
+
+      it("counts only the official beers of a family for its Specialist, dated at the last official one", async () => {
+        const beers = [beer(1, "BE", 5, BeerFamilyEnum.LAGER), COMMUNITY_LAGER, beer(3, "BE", 5, BeerFamilyEnum.LAGER)];
+        givenBadges([checkin(1, 1, null, minute(0)), checkin(2, 77, null, minute(1))], beers);
+
+        expect(await badgeOf("specialist-lager")).toMatchObject({ unlocked: false, current: 1, target: 2, unlockedAt: null });
+
+        givenBadges([checkin(1, 1, null, minute(0)), checkin(2, 77, null, minute(1)), checkin(3, 3, null, minute(2))], beers);
+
+        expect(await badgeOf("specialist-lager")).toMatchObject({ unlocked: true, current: 2, target: 2, unlockedAt: minute(2) });
+      });
     });
 
     it("counts only the check-ins with a photo for Photographe, dated at the 10th one", async () => {

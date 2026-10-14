@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { getRepositoryToken, TypeOrmModule } from "@nestjs/typeorm";
 import { Test } from "@nestjs/testing";
 import type { TestingModule } from "@nestjs/testing";
-import { DataSource } from "typeorm";
+import { DataSource, IsNull } from "typeorm";
 import type { Repository } from "typeorm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_CONFIG } from "@/config/app-config.constants";
@@ -729,6 +729,71 @@ describe("DataSeeder", () => {
     expect(await checkins.count()).toBe(0);
   });
 
+  describe("community beers sharing the name of an official beer", () => {
+    const SHARED_NAMES = ["Orval", reviewsSeed[0].beerName];
+
+    const replayWithCommunityTwins = async (): Promise<number[]> => {
+      Object.assign(appConfig, { seedDemoActivity: true });
+      await moduleRef.get(DataSeeder).seed();
+      const official = await beers.find({ where: { createdBy: IsNull() } });
+      const twins = SHARED_NAMES.map((name) => {
+        const source = official.find((beer) => beer.name.toLowerCase() === name.toLowerCase());
+        if (source === undefined) {
+          throw new Error(`${name} is not seeded`);
+        }
+        return beers.create({
+          name: source.name,
+          breweryId: source.breweryId,
+          styleId: source.styleId,
+          abv: source.abv,
+          ibu: null,
+          ebc: null,
+          description: "",
+          aromas: [],
+          formats: [],
+          country: source.country,
+          searchText: source.searchText,
+          createdBy: ALICE_USER_ID,
+          createdAt: LOAD_TIME,
+        });
+      });
+      const inserted = await beers.save(twins);
+      await votes.clear();
+      await venueBeers.clear();
+      await reviews.clear();
+      await checkins.clear();
+      await moduleRef.get(DataSeeder).seed();
+      return inserted.map((beer) => beer.id);
+    };
+
+    it("keeps the venue links, the reviews and the demo tastings on the official beers when the seed is replayed", async () => {
+      const communityIds = await replayWithCommunityTwins();
+      const officialIds = (await beers.find({ where: { createdBy: IsNull() } })).map((beer) => beer.id);
+
+      const links = await venueBeers.find();
+      const storedReviews = await reviews.find();
+      const storedCheckins = await checkins.find();
+      expect(links).toHaveLength(SEEDED_LINK_COUNT);
+      expect(storedReviews).toHaveLength(SEEDED_REVIEW_COUNT);
+      expect(storedCheckins).toHaveLength(demoCheckinsSeed.length);
+      for (const rows of [links, storedReviews, storedCheckins]) {
+        expect(rows.every((row) => officialIds.includes(row.beerId))).toBe(true);
+        expect(rows.some((row) => communityIds.includes(row.beerId))).toBe(false);
+      }
+    });
+
+    it("attaches the Orval demo tastings to the official Orval", async () => {
+      const [communityOrvalId] = await replayWithCommunityTwins();
+      const officialOrval = await beers.findOneByOrFail({ name: "Orval", createdBy: IsNull() });
+
+      const orvalCheckins = await checkins.findBy({ beerId: officialOrval.id });
+
+      expect(orvalCheckins).toHaveLength(demoCheckinsSeed.filter((row) => row.beerName === "Orval").length);
+      expect(orvalCheckins.length).toBeGreaterThan(0);
+      expect(await checkins.countBy({ beerId: communityOrvalId })).toBe(0);
+    });
+  });
+
   describe("demo activity", () => {
     const enableDemo = (): void => {
       Object.assign(appConfig, { seedDemoActivity: true });
@@ -739,6 +804,7 @@ describe("DataSeeder", () => {
       beerId: 1,
       drankAt: LOAD_TIME,
       place: "Paris",
+      venueId: null,
       rating: null,
       aromas: [],
       format: BeerFormatEnum.DRAFT,
@@ -764,11 +830,45 @@ describe("DataSeeder", () => {
       const carol = await checkins.findBy({ userId: CAROL_USER_ID });
       expect([bob.length, carol.length]).toEqual([BOB_DEMO_COUNT, CAROL_DEMO_COUNT]);
       expect(await checkins.count()).toBe(demoCheckinsSeed.length);
+      expect([...bob, ...carol]).toHaveLength(BOB_DEMO_COUNT + CAROL_DEMO_COUNT);
       for (const { drankAt } of [...bob, ...carol]) {
         const age = (before - drankAt.getTime()) / DAY_MS;
         expect(age).toBeGreaterThanOrEqual(0);
         expect(age).toBeLessThanOrEqual(WINDOW_DAYS);
       }
+    });
+
+    it("links each of the 21 demo tastings to the venue named in its text", async () => {
+      enableDemo();
+
+      await moduleRef.get(DataSeeder).seed();
+
+      const venueIds = new Map((await venues.find()).map(({ id, name }) => [name, id]));
+      const stored = await checkins.find({ order: { id: "ASC" } });
+      expect(stored).toHaveLength(demoCheckinsSeed.length);
+      expect(venueIds.size).toBe(SEEDED_VENUE_COUNT);
+      expect(stored.map(({ place, venueId }) => [place, venueId])).toEqual(
+        stored.map(({ place }) => [place, venueIds.get(place)]),
+      );
+      expect(stored.filter(({ venueId }) => venueId === null)).toEqual([]);
+    });
+
+    it("modifies no existing tasting without a venue and links only the tastings it loads", async () => {
+      enableDemo();
+      const seeder = moduleRef.get(DataSeeder);
+      await seeder.seed();
+      await checkins.clear();
+      await checkins.insert({ ...demoCheckin(BOB_USER_ID), place: venuesSeed[0].name });
+      await checkins.insert({ ...demoCheckin(ALICE_USER_ID), place: venuesSeed[1].name });
+      const before = await checkins.find({ order: { id: "ASC" } });
+
+      await seeder.seed();
+
+      const after = await checkins.find({ order: { id: "ASC" } });
+      expect(before.map(({ venueId }) => venueId)).toEqual([null, null]);
+      expect(after.filter(({ userId }) => userId !== CAROL_USER_ID)).toEqual(before);
+      expect(after.filter(({ userId }) => userId === CAROL_USER_ID)).toHaveLength(CAROL_DEMO_COUNT);
+      expect(after.filter(({ userId }) => userId === CAROL_USER_ID).every(({ venueId }) => venueId !== null)).toBe(true);
     });
 
     it("makes Alice follow Bob and Carol and gives Alice no tasting", async () => {

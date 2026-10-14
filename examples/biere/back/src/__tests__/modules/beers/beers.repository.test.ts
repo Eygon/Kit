@@ -3,6 +3,7 @@ import { Test } from "@nestjs/testing";
 import type { TestingModule } from "@nestjs/testing";
 import type { Repository } from "typeorm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import { BeersRepository } from "@/modules/beers/beers.repository";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
@@ -173,6 +174,8 @@ describe("BeersRepository", () => {
         bitternessLevel: null,
         colorLevel: null,
         styleColorRange: { min: 1, max: 1 },
+        source: BeerSourceEnum.OFFICIAL,
+        createdBy: null,
       },
     ]);
   });
@@ -193,6 +196,8 @@ describe("BeersRepository", () => {
       bitternessLevel: null,
       colorLevel: null,
       styleColorRange: { min: 1, max: 1 },
+      source: BeerSourceEnum.OFFICIAL,
+      createdBy: null,
     });
   });
 
@@ -241,6 +246,8 @@ describe("BeersRepository", () => {
         bitternessLevel: null,
         colorLevel: null,
         styleColorRange: { min: 1, max: 1 },
+        source: BeerSourceEnum.OFFICIAL,
+        createdBy: null,
       });
     });
 
@@ -976,5 +983,242 @@ describe("BeersRepository reviews", () => {
       await reviews().delete({ beerId: ORVAL, userId: 5 });
       expect(await repository.findReviewPage(ORVAL, ALICE, 1, 10)).toEqual({ items: [], total: 0 });
     });
+  });
+});
+
+describe("BeersRepository breweries", () => {
+  let moduleRef: TestingModule;
+  let repository: BeersRepository;
+  let breweries: Repository<Brewery>;
+
+  beforeEach(async () => {
+    moduleRef = await Test.createTestingModule({
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
+      providers: [BeersRepository],
+    }).compile();
+    repository = moduleRef.get(BeersRepository);
+    breweries = moduleRef.get<Repository<Brewery>>(getRepositoryToken(Brewery));
+  });
+
+  afterEach(async () => {
+    await moduleRef.close();
+  });
+
+  it("returns every brewery once with exactly id, name and country, sorted by name ignoring case", async () => {
+    await breweries.insert(BREWERIES);
+
+    expect(await repository.findBreweries()).toEqual([
+      { id: 2, name: "Alpha Brewery", country: "DE" },
+      { id: 3, name: "Brasserie Etoile", country: "FR" },
+      { id: 1, name: "Brasserie Zeta", country: "BE" },
+    ]);
+  });
+
+  it("sorts a lowercase name among capitalized ones and breaks name ties by id", async () => {
+    await breweries.insert([
+      { id: 11, name: "ALPHA BREWERY", country: "NL", city: "Gouda" },
+      { id: 10, name: "alpha brewery", country: "LU", city: "Esch" },
+      { id: 12, name: "brasserie ABC", country: "BE", city: "Liege" },
+      ...BREWERIES,
+    ]);
+
+    const result = await repository.findBreweries();
+
+    expect(result.map((brewery) => brewery.id)).toEqual([2, 10, 11, 12, 3, 1]);
+  });
+
+  it("returns an empty list when there is no brewery", async () => {
+    expect(await repository.findBreweries()).toEqual([]);
+  });
+});
+
+describe("BeersRepository proposals", () => {
+  let moduleRef: TestingModule;
+  let repository: BeersRepository;
+  let beers: Repository<Beer>;
+  let breweries: Repository<Brewery>;
+
+  const row = (name: string, breweryId: number, createdBy: number | null, createdAt: Date | null) => ({
+    name,
+    breweryId,
+    styleId: 1,
+    abv: 5,
+    ibu: null,
+    ebc: null,
+    description: "",
+    aromas: [],
+    formats: [],
+    country: "FR",
+    searchText: normalizeSearchText(name),
+    createdBy,
+    createdAt,
+  });
+
+  beforeEach(async () => {
+    moduleRef = await Test.createTestingModule({
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
+      providers: [BeersRepository],
+    }).compile();
+    repository = moduleRef.get(BeersRepository);
+    beers = moduleRef.get<Repository<Beer>>(getRepositoryToken(Beer));
+    breweries = moduleRef.get<Repository<Brewery>>(getRepositoryToken(Brewery));
+    await breweries.insert(BREWERIES);
+    await moduleRef.get<Repository<BeerStyle>>(getRepositoryToken(BeerStyle)).insert(STYLES);
+  });
+
+  afterEach(async () => {
+    await moduleRef.close();
+  });
+
+  it("tells whether a style exists", async () => {
+    expect(await repository.existsStyle(2)).toBe(true);
+    expect(await repository.existsStyle(1)).toBe(true);
+    expect(await repository.existsStyle(3)).toBe(false);
+    expect(await repository.existsStyle(0)).toBe(false);
+  });
+
+  describe("countCreatedSince", () => {
+    const SINCE = new Date("2026-05-01T10:00:00.000Z");
+
+    it("counts the beers of the user created at or after the instant, not the earlier ones", async () => {
+      await beers.insert([
+        row("Before", 1, 1, new Date("2026-05-01T09:59:59.999Z")),
+        row("Exactly", 1, 1, SINCE),
+        row("After", 1, 1, new Date("2026-05-01T10:00:00.001Z")),
+        row("Later", 1, 1, new Date("2026-05-02T10:00:00.000Z")),
+      ]);
+
+      expect(await repository.countCreatedSince(1, SINCE)).toBe(3);
+    });
+
+    it("ignores the beers of other users and the official beers, even when more recent", async () => {
+      await beers.insert([
+        row("Official", 1, null, new Date("2026-05-03T10:00:00.000Z")),
+        row("Bob one", 1, 2, new Date("2026-05-03T10:00:00.000Z")),
+        row("Bob two", 1, 2, new Date("2026-05-03T11:00:00.000Z")),
+        row("Alice one", 1, 1, new Date("2026-05-02T10:00:00.000Z")),
+      ]);
+
+      expect(await repository.countCreatedSince(1, SINCE)).toBe(1);
+      expect(await repository.countCreatedSince(2, SINCE)).toBe(2);
+      expect(await repository.countCreatedSince(3, SINCE)).toBe(0);
+    });
+  });
+
+  describe("officialOnly", () => {
+    const COMMUNITY_DATE = new Date("2026-05-02T10:00:00.000Z");
+    const findNames = async (filters: BeerFilters, search = ""): Promise<string[]> =>
+      (await repository.findPage(search, filters, BeerSortEnum.NAME, 1, 50)).items.map((item) => item.name);
+
+    beforeEach(async () => {
+      await beers.insert([
+        row("Community one", 1, 1, COMMUNITY_DATE),
+        row("Official one", 1, null, null),
+        row("Community two", 2, 2, COMMUNITY_DATE),
+        row("Official two", 2, null, null),
+      ]);
+    });
+
+    it("keeps only the official beers of a page and of its total when officialOnly is true", async () => {
+      const page = await repository.findPage("", { officialOnly: true }, BeerSortEnum.NAME, 1, 50);
+
+      expect(page.items.map((item) => item.name)).toEqual(["Official one", "Official two"]);
+      expect(page.items.every((item) => item.source === BeerSourceEnum.OFFICIAL && item.createdBy === null)).toBe(true);
+      expect(page.total).toBe(2);
+    });
+
+    it("keeps every beer when officialOnly is false or absent", async () => {
+      const all = ["Community one", "Community two", "Official one", "Official two"];
+
+      expect(await findNames({ officialOnly: false })).toEqual(all);
+      expect(await findNames({})).toEqual(all);
+    });
+
+    it("combines officialOnly with the search", async () => {
+      expect(await findNames({}, "one")).toEqual(["Community one", "Official one"]);
+      expect(await findNames({ officialOnly: true }, "one")).toEqual(["Official one"]);
+    });
+
+    it("counts only the official beers in the three facets when officialOnly is true", async () => {
+      expect(await repository.findFacets("", { officialOnly: true })).toEqual({
+        families: [{ value: "stout", count: 2 }],
+        countries: [{ value: "FR", count: 2 }],
+        formats: [],
+      });
+      expect(await repository.findFacets("", {})).toEqual({
+        families: [{ value: "stout", count: 4 }],
+        countries: [{ value: "FR", count: 4 }],
+        formats: [],
+      });
+    });
+  });
+
+  describe("findBeersByBrewery", () => {
+    it("returns the beers of the brewery by id with their brewery and style, not those of another", async () => {
+      await beers.insert([
+        row("Decoy", 2, null, null),
+        row("Second", 1, 1, new Date("2026-05-02T10:00:00.000Z")),
+        row("First", 1, null, null),
+      ]);
+      const [decoy, second, first] = await beers.find({ order: { id: "ASC" } });
+
+      const result = await repository.findBeersByBrewery(1);
+
+      expect(result.map((beer) => beer.id)).toEqual([second.id, first.id]);
+      expect(result.map((beer) => beer.name)).toEqual(["Second", "First"]);
+      expect(result.map((beer) => beer.id)).not.toContain(decoy.id);
+      expect(result[0]).toMatchObject({
+        breweryName: "Brasserie Zeta",
+        styleName: "Stout irlandais",
+        family: BeerFamilyEnum.STOUT,
+        source: BeerSourceEnum.COMMUNITY,
+        createdBy: 1,
+      });
+      expect(result[1]).toMatchObject({ source: BeerSourceEnum.OFFICIAL, createdBy: null });
+    });
+
+    it("returns an empty list for a brewery without beer", async () => {
+      await beers.insert([row("Other", 2, null, null)]);
+
+      expect(await repository.findBeersByBrewery(1)).toEqual([]);
+    });
+  });
+
+  it("creates a brewery with an empty city and returns its DTO", async () => {
+    const created = await repository.createBrewery({ name: "Brasserie du Mont", country: "FR", city: "" });
+
+    expect(created).toEqual({ id: expect.any(Number), name: "Brasserie du Mont", country: "FR" });
+    expect(await breweries.findOneBy({ id: created.id })).toEqual({ id: created.id, name: "Brasserie du Mont", country: "FR", city: "" });
+    expect(await breweries.count()).toBe(BREWERIES.length + 1);
+  });
+
+  it("creates a beer and returns its id, keeping the author and the date", async () => {
+    const createdAt = new Date("2026-05-01T10:00:00.000Z");
+
+    const id = await repository.createBeer({ ...row("Brune du Mont", 3, 2, createdAt), abv: 6.5, description: "Une brune." });
+
+    const stored = await beers.findOneByOrFail({ id });
+    expect(stored).toMatchObject({
+      name: "Brune du Mont",
+      breweryId: 3,
+      styleId: 1,
+      abv: 6.5,
+      description: "Une brune.",
+      aromas: [],
+      formats: [],
+      country: "FR",
+      searchText: "brune du mont",
+      createdBy: 2,
+    });
+    expect(stored.createdAt?.toISOString()).toBe("2026-05-01T10:00:00.000Z");
+    expect(await beers.count()).toBe(1);
+  });
+
+  it("accepts two beers with the same name", async () => {
+    const first = await repository.createBeer(row("Blonde", 1, 1, new Date()));
+    const second = await repository.createBeer(row("Blonde", 2, 1, new Date()));
+
+    expect(second).not.toBe(first);
+    expect(await beers.countBy({ name: "Blonde" })).toBe(2);
   });
 });

@@ -4,6 +4,7 @@ import type { DiscoveryDto } from "@/modules/tastings/dtos/discovery.dto";
 import type { CheckinRecordSliceDto } from "@/modules/tastings/dtos/checkin-record-slice.dto";
 import type { CheckinRecordDto } from "@/modules/tastings/dtos/checkin-record.dto";
 import type { WishlistItemRecordDto } from "@/modules/tastings/dtos/wishlist-item-record.dto";
+import type { VenueVisitDto } from "@/modules/tastings/dtos/venue-visit.dto";
 import type { PhotoContentDto } from "@/modules/tastings/dtos/photo-content.dto";
 import type { Checkin } from "@/modules/tastings/entities/checkin.entity";
 import type { PhotoContentTypeEnum } from "@/modules/tastings/enums/photo-content-type.enum";
@@ -55,6 +56,10 @@ export class TastingsService {
 
   getDiscoveries(userId: number): Promise<DiscoveryDto[]> {
     return this.tastingsRepository.findDiscoveries(userId);
+  }
+
+  getVenueVisits(userId: number, venueIds: readonly number[]): Promise<VenueVisitDto[]> {
+    return this.tastingsRepository.findVenueVisits(userId, venueIds);
   }
 
   getWishlist(userId: number): Promise<WishlistItemRecordDto[]> {

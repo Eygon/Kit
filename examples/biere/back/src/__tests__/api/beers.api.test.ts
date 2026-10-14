@@ -1,8 +1,10 @@
 import { HttpStatus } from "@nestjs/common";
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
-import { DataSource } from "typeorm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { getRepositoryToken } from "@nestjs/typeorm";
+import { DataSource, IsNull, Not } from "typeorm";
+import type { Repository } from "typeorm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestApp } from "@/__tests__/support/test-app";
 import { USER_ID_HEADER_NAME } from "@/__tests__/support/user-header";
 import { UNIDENTIFIED_USER_MESSAGE } from "@/common/exceptions/exception-messages.constants";
@@ -10,6 +12,8 @@ import {
   BEER_ABV_MAX_PERCENT,
   BEER_PAGE_SIZE_DEFAULT,
   BEER_PAGE_SIZE_MAX,
+  BEER_PROPOSAL_ABV_MAX_PERCENT,
+  BEER_PROPOSALS_PER_WINDOW_MAX,
   BEER_SEARCH_MAX_LENGTH,
 } from "@/modules/beers/beers.constants";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
@@ -18,7 +22,10 @@ import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
 import type { BeerPageDto } from "@/modules/beers/dtos/beer-page.dto";
 import type { CreatedCheckinDto } from "@/modules/pokedex/dtos/created-checkin.dto";
 import type { CatalogBeerDto } from "@/modules/beers/dtos/catalog-beer.dto";
-import { ALICE_USER_ID, BOB_USER_ID } from "@/database/seed.constants";
+import { ALICE_USER_ID, BOB_USER_ID, CAROL_USER_ID } from "@/database/seed.constants";
+import { Beer } from "@/modules/beers/entities/beer.entity";
+import type { BeerDetailDto } from "@/modules/beers/dtos/beer-detail.dto";
+import type { BreweryDto } from "@/modules/beers/dtos/brewery.dto";
 
 const BEERS_PATH = "/api/v1/beers";
 const SEEDED_BEER_COUNT = 120;
@@ -31,6 +38,8 @@ const BEER_FIELDS = [
   "checkinCount",
   "colorLevel",
   "country",
+  "createdBy",
+  "createdByName",
   "description",
   "drunk",
   "family",
@@ -39,6 +48,7 @@ const BEER_FIELDS = [
   "inWishlist",
   "name",
   "reviewCount",
+  "source",
   "styleColorRange",
   "styleId",
   "styleName",
@@ -134,6 +144,9 @@ describe("beers API", () => {
       bitternessLevel: null,
       colorLevel: null,
       styleColorRange: { min: 1, max: 4 },
+      source: "official",
+      createdBy: null,
+      createdByName: null,
       drunk: false,
       checkinCount: 0,
       inWishlist: false,
@@ -294,6 +307,9 @@ describe("beers API", () => {
       bitternessLevel: null,
       colorLevel: null,
       styleColorRange: { min: 3, max: 4 },
+      source: "official",
+      createdBy: null,
+      createdByName: null,
       drunk: false,
       checkinCount: 0,
       inWishlist: false,
@@ -922,5 +938,364 @@ describe("beers API rating sort and minimum rating", () => {
     expect(page.total).toBe(1);
     expect(drunkOnly.total).toBe(1);
     expect(ratedOnly.total).toBe(2);
+  });
+});
+
+describe("community beers API", () => {
+  const OLD_BEER_AGE_MS = 48 * 60 * 60 * 1000;
+  const NEW_BEER = { name: "Brune du Mont", breweryName: "Brasserie du Mont", country: "FR", abv: 6.5 };
+
+  let app: INestApplication;
+  let beers: Repository<Beer>;
+  let style: CatalogBeerDto;
+  let nameCounter = 0;
+
+  const as = (userId: number, test: request.Test): request.Test => test.set(USER_ID_HEADER_NAME, String(userId));
+
+  const propose = (userId: number, body: Record<string, unknown>): request.Test =>
+    as(userId, request(app.getHttpServer()).post(BEERS_PATH)).send({ styleId: style.styleId, ...NEW_BEER, ...body });
+
+  const uniqueBody = (): Record<string, unknown> => {
+    nameCounter += 1;
+    return { name: `Proposal ${nameCounter}` };
+  };
+
+  const create = async (userId: number, body: Record<string, unknown>): Promise<BeerDetailDto> => {
+    const response = await propose(userId, body);
+    expect(response.status).toBe(HttpStatus.CREATED);
+    return response.body as BeerDetailDto;
+  };
+
+  const countBeers = async (): Promise<number> => {
+    const rows = await app.get(DataSource).query<{ total: number }[]>("SELECT COUNT(*) AS total FROM beers");
+    return rows[0].total;
+  };
+
+  const getBeersPage = async (userId: number, query: Record<string, string | number>): Promise<BeerPageDto> => {
+    const response = await as(userId, request(app.getHttpServer()).get(BEERS_PATH).query(query));
+    expect(response.status).toBe(HttpStatus.OK);
+    return response.body as BeerPageDto;
+  };
+
+  const getBreweries = async (): Promise<BreweryDto[]> => {
+    const response = await as(ALICE_USER_ID, request(app.getHttpServer()).get("/api/v1/breweries"));
+    expect(response.status).toBe(HttpStatus.OK);
+    return response.body as BreweryDto[];
+  };
+
+  const ageCommunityBeers = async (): Promise<void> => {
+    await beers.update({ createdBy: Not(IsNull()) }, { createdAt: new Date(Date.now() - OLD_BEER_AGE_MS) });
+  };
+
+  beforeAll(async () => {
+    app = await createTestApp();
+    beers = app.get(getRepositoryToken(Beer), { strict: false });
+    style = (await getBeersPage(ALICE_USER_ID, { q: "Orval" })).items.filter((beer) => beer.name === "Orval")[0];
+  });
+
+  beforeEach(async () => {
+    await ageCommunityBeers();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("answers 401 without the user header", async () => {
+    const response = await request(app.getHttpServer()).post(BEERS_PATH).send({ styleId: style.styleId, ...NEW_BEER });
+
+    expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
+    expect(response.body).toEqual({ message: UNIDENTIFIED_USER_MESSAGE });
+  });
+
+  it("answers 401 before 400 without the user header", async () => {
+    const before = await countBeers();
+
+    const response = await request(app.getHttpServer())
+      .post(BEERS_PATH)
+      .send({ styleId: style.styleId, ...NEW_BEER, abv: BEER_PROPOSAL_ABV_MAX_PERCENT + 1 });
+
+    expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
+    expect(response.body).toEqual({ message: UNIDENTIFIED_USER_MESSAGE });
+    expect(await countBeers()).toBe(before);
+  });
+
+  it("AC1 creates the beer of Alice with 201 and answers the sheet of a community beer", async () => {
+    const response = await propose(ALICE_USER_ID, {});
+
+    expect(response.status).toBe(HttpStatus.CREATED);
+    expect(response.body).toEqual({
+      id: expect.any(Number),
+      name: "Brune du Mont",
+      breweryName: "Brasserie du Mont",
+      country: "FR",
+      styleId: style.styleId,
+      styleName: style.styleName,
+      family: style.family,
+      abv: 6.5,
+      aromas: [],
+      formats: [],
+      description: "",
+      bitternessLevel: null,
+      colorLevel: null,
+      styleColorRange: style.styleColorRange,
+      source: "community",
+      createdBy: ALICE_USER_ID,
+      createdByName: "Alice",
+      drunk: false,
+      checkinCount: 0,
+      inWishlist: false,
+      averageRating: null,
+      reviewCount: 0,
+      ...NO_REVIEW_STATS,
+    });
+  });
+
+  it("AC1 keeps the description sent and records the creation date", async () => {
+    const before = Date.now();
+
+    const created = await create(ALICE_USER_ID, { ...uniqueBody(), description: "Une brune \r\n douce." });
+
+    const stored = await beers.findOneByOrFail({ id: created.id });
+    expect(created.description).toBe("Une brune \n douce.");
+    expect(stored.createdBy).toBe(ALICE_USER_ID);
+    expect(stored.createdAt?.getTime()).toBeGreaterThanOrEqual(before - 1000);
+  });
+
+  it("AC2 lists, finds, filters and counts the created beer, and opens its sheet", async () => {
+    const familyBefore = (await getBeersPage(ALICE_USER_ID, {})).facets.families.find((facet) => facet.value === style.family)?.count ?? 0;
+    const created = await create(ALICE_USER_ID, { name: "Zimbabwe Special", country: "ZW" });
+
+    const searched = await getBeersPage(BOB_USER_ID, { q: "zimbabwe special" });
+    const byCountry = await getBeersPage(BOB_USER_ID, { country: "ZW" });
+    const byFamily = await getBeersPage(BOB_USER_ID, { family: style.family, size: BEER_PAGE_SIZE_MAX, q: "zimbabwe" });
+    const all = await getBeersPage(BOB_USER_ID, {});
+    const sheet = await as(BOB_USER_ID, request(app.getHttpServer()).get(`${BEERS_PATH}/${created.id}`));
+
+    expect(searched.items.map((beer) => beer.id)).toEqual([created.id]);
+    expect(searched.items[0]).toMatchObject({ source: "community", createdBy: ALICE_USER_ID, createdByName: "Alice" });
+    expect(byCountry.items.map((beer) => beer.id)).toEqual([created.id]);
+    expect(byCountry.facets.countries).toContainEqual({ value: "ZW", count: 1 });
+    expect(byFamily.items.map((beer) => beer.id)).toEqual([created.id]);
+    expect(all.facets.countries.find((facet) => facet.value === "ZW")).toEqual({ value: "ZW", count: 1 });
+    expect(all.facets.families.find((facet) => facet.value === style.family)?.count).toBe(familyBefore + 1);
+    expect(sheet.status).toBe(HttpStatus.OK);
+    expect(sheet.body).toMatchObject({ id: created.id, source: "community", createdBy: ALICE_USER_ID, createdByName: "Alice" });
+  });
+
+  it("AC3 lets Bob check in, review, wish and collect a beer proposed by Alice", async () => {
+    const created = await create(ALICE_USER_ID, uniqueBody());
+
+    const checkin = await as(BOB_USER_ID, request(app.getHttpServer()).post("/api/v1/checkins"))
+      .field("beerId", String(created.id))
+      .field("drankAt", "2025-10-01T18:00:00.000Z")
+      .field("place", "Le Bistrot")
+      .field("format", "bottle");
+    const review = await as(BOB_USER_ID, request(app.getHttpServer()).put(`${BEERS_PATH}/${created.id}/reviews/me`)).send({
+      rating: 4,
+      text: "Tres bonne",
+    });
+    const wish = await as(BOB_USER_ID, request(app.getHttpServer()).post("/api/v1/me/wishlist")).send({ beerId: created.id });
+    const collection = await as(BOB_USER_ID, request(app.getHttpServer()).post("/api/v1/me/collections")).send({ name: "Proposees" });
+    const added = await as(
+      BOB_USER_ID,
+      request(app.getHttpServer()).post(`/api/v1/me/collections/${(collection.body as { id: number }).id}/beers`),
+    ).send({ beerId: created.id });
+    const sheet = await as(BOB_USER_ID, request(app.getHttpServer()).get(`${BEERS_PATH}/${created.id}`));
+
+    expect(checkin.status).toBe(HttpStatus.CREATED);
+    expect(review.status).toBe(HttpStatus.OK);
+    expect(wish.status).toBe(HttpStatus.CREATED);
+    expect(collection.status).toBe(HttpStatus.CREATED);
+    expect(added.status).toBe(HttpStatus.CREATED);
+    expect(sheet.body).toMatchObject({ drunk: true, checkinCount: 1, inWishlist: true, averageRating: 4, reviewCount: 1 });
+  });
+
+  it("AC4 answers 409 for the name and brewery of an official beer written with other case, accents and spaces", async () => {
+    const before = await countBeers();
+
+    const response = await propose(ALICE_USER_ID, { name: "jenlain  ambree", breweryName: "BRASSERIE DUYCK" });
+
+    expect(response.status).toBe(HttpStatus.CONFLICT);
+    expect(response.body).toEqual({ message: expect.stringContaining("jenlain ambree") });
+    expect(await countBeers()).toBe(before);
+  });
+
+  it("answers 409 for a second proposal of the same community beer by another user", async () => {
+    const name = "Proposal Doublon";
+    const body = { name, breweryName: "Brasserie Doublon" };
+    await create(ALICE_USER_ID, body);
+
+    const response = await propose(BOB_USER_ID, { ...body, name: name.toUpperCase() });
+
+    expect(response.status).toBe(HttpStatus.CONFLICT);
+    expect(response.body).toEqual({ message: expect.any(String) });
+  });
+
+  it.each([
+    ["a name of one letter", { name: "a" }],
+    ["a name of 81 characters after the cleaning", { name: `  ${"a".repeat(81)}  ` }],
+    ["a name of spaces only", { name: "  \n  " }],
+    ["a brewery name of one letter", { breweryName: "b" }],
+    ["a degree of 20.1", { abv: 20.1 }],
+    ["a degree of 6.55", { abv: 6.55 }],
+    ["a degree of -1", { abv: -1 }],
+    ["a description of 501 characters", { description: "d".repeat(501) }],
+    ["a country outside the ISO list", { country: "XX" }],
+    ["a missing style", { styleId: undefined }],
+    ["an unknown field", { createdBy: 2 }],
+  ])("AC5 answers 400 with a message for %s and creates nothing", async (_label, overrides) => {
+    const before = await countBeers();
+
+    const response = await propose(ALICE_USER_ID, { ...uniqueBody(), ...overrides });
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(response.body).toEqual({ message: expect.any(String) });
+    expect((response.body as { message: string }).message).not.toBe("");
+    expect(await countBeers()).toBe(before);
+  });
+
+  it("accepts the bounds: names of 2 and 80 characters, degrees 0 and 20", async () => {
+    const short = await create(ALICE_USER_ID, { name: "ab", abv: 0 });
+    const long = await create(ALICE_USER_ID, { name: "l".repeat(80), abv: 20 });
+
+    expect([short.name, short.abv]).toEqual(["ab", 0]);
+    expect([long.name.length, long.abv]).toEqual([80, 20]);
+  });
+
+  it("AC6 answers 404 with a message for a style that does not exist and creates nothing", async () => {
+    const before = await countBeers();
+
+    const response = await propose(ALICE_USER_ID, { ...uniqueBody(), styleId: 99_999 });
+
+    expect(response.status).toBe(HttpStatus.NOT_FOUND);
+    expect(response.body).toEqual({ message: "Beer style 99999 not found." });
+    expect(await countBeers()).toBe(before);
+  });
+
+  it("answers 400 before 409 when the degree is invalid and the beer already exists", async () => {
+    const before = await countBeers();
+
+    const response = await propose(ALICE_USER_ID, {
+      name: "Jenlain Ambrée",
+      breweryName: "Brasserie Duyck",
+      abv: BEER_PROPOSAL_ABV_MAX_PERCENT + 1,
+    });
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(await countBeers()).toBe(before);
+  });
+
+  it("answers 400 before 404 when the degree is invalid and the style unknown", async () => {
+    const response = await propose(ALICE_USER_ID, { ...uniqueBody(), styleId: 99_999, abv: 21 });
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+  });
+
+  describe("limit", () => {
+    const fillLimit = async (userId: number): Promise<void> => {
+      for (let index = 0; index < BEER_PROPOSALS_PER_WINDOW_MAX; index += 1) {
+        await create(userId, uniqueBody());
+      }
+    };
+
+    it("AC7 answers 429 on the 11th creation within 24 hours and creates nothing, while Bob can still create", async () => {
+      await fillLimit(CAROL_USER_ID);
+      const before = await countBeers();
+
+      const response = await propose(CAROL_USER_ID, uniqueBody());
+      const countAfterRefusal = await countBeers();
+      const bob = await propose(BOB_USER_ID, uniqueBody());
+
+      expect(response.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      expect(response.body).toEqual({ message: expect.any(String) });
+      expect((response.body as { message: string }).message).not.toBe("");
+      expect(countAfterRefusal).toBe(before);
+      expect(bob.status).toBe(HttpStatus.CREATED);
+    });
+
+    it("keeps counting the 10 beers created the evening before, and frees the user once they are older than 24 hours", async () => {
+      await fillLimit(CAROL_USER_ID);
+      await beers.update({ createdBy: CAROL_USER_ID }, { createdAt: new Date(Date.now() - 23 * 60 * 60 * 1000) });
+      const stillBlocked = await propose(CAROL_USER_ID, uniqueBody());
+      await beers.update({ createdBy: CAROL_USER_ID }, { createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000) });
+      const freed = await propose(CAROL_USER_ID, uniqueBody());
+
+      expect(stillBlocked.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      expect(freed.status).toBe(HttpStatus.CREATED);
+    });
+
+    it("answers 400 before 429 when the quota is full and the degree is invalid", async () => {
+      await fillLimit(CAROL_USER_ID);
+      const before = await countBeers();
+
+      const response = await propose(CAROL_USER_ID, { ...uniqueBody(), abv: BEER_PROPOSAL_ABV_MAX_PERCENT + 1 });
+
+      expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(await countBeers()).toBe(before);
+    });
+
+    it("answers 404 before 429 and 429 before 409", async () => {
+      await fillLimit(CAROL_USER_ID);
+      const missing = await propose(CAROL_USER_ID, { ...uniqueBody(), styleId: 99_999 });
+      const duplicate = await propose(CAROL_USER_ID, { name: "Jenlain Ambrée", breweryName: "Brasserie Duyck" });
+
+      expect(missing.status).toBe(HttpStatus.NOT_FOUND);
+      expect(duplicate.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
+    });
+  });
+
+  it("AC8 stores a name written on several lines with multiple spaces as one clean line", async () => {
+    const response = await propose(ALICE_USER_ID, { name: "  Brune \r\n\n  du   Cap  " });
+
+    expect(response.status).toBe(HttpStatus.CREATED);
+    expect((response.body as BeerDetailDto).name).toBe("Brune du Cap");
+    expect((await beers.findOneByOrFail({ id: (response.body as BeerDetailDto).id })).name).toBe("Brune du Cap");
+  });
+
+  it("AC9 attaches a second beer to the existing brewery written with another case, with no duplicate brewery", async () => {
+    await create(ALICE_USER_ID, { ...uniqueBody(), breweryName: "Brasserie Reutilisee", country: "NL" });
+    const breweriesBefore = await getBreweries();
+
+    const second = await create(BOB_USER_ID, { ...uniqueBody(), breweryName: "  brasserie   REUTILISEE ", country: "BE" });
+
+    const breweriesAfter = await getBreweries();
+    expect(breweriesAfter).toEqual(breweriesBefore);
+    expect(breweriesAfter.filter((brewery) => brewery.name === "Brasserie Reutilisee")).toHaveLength(1);
+    expect(second.breweryName).toBe("Brasserie Reutilisee");
+  });
+
+  it("AC10 lists the brewery created by a proposal with the country of the beer", async () => {
+    const before = await getBreweries();
+
+    await create(ALICE_USER_ID, { ...uniqueBody(), breweryName: "Brasserie Nouvelle", country: "NZ" });
+
+    const after = await getBreweries();
+    expect(after).toHaveLength(before.length + 1);
+    expect(after).toContainEqual({ id: expect.any(Number), name: "Brasserie Nouvelle", country: "NZ" });
+  });
+
+  it("AC11 accepts the name of an official beer at another brewery", async () => {
+    const response = await propose(ALICE_USER_ID, { name: "Jenlain Ambrée", breweryName: "Brasserie du Mont" });
+
+    expect(response.status).toBe(HttpStatus.CREATED);
+    expect(response.body).toMatchObject({ name: "Jenlain Ambrée", breweryName: "Brasserie du Mont", source: "community" });
+  });
+
+  it("finds a beer at 18 percent by its name and excludes it from an at most 12 percent filter", async () => {
+    await create(ALICE_USER_ID, { name: "Quadruple Forte", abv: 18 });
+
+    const found = await getBeersPage(ALICE_USER_ID, { q: "quadruple forte" });
+    const filtered = await getBeersPage(ALICE_USER_ID, { q: "quadruple forte", abvMax: 12 });
+
+    expect(found.items.map((beer) => beer.abv)).toEqual([18]);
+    expect(filtered.items).toEqual([]);
+  });
+
+  it("stores and returns HTML as plain text", async () => {
+    const created = await create(ALICE_USER_ID, { name: "<b>Bold</b> <script>x</script>", description: "<img src=x onerror=alert(1)>" });
+
+    expect(created.name).toBe("<b>Bold</b> <script>x</script>");
+    expect(created.description).toBe("<img src=x onerror=alert(1)>");
   });
 });

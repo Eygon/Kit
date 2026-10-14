@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { CheckinPhoto } from "@/components/elements/checkinPhoto/checkinPhoto";
 import type { CheckinEntryProps } from "@/types/components/checkinEntry";
-import { buildBeerDetailPath } from "@/types/enums/routing/routePathEnum";
+import { buildBeerDetailPath, buildMapPathForVenue } from "@/types/enums/routing/routePathEnum";
 import { formatCheckinDate } from "@/utils/date/formatCheckinDate";
 
 const BEER_LINK_CLASSES =
@@ -38,7 +38,16 @@ export const CheckinEntry = ({
             {checkin.beerName}
           </Link>
         )}
-        <span className="break-words">{checkin.place}</span>
+        {checkin.venueId !== null ? (
+          <Link
+            to={buildMapPathForVenue(checkin.venueId)}
+            className={BEER_LINK_CLASSES}
+          >
+            {checkin.place}
+          </Link>
+        ) : (
+          <span className="break-words">{checkin.place}</span>
+        )}
       </div>
       {hasTrailing && (
         <div className="flex shrink-0 items-center gap-2">

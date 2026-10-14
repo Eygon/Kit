@@ -28,6 +28,8 @@ const buildVenue = (overrides: Partial<Venue> = {}): Venue => ({
   longitude: 2.35,
   description: "",
   distanceKm: null,
+  checkinCount: 0,
+  lastCheckinAt: null,
   status: AvailabilityStatusEnum.CONFIRMED,
   ...overrides,
 });

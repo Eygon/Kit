@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { BeersService } from "@/modules/beers/beers.service";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import type { BadgeDto } from "@/modules/profile/dtos/badge.dto";
 import { BadgeKindEnum } from "@/modules/profile/enums/badge-kind.enum";
 import { toBadgeDto } from "@/modules/profile/mappers/badge.mapper";
@@ -129,12 +130,14 @@ const toBadges = (
   now: Date,
 ): BadgeDto[] => {
   const discoveryDates = discoveries.map((discovery) => discovery.drankAt);
+  const officialDiscoveries = discoveries.filter((discovery) => discovery.beer.source === BeerSourceEnum.OFFICIAL);
+  const officialDiscoveryDates = officialDiscoveries.map((discovery) => discovery.drankAt);
   const totalsByFamily = new Map(totals.families.map((facet) => [facet.value, facet.count]));
-  const milestone = (kind: BadgeKindEnum, target: number): BadgeDto =>
-    toBadgeDto({ kind, family: null, target, comingSoon: false, ...progressTowards(target, discoveryDates) });
+  const milestone = (kind: BadgeKindEnum, target: number, dates: readonly string[] = discoveryDates): BadgeDto =>
+    toBadgeDto({ kind, family: null, target, comingSoon: false, ...progressTowards(target, dates) });
   const specialist = (family: BeerFamilyEnum): BadgeDto => {
     const target = totalsByFamily.get(family) ?? 0;
-    const dates = discoveries.filter((discovery) => discovery.beer.family === family).map((discovery) => discovery.drankAt);
+    const dates = officialDiscoveries.filter((discovery) => discovery.beer.family === family).map((discovery) => discovery.drankAt);
     return toBadgeDto({ kind: BadgeKindEnum.SPECIALIST, family, target, comingSoon: false, ...progressTowards(target, dates) });
   };
   const photoDates = checkins.filter((checkin) => checkin.photoId !== null).map((checkin) => checkin.drankAt);
@@ -142,7 +145,7 @@ const toBadges = (
     milestone(BadgeKindEnum.FIRST_SIP, FIRST_SIP_TARGET),
     milestone(BadgeKindEnum.EXPLORER, EXPLORER_TARGET),
     milestone(BadgeKindEnum.COLLECTOR, COLLECTOR_TARGET),
-    milestone(BadgeKindEnum.COMPLETIONIST, totals.total),
+    milestone(BadgeKindEnum.COMPLETIONIST, totals.total, officialDiscoveryDates),
     toBadgeDto({
       kind: BadgeKindEnum.GLOBETROTTER,
       family: null,

@@ -1,7 +1,13 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, NotFoundException } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { BEER_PAGE_SIZE_DEFAULT, REVIEW_PAGE_SIZE } from "@/modules/beers/beers.constants";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
+import {
+  BEER_PAGE_SIZE_DEFAULT,
+  BEER_PROPOSAL_WINDOW_MS,
+  BEER_PROPOSALS_PER_WINDOW_MAX,
+  REVIEW_PAGE_SIZE,
+} from "@/modules/beers/beers.constants";
 import { BeersRepository } from "@/modules/beers/beers.repository";
 import { BeersService } from "@/modules/beers/beers.service";
 import { TastingsService } from "@/modules/tastings/tastings.service";
@@ -29,11 +35,19 @@ const CHIMAY: BeerDto = {
   bitternessLevel: null,
   colorLevel: null,
   styleColorRange: null,
+  source: BeerSourceEnum.OFFICIAL,
+  createdBy: null,
 };
 
 const ALICE = 1;
+const BOB = 2;
+const MEMBERS = [
+  { id: ALICE, displayName: "Alice", avatarColor: "#F59E0B", avatar: AvatarEnum.HOP },
+  { id: BOB, displayName: "Bob", avatarColor: "#10B981", avatar: AvatarEnum.MALT },
+];
+const ALICE_BEER: BeerDto = { ...CHIMAY, id: 5, name: "Brune du Mont", source: BeerSourceEnum.COMMUNITY, createdBy: ALICE };
 
-const UNTOUCHED_CHIMAY = { ...CHIMAY, drunk: false, checkinCount: 0, inWishlist: false, averageRating: null, reviewCount: 0 };
+const UNTOUCHED_CHIMAY = { ...CHIMAY, createdByName: null, drunk: false, checkinCount: 0, inWishlist: false, averageRating: null, reviewCount: 0 };
 
 const CHIMAY_SUMMARY = { beerId: 1, averageRating: 4.3, reviewCount: 2 };
 
@@ -70,6 +84,7 @@ describe("BeersService", () => {
     findById: vi.fn(),
     findByIds: vi.fn(),
     findStyleGroups: vi.fn(),
+    findBreweries: vi.fn(),
     findReview: vi.fn(),
     findReviewsByUsers: vi.fn(),
     upsertReview: vi.fn(),
@@ -77,6 +92,11 @@ describe("BeersService", () => {
     findReviewPage: vi.fn(),
     findRatingSummaries: vi.fn(),
     findReviewStats: vi.fn(),
+    existsStyle: vi.fn(),
+    countCreatedSince: vi.fn(),
+    findBeersByBrewery: vi.fn(),
+    createBrewery: vi.fn(),
+    createBeer: vi.fn(),
   };
   const tastingsService = {
     getBeerStates: vi.fn(),
@@ -93,6 +113,7 @@ describe("BeersService", () => {
     tastingsService.getBeerStates.mockResolvedValue([]);
     repository.findRatingSummaries.mockResolvedValue([]);
     repository.findReviewStats.mockResolvedValue(CHIMAY_STATS);
+    usersService.getUsers.mockResolvedValue(MEMBERS);
     const moduleRef = await Test.createTestingModule({
       providers: [
         BeersService,
@@ -210,6 +231,20 @@ describe("BeersService", () => {
     expect(repository.findStyleGroups).toHaveBeenCalledTimes(1);
   });
 
+  it("returns the breweries the repository finds", async () => {
+    const breweries = [{ id: 1, name: "Alpha", country: "BE" }];
+    repository.findBreweries.mockResolvedValue(breweries);
+
+    expect(await service.getBreweries()).toBe(breweries);
+    expect(repository.findBreweries).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns an empty list of breweries as is", async () => {
+    repository.findBreweries.mockResolvedValue([]);
+
+    expect(await service.getBreweries()).toEqual([]);
+  });
+
   it("returns the beers the repository finds for the ids", async () => {
     repository.findByIds.mockResolvedValue([CHIMAY]);
 
@@ -231,7 +266,7 @@ describe("BeersService", () => {
 
       const page = await service.getBeers(ALICE, {});
 
-      expect(page.items).toEqual([{ ...CHIMAY, drunk: true, checkinCount: 2, inWishlist: false, averageRating: null, reviewCount: 0 }]);
+      expect(page.items).toEqual([{ ...CHIMAY, createdByName: null, drunk: true, checkinCount: 2, inWishlist: false, averageRating: null, reviewCount: 0 }]);
       expect(tastingsService.getBeerStates).toHaveBeenCalledExactlyOnceWith(ALICE, [1]);
       expect(tastingsService.getDrunkBeerIds).not.toHaveBeenCalled();
       expect(tastingsService.getWishlistBeerIds).not.toHaveBeenCalled();
@@ -242,7 +277,7 @@ describe("BeersService", () => {
 
       const page = await service.getBeers(ALICE, {});
 
-      expect(page.items).toEqual([{ ...CHIMAY, drunk: false, checkinCount: 0, inWishlist: false, averageRating: null, reviewCount: 0 }]);
+      expect(page.items).toEqual([{ ...CHIMAY, createdByName: null, drunk: false, checkinCount: 0, inWishlist: false, averageRating: null, reviewCount: 0 }]);
     });
 
     it("adds the rating summary of each beer of the page, asked for the ids of the page only", async () => {
@@ -352,6 +387,62 @@ describe("BeersService", () => {
     });
   });
 
+  describe("author name", () => {
+    it("AC1 gives each item of the page the display name of its author, once for the whole page", async () => {
+      repository.findPage.mockResolvedValue({
+        items: [ALICE_BEER, { ...ALICE_BEER, id: 6, createdBy: BOB }, CHIMAY],
+        total: 3,
+      });
+
+      const page = await service.getBeers(BOB, {});
+
+      expect(page.items.map((item) => [item.id, item.source, item.createdBy, item.createdByName])).toEqual([
+        [5, BeerSourceEnum.COMMUNITY, ALICE, "Alice"],
+        [6, BeerSourceEnum.COMMUNITY, BOB, "Bob"],
+        [1, BeerSourceEnum.OFFICIAL, null, null],
+      ]);
+      expect(usersService.getUsers).toHaveBeenCalledTimes(1);
+    });
+
+    it("answers a null author name for a community beer whose author is unknown", async () => {
+      repository.findPage.mockResolvedValue({ items: [{ ...ALICE_BEER, createdBy: 99 }], total: 1 });
+
+      const page = await service.getBeers(BOB, {});
+
+      expect(page.items[0]).toMatchObject({ createdBy: 99, createdByName: null });
+    });
+
+    it("AC1 gives the sheet the display name of the author, read once", async () => {
+      repository.findById.mockResolvedValue(ALICE_BEER);
+
+      const sheet = await service.getBeerForUser(BOB, 5);
+
+      expect(sheet).toMatchObject({ id: 5, source: BeerSourceEnum.COMMUNITY, createdBy: ALICE, createdByName: "Alice" });
+      expect(usersService.getUsers).toHaveBeenCalledTimes(1);
+    });
+
+    it("answers a null author name on the sheet of a community beer whose author is unknown", async () => {
+      repository.findById.mockResolvedValue({ ...ALICE_BEER, createdBy: 99 });
+
+      const sheet = await service.getBeerForUser(BOB, 5);
+
+      expect(sheet).toMatchObject({ id: 5, source: BeerSourceEnum.COMMUNITY, createdBy: 99, createdByName: null });
+    });
+
+    it("AC2 gives the sheet of an official beer no author", async () => {
+      repository.findById.mockResolvedValue(CHIMAY);
+
+      expect(await service.getBeerForUser(BOB, 1)).toMatchObject({ source: BeerSourceEnum.OFFICIAL, createdBy: null, createdByName: null });
+    });
+
+    it("reads no user for an unknown beer", async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(service.getBeerForUser(BOB, 9999)).rejects.toThrow(NotFoundException);
+      expect(usersService.getUsers).not.toHaveBeenCalled();
+    });
+  });
+
   describe("getBeerForUser", () => {
     it("returns the beer with the state of the user, its rating summary and its statistics", async () => {
       repository.findById.mockResolvedValue(CHIMAY);
@@ -360,6 +451,7 @@ describe("BeersService", () => {
 
       expect(await service.getBeerForUser(ALICE, 1)).toEqual({
         ...CHIMAY,
+        createdByName: null,
         drunk: true,
         checkinCount: 2,
         inWishlist: true,
@@ -419,7 +511,7 @@ describe("BeersService", () => {
           { value: "trappist", count: 11 },
         ],
       });
-      expect(repository.findFacets).toHaveBeenCalledExactlyOnceWith("", {});
+      expect(repository.findFacets).toHaveBeenCalledExactlyOnceWith("", { officialOnly: true });
     });
 
     it("answers a total of 0 and no family for an empty catalog", async () => {
@@ -662,6 +754,156 @@ describe("BeersService", () => {
       expect(repository.findReview).not.toHaveBeenCalled();
       expect(repository.findReviewPage).not.toHaveBeenCalled();
       expect(usersService.getUsers).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("createBeer", () => {
+    const NOW = new Date("2026-05-01T10:00:00.000Z");
+    const DTO = { name: "Brune du Mont", breweryName: "Brasserie du Mont", country: "FR", styleId: 7, abv: 6.5 };
+    const BREWERIES = [
+      { id: 3, name: "Brasserie Duyck", country: "FR" },
+      { id: 4, name: "Brasserie du Mont", country: "FR" },
+    ];
+    const CREATED: BeerDto = { ...CHIMAY, id: 99, name: "Brune du Mont", breweryName: "Brasserie du Mont" };
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(NOW);
+      repository.existsStyle.mockResolvedValue(true);
+      repository.countCreatedSince.mockResolvedValue(0);
+      repository.findBreweries.mockResolvedValue(BREWERIES);
+      repository.findBeersByBrewery.mockResolvedValue([]);
+      repository.createBrewery.mockResolvedValue({ id: 8, name: "Brasserie du Mont", country: "FR" });
+      repository.createBeer.mockResolvedValue(99);
+      repository.findById.mockResolvedValue(CREATED);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const failureOf = (dto: typeof DTO = DTO): Promise<unknown> => service.createBeer(ALICE, dto).catch((error: unknown) => error);
+
+    it("answers 404 for an unknown style and checks nothing else", async () => {
+      repository.existsStyle.mockResolvedValue(false);
+
+      const failure = await failureOf();
+
+      expect(failure).toBeInstanceOf(NotFoundException);
+      expect((failure as NotFoundException).message).toBe("Beer style 7 not found.");
+      expect(repository.existsStyle).toHaveBeenCalledExactlyOnceWith(7);
+      expect(repository.countCreatedSince).not.toHaveBeenCalled();
+      expect(repository.findBreweries).not.toHaveBeenCalled();
+      expect(repository.createBeer).not.toHaveBeenCalled();
+    });
+
+    it("answers 429 once the user created the maximum in the sliding window, and creates nothing", async () => {
+      repository.countCreatedSince.mockResolvedValue(BEER_PROPOSALS_PER_WINDOW_MAX);
+
+      const failure = await failureOf();
+
+      expect(failure).toBeInstanceOf(HttpException);
+      expect((failure as HttpException).getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      expect((failure as HttpException).message).toEqual(expect.stringContaining("10"));
+      expect(repository.countCreatedSince).toHaveBeenCalledExactlyOnceWith(ALICE, new Date(NOW.getTime() - BEER_PROPOSAL_WINDOW_MS));
+      expect(repository.createBrewery).not.toHaveBeenCalled();
+      expect(repository.createBeer).not.toHaveBeenCalled();
+    });
+
+    it("accepts the last creation of the window", async () => {
+      repository.countCreatedSince.mockResolvedValue(BEER_PROPOSALS_PER_WINDOW_MAX - 1);
+
+      expect((await service.createBeer(ALICE, DTO)).id).toBe(99);
+    });
+
+    it("answers 404 before 429 when the style is unknown and the limit is reached", async () => {
+      repository.existsStyle.mockResolvedValue(false);
+      repository.countCreatedSince.mockResolvedValue(BEER_PROPOSALS_PER_WINDOW_MAX);
+
+      expect(await failureOf()).toBeInstanceOf(NotFoundException);
+    });
+
+    it("answers 429 before 409 when the limit is reached and the beer already exists", async () => {
+      repository.countCreatedSince.mockResolvedValue(BEER_PROPOSALS_PER_WINDOW_MAX);
+      repository.findBeersByBrewery.mockResolvedValue([CREATED]);
+
+      const failure = await failureOf();
+
+      expect((failure as HttpException).getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      expect(repository.findBreweries).not.toHaveBeenCalled();
+    });
+
+    it("answers 409 for the same name and the same brewery whatever the case, accents, sharp s and spaces", async () => {
+      repository.findBreweries.mockResolvedValue([{ id: 3, name: "Brasserie Duyck", country: "FR" }]);
+      repository.findBeersByBrewery.mockResolvedValue([{ ...CHIMAY, id: 5, name: "Jenlain Ambrée STRAßE" }]);
+
+      const failure = await failureOf({ ...DTO, name: "jenlain  ambree strasse", breweryName: "BRASSERIE DUYCK" });
+
+      expect(failure).toBeInstanceOf(ConflictException);
+      expect((failure as ConflictException).message).toEqual(expect.stringContaining("jenlain ambree strasse"));
+      expect(repository.findBeersByBrewery).toHaveBeenCalledExactlyOnceWith(3);
+      expect(repository.createBrewery).not.toHaveBeenCalled();
+      expect(repository.createBeer).not.toHaveBeenCalled();
+    });
+
+    it("also answers 409 against a community beer of the brewery, wherever it is in the list", async () => {
+      repository.findBeersByBrewery.mockResolvedValue([
+        { ...CHIMAY, id: 5, name: "Other" },
+        { ...CREATED, id: 6, name: "BRUNE DU MONT" },
+      ]);
+
+      expect(await failureOf()).toBeInstanceOf(ConflictException);
+      expect(repository.createBeer).not.toHaveBeenCalled();
+    });
+
+    it("accepts the same name at another brewery and reuses the existing brewery without creating one", async () => {
+      repository.findBeersByBrewery.mockResolvedValue([{ ...CHIMAY, id: 5, name: "Other beer" }]);
+
+      const created = await service.createBeer(ALICE, { ...DTO, breweryName: "brasserie DU mont", name: "Chimay Rouge" });
+
+      expect(created.id).toBe(99);
+      expect(repository.findBeersByBrewery).toHaveBeenCalledExactlyOnceWith(4);
+      expect(repository.createBrewery).not.toHaveBeenCalled();
+      expect(repository.createBeer).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ breweryId: 4, name: "Chimay Rouge", createdBy: ALICE }),
+      );
+    });
+
+    it("creates the brewery with the country of the beer when its name is unknown, without looking for duplicates", async () => {
+      repository.findBreweries.mockResolvedValue([BREWERIES[0]]);
+
+      await service.createBeer(ALICE, DTO);
+
+      expect(repository.findBeersByBrewery).not.toHaveBeenCalled();
+      expect(repository.createBrewery).toHaveBeenCalledExactlyOnceWith({ name: "Brasserie du Mont", country: "FR", city: "" });
+      expect(repository.createBeer).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ breweryId: 8 }));
+    });
+
+    it("saves the row built for the user and the current instant, then reads the beer back for the user", async () => {
+      repository.findBreweries.mockResolvedValue([BREWERIES[0]]);
+      repository.createBeer.mockResolvedValue(42);
+      repository.findById.mockResolvedValue({ ...CREATED, id: 42 });
+
+      const result = await service.createBeer(ALICE, { ...DTO, description: "Une brune." });
+
+      expect(repository.createBeer).toHaveBeenCalledExactlyOnceWith({
+        name: "Brune du Mont",
+        breweryId: 8,
+        styleId: 7,
+        abv: 6.5,
+        ibu: null,
+        ebc: null,
+        description: "Une brune.",
+        aromas: [],
+        formats: [],
+        country: "FR",
+        searchText: "brune du mont brasserie du mont",
+        createdBy: ALICE,
+        createdAt: NOW,
+      });
+      expect(repository.findById).toHaveBeenCalledWith(42);
+      expect(result).toMatchObject({ id: 42, name: "Brune du Mont", drunk: false, checkinCount: 0, inWishlist: false, reviewCount: 0 });
+      expect(result.ratingDistribution).toHaveLength(5);
     });
   });
 });

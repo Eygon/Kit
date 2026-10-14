@@ -44,6 +44,7 @@ const findFormat = (row: DemoCheckinSeedRow): Checkin["format"] => {
 export const buildDemoCheckinRows = (
   rows: readonly DemoCheckinSeedRow[],
   beerIdsByName: ReadonlyMap<string, number>,
+  venueIdsByName: ReadonlyMap<string, number>,
   now: Date,
 ): DemoCheckinInsertRow[] =>
   rows.map((row) => ({
@@ -51,6 +52,7 @@ export const buildDemoCheckinRows = (
     beerId: findBeerId(beerIdsByName, row),
     drankAt: new Date(now.getTime() - row.daysAgo * DAY_MS),
     place: row.place,
+    venueId: venueIdsByName.get(row.place) ?? null,
     rating: row.rating,
     aromas: [],
     format: findFormat(row),

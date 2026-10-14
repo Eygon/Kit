@@ -9,7 +9,9 @@ import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import type { CatalogBeerDto } from "@/modules/beers/dtos/catalog-beer.dto";
 import type { ReviewStatsDto } from "@/modules/beers/dtos/review-stats.dto";
 import { ReviewCriterionEnum } from "@/modules/beers/enums/review-criterion.enum";
-import { toBeerDetailDto, toBeerDto, toCatalogBeerDto } from "@/modules/beers/mappers/beer.mapper";
+import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
+import type { CreateBeerDto } from "@/modules/beers/dtos/create-beer.dto";
+import { toBeerDetailDto, toBeerDto, toCatalogBeerDto, toNewBeer } from "@/modules/beers/mappers/beer.mapper";
 
 const buildEntity = (): Beer & { brewery: Brewery; style: BeerStyle } => {
   const brewery = Object.assign(new Brewery(), { id: 4, name: "Bières de Chimay", country: "FR", city: "Chimay" });
@@ -38,6 +40,8 @@ const buildEntity = (): Beer & { brewery: Brewery; style: BeerStyle } => {
     formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.DRAFT],
     country: "BE",
     searchText: "chimay rouge bieres de chimay",
+    createdBy: null,
+    createdAt: null,
     brewery,
     style,
   });
@@ -60,6 +64,8 @@ describe("toBeerDto", () => {
       bitternessLevel: 2,
       colorLevel: 3,
       styleColorRange: null,
+      source: BeerSourceEnum.OFFICIAL,
+      createdBy: null,
     });
   });
 
@@ -74,11 +80,13 @@ describe("toBeerDto", () => {
         "breweryName",
         "colorLevel",
         "country",
+        "createdBy",
         "description",
         "family",
         "formats",
         "id",
         "name",
+        "source",
         "styleColorRange",
         "styleId",
         "styleName",
@@ -132,6 +140,20 @@ describe("toBeerDto", () => {
     expect(dto.styleColorRange).toEqual(range);
   });
 
+  it("marks a beer without author as official", () => {
+    expect(toBeerDto(Object.assign(buildEntity(), { createdBy: null }))).toMatchObject({
+      source: BeerSourceEnum.OFFICIAL,
+      createdBy: null,
+    });
+  });
+
+  it("marks a beer with an author as community and exposes the author id", () => {
+    expect(toBeerDto(Object.assign(buildEntity(), { createdBy: 2, createdAt: new Date(0) }))).toMatchObject({
+      source: BeerSourceEnum.COMMUNITY,
+      createdBy: 2,
+    });
+  });
+
   it("keeps empty collections as empty arrays", () => {
     const entity = Object.assign(buildEntity(), { aromas: [], formats: [] });
 
@@ -155,11 +177,13 @@ describe("toCatalogBeerDto", () => {
     bitternessLevel: 5,
     colorLevel: null,
     styleColorRange: { min: 3, max: 4 },
+    source: BeerSourceEnum.COMMUNITY,
+    createdBy: 2,
   };
   const SUMMARY = { beerId: 12, averageRating: 4.3, reviewCount: 2 };
 
   it("lists every field of the beer, the three fields of the state and the two of the rating summary", () => {
-    expect(toCatalogBeerDto(BEER, { beerId: 12, drunk: true, checkinCount: 3, inWishlist: true }, SUMMARY)).toStrictEqual({
+    expect(toCatalogBeerDto(BEER, { beerId: 12, drunk: true, checkinCount: 3, inWishlist: true }, SUMMARY, "Bob")).toStrictEqual({
       id: 12,
       name: "Chimay Rouge",
       breweryName: "Bières de Chimay",
@@ -174,6 +198,9 @@ describe("toCatalogBeerDto", () => {
       bitternessLevel: 5,
       colorLevel: null,
       styleColorRange: { min: 3, max: 4 },
+      source: BeerSourceEnum.COMMUNITY,
+      createdBy: 2,
+      createdByName: "Bob",
       drunk: true,
       checkinCount: 3,
       inWishlist: true,
@@ -183,14 +210,15 @@ describe("toCatalogBeerDto", () => {
   });
 
   it("does not leak the beerId of the state nor of the summary", () => {
-    const keys = Object.keys(toCatalogBeerDto(BEER, { beerId: 12, drunk: false, checkinCount: 0, inWishlist: true }, SUMMARY)).sort();
+    const keys = Object.keys(toCatalogBeerDto(BEER, { beerId: 12, drunk: false, checkinCount: 0, inWishlist: true }, SUMMARY, "Bob")).sort();
 
-    expect(keys).toEqual([...Object.keys(BEER), "averageRating", "checkinCount", "drunk", "inWishlist", "reviewCount"].sort());
+    expect(keys).toEqual([...Object.keys(BEER), "averageRating", "checkinCount", "createdByName", "drunk", "inWishlist", "reviewCount"].sort());
   });
 
   it("answers false, 0 and false when the state is absent", () => {
-    expect(toCatalogBeerDto(BEER, undefined, SUMMARY)).toStrictEqual({
+    expect(toCatalogBeerDto(BEER, undefined, SUMMARY, "Bob")).toStrictEqual({
       ...BEER,
+      createdByName: "Bob",
       drunk: false,
       checkinCount: 0,
       inWishlist: false,
@@ -200,14 +228,59 @@ describe("toCatalogBeerDto", () => {
   });
 
   it("answers a null average and 0 reviews when the summary is absent", () => {
-    expect(toCatalogBeerDto(BEER, undefined, undefined)).toStrictEqual({
+    expect(toCatalogBeerDto(BEER, undefined, undefined, "Bob")).toStrictEqual({
       ...BEER,
+      createdByName: "Bob",
       drunk: false,
       checkinCount: 0,
       inWishlist: false,
       averageRating: null,
       reviewCount: 0,
     });
+  });
+});
+
+describe("toCatalogBeerDto author", () => {
+  const OFFICIAL: BeerDto = {
+    id: 3,
+    name: "Orval",
+    breweryName: "Orval",
+    country: "BE",
+    styleId: 7,
+    styleName: "Pale ale trappiste",
+    family: BeerFamilyEnum.TRAPPIST,
+    abv: 6.2,
+    aromas: [],
+    formats: [BeerFormatEnum.BOTTLE],
+    description: "Officielle.",
+    bitternessLevel: null,
+    colorLevel: null,
+    styleColorRange: null,
+    source: BeerSourceEnum.OFFICIAL,
+    createdBy: null,
+  };
+
+  it("AC2 gives an official beer the source official, no author id and no author name", () => {
+    const catalog = toCatalogBeerDto(OFFICIAL, undefined, undefined, null);
+
+    expect(catalog).toMatchObject({ source: "official", createdBy: null, createdByName: null });
+    expect(Object.keys(catalog)).toContain("createdByName");
+  });
+
+  it("AC1 gives a community beer the source community, the author id and the author name", () => {
+    const community: BeerDto = { ...OFFICIAL, source: BeerSourceEnum.COMMUNITY, createdBy: 1 };
+
+    expect(toCatalogBeerDto(community, undefined, undefined, "Alice")).toMatchObject({
+      source: "community",
+      createdBy: 1,
+      createdByName: "Alice",
+    });
+  });
+
+  it("keeps a null author name for a community beer whose author is unknown", () => {
+    const community: BeerDto = { ...OFFICIAL, source: BeerSourceEnum.COMMUNITY, createdBy: 99 };
+
+    expect(toCatalogBeerDto(community, undefined, undefined, null)).toMatchObject({ createdBy: 99, createdByName: null });
   });
 });
 
@@ -227,6 +300,9 @@ describe("toBeerDetailDto", () => {
     bitternessLevel: 5,
     colorLevel: null,
     styleColorRange: { min: 3, max: 4 },
+    source: BeerSourceEnum.COMMUNITY,
+    createdBy: 2,
+    createdByName: "Bob",
     drunk: true,
     checkinCount: 3,
     inWishlist: true,
@@ -255,6 +331,11 @@ describe("toBeerDetailDto", () => {
     });
   });
 
+  it("copies the author name of the catalog beer, null included", () => {
+    expect(toBeerDetailDto(CATALOG, stats(3, 3, 3)).createdByName).toBe("Bob");
+    expect(toBeerDetailDto({ ...CATALOG, createdByName: null }, stats(3, 3, 3)).createdByName).toBeNull();
+  });
+
   it("hides the average of a criterion filled by fewer than 3 reviews and keeps its count", () => {
     expect(toBeerDetailDto(CATALOG, stats(2, 0, 3)).criteria).toStrictEqual([
       { criterion: "sweetness", average: null, count: 2 },
@@ -271,5 +352,45 @@ describe("toBeerDetailDto", () => {
       "acidity",
       "body",
     ]);
+  });
+});
+
+describe("toNewBeer", () => {
+  const NOW = new Date("2026-05-01T10:00:00Z");
+  const dto: CreateBeerDto = {
+    name: "Brune du Mont",
+    breweryName: "Brasserie du Mont",
+    country: "FR",
+    styleId: 7,
+    abv: 6.5,
+    description: "Une brune.",
+  };
+
+  it("builds the insert row of a community beer with no ibu, ebc, aroma nor format", () => {
+    expect(toNewBeer(dto, 4, 1, NOW)).toStrictEqual({
+      name: "Brune du Mont",
+      breweryId: 4,
+      styleId: 7,
+      abv: 6.5,
+      ibu: null,
+      ebc: null,
+      description: "Une brune.",
+      aromas: [],
+      formats: [],
+      country: "FR",
+      searchText: "brune du mont brasserie du mont",
+      createdBy: 1,
+      createdAt: NOW,
+    });
+  });
+
+  it("uses an empty description when none is sent", () => {
+    expect(toNewBeer({ ...dto, description: undefined }, 4, 1, NOW).description).toBe("");
+  });
+
+  it("folds accents, case and the sharp s in the search text", () => {
+    expect(toNewBeer({ ...dto, name: "Ambrée STRAßE", breweryName: "Brasserie DUYCK" }, 4, 1, NOW).searchText).toBe(
+      "ambree strasse brasserie duyck",
+    );
   });
 });

@@ -1,0 +1,2 @@
+export const VENUE_SEARCH_MAX_LENGTH = 100;
+export const VENUE_SEARCH_DEBOUNCE_MS = 300;

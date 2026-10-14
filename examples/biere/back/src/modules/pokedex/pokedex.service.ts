@@ -16,6 +16,7 @@ import type { CreateCheckinDto } from "@/modules/tastings/dtos/create-checkin.dt
 import { detectPhotoContentType, type PhotoContentTypeEnum } from "@/modules/tastings/enums/photo-content-type.enum";
 import { toNewCheckin } from "@/modules/tastings/mappers/checkin-record.mapper";
 import { TastingsService } from "@/modules/tastings/tastings.service";
+import { VenuesService } from "@/modules/venues/venues.service";
 
 const FIRST_PAGE = 1;
 
@@ -24,6 +25,7 @@ export class PokedexService {
   constructor(
     private readonly beersService: BeersService,
     private readonly tastingsService: TastingsService,
+    private readonly venuesService: VenuesService,
   ) {}
 
   async createCheckin(
@@ -36,6 +38,9 @@ export class PokedexService {
     }
     const photo = file === undefined ? null : this.toPhoto(file);
     const beer = await this.beersService.getBeer(dto.beerId);
+    if (dto.venueId !== undefined) {
+      await this.venuesService.ensureVenueExists(dto.venueId);
+    }
     const isFirstDiscovery = await this.tastingsService.isFirstCheckin(userId, beer.id);
     const data = toNewCheckin(dto, userId);
     const record =

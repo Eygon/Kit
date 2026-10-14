@@ -12,6 +12,7 @@ const checkinDto = (id: number, format = "bottle") => ({
   price: null,
   comment: "",
   photoId: null,
+  venueId: null,
 });
 
 describe("checkinPageDtoToModel", () => {

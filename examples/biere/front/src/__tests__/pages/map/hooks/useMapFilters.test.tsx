@@ -40,7 +40,7 @@ const urlSearch = () => screen.getByLabelText("search").textContent;
 
 describe("useMapFilters", () => {
   it("reads every filter of the address and counts them", () => {
-    const api = renderFilters("/carte?type=shop&family=stout&beer=7&confirmed=1&undiscovered=1&radius=5");
+    const api = renderFilters("/carte?type=shop&family=stout&beer=7&confirmed=1&undiscovered=1&visited=1&radius=5");
 
     expect(api().filters).toEqual({
       types: [VenueTypeEnum.SHOP],
@@ -48,9 +48,10 @@ describe("useMapFilters", () => {
       beerId: 7,
       confirmedOnly: true,
       undiscovered: true,
+      visited: true,
       radiusKm: 5,
     });
-    expect(api().activeCount).toBe(6);
+    expect(api().activeCount).toBe(7);
   });
 
   it("gives the empty filters and no active filter for a bare address", () => {
@@ -63,7 +64,7 @@ describe("useMapFilters", () => {
   it("ignores an invalid value of the address and keeps the rest", () => {
     const api = renderFilters("/carte?type=castle&family=wine&beer=abc&confirmed=1&radius=3");
 
-    expect(api().filters).toEqual({ types: [], family: null, beerId: null, confirmedOnly: true, undiscovered: false, radiusKm: null });
+    expect(api().filters).toEqual({ types: [], family: null, beerId: null, confirmedOnly: true, undiscovered: false, visited: false, radiusKm: null });
     expect(api().activeCount).toBe(1);
   });
 
@@ -77,14 +78,16 @@ describe("useMapFilters", () => {
         beerId: null,
         confirmedOnly: true,
         undiscovered: true,
+        visited: true,
         radiusKm: null,
       }),
     );
 
-    expect(urlSearch()).toBe("?type=shop&family=stout&confirmed=1&undiscovered=1");
+    expect(urlSearch()).toBe("?type=shop&family=stout&confirmed=1&undiscovered=1&visited=1");
     expect(api().filters.types).toEqual([VenueTypeEnum.SHOP]);
     expect(api().filters.undiscovered).toBe(true);
-    expect(api().activeCount).toBe(4);
+    expect(api().filters.visited).toBe(true);
+    expect(api().activeCount).toBe(5);
   });
 
   it("clears the address when the empty filters are applied", () => {
@@ -110,6 +113,23 @@ describe("useMapFilters", () => {
     act(() => api().applyFilters(EMPTY_MAP_FILTERS));
 
     expect(urlSearch()).toBe("?undrunk=1");
+  });
+
+  it("US9 AC1 keeps the undrunk parameter next to visited when the filters are applied", () => {
+    const api = renderFilters("/carte?undrunk=1");
+
+    act(() => api().applyFilters({ ...EMPTY_MAP_FILTERS, visited: true }));
+
+    expect(urlSearch()).toBe("?visited=1&undrunk=1");
+  });
+
+  it("US9 AC6 removes visited from the address when the empty filters are applied", () => {
+    const api = renderFilters("/carte?visited=1&undiscovered=1");
+
+    act(() => api().applyFilters(EMPTY_MAP_FILTERS));
+
+    expect(urlSearch()).toBe("");
+    expect(api().filters.visited).toBe(false);
   });
 
   it("US8 does not add the undrunk parameter when the address has none, nor count it as a filter", () => {

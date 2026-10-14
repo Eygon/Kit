@@ -9,6 +9,7 @@ import { BeerAromaEnum } from "@/types/enums/beer/beerAromaEnum";
 const FILLED: CheckinFormValues = {
   drankAt: "2026-10-12T14:30",
   place: "  Chez Paul  ",
+  venueId: 5,
   rating: 3.5,
   aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
   format: "bottle",
@@ -27,6 +28,7 @@ describe("createEmptyCheckinForm", () => {
     expect(createEmptyCheckinForm(new Date(2026, 9, 12, 12, 0))).toEqual({
       drankAt: "2026-10-12T12:00",
       place: "",
+      venueId: null,
       rating: 0,
       aromas: [],
       format: "",
@@ -66,6 +68,7 @@ describe("formValuesToNewCheckin", () => {
       beerId: 7,
       drankAt: new Date(2026, 9, 12, 14, 30).toISOString(),
       place: "Chez Paul",
+      venueId: 5,
       format: "bottle",
       rating: 3.5,
       aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
@@ -73,6 +76,11 @@ describe("formValuesToNewCheckin", () => {
       comment: "Très bonne",
       photo: null,
     });
+  });
+
+  it("carries the linked venue id, or null when the place is a free text", () => {
+    expect(formValuesToNewCheckin(FILLED, 7).venueId).toBe(5);
+    expect(formValuesToNewCheckin({ ...FILLED, venueId: null }, 7).venueId).toBeNull();
   });
 
   it("carries the chosen photo file", () => {

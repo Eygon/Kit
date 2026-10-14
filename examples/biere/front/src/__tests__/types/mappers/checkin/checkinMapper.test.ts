@@ -12,6 +12,7 @@ const dto = {
   price: 3.5,
   comment: "Top",
   photoId: "6f1c0a52-8d3e-4c7b-9a1f-2b5e7d9c0a11",
+  venueId: 42,
 };
 
 describe("checkinDtoToModel", () => {
@@ -40,5 +41,20 @@ describe("checkinDtoToModel", () => {
 
   it("drops unknown aromas and keeps the known ones in order", () => {
     expect(checkinDtoToModel({ ...dto, aromas: ["weird", "malty", "fruity"] }).aromas).toEqual(["malty", "fruity"]);
+  });
+
+  it("keeps the linked venue id", () => {
+    expect(checkinDtoToModel({ ...dto, venueId: 42 }).venueId).toBe(42);
+  });
+
+  it("keeps a free place as a null venue id", () => {
+    expect(checkinDtoToModel({ ...dto, venueId: null }).venueId).toBeNull();
+  });
+
+  it("turns an absent venue id into null", () => {
+    const withoutVenue: Partial<typeof dto> = { ...dto };
+    delete withoutVenue.venueId;
+
+    expect(checkinDtoToModel(withoutVenue as unknown as typeof dto).venueId).toBeNull();
   });
 });

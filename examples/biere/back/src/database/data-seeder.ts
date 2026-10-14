@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { OnApplicationBootstrap } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { IsNull, Repository } from "typeorm";
 import type { AppConfig } from "@/config/app-config";
 import { APP_CONFIG } from "@/config/app-config.constants";
 import demoCheckinsSeed from "@/database/seed/data/demo-checkins.json";
@@ -117,7 +117,7 @@ export class DataSeeder implements OnApplicationBootstrap {
       return;
     }
     const venueIdsByName = toIdsByLowerName(await this.venues.find());
-    const beerIdsByName = toIdsByLowerName(await this.beers.find());
+    const beerIdsByName = toIdsByLowerName(await this.beers.find({ where: { createdBy: IsNull() } }));
     const linkRows = buildVenueBeerRows(venueBeersSeed, venueIdsByName, beerIdsByName);
     await this.venueBeers.insert(linkRows);
     const linkIds = new Map(
@@ -137,7 +137,7 @@ export class DataSeeder implements OnApplicationBootstrap {
     if ((await this.reviews.count()) > 0) {
       return;
     }
-    const beerIdsByName = toIdsByLowerName(await this.beers.find());
+    const beerIdsByName = toIdsByLowerName(await this.beers.find({ where: { createdBy: IsNull() } }));
     await this.reviews.insert(buildReviewRows(reviewsSeed, beerIdsByName, new Date()));
   }
 
@@ -145,8 +145,9 @@ export class DataSeeder implements OnApplicationBootstrap {
     if (!this.config.seedDemoActivity) {
       return;
     }
-    const beerIdsByName = toIdsByLowerName(await this.beers.find());
-    const checkinRows = buildDemoCheckinRows(demoCheckinsSeed, beerIdsByName, new Date());
+    const beerIdsByName = toIdsByLowerName(await this.beers.find({ where: { createdBy: IsNull() } }));
+    const venueIdsByName = new Map((await this.venues.find()).map(({ id, name }) => [name, id]));
+    const checkinRows = buildDemoCheckinRows(demoCheckinsSeed, beerIdsByName, venueIdsByName, new Date());
     for (const userId of DEMO_CHECKIN_USER_IDS) {
       if ((await this.checkins.countBy({ userId })) === 0) {
         await this.checkins.insert(checkinRows.filter((row) => row.userId === userId));

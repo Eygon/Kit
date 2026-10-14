@@ -94,9 +94,10 @@ describe("useVenuesQuery", () => {
     });
     await waitFor(() => expect(result.current.venues).toEqual(VENUES));
 
-    rerender({ query: { ...EMPTY_VENUE_QUERY, confirmedOnly: true } });
+    rerender({ query: { ...EMPTY_VENUE_QUERY, visited: true } });
 
     await waitFor(() => expect(VenueService.getAll).toHaveBeenCalledTimes(2));
+    expect(VenueService.getAll).toHaveBeenLastCalledWith({ ...EMPTY_VENUE_QUERY, visited: true });
     expect(result.current.venues).toEqual(VENUES);
     expect(result.current.isPending).toBe(false);
 

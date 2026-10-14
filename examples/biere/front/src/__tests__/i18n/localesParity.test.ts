@@ -15,6 +15,15 @@ describe("locales parity", () => {
     expect(getDeepKeys(en).sort()).toEqual(getDeepKeys(fr).sort());
   });
 
+  it("translates the too many requests and open existing texts of the beer proposal in every locale", () => {
+    expect(readKey(fr, "errors.tooManyRequests")).toBe("Trop de demandes, réessayez plus tard.");
+    expect(readKey(en, "errors.tooManyRequests")).toBe("Too many requests, try again later.");
+    expect(readKey(fr, "pages.encyclopedia.propose.limitReached")).toBe("Limite atteinte : 10 propositions par jour.");
+    expect(readKey(en, "pages.encyclopedia.propose.limitReached")).toBe("Limit reached: 10 proposals per day.");
+    expect(readKey(fr, "pages.encyclopedia.propose.openExisting")).toBe("L'ouvrir");
+    expect(readKey(en, "pages.encyclopedia.propose.openExisting")).toBe("Open it");
+  });
+
   it("translates the locked collections invitation with the name in every locale", () => {
     expect(readKey(fr, "collections.locked")).toBe("Suivez {{name}} pour voir ses collections");
     expect(readKey(en, "collections.locked")).toBe("Follow {{name}} to see their collections");
@@ -669,6 +678,7 @@ describe("map filters copy", () => {
     "pages.map.filters.anyFamily",
     "pages.map.filters.confirmedOnly",
     "pages.map.filters.undiscovered",
+    "pages.map.filters.visited",
     "pages.map.filters.radius",
     "pages.map.filters.radiusOption",
     "pages.map.filters.radiusNeedsPosition",
@@ -687,6 +697,7 @@ describe("map filters copy", () => {
       "Toutes",
       "Disponibilité confirmée seulement",
       "Lieux avec des bières à découvrir",
+      "Lieux où j'ai bu",
       "Rayon",
       "{{count}} km",
       "Utilisez Autour de moi pour choisir un rayon.",
@@ -706,6 +717,7 @@ describe("map filters copy", () => {
       "All",
       "Confirmed availability only",
       "Places with beers to discover",
+      "Places where I drank",
       "Radius",
       "{{count}} km",
       "Use Near me to pick a radius.",
@@ -1919,5 +1931,85 @@ describe("offline banner copy", () => {
   it("translates the offline message in every locale", () => {
     expect(readKey(fr, "pwa.offline")).toBe("Vous êtes hors ligne");
     expect(readKey(en, "pwa.offline")).toBe("You are offline");
+  });
+
+  it("translates the venue gone message in every locale", () => {
+    expect(readKey(fr, "pages.map.venue.gone")).toBe("Ce lieu n'est plus sur la carte.");
+    expect(readKey(en, "pages.map.venue.gone")).toBe("This place is no longer on the map.");
+  });
+});
+
+describe("propose beer copy", () => {
+  const FR_PROPOSE = {
+    open: "Ajouter une bière",
+    title: "Ajouter une bière",
+    name: "Nom de la bière",
+    brewery: "Brasserie",
+    country: "Pays",
+    style: "Style",
+    family: "Famille : {{family}}",
+    abv: "Degré (%)",
+    description: "Description",
+    submit: "Ajouter",
+    close: "Fermer",
+    saved: "Bière ajoutée",
+    duplicate: "Cette bière existe déjà",
+    limitReached: "Limite atteinte : 10 propositions par jour.",
+    openExisting: "L'ouvrir",
+    errors: {
+      nameLength: "Le nom doit faire entre 2 et 80 caractères",
+      breweryLength: "La brasserie doit faire entre 2 et 60 caractères",
+      countryRequired: "Le pays est requis",
+      styleRequired: "Le style est requis",
+      abvRequired: "Le degré est requis",
+      abvRange: "Le degré doit être compris entre 0 et 20",
+      abvStep: "Le degré admet un seul chiffre après la virgule",
+      descriptionLength: "La description ne doit pas dépasser 500 caractères",
+    },
+  };
+  const EN_PROPOSE = {
+    open: "Add a beer",
+    title: "Add a beer",
+    name: "Beer name",
+    brewery: "Brewery",
+    country: "Country",
+    style: "Style",
+    family: "Family: {{family}}",
+    abv: "ABV (%)",
+    description: "Description",
+    submit: "Add",
+    close: "Close",
+    saved: "Beer added",
+    duplicate: "This beer already exists",
+    limitReached: "Limit reached: 10 proposals per day.",
+    openExisting: "Open it",
+    errors: {
+      nameLength: "The name must be 2 to 80 characters long",
+      breweryLength: "The brewery must be 2 to 60 characters long",
+      countryRequired: "The country is required",
+      styleRequired: "The style is required",
+      abvRequired: "The ABV is required",
+      abvRange: "The ABV must be between 0 and 20",
+      abvStep: "The ABV allows only one digit after the decimal point",
+      descriptionLength: "The description must not exceed 500 characters",
+    },
+  };
+
+  it("translates every propose key exactly in French", () => {
+    expect(readKey(fr, "pages.encyclopedia.propose")).toEqual(FR_PROPOSE);
+  });
+
+  it("translates every propose key exactly in English", () => {
+    expect(readKey(en, "pages.encyclopedia.propose")).toEqual(EN_PROPOSE);
+  });
+});
+
+describe("proposed by copy", () => {
+  it("translates beer.proposedBy in French with the author name", () => {
+    expect(readKey(fr, "beer.proposedBy")).toBe("Proposée par {{name}}");
+  });
+
+  it("translates beer.proposedBy in English with the author name", () => {
+    expect(readKey(en, "beer.proposedBy")).toBe("Suggested by {{name}}");
   });
 });
