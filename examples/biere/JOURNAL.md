@@ -33,3 +33,22 @@
 - Limite du bac à sable : les tuiles OpenStreetMap ne sont pas joignables ; l'écran affiche « Fond de carte indisponible » et reste utilisable (vérifié).
 - Kit : nouvel oracle `covered` (contrôle recouvert par un autre élément), documenté dans sk-e2e.md ; `unreachable` ignore le texte masqué visuellement.
 - Chiffres finaux : front 120 fichiers / 1034 tests, back 114 fichiers / 1078 tests, E2E F1 36/37 (anglais : F4), F2 38/38, F3 29/29, API F2 49/49, F3 48/48.
+
+## F4 Profil, badges, stats (13-14 octobre)
+- Prep Opus : back US1-4 (stats, badges, série de jours, Sentinelle/Cartographe) || front US5-11 (langue, anneaux par famille, partage, badges, stats, histogramme 12 mois, envies).
+- Moteur : 10 US sur 11 PASS d'emblée ; US9 en ESCALATE (spec « 6.5% » en anglais vs tâche qui impose `formatAbv` = « 6.5 % ») → tranché « 6.5 % » (espace insécable), spec corrigée ; US10-11 relancées en compact (arguments `{root, dir, banc, ids}`).
+- Review-lens : back 4 pistes (égalité de famille, corps zéro complet, fuseau Paris, cible du Complétiste) ; front 14 pistes dont 1 **défaut de production** : la date « Débloqué le » suivait le fuseau du téléphone au lieu du jour de Paris → corrigé.
+- Passage réel 390×844 : 29/29 (stats vierges puis remplies, badges débloqués, histogramme 12 barres, envies, passage en anglais persistant, suppression → badges recalculés, panne API, 360 px).
+- Kit : `unreachable` tolère 2 px (select natif masqué de la lib) ; `watch` ignore un ERR_ABORTED tardif sur une requête déjà répondue (204).
+
+## F6 Recherche de lieux + « déjà bue » (14 octobre)
+- Prep Opus : back US1-4 (clés normalisées + rattrapage au démarrage, `q`, état bue, `undiscovered`) || front US5-9 (feuille de recherche, centrage, tampon, bascule « pas encore bues », filtre carte). 3 décisions au nom de Thomas : colonnes stockées + rattrapage, recherche sur toute la carte avec les filtres, « déjà bue » = n'importe où.
+- Moteur : 9 US PASS sans escalade. Review-lens : back 3 pistes (combinaisons q + filtres), front 9 pistes + 1 **défaut de production** : bouton « Effacer » de la recherche à 20 px (cible tactile) → 44 px.
+- Passage réel : 39/39 (API : casse, accents, `%` et `_` littéraux, 100/101 caractères, injection, isolation entre utilisateurs ; UI : anti-rebond, vide/erreur, XSS, tampon, bascule, filtre, 360 px). Oracle : la bascule HeroUI se clique par son libellé (l'input réel fait 13 px).
+
+## F7 Amertume, critères, notes, avis (14 octobre)
+- Prep Opus : 15 US (back 7 || front 8), 61 tâches ; l'amertume vient de l'IBU, la couleur de l'EBC avec plage « typique du style » (aucune bière du seed n'a d'EBC).
+- Moteur : 15 US PASS sans escalade (le correctif kit sur les compagnons mapper/props a évité les arrêts de F3).
+- Review-lens : back 6 pistes (bornes des niveaux, concurrence, facettes sous `minRating`) ; front 10 fichiers de test + 1 défaut noté (avatar de l'auteur d'un avis sans la couleur de l'auteur, à traiter avec F5).
+- Passage réel : 46/46 (API : 403 sans dégustation, 400 sur 8 notes invalides, remplacement qui conserve `createdAt`, tri/filtre par note ; UI : niveaux, histogramme, formulaire à curseurs, publication, édition, suppression avec confirmation, panne API, 360 px).
+- Chiffres : front 189 fichiers / ~1880 tests, back 139 fichiers / 1525 tests.
