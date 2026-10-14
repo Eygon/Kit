@@ -7,6 +7,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { hasApproximableWord, matchesApproximately } from "@/common/text/matches-approximately";
 import { normalizeSearchText } from "@/common/text/normalize-search-text";
 import {
   BEER_PAGE_SIZE_DEFAULT,
@@ -16,6 +17,8 @@ import {
   REVIEW_PAGE_SIZE,
 } from "@/modules/beers/beers.constants";
 import { BeersRepository } from "@/modules/beers/beers.repository";
+import type { BeerFacetsDto } from "@/modules/beers/dtos/beer-facets.dto";
+import type { BeerSliceDto } from "@/modules/beers/dtos/beer-slice.dto";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import type { CreateBeerDto } from "@/modules/beers/dtos/create-beer.dto";
 import type { ReviewDto } from "@/modules/beers/dtos/review.dto";
@@ -47,6 +50,12 @@ const toAuthorNameById = (users: readonly UserDto[]): ReadonlyMap<number, string
 const findAuthorName = (authorNames: ReadonlyMap<number, string>, beer: BeerDto): string | null =>
   beer.createdBy === null ? null : (authorNames.get(beer.createdBy) ?? null);
 
+interface FoundBeersPage {
+  readonly slice: BeerSliceDto;
+  readonly facets: BeerFacetsDto;
+  readonly isApproximate: boolean;
+}
+
 const toFilters = (query: BeersQueryDto): BeerFilters => ({
   family: query.family,
   styleIds: query.style,
@@ -74,10 +83,7 @@ export class BeersService {
       throw new BadRequestException("abvMin must not be greater than abvMax.");
     }
     const filters = { ...queryFilters, ...(await this.getStatusFilters(userId, query.status)) };
-    const [slice, facets] = await Promise.all([
-      this.beersRepository.findPage(search, filters, query.sort ?? BeerSortEnum.NAME, page, size),
-      this.beersRepository.findFacets(search, filters),
-    ]);
+    const { slice, facets, isApproximate } = await this.findBeersPage(search, filters, query.sort ?? BeerSortEnum.NAME, page, size);
     const beerIds = slice.items.map((beer) => beer.id);
     const [states, summaries, users] = await Promise.all([
       this.tastingsService.getBeerStates(userId, beerIds),
@@ -90,7 +96,7 @@ export class BeersService {
     const items = slice.items.map((beer) =>
       toCatalogBeerDto(beer, stateByBeerId.get(beer.id), summaryByBeerId.get(beer.id), findAuthorName(authorNames, beer)),
     );
-    return { items, total: slice.total, page, size, facets };
+    return { items, total: slice.total, page, size, facets, isApproximate };
   }
 
   async getBeerForUser(userId: number, id: number): Promise<BeerDetailDto> {
@@ -170,6 +176,33 @@ export class BeersService {
 
   getBreweries(): Promise<BreweryDto[]> {
     return this.beersRepository.findBreweries();
+  }
+
+  private async findBeersPage(
+    search: string,
+    filters: BeerFilters,
+    sort: BeerSortEnum,
+    page: number,
+    size: number,
+  ): Promise<FoundBeersPage> {
+    const [slice, facets] = await Promise.all([
+      this.beersRepository.findPage(search, filters, sort, page, size),
+      this.beersRepository.findFacets(search, filters),
+    ]);
+    if (slice.total > 0 || !hasApproximableWord(search)) {
+      return { slice, facets, isApproximate: false };
+    }
+    const candidates = await this.beersRepository.findSearchCandidates(filters);
+    const beerIds = candidates.filter((candidate) => matchesApproximately(search, [candidate.searchText])).map((candidate) => candidate.id);
+    if (beerIds.length === 0) {
+      return { slice, facets, isApproximate: false };
+    }
+    const approximateFilters = { ...filters, beerIds };
+    const [approximateSlice, approximateFacets] = await Promise.all([
+      this.beersRepository.findPage("", approximateFilters, sort, page, size),
+      this.beersRepository.findFacets("", approximateFilters),
+    ]);
+    return { slice: approximateSlice, facets: approximateFacets, isApproximate: true };
   }
 
   private async assertStyleExists(styleId: number): Promise<void> {

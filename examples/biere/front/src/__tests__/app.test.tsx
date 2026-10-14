@@ -62,17 +62,24 @@ describe("App", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("redirects an unknown path to the home page with the Home tab current", () => {
-    renderWithProviders(<App />, { initialPath: "/inconnu" });
+  it("shows the not found page on an unknown path with no tab marked current", () => {
+    renderWithProviders(<App />, { initialPath: "/nimportequoi" });
+
+    expect(screen.getByRole("heading", { level: 1, name: "Page introuvable" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Cette page n'existe pas" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1, name: "Accueil" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link").filter((link) => link.hasAttribute("aria-current"))).toHaveLength(0);
+  });
+
+  it("goes back to the home page with its tab current from the not found page", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<App />, { initialPath: "/nimportequoi" });
+
+    await user.click(screen.getByRole("link", { name: "Retour à l'accueil" }));
 
     expect(screen.getByRole("heading", { level: 1, name: "Accueil" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Accueil" })).toHaveAttribute("aria-current", "page");
-  });
-
-  it("offers the Find profiles shortcut towards /profils on the redirected home page", () => {
-    renderWithProviders(<App />, { initialPath: "/inconnu" });
-
-    expect(screen.getByRole("link", { name: "Trouver des profils" })).toHaveAttribute("href", "/profils");
+    expect(screen.queryByRole("heading", { level: 1, name: "Page introuvable" })).not.toBeInTheDocument();
   });
 
   it("navigates between pages from the tab bar", async () => {

@@ -43,6 +43,7 @@ const VENUE: VenueDto = {
   distanceKm: null,
   status: AvailabilityStatusEnum.CONFIRMED,
   checkinCount: 2,
+  isApproximateMatch: false,
   lastCheckinAt: "2026-10-09T18:30:00.000Z",
 };
 

@@ -143,6 +143,7 @@ const submit = (user: User) => user.click(within(dialog()).getByRole("button", {
 describe("ProposeBeerDrawer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, writable: true, value: vi.fn() });
     mockFetch.mockReset();
     mockFetch.mockImplementation(async () => json(createdDto, 201));
     vi.stubGlobal("fetch", mockFetch);
@@ -205,6 +206,113 @@ describe("ProposeBeerDrawer", () => {
     expect(descriptionField()).toBeValid();
     expect(mockFetch).not.toHaveBeenCalled();
     expect(onCreated).not.toHaveBeenCalled();
+  });
+
+  it("AC4 keeps the submit button in the footer, outside the form, bound to it by its form attribute", async () => {
+    renderDrawer();
+
+    const button = within(dialog()).getByRole("button", { name: "Ajouter" });
+    const form = dialog().querySelector("form") as HTMLFormElement;
+    expect(button).toHaveAttribute("type", "submit");
+    expect(button).toHaveAttribute("form", form.id);
+    expect(form.id).toBe("propose-beer-form");
+    expect(form.contains(button)).toBe(false);
+    expect(button.closest(".drawer__footer")).not.toBeNull();
+    expect(button.className).not.toContain("button--full-width");
+    expect(button.className).toContain("button--lg");
+  });
+
+  it("AC2 scrolls to the name and focuses it when neither the name nor the brewery is filled in", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+
+    await submit(user);
+
+    await waitFor(() => expect(nameField()).toHaveFocus());
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(nameField());
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("AC2 focuses the brewery when only the name is filled in", async () => {
+    const user = userEvent.setup();
+    renderDrawer({ initialName: "Orval" });
+
+    await submit(user);
+
+    await waitFor(() => expect(breweryField()).toHaveFocus());
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(breweryField());
+  });
+
+  it("AC2 focuses the country when only the name and the brewery are filled in", async () => {
+    const user = userEvent.setup();
+    renderDrawer({ initialName: "Orval" });
+    await pasteInto(user, breweryField(), "Brasserie d\u0027Orval");
+    await choose(user, /Style/, "Tripel");
+    await pasteInto(user, abvField(), "6,2");
+
+    await submit(user);
+
+    const country = within(dialog()).getByRole("button", { name: /Pays/ });
+    await waitFor(() => expect(country).toHaveFocus());
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(country);
+  });
+
+  it("AC2 focuses the style when only the style is missing", async () => {
+    const user = userEvent.setup();
+    renderDrawer({ initialName: "Orval" });
+    await pasteInto(user, breweryField(), "Brasserie d\u0027Orval");
+    await choose(user, /Pays/, "Belgique");
+    await pasteInto(user, abvField(), "6,2");
+
+    await submit(user);
+
+    const style = within(dialog()).getByRole("button", { name: /Style/ });
+    await waitFor(() => expect(style).toHaveFocus());
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(style);
+  });
+
+  it("AC2 focuses the degree when only the degree is missing", async () => {
+    const user = userEvent.setup();
+    renderDrawer({ initialName: "Orval" });
+    await pasteInto(user, breweryField(), "Brasserie d\u0027Orval");
+    await choose(user, /Pays/, "Belgique");
+    await choose(user, /Style/, "Tripel");
+
+    await submit(user);
+
+    await waitFor(() => expect(abvField()).toHaveFocus());
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(abvField());
+  });
+
+  it("AC2 clears the invalid mark of the country and the style once chosen, so the next submit focuses the degree", async () => {
+    const user = userEvent.setup();
+    renderDrawer({ initialName: "Orval" });
+    await pasteInto(user, breweryField(), "Brasserie d'Orval");
+    await submit(user);
+    const country = within(dialog()).getByRole("button", { name: /Pays/ });
+    await waitFor(() => expect(country).toHaveFocus());
+    expect(country).toHaveAttribute("aria-invalid", "true");
+    expect(within(dialog()).getByRole("button", { name: /Style/ })).toHaveAttribute("aria-invalid", "true");
+
+    await choose(user, /Pays/, "Belgique");
+    await choose(user, /Style/, "Tripel");
+    await submit(user);
+
+    await waitFor(() => expect(abvField()).toHaveFocus());
+    expect(within(dialog()).getByRole("button", { name: /Pays/ })).not.toHaveAttribute("aria-invalid");
+    expect(within(dialog()).getByRole("button", { name: /Style/ })).not.toHaveAttribute("aria-invalid");
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("does not scroll nor move the focus when the form is valid", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    await fillValidForm(user);
+
+    await submit(user);
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
   });
 
   it("AC3 keeps the filled prefilled name without error on an otherwise empty submit", async () => {
@@ -345,7 +453,13 @@ describe("ProposeBeerDrawer", () => {
 
     await submit(user);
 
-    await waitFor(() => expect(within(dialog()).getByRole("button", { name: /Ajouter/ })).toHaveAttribute("data-pending"));
+    await waitFor(() =>
+      expect(within(dialog()).getByRole("button", { name: /Enregistrement…/ })).toHaveAttribute("data-pending"),
+    );
+    const pendingButton = within(dialog()).getByRole("button", { name: /Enregistrement…/ });
+    expect(pendingButton).toHaveAttribute("aria-busy", "true");
+    expect(pendingButton).toHaveTextContent("Enregistrement…");
+    expect(within(dialog()).queryByRole("button", { name: "Ajouter" })).not.toBeInTheDocument();
     expect(onCreated).not.toHaveBeenCalled();
     release(json(createdDto, 201));
     await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));

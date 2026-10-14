@@ -17,10 +17,11 @@ import { venueKeys } from "@/utils/queryKeys/venueQueryKeys";
 
 
 vi.mock("@/api/venues/venueService", () => ({
-  default: { getAll: vi.fn() },
+  default: { search: vi.fn() },
 }));
 
 const VENUES = [{ id: 1, name: "Académie de la Bière" }];
+const RESULT = { venues: VENUES, isApproximate: false };
 const FILTERS: VenueQuery = {
   ...EMPTY_VENUE_QUERY,
   bounds: { north: 48.9, south: 48.8, east: 2.4, west: 2.2 },
@@ -106,7 +107,7 @@ describe("useVenueSearch", () => {
     expect(result.current.isPending).toBe(false);
     expect(result.current.term).toBe("");
     expect(result.current.venues).toEqual([]);
-    expect(VenueService.getAll).not.toHaveBeenCalled();
+    expect(VenueService.search).not.toHaveBeenCalled();
   });
 
   it.each(["   ", "\t "])("stays idle for a blank text (%j)", async (blank) => {
@@ -120,18 +121,18 @@ describe("useVenueSearch", () => {
     expect(result.current.searchText).toBe(blank);
     expect(result.current.term).toBe("");
     expect(result.current.isIdle).toBe(true);
-    expect(VenueService.getAll).not.toHaveBeenCalled();
+    expect(VenueService.search).not.toHaveBeenCalled();
   });
 
   it("waits for the pause, then searches with the trimmed text, the filters and no bounds", async () => {
-    (VenueService.getAll as Mock).mockResolvedValue(VENUES);
+    (VenueService.search as Mock).mockResolvedValue(RESULT);
     const { result } = renderSearch();
 
     act(() => result.current.setSearchText("  acad  "));
 
     expect(result.current.searchText).toBe("  acad  ");
     expect(result.current.term).toBe("");
-    expect(VenueService.getAll).not.toHaveBeenCalled();
+    expect(VenueService.search).not.toHaveBeenCalled();
 
     await waitFor(() => expect(result.current.venues).toEqual(VENUES));
 
@@ -139,13 +140,13 @@ describe("useVenueSearch", () => {
     expect(result.current.isIdle).toBe(false);
     expect(result.current.isPending).toBe(false);
     expect(result.current.isError).toBe(false);
-    expect(VenueService.getAll).toHaveBeenCalledTimes(1);
-    expect(VenueService.getAll).toHaveBeenCalledWith({ ...FILTERS, bounds: null, q: "acad" });
+    expect(VenueService.search).toHaveBeenCalledTimes(1);
+    expect(VenueService.search).toHaveBeenCalledWith({ ...FILTERS, bounds: null, q: "acad" });
   });
 
   it("AC1 sends nothing 1 ms before the 300 ms pause and one search right at the pause", async () => {
     vi.useFakeTimers();
-    (VenueService.getAll as Mock).mockResolvedValue(VENUES);
+    (VenueService.search as Mock).mockResolvedValue(RESULT);
     const { result } = renderSearch();
 
     act(() => result.current.setSearchText("acad"));
@@ -154,23 +155,23 @@ describe("useVenueSearch", () => {
     });
 
     expect(result.current.term).toBe("");
-    expect(VenueService.getAll).not.toHaveBeenCalled();
+    expect(VenueService.search).not.toHaveBeenCalled();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });
 
     expect(result.current.term).toBe("acad");
-    expect(VenueService.getAll).toHaveBeenCalledTimes(1);
-    expect(VenueService.getAll).toHaveBeenCalledWith({ ...FILTERS, bounds: null, q: "acad" });
+    expect(VenueService.search).toHaveBeenCalledTimes(1);
+    expect(VenueService.search).toHaveBeenCalledWith({ ...FILTERS, bounds: null, q: "acad" });
   });
 
   it("reports pending while the request is in flight", async () => {
-    (VenueService.getAll as Mock).mockImplementation(() => new Promise(() => undefined));
+    (VenueService.search as Mock).mockImplementation(() => new Promise(() => undefined));
     const { result } = renderSearch();
 
     act(() => result.current.setSearchText("acad"));
-    await waitFor(() => expect(VenueService.getAll).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(VenueService.search).toHaveBeenCalledTimes(1));
 
     expect(result.current.isIdle).toBe(false);
     expect(result.current.isPending).toBe(true);
@@ -178,7 +179,7 @@ describe("useVenueSearch", () => {
   });
 
   it("sends only the last text when the user keeps typing", async () => {
-    (VenueService.getAll as Mock).mockResolvedValue(VENUES);
+    (VenueService.search as Mock).mockResolvedValue(RESULT);
     const { result } = renderSearch();
     const pause = VENUE_SEARCH_DEBOUNCE_MS;
 
@@ -193,23 +194,73 @@ describe("useVenueSearch", () => {
     act(() => result.current.setSearchText("acad"));
     await waitFor(() => expect(result.current.venues).toEqual(VENUES));
 
-    expect(VenueService.getAll).toHaveBeenCalledTimes(1);
-    expect(VenueService.getAll).toHaveBeenCalledWith({ ...FILTERS, bounds: null, q: "acad" });
+    expect(VenueService.search).toHaveBeenCalledTimes(1);
+    expect(VenueService.search).toHaveBeenCalledWith({ ...FILTERS, bounds: null, q: "acad" });
   });
 
-  it("caches the result under the venue list key of the search query", async () => {
-    (VenueService.getAll as Mock).mockResolvedValue(VENUES);
+  it("caches the result under the venue search key of the search query", async () => {
+    (VenueService.search as Mock).mockResolvedValue(RESULT);
     const client = createTestQueryClient();
     const { result } = renderSearch(FILTERS, client);
 
     act(() => result.current.setSearchText("acad"));
     await waitFor(() => expect(result.current.venues).toEqual(VENUES));
 
-    expect(client.getQueryData(venueKeys.list({ ...FILTERS, bounds: null, q: "acad" }))).toEqual(VENUES);
+    expect(client.getQueryData(venueKeys.search({ ...FILTERS, bounds: null, q: "acad" }))).toEqual(RESULT);
+  });
+
+  it("does not cache the search under the venue list key of the map", async () => {
+    (VenueService.search as Mock).mockResolvedValue(RESULT);
+    const client = createTestQueryClient();
+    const { result } = renderSearch(FILTERS, client);
+
+    act(() => result.current.setSearchText("acad"));
+    await waitFor(() => expect(result.current.venues).toEqual(VENUES));
+
+    expect(client.getQueryData(venueKeys.list({ ...FILTERS, bounds: null, q: "acad" }))).toBeUndefined();
+  });
+
+  it("AC2 reports an exact search as not approximate", async () => {
+    (VenueService.search as Mock).mockResolvedValue(RESULT);
+    const { result } = renderSearch();
+
+    expect(result.current.isApproximate).toBe(false);
+    act(() => result.current.setSearchText("acad"));
+    await waitFor(() => expect(result.current.venues).toEqual(VENUES));
+
+    expect(result.current.isApproximate).toBe(false);
+  });
+
+  it("AC1 reports a search answered by the tolerant fallback as approximate, then exact again for another text", async () => {
+    (VenueService.search as Mock).mockImplementation(async (query: VenueQuery) =>
+      query.q === "taverne cluni" ? { venues: VENUES, isApproximate: true } : RESULT,
+    );
+    const { result } = renderSearch();
+
+    act(() => result.current.setSearchText("taverne cluni"));
+    await waitFor(() => expect(result.current.isApproximate).toBe(true));
+    expect(result.current.venues).toEqual(VENUES);
+
+    act(() => result.current.setSearchText("acad"));
+    await waitFor(() => expect(result.current.term).toBe("acad"));
+    await waitFor(() => expect(result.current.isApproximate).toBe(false));
+  });
+
+  it("is not approximate while idle, after an approximate search was cleared", async () => {
+    (VenueService.search as Mock).mockResolvedValue({ venues: VENUES, isApproximate: true });
+    const { result } = renderSearch();
+
+    act(() => result.current.setSearchText("cluni"));
+    await waitFor(() => expect(result.current.isApproximate).toBe(true));
+    act(() => result.current.setSearchText(""));
+    await waitFor(() => expect(result.current.isIdle).toBe(true));
+
+    expect(result.current.isApproximate).toBe(false);
+    expect(result.current.venues).toEqual([]);
   });
 
   it("returns to idle without a request when the text is cleared", async () => {
-    (VenueService.getAll as Mock).mockResolvedValue(VENUES);
+    (VenueService.search as Mock).mockResolvedValue(RESULT);
     const { result } = renderSearch();
 
     act(() => result.current.setSearchText("acad"));
@@ -218,11 +269,11 @@ describe("useVenueSearch", () => {
     await waitFor(() => expect(result.current.isIdle).toBe(true));
 
     expect(result.current.venues).toEqual([]);
-    expect(VenueService.getAll).toHaveBeenCalledTimes(1);
+    expect(VenueService.search).toHaveBeenCalledTimes(1);
   });
 
   it("flags the error and searches again on refetch", async () => {
-    (VenueService.getAll as Mock).mockRejectedValueOnce(new Error("server down")).mockResolvedValue(VENUES);
+    (VenueService.search as Mock).mockRejectedValueOnce(new Error("server down")).mockResolvedValue(RESULT);
     const { result } = renderSearch();
 
     act(() => result.current.setSearchText("acad"));
@@ -235,11 +286,11 @@ describe("useVenueSearch", () => {
     await waitFor(() => expect(result.current.venues).toEqual(VENUES));
 
     expect(result.current.isError).toBe(false);
-    expect(VenueService.getAll).toHaveBeenCalledTimes(2);
+    expect(VenueService.search).toHaveBeenCalledTimes(2);
   });
 
   it("keeps the text typed while the filters change, and searches again with the new filters", async () => {
-    (VenueService.getAll as Mock).mockResolvedValue(VENUES);
+    (VenueService.search as Mock).mockResolvedValue(RESULT);
     const { result, rerender } = renderHook(({ filters }: { filters: VenueQuery }) => useVenueSearch(filters), {
       wrapper: wrapperFor(createTestQueryClient()),
       initialProps: { filters: FILTERS },
@@ -248,9 +299,9 @@ describe("useVenueSearch", () => {
     act(() => result.current.setSearchText("acad"));
     await waitFor(() => expect(result.current.venues).toEqual(VENUES));
     rerender({ filters: { ...FILTERS, confirmedOnly: false } });
-    await waitFor(() => expect(VenueService.getAll).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(VenueService.search).toHaveBeenCalledTimes(2));
 
     expect(result.current.searchText).toBe("acad");
-    expect(VenueService.getAll).toHaveBeenLastCalledWith({ ...FILTERS, confirmedOnly: false, bounds: null, q: "acad" });
+    expect(VenueService.search).toHaveBeenLastCalledWith({ ...FILTERS, confirmedOnly: false, bounds: null, q: "acad" });
   });
 });

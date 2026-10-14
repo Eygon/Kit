@@ -7,4 +7,5 @@ export interface BeerPage {
   page: number;
   size: number;
   facets: BeerFacets;
+  isApproximate: boolean;
 }

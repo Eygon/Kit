@@ -30,6 +30,7 @@ const stubTotals = () => {
     page,
     size,
     facets: FACETS,
+    isApproximate: false,
   }));
 };
 

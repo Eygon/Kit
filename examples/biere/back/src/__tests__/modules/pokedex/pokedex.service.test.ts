@@ -8,6 +8,7 @@ import { BeerAromaEnum } from "@/modules/beers/enums/beer-aroma.enum";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
 import type { CreateCheckinDto } from "@/modules/tastings/dtos/create-checkin.dto";
+import type { UpdateCheckinDto } from "@/modules/tastings/dtos/update-checkin.dto";
 import type { VenuesService } from "@/modules/venues/venues.service";
 import type { TastingsService } from "@/modules/tastings/tastings.service";
 import type { CheckinRecordDto } from "@/modules/tastings/dtos/checkin-record.dto";
@@ -74,7 +75,7 @@ const RECORD: CheckinRecordDto = {
 
 describe("PokedexService", () => {
   const beersService = { getBeer: vi.fn(), getBeersByIds: vi.fn(), getCatalogTotals: vi.fn() };
-  const tastingsService = { isFirstCheckin: vi.fn(), createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), getOwnedCheckin: vi.fn(), getPhoto: vi.fn(), getCheckinPage: vi.fn(), deleteOwnedCheckin: vi.fn(), getWishlist: vi.fn(), addToWishlist: vi.fn(), removeFromWishlist: vi.fn(), getDiscoveries: vi.fn() };
+  const tastingsService = { isFirstCheckin: vi.fn(), createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), getOwnedCheckin: vi.fn(), updateOwnedCheckin: vi.fn(), getPhoto: vi.fn(), getCheckinPage: vi.fn(), deleteOwnedCheckin: vi.fn(), getWishlist: vi.fn(), addToWishlist: vi.fn(), removeFromWishlist: vi.fn(), getDiscoveries: vi.fn() };
 
   const venuesService = { ensureVenueExists: vi.fn() };
 
@@ -434,6 +435,162 @@ describe("PokedexService", () => {
 
       await expect(service.getCheckin(USER_ID, RECORD.id)).rejects.toBe(error);
       expect(beersService.getBeer).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("updateCheckin", () => {
+    const UPDATED: CheckinRecordDto = { ...RECORD, rating: 4, comment: "Très bonne" };
+    const NOT_FOUND = new NotFoundException("Check-in 31 not found.");
+    const FORBIDDEN = new ForbiddenException("You can only access your own check-ins.");
+    const VENUE_NOT_FOUND = new NotFoundException("Venue 77 not found.");
+
+    beforeEach(() => {
+      tastingsService.updateOwnedCheckin.mockResolvedValue(UPDATED);
+    });
+
+    it("maps the supplied fields, updates the owned check-in and returns it with the beer name", async () => {
+      const dto: UpdateCheckinDto = { rating: 4, comment: "Très bonne" };
+      const service = buildService();
+
+      const checkin = await service.updateCheckin(USER_ID, RECORD.id, dto);
+
+      expect(tastingsService.updateOwnedCheckin).toHaveBeenCalledExactlyOnceWith(USER_ID, RECORD.id, {
+        rating: 4,
+        comment: "Très bonne",
+      });
+      expect(beersService.getBeer).toHaveBeenCalledWith(ORVAL.id);
+      expect(checkin).toStrictEqual({
+        id: 31,
+        beerId: ORVAL.id,
+        beerName: "Orval",
+        drankAt: "2026-03-14T17:00:00.000Z",
+        place: "Le Bistrot",
+        venueId: null,
+        rating: 4,
+        aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
+        format: BeerFormatEnum.BOTTLE,
+        price: 6.5,
+        comment: "Très bonne",
+        photoId: null,
+      });
+    });
+
+    it("answers 400 for a body without any field and checks and writes nothing", async () => {
+      const service = buildService();
+
+      await expect(service.updateCheckin(USER_ID, RECORD.id, {})).rejects.toThrow(
+        new BadRequestException("At least one field must be supplied."),
+      );
+      expect(tastingsService.getOwnedCheckin).not.toHaveBeenCalled();
+      expect(tastingsService.updateOwnedCheckin).not.toHaveBeenCalled();
+    });
+
+    it("accepts a null rating as a supplied value", async () => {
+      const service = buildService();
+
+      await service.updateCheckin(USER_ID, RECORD.id, { rating: null });
+
+      expect(tastingsService.updateOwnedCheckin).toHaveBeenCalledExactlyOnceWith(USER_ID, RECORD.id, { rating: null });
+    });
+
+    it("accepts a date exactly five minutes ahead", async () => {
+      const service = buildService();
+
+      await service.updateCheckin(USER_ID, RECORD.id, { drankAt: minutesFromNow(5) });
+
+      expect(tastingsService.updateOwnedCheckin).toHaveBeenCalledTimes(1);
+    });
+
+    it("answers 400 for a date one millisecond beyond five minutes ahead and writes nothing", async () => {
+      const service = buildService();
+
+      await expect(
+        service.updateCheckin(USER_ID, RECORD.id, { drankAt: new Date(NOW.getTime() + 5 * MINUTE_MS + 1).toISOString() }),
+      ).rejects.toThrow(new BadRequestException("drankAt must not be in the future."));
+      expect(tastingsService.getOwnedCheckin).not.toHaveBeenCalled();
+      expect(tastingsService.updateOwnedCheckin).not.toHaveBeenCalled();
+    });
+
+    it("answers the future date 400 before the venueId 400 when both apply", async () => {
+      const service = buildService();
+
+      await expect(
+        service.updateCheckin(USER_ID, RECORD.id, { drankAt: minutesFromNow(60), venueId: 3 }),
+      ).rejects.toThrow(new BadRequestException("drankAt must not be in the future."));
+    });
+
+    it("answers 400 for a venueId without place before looking the check-in up, and writes nothing", async () => {
+      tastingsService.getOwnedCheckin.mockRejectedValue(NOT_FOUND);
+      const service = buildService();
+
+      await expect(service.updateCheckin(USER_ID, RECORD.id, { venueId: 3 })).rejects.toThrow(
+        new BadRequestException("venueId requires place."),
+      );
+      expect(tastingsService.getOwnedCheckin).not.toHaveBeenCalled();
+      expect(venuesService.ensureVenueExists).not.toHaveBeenCalled();
+      expect(tastingsService.updateOwnedCheckin).not.toHaveBeenCalled();
+    });
+
+    it("accepts a null venueId without place and clears the link", async () => {
+      const service = buildService();
+
+      await service.updateCheckin(USER_ID, RECORD.id, { venueId: null });
+
+      expect(venuesService.ensureVenueExists).not.toHaveBeenCalled();
+      expect(tastingsService.updateOwnedCheckin).toHaveBeenCalledExactlyOnceWith(USER_ID, RECORD.id, { venueId: null });
+    });
+
+    it("checks the venue and links it when a venueId comes with a place", async () => {
+      const service = buildService();
+
+      await service.updateCheckin(USER_ID, RECORD.id, { place: " La Fine Mousse ", venueId: 14 });
+
+      expect(venuesService.ensureVenueExists).toHaveBeenCalledExactlyOnceWith(14);
+      expect(tastingsService.updateOwnedCheckin).toHaveBeenCalledExactlyOnceWith(USER_ID, RECORD.id, {
+        place: "La Fine Mousse",
+        venueId: 14,
+      });
+    });
+
+    it("does not look any venue up for a free text place and nulls the venue link", async () => {
+      const service = buildService();
+
+      await service.updateCheckin(USER_ID, RECORD.id, { place: "Chez moi" });
+
+      expect(venuesService.ensureVenueExists).not.toHaveBeenCalled();
+      expect(tastingsService.updateOwnedCheckin).toHaveBeenCalledExactlyOnceWith(USER_ID, RECORD.id, {
+        place: "Chez moi",
+        venueId: null,
+      });
+    });
+
+    it.each([
+      ["404", NOT_FOUND],
+      ["403", FORBIDDEN],
+    ])("lets the %s of the ownership check through without looking the venue or the beer up, or writing", async (_status, error) => {
+      tastingsService.getOwnedCheckin.mockRejectedValue(error);
+      const service = buildService();
+
+      await expect(service.updateCheckin(USER_ID, RECORD.id, { place: "Bar", venueId: 3 })).rejects.toBe(error);
+      expect(venuesService.ensureVenueExists).not.toHaveBeenCalled();
+      expect(beersService.getBeer).not.toHaveBeenCalled();
+      expect(tastingsService.updateOwnedCheckin).not.toHaveBeenCalled();
+    });
+
+    it("answers the 403 of another user's check-in before the 404 of an unknown venue", async () => {
+      tastingsService.getOwnedCheckin.mockRejectedValue(FORBIDDEN);
+      venuesService.ensureVenueExists.mockRejectedValue(VENUE_NOT_FOUND);
+      const service = buildService();
+
+      await expect(service.updateCheckin(USER_ID, RECORD.id, { place: "Bar", venueId: 77 })).rejects.toBe(FORBIDDEN);
+    });
+
+    it("lets the 404 of an unknown venue through and writes nothing", async () => {
+      venuesService.ensureVenueExists.mockRejectedValue(VENUE_NOT_FOUND);
+      const service = buildService();
+
+      await expect(service.updateCheckin(USER_ID, RECORD.id, { place: "Bar", venueId: 77 })).rejects.toBe(VENUE_NOT_FOUND);
+      expect(tastingsService.updateOwnedCheckin).not.toHaveBeenCalled();
     });
   });
 

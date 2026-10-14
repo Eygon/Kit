@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { CheckinEntry } from "@/components/elements/checkinEntry/checkinEntry";
 import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStatePanel";
 import { PageHeader } from "@/components/elements/pageHeader/pageHeader";
+import { CheckinSheet } from "@/components/modules/checkinSheet/checkinSheet";
 import { DeleteCheckinButton } from "@/pages/journal/components/elements/deleteCheckinButton/deleteCheckinButton";
 import { useJournalQuery } from "@/pages/journal/hooks/useJournalQuery";
 import { MascotMoodEnum } from "@/types/enums/mascot/mascotMoodEnum";
@@ -75,7 +76,17 @@ export const JournalPage = () => {
               key={checkin.id}
               checkin={checkin}
               showBeer
-              actions={<DeleteCheckinButton checkinId={checkin.id} />}
+              actions={
+                <>
+                  <CheckinSheet
+                    checkin={checkin}
+                    renderDeleteAction={(close) => (
+                      <DeleteCheckinButton checkinId={checkin.id} isTextTrigger onDeleted={close} />
+                    )}
+                  />
+                  <DeleteCheckinButton checkinId={checkin.id} />
+                </>
+              }
             />
           ))}
         </ol>

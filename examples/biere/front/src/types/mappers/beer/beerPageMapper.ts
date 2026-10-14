@@ -9,4 +9,5 @@ export const beerPageDtoToModel = (dto: BeerPageDto): BeerPage => ({
   page: dto.page,
   size: dto.size,
   facets: beerFacetsDtoToModel(dto.facets),
+  isApproximate: dto.isApproximate ?? false,
 });

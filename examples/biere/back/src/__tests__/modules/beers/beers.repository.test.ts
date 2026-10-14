@@ -1153,6 +1153,53 @@ describe("BeersRepository proposals", () => {
     });
   });
 
+  describe("findSearchCandidates", () => {
+    const COMMUNITY_DATE = new Date("2026-05-02T10:00:00.000Z");
+    const idsOfCandidates = async (filters: BeerFilters): Promise<number[]> =>
+      (await repository.findSearchCandidates(filters)).map((entry) => entry.id);
+
+    beforeEach(async () => {
+      await beers.insert([
+        { ...row("Official blonde", 1, null, null), styleId: 2, country: "BE", abv: 4 },
+        { ...row("Community stout", 2, 1, COMMUNITY_DATE), styleId: 1, country: "FR", abv: 9 },
+        { ...row("Official stout", 2, null, null), styleId: 1, country: "FR", abv: 6, formats: [BeerFormatEnum.CAN] },
+        { ...row("Community blonde", 1, 2, COMMUNITY_DATE), styleId: 2, country: "BE", abv: 5 },
+      ]);
+    });
+
+    it("returns the id and the search text of every official and community beer, by id", async () => {
+      expect(await repository.findSearchCandidates({})).toEqual([
+        { id: 1, searchText: "official blonde" },
+        { id: 2, searchText: "community stout" },
+        { id: 3, searchText: "official stout" },
+        { id: 4, searchText: "community blonde" },
+      ]);
+    });
+
+    it("applies the family filter", async () => {
+      expect(await idsOfCandidates({ family: BeerFamilyEnum.BLONDE })).toEqual([1, 4]);
+    });
+
+    it("applies the style, country, degree and format filters", async () => {
+      expect(await idsOfCandidates({ styleIds: [1] })).toEqual([2, 3]);
+      expect(await idsOfCandidates({ countries: ["BE"] })).toEqual([1, 4]);
+      expect(await idsOfCandidates({ abvMin: 6 })).toEqual([2, 3]);
+      expect(await idsOfCandidates({ abvMax: 5 })).toEqual([1, 4]);
+      expect(await idsOfCandidates({ formats: [BeerFormatEnum.CAN] })).toEqual([3]);
+    });
+
+    it("applies the id filters and officialOnly", async () => {
+      expect(await idsOfCandidates({ beerIds: [2, 3] })).toEqual([2, 3]);
+      expect(await idsOfCandidates({ beerIds: [] })).toEqual([]);
+      expect(await idsOfCandidates({ excludedBeerIds: [1, 2] })).toEqual([3, 4]);
+      expect(await idsOfCandidates({ officialOnly: true })).toEqual([1, 3]);
+    });
+
+    it("returns nothing when no beer matches the filters", async () => {
+      expect(await repository.findSearchCandidates({ countries: ["ZW"] })).toEqual([]);
+    });
+  });
+
   describe("findBeersByBrewery", () => {
     it("returns the beers of the brewery by id with their brewery and style, not those of another", async () => {
       await beers.insert([

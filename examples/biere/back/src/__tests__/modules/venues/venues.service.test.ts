@@ -278,10 +278,10 @@ describe("VenuesService", () => {
       const venues = await service.getVenues(ALICE, WHOLE_AREA);
 
       expect(venues).toEqual([
-        { ...toRecord(1, "Alpha"), distanceKm: null, status: AvailabilityStatusEnum.CONFIRMED, ...NO_VISIT },
-        { ...toRecord(2, "Bravo"), distanceKm: null, status: AvailabilityStatusEnum.GONE, ...NO_VISIT },
-        { ...toRecord(3, "Charlie"), distanceKm: null, status: AvailabilityStatusEnum.UNKNOWN, ...NO_VISIT },
-        { ...toRecord(4, "Delta"), distanceKm: null, status: AvailabilityStatusEnum.MAYBE_GONE, ...NO_VISIT },
+        { ...toRecord(1, "Alpha"), distanceKm: null, status: AvailabilityStatusEnum.CONFIRMED, ...NO_VISIT, isApproximateMatch: false },
+        { ...toRecord(2, "Bravo"), distanceKm: null, status: AvailabilityStatusEnum.GONE, ...NO_VISIT, isApproximateMatch: false },
+        { ...toRecord(3, "Charlie"), distanceKm: null, status: AvailabilityStatusEnum.UNKNOWN, ...NO_VISIT, isApproximateMatch: false },
+        { ...toRecord(4, "Delta"), distanceKm: null, status: AvailabilityStatusEnum.MAYBE_GONE, ...NO_VISIT, isApproximateMatch: false },
       ]);
     });
 
@@ -290,7 +290,7 @@ describe("VenuesService", () => {
       repository.findLinks.mockResolvedValue([toLink(10, 1, GONE_VOTES), toLink(11, 1, [])]);
 
       expect(await service.getVenues(ALICE, WHOLE_AREA)).toEqual([
-        { ...toRecord(1, "Alpha"), distanceKm: null, status: AvailabilityStatusEnum.UNKNOWN, ...NO_VISIT },
+        { ...toRecord(1, "Alpha"), distanceKm: null, status: AvailabilityStatusEnum.UNKNOWN, ...NO_VISIT, isApproximateMatch: false },
       ]);
     });
 
@@ -320,6 +320,198 @@ describe("VenuesService", () => {
         { id: 2, ...NO_VISIT },
         { id: 3, checkinCount: 2, lastCheckinAt: "2026-10-09T18:30:00.000Z" },
       ]);
+    });
+  });
+
+  describe("getVenues approximate fallback", () => {
+    const CLUNY = { ...toRecord(1, "La Taverne de Cluny"), city: "Paris" };
+    const LILLE_BAR = { ...toRecord(2, "Le Bar Lillois"), city: "Lille" };
+    const UNRELATED = { ...toRecord(3, "Le Triangle"), city: "Lyon" };
+    const SEARCH_ALL = { bounds: null, types: [], search: "" };
+
+    it("returns the exact venues, none flagged, without a second read when they are found", async () => {
+      repository.findVenues.mockResolvedValue([CLUNY]);
+
+      const venues = await service.getVenues(ALICE, { q: "taverne" });
+
+      expect(repository.findVenues).toHaveBeenCalledExactlyOnceWith({ bounds: null, types: [], search: "taverne" });
+      expect(venues.map((venue) => [venue.name, venue.isApproximateMatch])).toEqual([["La Taverne de Cluny", false]]);
+    });
+
+    it("falls back to the venues close to the text, flagged, when nothing matches exactly", async () => {
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([CLUNY, UNRELATED]);
+
+      const venues = await service.getVenues(ALICE, { q: "taverne cluni" });
+
+      expect(repository.findVenues).toHaveBeenCalledTimes(2);
+      expect(repository.findVenues).toHaveBeenNthCalledWith(2, SEARCH_ALL);
+      expect(venues).toEqual([
+        { ...CLUNY, distanceKm: null, status: AvailabilityStatusEnum.UNKNOWN, ...NO_VISIT, isApproximateMatch: true },
+      ]);
+    });
+
+    it("keeps the bounds and the types of the query in the fallback read and only drops the text", async () => {
+      repository.findVenues.mockResolvedValue([]);
+
+      await service.getVenues(ALICE, { q: "lile", north: 51, south: 50, east: 4, west: 3, type: [VenueTypeEnum.BAR] });
+
+      expect(repository.findVenues).toHaveBeenNthCalledWith(2, {
+        bounds: { north: 51, south: 50, east: 4, west: 3 },
+        types: [VenueTypeEnum.BAR],
+        search: "",
+      });
+    });
+
+    it("matches the city as well as the name and keeps the order of the repository", async () => {
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([LILLE_BAR, CLUNY, UNRELATED]);
+
+      const venues = await service.getVenues(ALICE, { q: "lile" });
+
+      expect(venues.map((venue) => [venue.name, venue.isApproximateMatch])).toEqual([["Le Bar Lillois", true]]);
+    });
+
+    it("applies no fallback when the text has no word of four letters", async () => {
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([LILLE_BAR, CLUNY, UNRELATED]);
+
+      expect(await service.getVenues(ALICE, { q: "bqr" })).toEqual([]);
+      expect(repository.findVenues).toHaveBeenCalledExactlyOnceWith({ bounds: null, types: [], search: "bqr" });
+    });
+
+    it("applies no fallback and reads once without a text", async () => {
+      expect(await service.getVenues(ALICE, WHOLE_AREA)).toEqual([]);
+      expect(repository.findVenues).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns an empty list when no venue is close either", async () => {
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([UNRELATED]);
+
+      expect(await service.getVenues(ALICE, { q: "taverne cluni" })).toEqual([]);
+    });
+
+    it("reads the links and the visits of the fallback venues only", async () => {
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([CLUNY, UNRELATED]);
+      repository.findLinks.mockResolvedValue([toLink(10, 1, CONFIRMED_VOTES)]);
+
+      const venues = await service.getVenues(BOB, { q: "taverne cluni" });
+
+      expect(repository.findLinks).toHaveBeenLastCalledWith([1]);
+      expect(tastingsService.getVenueVisits).toHaveBeenLastCalledWith(BOB, [1]);
+      expect(venues.map((venue) => venue.status)).toEqual([AvailabilityStatusEnum.CONFIRMED]);
+    });
+
+    it("applies confirmedOnly to the close venues: the confirmed one stays, the gone one goes", async () => {
+      repository.findLinks.mockResolvedValue([toLink(10, 1, CONFIRMED_VOTES), toLink(11, 2, GONE_VOTES)]);
+
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([CLUNY, LILLE_BAR]);
+      const kept = await service.getVenues(ALICE, { q: "taverne cluni", confirmedOnly: true });
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([CLUNY, LILLE_BAR]);
+      const dropped = await service.getVenues(ALICE, { q: "lile", confirmedOnly: true });
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([CLUNY, LILLE_BAR]);
+      const unfiltered = await service.getVenues(ALICE, { q: "lile" });
+
+      expect(kept.map((venue) => [venue.name, venue.isApproximateMatch])).toEqual([["La Taverne de Cluny", true]]);
+      expect(dropped).toEqual([]);
+      expect(unfiltered.map((venue) => [venue.name, venue.status])).toEqual([
+        ["Le Bar Lillois", AvailabilityStatusEnum.GONE],
+      ]);
+    });
+
+    it("applies the beer filter to the close venues", async () => {
+      const LINKED_BEER_ID = 100;
+      repository.findLinks.mockResolvedValue([toLink(10, 1, CONFIRMED_VOTES)]);
+      beersService.getBeersByIds.mockResolvedValue([{ id: LINKED_BEER_ID, family: BeerFamilyEnum.STOUT, styleId: 1 }]);
+
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([CLUNY, LILLE_BAR]);
+      const other = await service.getVenues(ALICE, { q: "taverne cluni", beer: 999 });
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([CLUNY, LILLE_BAR]);
+      const matching = await service.getVenues(ALICE, { q: "taverne cluni", beer: LINKED_BEER_ID });
+
+      expect(other).toEqual([]);
+      expect(matching.map((venue) => [venue.name, venue.isApproximateMatch])).toEqual([["La Taverne de Cluny", true]]);
+    });
+
+    it("falls back when the exact venues are all removed by the in-memory filters", async () => {
+      repository.findVenues.mockResolvedValueOnce([LILLE_BAR]).mockResolvedValueOnce([LILLE_BAR, CLUNY]);
+      repository.findLinks.mockResolvedValue([toLink(11, 2, GONE_VOTES), toLink(10, 1, CONFIRMED_VOTES)]);
+
+      const venues = await service.getVenues(ALICE, { q: "bar lillois", confirmedOnly: true });
+
+      expect(repository.findVenues).toHaveBeenCalledTimes(2);
+      expect(venues).toEqual([]);
+    });
+
+    describe("keeps every other filter of the query on the close venues", () => {
+      const BIS = { ...CLUNY, id: 4, name: "Taverne Cluny Bis", ...PARIS };
+      const DRUNK_BEER_ID = 100;
+      const OTHER_BEER_ID = 110;
+
+      const givenCloseVenues = () => {
+        repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([CLUNY, BIS]);
+        repository.findLinks.mockResolvedValue([
+          toLink(10, CLUNY.id, CONFIRMED_VOTES),
+          toLink(11, BIS.id, CONFIRMED_VOTES),
+        ]);
+        beersService.getBeersByIds.mockResolvedValue([
+          { id: DRUNK_BEER_ID, family: BeerFamilyEnum.STOUT, styleId: 1 },
+          { id: OTHER_BEER_ID, family: BeerFamilyEnum.TRAPPIST, styleId: 2 },
+        ]);
+        tastingsService.getDrunkBeerIds.mockResolvedValue([DRUNK_BEER_ID]);
+      };
+
+      const flaggedNamesOf = (venues: { name: string; isApproximateMatch: boolean }[]) =>
+        venues.map((venue) => [venue.name, venue.isApproximateMatch]);
+
+      it("applies the radius around the position", async () => {
+        givenCloseVenues();
+
+        const venues = await service.getVenues(ALICE, { ...PARIS, q: "taverne cluni", radiusKm: 10 });
+
+        expect(flaggedNamesOf(venues)).toEqual([["Taverne Cluny Bis", true]]);
+      });
+
+      it("applies the visited filter", async () => {
+        givenCloseVenues();
+        tastingsService.getVenueVisits.mockResolvedValue([{ venueId: BIS.id, checkinCount: 1, lastCheckinAt: "2026-10-09T18:30:00.000Z" }]);
+
+        const venues = await service.getVenues(ALICE, { q: "taverne cluni", visited: true });
+
+        expect(flaggedNamesOf(venues)).toEqual([["Taverne Cluny Bis", true]]);
+      });
+
+      it("applies the undiscovered filter", async () => {
+        givenCloseVenues();
+
+        const venues = await service.getVenues(ALICE, { q: "taverne cluni", undiscovered: true });
+
+        expect(flaggedNamesOf(venues)).toEqual([["Taverne Cluny Bis", true]]);
+      });
+
+      it("applies the beer family filter", async () => {
+        givenCloseVenues();
+
+        const venues = await service.getVenues(ALICE, { q: "taverne cluni", family: BeerFamilyEnum.TRAPPIST });
+
+        expect(flaggedNamesOf(venues)).toEqual([["Taverne Cluny Bis", true]]);
+      });
+
+      it("applies the beer style filter", async () => {
+        givenCloseVenues();
+
+        const venues = await service.getVenues(ALICE, { q: "taverne cluni", style: [2] });
+
+        expect(flaggedNamesOf(venues)).toEqual([["Taverne Cluny Bis", true]]);
+      });
+    });
+
+    it("computes the distance of the close venues and keeps the order by name", async () => {
+      const BIS_IN_PARIS = { ...CLUNY, id: 4, name: "Taverne Cluny Bis", ...PARIS };
+      repository.findVenues.mockResolvedValueOnce([]).mockResolvedValueOnce([CLUNY, BIS_IN_PARIS]);
+
+      const venues = await service.getVenues(ALICE, { ...PARIS, q: "taverne cluni" });
+
+      expect(venues.map((venue) => venue.name)).toEqual(["La Taverne de Cluny", "Taverne Cluny Bis"]);
+      expect(venues[1].distanceKm).toBe(0);
+      expect(venues[0].distanceKm).toBeGreaterThan(venues[1].distanceKm as number);
     });
   });
 
@@ -1237,6 +1429,7 @@ describe("VenuesService", () => {
         distanceKm: null,
         status: AvailabilityStatusEnum.CONFIRMED,
         ...NO_VISIT,
+        isApproximateMatch: false,
       });
       expect(repository.findLinks).toHaveBeenCalledWith([5]);
     });
@@ -1254,6 +1447,7 @@ describe("VenuesService", () => {
         distanceKm: null,
         status: AvailabilityStatusEnum.UNKNOWN,
         checkinCount: 2,
+        isApproximateMatch: false,
         lastCheckinAt: "2026-10-09T18:30:00.000Z",
       });
       expect(tastingsService.getVenueVisits).toHaveBeenCalledExactlyOnceWith(ALICE, [5]);
@@ -1267,6 +1461,7 @@ describe("VenuesService", () => {
         distanceKm: null,
         status: AvailabilityStatusEnum.UNKNOWN,
         ...NO_VISIT,
+        isApproximateMatch: false,
       });
     });
 
@@ -1897,6 +2092,7 @@ describe("VenuesService", () => {
         distanceKm: null,
         status: AvailabilityStatusEnum.UNKNOWN,
         ...NO_VISIT,
+        isApproximateMatch: false,
       });
       expect(tastingsService.getVenueVisits).not.toHaveBeenCalled();
       expect(repository.existsByNameKey).toHaveBeenCalledWith("chez mousse");

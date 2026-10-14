@@ -1,10 +1,11 @@
 import { Toast } from "@heroui/react";
-import { Navigate, Route, Routes } from "react-router";
+import { Route, Routes } from "react-router";
 import { LazyPage } from "@/components/modules/lazyPage/lazyPage";
 import { BottomTabBar } from "@/components/widgets/bottomTabBar/bottomTabBar";
 import { EncyclopediaPage } from "@/pages/encyclopedia/encyclopedia";
 import { HomePage } from "@/pages/home/home";
 import { JournalPage } from "@/pages/journal/journal";
+import { NotFoundPage } from "@/pages/notFound/notFound";
 import { ProfilePage } from "@/pages/profile/profile";
 import { RoutePathEnum } from "@/types/enums/routing/routePathEnum";
 
@@ -28,7 +29,7 @@ export const App = () => (
         <Route path={RoutePathEnum.USER_COLLECTION} element={<LazyPage loader={loadCollectionPage} />} />
         <Route path={RoutePathEnum.USER_WISHLIST} element={<LazyPage loader={loadCollectionPage} />} />
         <Route path={RoutePathEnum.BEER_DETAIL} element={<LazyPage loader={loadBeerDetailPage} />} />
-        <Route path="*" element={<Navigate to={RoutePathEnum.HOME} replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </main>
     <BottomTabBar />

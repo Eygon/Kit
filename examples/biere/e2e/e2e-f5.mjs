@@ -55,7 +55,7 @@ const more = p.getByRole("button", { name: /Voir plus/ }); log("E.voir-plus-si-p
 // anciens liens
 await p.goto(URL0 + "/bieres"); await settle(p); log("E.encyclopedie-sur-bieres", /Encyclopédie|Filtres/.test(await p.locator("body").innerText()), "/bieres");
 await p.goto(URL0 + "/?q=lager"); await settle(p); log("E.ancien-lien-q-ouvre-accueil", /Accueil/.test(await p.locator("body").innerText()), "/?q=lager => Accueil");
-await p.goto(URL0 + "/zzz"); await settle(p); log("E.url-inconnue-redirige", p.url() === URL0 + "/", p.url().replace(URL0, ""));
+await p.goto(URL0 + "/zzz"); await settle(p); log("E.url-inconnue-page-introuvable", p.url() === URL0 + "/zzz" && /Page introuvable/.test(await p.locator("body").innerText()), p.url().replace(URL0, ""));
 // F. UI : fil vide (Carol) + trouver des profils
 const c = await mk(3); await c.p.goto(URL0 + "/"); await settle(c.p); await c.p.waitForTimeout(600); const ctxt = await c.p.locator("body").innerText();
 log("F.fil-vide-invite-a-suivre", /Suivez des profils/.test(ctxt) && /Trouver des profils/.test(ctxt), "mascotte + action"); await c.p.screenshot({ path: "f5-home-empty.png" });

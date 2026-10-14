@@ -14,4 +14,5 @@ export interface VenueDto {
   readonly status: AvailabilityStatusEnum;
   readonly checkinCount: number;
   readonly lastCheckinAt: string | null;
+  readonly isApproximateMatch: boolean;
 }

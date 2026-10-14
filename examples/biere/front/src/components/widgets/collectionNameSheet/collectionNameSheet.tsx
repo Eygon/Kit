@@ -11,6 +11,7 @@ import {
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { SubmitButton } from "@/components/elements/submitButton/submitButton";
 import { CUSTOM_COLLECTIONS_MAX } from "@/constants/collectionConstants";
 import type { CollectionNameSheetProps } from "@/types/components/collectionNameSheet";
 import { CollectionNameSheetModeEnum } from "@/types/enums/collection/collectionNameSheetModeEnum";
@@ -112,19 +113,14 @@ export const CollectionNameSheet = ({
                   <Description>{t("collections.create.nameHint")}</Description>
                   <FieldError />
                 </TextField>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  isPending={isPending}
-                >
-                  {t(
+                <SubmitButton
+                  label={t(
                     isRenaming
                       ? "pages.collection.renameSave"
                       : "collections.create.save",
                   )}
-                </Button>
+                  isPending={isPending}
+                />
                 {isRenaming && (
                   <Button slot="close" variant="tertiary" size="lg" fullWidth>
                     {t("pages.collection.renameCancel")}

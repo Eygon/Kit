@@ -24,6 +24,11 @@ describe("locales parity", () => {
     expect(readKey(en, "pages.encyclopedia.propose.openExisting")).toBe("Open it");
   });
 
+  it("translates the approximate venue results mention in every locale", () => {
+    expect(readKey(fr, "pages.map.search.approximateResults")).toBe("Aucun résultat exact : voici des lieux proches");
+    expect(readKey(en, "pages.map.search.approximateResults")).toBe("No exact match: here are similar places");
+  });
+
   it("translates the locked collections invitation with the name in every locale", () => {
     expect(readKey(fr, "collections.locked")).toBe("Suivez {{name}} pour voir ses collections");
     expect(readKey(en, "collections.locked")).toBe("Follow {{name}} to see their collections");
@@ -2011,5 +2016,48 @@ describe("proposed by copy", () => {
 
   it("translates beer.proposedBy in English with the author name", () => {
     expect(readKey(en, "beer.proposedBy")).toBe("Suggested by {{name}}");
+  });
+
+  it("translates the checkin edit texts in French and in English", () => {
+    expect(readKey(fr, "checkinSheet.edit.open")).toBe("Modifier la dégustation");
+    expect(readKey(en, "checkinSheet.edit.open")).toBe("Edit tasting");
+    expect(readKey(fr, "checkinSheet.edit.title")).toBe("Modifier : {{name}}");
+    expect(readKey(en, "checkinSheet.edit.title")).toBe("Edit: {{name}}");
+    expect(readKey(fr, "checkinSheet.edit.submit")).toBe("Enregistrer");
+    expect(readKey(en, "checkinSheet.edit.submit")).toBe("Save");
+    expect(readKey(fr, "checkinSheet.edit.saved")).toBe("Dégustation modifiée.");
+    expect(readKey(en, "checkinSheet.edit.saved")).toBe("Tasting updated.");
+  });
+
+  it("translates the show more, show less and wrong beer texts of the tasting card in every locale", () => {
+    expect(readKey(fr, "common.showMore")).toBe("Voir plus");
+    expect(readKey(en, "common.showMore")).toBe("Show more");
+    expect(readKey(fr, "common.showLess")).toBe("Voir moins");
+    expect(readKey(en, "common.showLess")).toBe("Show less");
+    expect(readKey(fr, "pages.journal.delete.wrongBeer")).toBe("Mauvaise bière ? Supprimer et recréer");
+    expect(readKey(en, "pages.journal.delete.wrongBeer")).toBe("Wrong beer? Delete and log again");
+  });
+
+  it("translates the restored draft notice and its clear button in every locale", () => {
+    expect(readKey(fr, "checkinSheet.draft.restored")).toBe("Brouillon repris");
+    expect(readKey(en, "checkinSheet.draft.restored")).toBe("Draft restored");
+    expect(readKey(fr, "checkinSheet.draft.clear")).toBe("Effacer le brouillon");
+    expect(readKey(en, "checkinSheet.draft.clear")).toBe("Clear draft");
+  });
+
+  it("translates the saving label of the submit buttons in every locale", () => {
+    expect(readKey(fr, "common.saving")).toBe("Enregistrement…");
+    expect(readKey(en, "common.saving")).toBe("Saving…");
+  });
+
+  it("translates the not found page texts in every locale", () => {
+    expect(readKey(fr, "pages.notFound.title")).toBe("Page introuvable");
+    expect(readKey(en, "pages.notFound.title")).toBe("Page not found");
+    expect(readKey(fr, "pages.notFound.emptyTitle")).toBe("Cette page n'existe pas");
+    expect(readKey(en, "pages.notFound.emptyTitle")).toBe("This page does not exist");
+    expect(readKey(fr, "pages.notFound.emptyDescription")).toBe("L'adresse est peut-être mal saisie ou la page a été déplacée.");
+    expect(readKey(en, "pages.notFound.emptyDescription")).toBe("The address may be mistyped or the page has moved.");
+    expect(readKey(fr, "pages.notFound.backHome")).toBe("Retour à l'accueil");
+    expect(readKey(en, "pages.notFound.backHome")).toBe("Back to home");
   });
 });

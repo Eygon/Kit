@@ -13,8 +13,10 @@ import type { Venue } from "@/types/models/venue/venue";
 import type { VenueQuery } from "@/types/models/venue/venueQuery";
 
 vi.mock("@/api/venues/venueService", () => ({
-  default: { getAll: vi.fn() },
+  default: { search: vi.fn() },
 }));
+
+const found = (venues: Venue[], isApproximate = false) => ({ venues, isApproximate });
 
 const LONG_NAME = "Brasserie-Artisanale-Du-Mont-Blanc-Et-Des-Alpes-Sans-Aucun-Espace-Dans-Son-Nom-Tres-Tres-Long-Vraiment";
 
@@ -65,7 +67,7 @@ const typeInSheet = async (user: ReturnType<typeof userEvent.setup>, text: strin
 describe("VenueSearchSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (VenueService.getAll as Mock).mockResolvedValue([]);
+    (VenueService.search as Mock).mockResolvedValue(found([]));
   });
 
   it("AC1 shows a closed secondary large trigger with a hidden magnifier, and no dialog", async () => {
@@ -77,7 +79,7 @@ describe("VenueSearchSheet", () => {
     expect(trigger.className).toContain("button--lg");
     expect(trigger.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(VenueService.getAll).not.toHaveBeenCalled();
+    expect(VenueService.search).not.toHaveBeenCalled();
   });
 
   it("AC1 opens a full-screen bottom sheet with a focused search field and the invitation, and sends no request", async () => {
@@ -95,14 +97,14 @@ describe("VenueSearchSheet", () => {
     expect(within(dialog).getByText("Tapez le nom d'un lieu ou d'une ville")).toBeInTheDocument();
     expect(within(dialog).queryByRole("listitem")).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
-    expect(VenueService.getAll).not.toHaveBeenCalled();
+    expect(VenueService.search).not.toHaveBeenCalled();
   });
 
   it("AC2 shows row skeletons while loading, then the venues with name, type, city and distance", async () => {
     const user = userEvent.setup();
     let resolveRequest: (venues: Venue[]) => void = () => undefined;
-    (VenueService.getAll as Mock).mockImplementation(
-      () => new Promise<Venue[]>((resolve) => (resolveRequest = resolve)),
+    (VenueService.search as Mock).mockImplementation(
+      () => new Promise((resolve) => (resolveRequest = (venues) => resolve(found(venues)))),
     );
     renderSheet();
     const dialog = await openSheet(user);
@@ -154,7 +156,7 @@ describe("VenueSearchSheet", () => {
 
   it("AC4 announces a server error and searches again with Réessayer", async () => {
     const user = userEvent.setup();
-    (VenueService.getAll as Mock).mockRejectedValueOnce(new Error("server down")).mockResolvedValue([buildVenue()]);
+    (VenueService.search as Mock).mockRejectedValueOnce(new Error("server down")).mockResolvedValue(found([buildVenue()]));
     renderSheet();
     const dialog = await openSheet(user);
 
@@ -169,12 +171,12 @@ describe("VenueSearchSheet", () => {
 
     expect(await within(dialog).findByText("Académie de la Bière")).toBeInTheDocument();
     expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
-    expect(VenueService.getAll).toHaveBeenCalledTimes(2);
+    expect(VenueService.search).toHaveBeenCalledTimes(2);
   });
 
   it("AC4 shows a single error after one failed search with the production retry policy", async () => {
     const user = userEvent.setup();
-    (VenueService.getAll as Mock).mockRejectedValue(new Error("server down"));
+    (VenueService.search as Mock).mockRejectedValue(new Error("server down"));
     const client = new QueryClient({ defaultOptions: { queries: { retry: 1, retryDelay: 1, gcTime: Infinity } } });
     renderSheet({}, client);
     const dialog = await openSheet(user);
@@ -188,7 +190,7 @@ describe("VenueSearchSheet", () => {
   it("AC5 closes the sheet and hands the touched venue to the screen", async () => {
     const user = userEvent.setup();
     const venue = buildVenue();
-    (VenueService.getAll as Mock).mockResolvedValue([venue, buildVenue({ id: 2, name: "Le Trappiste" })]);
+    (VenueService.search as Mock).mockResolvedValue(found([venue, buildVenue({ id: 2, name: "Le Trappiste" })]));
     renderSheet();
     const dialog = await openSheet(user);
     await typeInSheet(user, "acad");
@@ -202,7 +204,7 @@ describe("VenueSearchSheet", () => {
 
   it("keeps the typed text and its results when the sheet is reopened", async () => {
     const user = userEvent.setup();
-    (VenueService.getAll as Mock).mockResolvedValue([buildVenue()]);
+    (VenueService.search as Mock).mockResolvedValue(found([buildVenue()]));
     renderSheet();
     const dialog = await openSheet(user);
     await typeInSheet(user, "acad");
@@ -217,7 +219,7 @@ describe("VenueSearchSheet", () => {
 
   it("clears the text with the clear button and goes back to the invitation", async () => {
     const user = userEvent.setup();
-    (VenueService.getAll as Mock).mockResolvedValue([buildVenue()]);
+    (VenueService.search as Mock).mockResolvedValue(found([buildVenue()]));
     renderSheet();
     const dialog = await openSheet(user);
     expect(within(dialog).queryByRole("button", { name: "Effacer la recherche" })).not.toBeInTheDocument();
@@ -240,13 +242,13 @@ describe("VenueSearchSheet", () => {
     await typeInSheet(user, "  acad ");
 
     await within(dialog).findByText("Aucun lieu trouvé");
-    expect(VenueService.getAll).toHaveBeenCalledTimes(1);
-    expect(VenueService.getAll).toHaveBeenCalledWith({ ...FILTERS, bounds: null, q: "acad" });
+    expect(VenueService.search).toHaveBeenCalledTimes(1);
+    expect(VenueService.search).toHaveBeenCalledWith({ ...FILTERS, bounds: null, q: "acad" });
   });
 
   it("AC7 gives the field and every row a 44px target, caps the text at 100 characters and wraps long names", async () => {
     const user = userEvent.setup();
-    (VenueService.getAll as Mock).mockResolvedValue([buildVenue({ name: LONG_NAME, city: LONG_NAME })]);
+    (VenueService.search as Mock).mockResolvedValue(found([buildVenue({ name: LONG_NAME, city: LONG_NAME })]));
     renderSheet();
     const dialog = await openSheet(user);
     const field = within(dialog).getByRole("searchbox", { name: "Nom d'un lieu ou d'une ville" });
@@ -261,5 +263,77 @@ describe("VenueSearchSheet", () => {
     expect(row).toHaveClass("min-h-11", "w-full", "min-w-0");
     expect(within(row).getAllByText(LONG_NAME)[0]).toHaveClass("break-words");
     expect(within(dialog).getByRole("listitem")).toHaveClass("min-w-0");
+  });
+
+describe("approximate results", () => {
+    const MENTION = "Aucun résultat exact : voici des lieux proches";
+
+    it("AC1 announces politely, above the list, that the places are close matches", async () => {
+      const user = userEvent.setup();
+      (VenueService.search as Mock).mockResolvedValue(found([buildVenue({ id: 7, name: "La Taverne de Cluny" })], true));
+      renderSheet();
+      const dialog = await openSheet(user);
+
+      await typeInSheet(user, "taverne cluni");
+
+      const mention = await within(dialog).findByText(MENTION);
+      expect(mention.tagName).toBe("P");
+      expect(mention).toHaveAttribute("aria-live", "polite");
+      const list = within(dialog).getByRole("list");
+      expect(mention.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(within(list).getByText("La Taverne de Cluny")).toBeInTheDocument();
+      expect(within(dialog).getAllByText(MENTION)).toHaveLength(1);
+    });
+
+    it("AC2 shows no mention for an exact search", async () => {
+      const user = userEvent.setup();
+      (VenueService.search as Mock).mockResolvedValue(found([buildVenue({ id: 7, name: "La Taverne de Cluny" })]));
+      renderSheet();
+      const dialog = await openSheet(user);
+
+      await typeInSheet(user, "taverne de cluny");
+
+      expect(await within(dialog).findByText("La Taverne de Cluny")).toBeInTheDocument();
+      expect(within(dialog).queryByText(MENTION)).not.toBeInTheDocument();
+    });
+
+    it("shows no mention before typing or in the empty state", async () => {
+      const user = userEvent.setup();
+      renderSheet();
+      const dialog = await openSheet(user);
+      expect(within(dialog).queryByText(MENTION)).not.toBeInTheDocument();
+
+      await typeInSheet(user, "zzzz");
+
+      expect(await within(dialog).findByText("Aucun lieu trouvé")).toBeInTheDocument();
+      expect(within(dialog).queryByText(MENTION)).not.toBeInTheDocument();
+    });
+
+    it("shows the empty state and no mention when the search is flagged close but holds no place", async () => {
+      const user = userEvent.setup();
+      (VenueService.search as Mock).mockResolvedValue(found([], true));
+      renderSheet();
+      const dialog = await openSheet(user);
+
+      await typeInSheet(user, "zzzz");
+
+      expect(await within(dialog).findByText("Aucun lieu trouvé")).toBeInTheDocument();
+      expect(within(dialog).queryByText(MENTION)).not.toBeInTheDocument();
+      expect(within(dialog).queryByRole("listitem")).not.toBeInTheDocument();
+    });
+
+    it("keeps the close matches selectable as any other row", async () => {
+      const user = userEvent.setup();
+      const venue = buildVenue({ id: 7, name: "La Taverne de Cluny" });
+      (VenueService.search as Mock).mockResolvedValue(found([venue], true));
+      renderSheet();
+      const dialog = await openSheet(user);
+      await typeInSheet(user, "taverne cluni");
+
+      await user.click(await within(dialog).findByRole("button", { name: /La Taverne de Cluny/ }));
+
+      expect(onSelectVenue).toHaveBeenCalledTimes(1);
+      expect(onSelectVenue).toHaveBeenCalledWith(venue);
+    });
   });
 });

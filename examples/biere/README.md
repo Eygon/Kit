@@ -10,7 +10,8 @@ React 19 + TypeScript + HeroUI (front) · NestJS + SQLite (back) · mobile first
 | **Accueil** | Fil d'actualité : dégustations, découvertes du jour, montées de niveau et avis des profils suivis |
 | **Bières** | Encyclopédie « Pokédex » de 120 bières : filtres, recherche, tri par note, amertume et couleur, avis de la communauté |
 | **Carte** | Bars, caves et brasseries avec leurs bières : disponibilité (votes « toujours là / plus là »), recherche d'un lieu par nom ou ville, « déjà bue / à découvrir », proposition de lieu, signalement d'une bière |
-| **Journal** | Mes dégustations (lieu, note, photo) |
+| **Journal** | Mes dégustations (lieu cliquable vers la carte, note, format, prix, commentaire, photo), **modifier** une dégustation, supprimer |
+| **Ajouter une bière** | Depuis l'Encyclopédie : proposer une bière absente (brasserie par complétion, doublon détecté, 10 par jour), repère « Proposée par … » |
 | **Profil** | Avatar (12 au choix), niveau et titre selon les bières découvertes, badges, statistiques, histogramme 12 mois, envies « À goûter », langue FR/EN |
 | **Profils** | Liste des amateurs, suivre / ne plus suivre, abonnés et abonnements |
 
@@ -34,7 +35,7 @@ Fond de carte : tuiles OpenStreetMap (nécessite Internet ; sans elles la carte 
 
 ## Démo sans installation (artefact)
 
-`mock/` contient un faux serveur d'API qui tourne dans le navigateur (`mock-api.js`, vérifié contre le vrai back sur 857 requêtes sans écart) et `build-artifact.sh`, qui construit le vrai front (branche dev) avec ce faux serveur pour l'héberger en un seul dossier. Les données sont fictives et gardées dans le navigateur ; le bouton « Réinitialiser » de la barre verte repart du départ. Limites : pas de fond de carte (les tuiles OpenStreetMap sont bloquées dans l'artefact), pas de service worker, la démo suit l'état de `dev` au moment de la construction (F11 et F12 ne sont pas dedans tant qu'elles ne sont pas fusionnées).
+`mock/` contient un faux serveur d'API qui tourne dans le navigateur (`mock-api.js`, vérifié contre le vrai back sur 1 382 requêtes sans écart) et `build-artifact.sh`, qui construit le vrai front (branche dev) avec ce faux serveur pour l'héberger en un seul dossier. Les données sont fictives et gardées dans le navigateur ; le bouton « Réinitialiser » de la barre verte repart du départ. Limites : pas de fond de carte (les tuiles OpenStreetMap sont bloquées dans l'artefact), pas de service worker, la démo suit l'état de `dev` au moment de la construction (F1 à F13 sont dedans).
 
 ## Tester
 

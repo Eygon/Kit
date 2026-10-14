@@ -51,6 +51,7 @@ interface VenueBody {
   readonly status: string;
   readonly checkinCount: number;
   readonly lastCheckinAt: string | null;
+  readonly isApproximateMatch: boolean;
 }
 
 const STATUS_RANK: Readonly<Record<string, number>> = { confirmed: 0, maybeGone: 1, unknown: 2, gone: 3 };
@@ -137,6 +138,7 @@ describe("venues API", () => {
           status: expect.any(String),
           checkinCount: 0,
           lastCheckinAt: null,
+          isApproximateMatch: false,
         });
       });
     });
@@ -642,6 +644,62 @@ describe("venues API", () => {
 
       expect(response.status).toBe(HttpStatus.BAD_REQUEST);
       expect(response.body).toEqual({ message: "north, south, east and west must be supplied together." });
+    });
+  });
+
+  describe("GET /api/v1/venues approximate fallback", () => {
+    const search = (text: string, extra = "") => get(`${VENUES_PATH}?q=${encodeURIComponent(text)}${extra}`);
+    const CLUNY = "La Taverne de Cluny";
+
+    it("finds La Taverne de Cluny with a misspelled text and flags it as close", async () => {
+      const response = await search("taverne cluni");
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(namesOf(response.body)).toEqual([CLUNY]);
+      expect((response.body as VenueBody[]).map((venue) => venue.isApproximateMatch)).toEqual([true]);
+    });
+
+    it("flags no venue as close when the exact search finds some", async () => {
+      const response = await search("taverne");
+
+      expect(response.status).toBe(HttpStatus.OK);
+      const bodies = response.body as VenueBody[];
+      expect(bodies.map((venue) => venue.name)).toContain(CLUNY);
+      expect(bodies.every((venue) => venue.isApproximateMatch === false)).toBe(true);
+    });
+
+    it("applies the active venue type to the close venues", async () => {
+      const shops = await search("taverne cluni", "&type=shop");
+      const bars = await search("taverne cluni", "&type=bar");
+
+      expect(shops.status).toBe(HttpStatus.OK);
+      expect(shops.body).toEqual([]);
+      expect(namesOf(bars.body)).toEqual([CLUNY]);
+      expect((bars.body as VenueBody[])[0].isApproximateMatch).toBe(true);
+    });
+
+    it("renders the Lille venues, flagged as close, for the misspelled city lile", async () => {
+      const response = await search("lile");
+
+      expect(response.status).toBe(HttpStatus.OK);
+      const bodies = response.body as VenueBody[];
+      expect(bodies).toHaveLength(LILLE_VENUE_COUNT);
+      expect(namesOf(bodies)).toEqual(seededNames((venue) => venue.city === "Lille"));
+      expect(bodies.every((venue) => venue.city === "Lille" && venue.isApproximateMatch)).toBe(true);
+    });
+
+    it("applies no fallback to a text of fewer than four letters", async () => {
+      const response = await search("bqr");
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.body).toEqual([]);
+    });
+
+    it("answers an empty array when nothing is close either", async () => {
+      const response = await search("zzzzzzzz");
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.body).toEqual([]);
     });
   });
 

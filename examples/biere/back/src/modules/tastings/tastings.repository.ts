@@ -13,7 +13,7 @@ import { Checkin } from "@/modules/tastings/entities/checkin.entity";
 import { Photo } from "@/modules/tastings/entities/photo.entity";
 import { WishlistItem } from "@/modules/tastings/entities/wishlist-item.entity";
 import type { PhotoContentTypeEnum } from "@/modules/tastings/enums/photo-content-type.enum";
-import { toCheckinRecordDto } from "@/modules/tastings/mappers/checkin-record.mapper";
+import { toCheckinRecordDto, type CheckinChanges } from "@/modules/tastings/mappers/checkin-record.mapper";
 import { toDiscoveryCountDto, type RawDiscoveryCountRow } from "@/modules/tastings/mappers/discovery-count.mapper";
 import { toPhotoContentDto } from "@/modules/tastings/mappers/photo-content.mapper";
 import { toIsoDate, toVenueVisitDto, type RawVenueVisitRow } from "@/modules/tastings/mappers/venue-visit.mapper";
@@ -58,6 +58,11 @@ export class TastingsRepository {
       const saved = await manager.save(this.checkins.create({ ...data, photoId: savedPhoto.id }));
       return toCheckinRecordDto(saved);
     });
+  }
+
+  async updateCheckin(id: number, changes: CheckinChanges): Promise<CheckinRecordDto> {
+    await this.checkins.update({ id }, changes);
+    return toCheckinRecordDto(await this.checkins.findOneByOrFail({ id }));
   }
 
   async findCheckinById(id: number): Promise<CheckinRecordDto | null> {

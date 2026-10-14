@@ -54,6 +54,7 @@ const typeName = async (user: ReturnType<typeof userEvent.setup>, name: string) 
 describe("EditProfileSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, writable: true, value: vi.fn() });
     vi.stubGlobal("fetch", mockFetch);
     vi.spyOn(toast, "success").mockImplementation(() => "toast-id");
     vi.spyOn(toast, "danger").mockImplementation(() => "toast-id");
@@ -164,6 +165,32 @@ describe("EditProfileSheet", () => {
       expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
 
+    it("AC1 moves the focus to the name field when the name is empty and Enregistrer is pressed", async () => {
+      const user = userEvent.setup();
+      renderSheet();
+      const dialog = await openSheet(user);
+      await typeName(user, "");
+      const save = within(dialog).getByRole("button", { name: "Enregistrer" });
+      await user.click(within(dialog).getByRole("radio", { name: "Mousse" }));
+
+      await user.click(save);
+
+      await waitFor(() => expect(nameField()).toHaveFocus());
+      expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(nameField());
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("does not move the focus when the name is valid", async () => {
+      const user = userEvent.setup();
+      renderSheet();
+      const dialog = await openSheet(user);
+      await typeName(user, "Alice B");
+      await user.click(within(dialog).getByRole("button", { name: "Enregistrer" }));
+
+      await waitFor(() => expect(putCalls()).toHaveLength(1));
+      expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+    });
+
     it("sends the request once the name is fixed", async () => {
       const user = userEvent.setup();
       renderSheet();
@@ -235,7 +262,11 @@ describe("EditProfileSheet", () => {
 
       await user.click(within(dialog).getByRole("button", { name: "Enregistrer" }));
 
-      await waitFor(() => expect(within(dialog).getByRole("button", { name: /Enregistrer/ })).toHaveAttribute("data-pending", "true"));
+      await waitFor(() => expect(within(dialog).getByRole("button", { name: /Enregistrement…/ })).toHaveAttribute("data-pending", "true"));
+      const pendingButton = within(dialog).getByRole("button", { name: /Enregistrement…/ });
+      expect(pendingButton).toHaveAttribute("aria-busy", "true");
+      expect(pendingButton).toHaveTextContent("Enregistrement…");
+      expect(pendingButton.className).toContain("button--full-width");
       release();
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     });

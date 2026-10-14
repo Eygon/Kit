@@ -1,7 +1,9 @@
-import { Button, Description, Form, Label, Slider, TextArea, TextField } from "@heroui/react";
-import { useId, useRef, useState } from "react";
+import { Description, Form, Label, Slider, TextArea, TextField } from "@heroui/react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { SubmitButton } from "@/components/elements/submitButton/submitButton";
+import { useFocusFirstInvalidField } from "@/hooks/form/useFocusFirstInvalidField";
 import { StarRating } from "@/pages/beerDetail/components/elements/starRating/starRating";
 import type { ReviewFormProps } from "@/pages/beerDetail/types/reviewForm";
 import type { ReviewFormValues } from "@/pages/beerDetail/types/reviewFormValues";
@@ -31,6 +33,8 @@ export const ReviewForm = ({ initialReview, isSaving, onSubmit }: ReviewFormProp
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const isSubmitting = useRef(false);
   const ratingErrorId = useId();
+  const ratingInputRef = useRef<HTMLInputElement>(null);
+  const { formRef, focusFirstInvalidField } = useFocusFirstInvalidField();
 
   const updateValue = <TKey extends keyof ReviewFormValues>(key: TKey, value: ReviewFormValues[TKey]) => {
     setValues((previous) => ({ ...previous, [key]: value }));
@@ -58,7 +62,10 @@ export const ReviewForm = ({ initialReview, isSaving, onSubmit }: ReviewFormProp
     event.preventDefault();
     if (isSubmitting.current) return;
     setHasAttemptedSubmit(true);
-    if (values.rating === null) return;
+    if (values.rating === null) {
+      focusFirstInvalidField();
+      return;
+    }
     isSubmitting.current = true;
     void send(values.rating);
   };
@@ -70,13 +77,18 @@ export const ReviewForm = ({ initialReview, isSaving, onSubmit }: ReviewFormProp
       : t("pages.beerDetail.reviews.form.ratingValue", { rating: numberFormat.format(values.rating) });
   const isRatingMissing = hasAttemptedSubmit && values.rating === null;
 
+  useLayoutEffect(() => {
+    if (isRatingMissing) ratingInputRef.current?.setAttribute("aria-invalid", "true");
+    else ratingInputRef.current?.removeAttribute("aria-invalid");
+  }, [isRatingMissing]);
+
   const getCriterionText = (criterion: ReviewCriterionEnum, level: number): string =>
     level === REVIEW_NO_CRITERION
       ? t("pages.beerDetail.reviews.form.notRated")
       : t(REVIEW_CRITERION_LEVEL_LABEL_KEYS[criterion][level - 1]);
 
   return (
-    <Form validationBehavior="aria" onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4">
+    <Form ref={formRef} validationBehavior="aria" onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-col gap-2">
         <StarRating value={values.rating ?? 0} />
         <Slider
@@ -91,7 +103,7 @@ export const ReviewForm = ({ initialReview, isSaving, onSubmit }: ReviewFormProp
           <Slider.Output>{ratingText}</Slider.Output>
           <Slider.Track>
             <Slider.Fill />
-            <Slider.Thumb />
+            <Slider.Thumb inputRef={ratingInputRef} />
           </Slider.Track>
         </Slider>
         {isRatingMissing && (
@@ -122,9 +134,7 @@ export const ReviewForm = ({ initialReview, isSaving, onSubmit }: ReviewFormProp
         <TextArea />
         <Description>{t("pages.beerDetail.reviews.form.textCount", { count: values.text.length })}</Description>
       </TextField>
-      <Button type="submit" size="lg" fullWidth isPending={isSaving}>
-        {t("pages.beerDetail.reviews.form.submit")}
-      </Button>
+      <SubmitButton label={t("pages.beerDetail.reviews.form.submit")} isPending={isSaving} />
     </Form>
   );
 };

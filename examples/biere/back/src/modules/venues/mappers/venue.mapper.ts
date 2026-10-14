@@ -24,6 +24,7 @@ export const toVenueDto = (
   status: AvailabilityStatusEnum,
   distanceKm: number | null,
   visit: VenueVisitDto | undefined,
+  isApproximateMatch: boolean,
 ): VenueDto => ({
   id: record.id,
   name: record.name,
@@ -37,6 +38,7 @@ export const toVenueDto = (
   status,
   checkinCount: visit?.checkinCount ?? 0,
   lastCheckinAt: visit?.lastCheckinAt ?? null,
+  isApproximateMatch,
 });
 
 export const toVenueSearchKeys = (name: string, city: string | null): Pick<Venue, "searchName" | "searchCity"> => ({

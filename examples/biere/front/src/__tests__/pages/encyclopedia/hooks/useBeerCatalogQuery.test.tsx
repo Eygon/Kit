@@ -102,6 +102,63 @@ describe("useBeerCatalogQuery", () => {
     ]);
   });
 
+  it("exposes isApproximate false while pending and for an exact page", async () => {
+    stubPages(BeerService);
+
+    const { result } = renderHook(() => useBeerCatalogQuery(EMPTY_BEER_QUERY), {
+      wrapper: wrapperFor(createTestQueryClient()),
+    });
+
+    expect(result.current.isApproximate).toBe(false);
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(result.current.isApproximate).toBe(false);
+  });
+
+  it("reads isApproximate on the first page, whatever the later pages say", async () => {
+    (BeerService.getPage as Mock).mockImplementation(async (_query: unknown, page: number, size: number) => ({
+      items: beersOfPage(page, size),
+      total: TOTAL,
+      page,
+      size,
+      facets: FACETS,
+      isApproximate: page === 1,
+    }));
+
+    const { result } = renderHook(() => useBeerCatalogQuery(EMPTY_BEER_QUERY), {
+      wrapper: wrapperFor(createTestQueryClient()),
+    });
+    await waitFor(() => expect(result.current.beers).toHaveLength(20));
+    expect(result.current.isApproximate).toBe(true);
+
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+    await waitFor(() => expect(result.current.beers).toHaveLength(40));
+    expect(result.current.isApproximate).toBe(true);
+  });
+
+  it("ignores isApproximate on a later page when the first page is exact", async () => {
+    (BeerService.getPage as Mock).mockImplementation(async (_query: unknown, page: number, size: number) => ({
+      items: beersOfPage(page, size),
+      total: TOTAL,
+      page,
+      size,
+      facets: FACETS,
+      isApproximate: page === 2,
+    }));
+
+    const { result } = renderHook(() => useBeerCatalogQuery(EMPTY_BEER_QUERY), {
+      wrapper: wrapperFor(createTestQueryClient()),
+    });
+    await waitFor(() => expect(result.current.beers).toHaveLength(20));
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+    await waitFor(() => expect(result.current.beers).toHaveLength(40));
+
+    expect(result.current.isApproximate).toBe(false);
+  });
+
   it("offers no next page when everything fits in the first page", async () => {
     (BeerService.getPage as Mock).mockResolvedValue({
       items: beersOfPage(1, 3),

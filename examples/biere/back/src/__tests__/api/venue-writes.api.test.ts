@@ -96,6 +96,7 @@ describe("venue writes API", () => {
         status: "unknown",
         checkinCount: 0,
         lastCheckinAt: null,
+        isApproximateMatch: false,
       });
       const after = await listVenues();
       expect(after).toHaveLength(SEEDED_VENUE_COUNT + 1);

@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { hasApproximableWord, matchesApproximately } from "@/common/text/matches-approximately";
 import { BeersService } from "@/modules/beers/beers.service";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import { TastingsService } from "@/modules/tastings/tastings.service";
@@ -66,12 +67,14 @@ const toVenueWithStatus = (
   now: Date,
   distanceKm: number | null,
   visit: VenueVisitDto | undefined,
+  isApproximateMatch: boolean,
 ): VenueDto =>
   toVenueDto(
     record,
     pickBestStatus(links.map((link) => computeAvailability(link.votes, now).status)),
     distanceKm,
     visit,
+    isApproximateMatch,
   );
 
 const toPosition = (query: PositionQueryDto): GeoPointDto | null => {
@@ -151,32 +154,13 @@ export class VenuesService {
     const position = toPosition(query);
     const radiusKm = toRadiusKm(query, position);
     const records = await this.venuesRepository.findVenues(area);
-    const links = await this.venuesRepository.findLinks(records.map((record) => record.id));
-    const retainedLinks = await this.retainLinks(links, query);
-    const undiscoveredLinks = await this.keepUndiscoveredLinks(userId, retainedLinks, query);
-    const linksByVenue = groupByVenue(retainedLinks);
-    const undiscoveredVenueIds = new Set(undiscoveredLinks.map((link) => link.venueId));
-    const visitsByVenue = await this.getVisits(
-      userId,
-      records.map((record) => record.id),
-    );
-    const now = new Date();
-    const venues = records
-      .filter((record) => !hasBeerFilter(query) || linksByVenue.has(record.id))
-      .filter((record) => query.undiscovered !== true || undiscoveredVenueIds.has(record.id))
-      .filter((record) => query.visited !== true || hasVisit(visitsByVenue.get(record.id)))
-      .map((record) =>
-        toVenueWithStatus(
-          record,
-          linksByVenue.get(record.id) ?? [],
-          now,
-          position === null ? null : computeDistanceKm(position, record),
-          visitsByVenue.get(record.id),
-        ),
-      )
-      .filter((venue) => query.confirmedOnly !== true || venue.status === AvailabilityStatusEnum.CONFIRMED)
-      .filter((venue) => radiusKm === null || (venue.distanceKm as number) <= radiusKm);
-    return position === null || area.search !== "" ? venues : venues.sort(compareVenuesByDistance);
+    const venues = await this.toFilteredVenues(userId, query, records, position, radiusKm, false);
+    if (venues.length > 0 || !hasApproximableWord(area.search)) {
+      return position === null || area.search !== "" ? venues : venues.sort(compareVenuesByDistance);
+    }
+    const candidates = await this.venuesRepository.findVenues({ ...area, search: "" });
+    const closeRecords = candidates.filter((record) => matchesApproximately(area.search, [record.name, record.city]));
+    return this.toFilteredVenues(userId, query, closeRecords, position, radiusKm, true);
   }
 
   async getVenue(userId: number, id: number): Promise<VenueDto> {
@@ -186,7 +170,7 @@ export class VenuesService {
     }
     const links = await this.venuesRepository.findLinks([id]);
     const visitsByVenue = await this.getVisits(userId, [id]);
-    return toVenueWithStatus(record, links, new Date(), null, visitsByVenue.get(id));
+    return toVenueWithStatus(record, links, new Date(), null, visitsByVenue.get(id), false);
   }
 
   async ensureVenueExists(id: number): Promise<void> {
@@ -274,7 +258,7 @@ export class VenuesService {
       throw new ConflictException(`A venue named "${data.name}" already exists.`);
     }
     const record = await this.venuesRepository.createVenue(data);
-    return toVenueDto(record, AvailabilityStatusEnum.UNKNOWN, null, undefined);
+    return toVenueDto(record, AvailabilityStatusEnum.UNKNOWN, null, undefined, false);
   }
 
   async reportBeer(userId: number, venueId: number, dto: ReportVenueBeerDto): Promise<VenueBeerDto> {
@@ -292,6 +276,42 @@ export class VenuesService {
       null,
       userStates.get(dto.beerId) as VenueBeerUserStateDto,
     );
+  }
+
+  private async toFilteredVenues(
+    userId: number,
+    query: VenuesQueryDto,
+    records: readonly VenueRecordDto[],
+    position: GeoPointDto | null,
+    radiusKm: number | null,
+    isApproximateMatch: boolean,
+  ): Promise<VenueDto[]> {
+    const links = await this.venuesRepository.findLinks(records.map((record) => record.id));
+    const retainedLinks = await this.retainLinks(links, query);
+    const undiscoveredLinks = await this.keepUndiscoveredLinks(userId, retainedLinks, query);
+    const linksByVenue = groupByVenue(retainedLinks);
+    const undiscoveredVenueIds = new Set(undiscoveredLinks.map((link) => link.venueId));
+    const visitsByVenue = await this.getVisits(
+      userId,
+      records.map((record) => record.id),
+    );
+    const now = new Date();
+    return records
+      .filter((record) => !hasBeerFilter(query) || linksByVenue.has(record.id))
+      .filter((record) => query.undiscovered !== true || undiscoveredVenueIds.has(record.id))
+      .filter((record) => query.visited !== true || hasVisit(visitsByVenue.get(record.id)))
+      .map((record) =>
+        toVenueWithStatus(
+          record,
+          linksByVenue.get(record.id) ?? [],
+          now,
+          position === null ? null : computeDistanceKm(position, record),
+          visitsByVenue.get(record.id),
+          isApproximateMatch,
+        ),
+      )
+      .filter((venue) => query.confirmedOnly !== true || venue.status === AvailabilityStatusEnum.CONFIRMED)
+      .filter((venue) => radiusKm === null || (venue.distanceKm as number) <= radiusKm);
   }
 
   private async getVisits(userId: number, venueIds: readonly number[]): Promise<Map<number, VenueVisitDto>> {

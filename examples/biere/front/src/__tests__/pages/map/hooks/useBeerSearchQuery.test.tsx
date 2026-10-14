@@ -20,6 +20,7 @@ const PAGE = {
   page: 1,
   size: 10,
   facets: { families: [], countries: [], formats: [] },
+  isApproximate: false,
 } as unknown as BeerPage;
 
 const wrapperFor = (client: QueryClient) => {

@@ -1,4 +1,5 @@
 import type { CreateCheckinDto } from "@/modules/tastings/dtos/create-checkin.dto";
+import type { UpdateCheckinDto } from "@/modules/tastings/dtos/update-checkin.dto";
 import type { CheckinRecordDto } from "@/modules/tastings/dtos/checkin-record.dto";
 import type { Checkin } from "@/modules/tastings/entities/checkin.entity";
 
@@ -29,4 +30,17 @@ export const toNewCheckin = (dto: CreateCheckinDto, userId: number): Omit<Checki
   price: dto.price ?? null,
   comment: dto.comment ?? "",
   photoId: null,
+});
+
+export type CheckinChanges = Partial<Omit<Checkin, "id" | "userId" | "beerId" | "photoId" | "createdAt">>;
+
+export const toCheckinChanges = (dto: UpdateCheckinDto): CheckinChanges => ({
+  ...(dto.drankAt !== undefined && { drankAt: new Date(dto.drankAt) }),
+  ...(dto.place !== undefined && { place: dto.place.trim() }),
+  ...((dto.place !== undefined || dto.venueId !== undefined) && { venueId: dto.venueId ?? null }),
+  ...(dto.rating !== undefined && { rating: dto.rating }),
+  ...(dto.aromas !== undefined && { aromas: [...dto.aromas] }),
+  ...(dto.format !== undefined && { format: dto.format }),
+  ...(dto.price !== undefined && { price: dto.price }),
+  ...(dto.comment !== undefined && { comment: dto.comment }),
 });

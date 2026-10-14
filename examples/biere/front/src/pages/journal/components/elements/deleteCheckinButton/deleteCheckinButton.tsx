@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useDeleteCheckinMutation } from "@/pages/journal/hooks/useDeleteCheckinMutation";
 import type { DeleteCheckinButtonProps } from "@/pages/journal/types/deleteCheckinButton";
 
-export const DeleteCheckinButton = ({ checkinId }: DeleteCheckinButtonProps) => {
+export const DeleteCheckinButton = ({ checkinId, isTextTrigger = false, onDeleted }: DeleteCheckinButtonProps) => {
   const { t } = useTranslation();
   const { removeCheckin, isRemoving } = useDeleteCheckinMutation();
   const [isOpen, setIsOpen] = useState(false);
@@ -16,6 +16,7 @@ export const DeleteCheckinButton = ({ checkinId }: DeleteCheckinButtonProps) => 
     isInFlight.current = true;
     try {
       await removeCheckin(checkinId);
+      onDeleted?.();
     } catch {
       return;
     } finally {
@@ -26,9 +27,15 @@ export const DeleteCheckinButton = ({ checkinId }: DeleteCheckinButtonProps) => 
 
   return (
     <AlertDialog isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button isIconOnly variant="ghost" size="lg" aria-label={t("pages.journal.delete.action")} className="shrink-0">
-        <TrashBin aria-hidden="true" />
-      </Button>
+      {isTextTrigger ? (
+        <Button variant="ghost" className="min-h-11">
+          {t("pages.journal.delete.wrongBeer")}
+        </Button>
+      ) : (
+        <Button isIconOnly variant="ghost" size="lg" aria-label={t("pages.journal.delete.action")} className="shrink-0">
+          <TrashBin aria-hidden="true" />
+        </Button>
+      )}
       <AlertDialog.Backdrop>
         <AlertDialog.Container>
           <AlertDialog.Dialog>

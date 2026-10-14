@@ -82,6 +82,19 @@ describe("beerPageDtoToModel", () => {
       page: 1,
       size: 20,
       facets: { families: [], countries: [], formats: [] },
+      isApproximate: false,
     });
+  });
+
+  it("maps isApproximate true", () => {
+    expect(beerPageDtoToModel({ ...pageDto, isApproximate: true }).isApproximate).toBe(true);
+  });
+
+  it("maps isApproximate false", () => {
+    expect(beerPageDtoToModel({ ...pageDto, isApproximate: false }).isApproximate).toBe(false);
+  });
+
+  it("defaults isApproximate to false when the DTO omits it", () => {
+    expect(beerPageDtoToModel(pageDto).isApproximate).toBe(false);
   });
 });

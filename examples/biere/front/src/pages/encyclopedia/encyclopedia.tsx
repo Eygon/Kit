@@ -51,8 +51,18 @@ const BeerGridSkeleton = () => (
 export const EncyclopediaPage = () => {
   const { t } = useTranslation();
   const { query, applyQuery, setSearch, setFamily, hasActiveFilters } = useBeerFilters();
-  const { beers, total, facets, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useBeerCatalogQuery(query);
+  const {
+    beers,
+    total,
+    facets,
+    isApproximate,
+    isPending,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useBeerCatalogQuery(query);
   const { dex, isPending: isDexPending, refetch: refetchDex } = useDexQuery();
   const navigate = useNavigate();
   const [proposal, setProposal] = useState({ isOpen: false, initialName: "" });
@@ -134,6 +144,11 @@ export const EncyclopediaPage = () => {
       );
     return (
       <>
+        {isApproximate && (
+          <p aria-live="polite" className="text-sm text-muted">
+            {t("pages.encyclopedia.approximateResults")}
+          </p>
+        )}
         <ul className={GRID_CLASSES}>
           {beers.map((beer) => (
             <li key={beer.id} className="min-w-0">

@@ -2,6 +2,8 @@ import { Button, Description, Drawer, FieldError, Form, Input, Label, TextField 
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { SubmitButton } from "@/components/elements/submitButton/submitButton";
+import { useFocusFirstInvalidField } from "@/hooks/form/useFocusFirstInvalidField";
 import { AvatarPicker } from "@/pages/profile/components/elements/avatarPicker/avatarPicker";
 import { useUpdateProfileMutation } from "@/pages/profile/hooks/useUpdateProfileMutation";
 import type { EditProfileSheetProps } from "@/pages/profile/types/editProfileSheet";
@@ -14,6 +16,7 @@ export const EditProfileSheet = ({ profile }: EditProfileSheetProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [values, setValues] = useState<ProfileFormValues>(() => profileToFormValues(profile));
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const { formRef, focusFirstInvalidField } = useFocusFirstInvalidField();
 
   const updateValue = <TKey extends keyof ProfileFormValues>(key: TKey, value: ProfileFormValues[TKey]) => {
     setValues((previous) => ({ ...previous, [key]: value }));
@@ -39,7 +42,10 @@ export const EditProfileSheet = ({ profile }: EditProfileSheetProps) => {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setHasAttemptedSubmit(true);
-    if (!isDisplayNameValid(values.displayName)) return;
+    if (!isDisplayNameValid(values.displayName)) {
+      focusFirstInvalidField();
+      return;
+    }
     void send();
   };
 
@@ -58,7 +64,7 @@ export const EditProfileSheet = ({ profile }: EditProfileSheetProps) => {
               <Drawer.Heading className="break-words">{t("pages.profile.edit.title")}</Drawer.Heading>
             </Drawer.Header>
             <Drawer.Body className="flex max-h-[calc(100dvh-8rem)] min-w-0 flex-col gap-4 overflow-y-auto p-1 md:max-h-[60dvh]">
-              <Form validationBehavior="aria" onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4">
+              <Form ref={formRef} validationBehavior="aria" onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4">
                 <TextField
                   isRequired
                   name="displayName"
@@ -72,9 +78,7 @@ export const EditProfileSheet = ({ profile }: EditProfileSheetProps) => {
                   <FieldError />
                 </TextField>
                 <AvatarPicker value={values.avatar} onChange={(avatar) => updateValue("avatar", avatar)} />
-                <Button type="submit" variant="primary" size="lg" fullWidth isPending={isPending}>
-                  {t("pages.profile.edit.save")}
-                </Button>
+                <SubmitButton label={t("pages.profile.edit.save")} isPending={isPending} />
               </Form>
             </Drawer.Body>
           </Drawer.Dialog>

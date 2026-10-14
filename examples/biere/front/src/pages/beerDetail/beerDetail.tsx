@@ -7,7 +7,7 @@ import { ProposedByChip } from "@/components/elements/proposedByChip/proposedByC
 import { BeerLevels } from "@/pages/beerDetail/components/elements/beerLevels/beerLevels";
 import { AddToCollectionSheet } from "@/pages/beerDetail/components/widgets/addToCollectionSheet/addToCollectionSheet";
 import { CheckinHistory } from "@/pages/beerDetail/components/widgets/checkinHistory/checkinHistory";
-import { CheckinSheet } from "@/pages/beerDetail/components/widgets/checkinSheet/checkinSheet";
+import { CheckinSheet } from "@/components/modules/checkinSheet/checkinSheet";
 import { ReviewsSection } from "@/pages/beerDetail/components/widgets/reviewsSection/reviewsSection";
 import { WhereToDrinkSection } from "@/pages/beerDetail/components/widgets/whereToDrinkSection/whereToDrinkSection";
 import { useBeerQuery } from "@/pages/beerDetail/hooks/useBeerQuery";

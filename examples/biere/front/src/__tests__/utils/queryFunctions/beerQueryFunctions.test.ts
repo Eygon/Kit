@@ -14,7 +14,7 @@ describe("fetchBeerPage", () => {
   });
 
   it("delegates to BeerService.getPage with the query, page and size and returns its page", async () => {
-    const page = { items: [], total: 0, page: 3, size: 20, facets: { families: [], countries: [], formats: [] } };
+    const page = { items: [], total: 0, page: 3, size: 20, facets: { families: [], countries: [], formats: [] }, isApproximate: false };
     (BeerService.getPage as Mock).mockResolvedValue(page);
 
     const result = await fetchBeerPage({ ...EMPTY_BEER_QUERY, search: "ipa" }, 3, 20);

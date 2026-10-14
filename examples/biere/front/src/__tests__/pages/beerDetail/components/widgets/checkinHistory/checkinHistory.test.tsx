@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 import i18n from "@/i18n/i18n";
 import { CheckinHistory } from "@/pages/beerDetail/components/widgets/checkinHistory/checkinHistory";
+import { BeerFormatEnum } from "@/types/enums/beer/beerFormatEnum";
 import type { Checkin } from "@/types/models/checkin/checkin";
 
 const mockHistory = vi.hoisted(() => ({
@@ -349,5 +350,20 @@ describe("CheckinHistory", () => {
     expect(
       await screen.findByRole("dialog", { name: "Photo de la dégustation" }),
     ).toBeInTheDocument();
+  });
+
+  it("shows the format, the price and the comment of a tasting, with no Modifier button", () => {
+    stubHistory({
+      checkins: [buildCheckin({ format: BeerFormatEnum.BOTTLE, price: 4.2, comment: "Très belle mousse" })],
+      total: 1,
+    });
+
+    renderWithProviders(<CheckinHistory beerId={7} />);
+
+    const item = within(screen.getByRole("list")).getAllByRole("listitem")[0];
+    expect(within(item).getByText("Bouteille")).toBeInTheDocument();
+    expect(within(item).getByText(/^4,20\s€$/)).toBeInTheDocument();
+    expect(within(item).getByText("Très belle mousse")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Modifier/ })).not.toBeInTheDocument();
   });
 });

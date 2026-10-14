@@ -5,6 +5,9 @@
   "common": {
     "retry": "Réessayer",
     "close": "Fermer",
+    "showMore": "Voir plus",
+    "showLess": "Voir moins",
+    "saving": "Enregistrement…",
     "photo": {
       "open": "Agrandir la photo",
       "alt": "Photo de la dégustation"
@@ -218,6 +221,18 @@
       "voters_other": "{{count}} personnes"
     }
   },
+  "checkinSheet": {
+    "edit": {
+      "open": "Modifier la dégustation",
+      "title": "Modifier : {{name}}",
+      "submit": "Enregistrer",
+      "saved": "Dégustation modifiée."
+    },
+    "draft": {
+      "restored": "Brouillon repris",
+      "clear": "Effacer le brouillon"
+    }
+  },
   "pages": {
     "home": {
       "title": "Accueil",
@@ -257,6 +272,7 @@
         "ringLabel": "Progression du Pokédex",
         "errorTitle": "Progression indisponible."
       },
+      "approximateResults": "Aucun résultat exact : voici des bières proches",
       "resultCount_one": "{{count}} résultat",
       "resultCount_other": "{{count}} résultats",
       "search": {
@@ -489,7 +505,8 @@
         "errorTitle": "Impossible de chercher les lieux.",
         "emptyTitle": "Aucun lieu trouvé",
         "emptyDescription": "Essayez un autre nom ou une autre ville.",
-        "emptyWithFilters": "Aucun lieu ne correspond avec les filtres actifs. Essayez d'en retirer."
+        "emptyWithFilters": "Aucun lieu ne correspond avec les filtres actifs. Essayez d'en retirer.",
+        "approximateResults": "Aucun résultat exact : voici des lieux proches"
       },
       "venue": {
         "address": "Adresse",
@@ -601,6 +618,7 @@
       "loadMore": "Voir plus",
       "delete": {
         "action": "Supprimer",
+        "wrongBeer": "Mauvaise bière ? Supprimer et recréer",
         "confirmTitle": "Supprimer cette dégustation ?",
         "confirm": "Supprimer",
         "cancel": "Annuler",
@@ -644,6 +662,12 @@
       "notFoundTitle": "Profil introuvable",
       "notFoundDescription": "Ce profil n'existe pas ou plus.",
       "seeProfiles": "Voir les profils"
+    },
+    "notFound": {
+      "title": "Page introuvable",
+      "emptyTitle": "Cette page n'existe pas",
+      "emptyDescription": "L'adresse est peut-être mal saisie ou la page a été déplacée.",
+      "backHome": "Retour à l'accueil"
     },
     "profile": {
       "title": "Profil",

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { queryTimes } from "@/config/tanstackQuery";
 import { VENUE_SEARCH_DEBOUNCE_MS } from "@/constants/venueSearchConstants";
 import type { VenueQuery } from "@/types/models/venue/venueQuery";
-import { fetchVenues } from "@/utils/queryFunctions/venueQueryFunctions";
+import { searchVenues } from "@/utils/queryFunctions/venueQueryFunctions";
 import { venueKeys } from "@/utils/queryKeys/venueQueryKeys";
 
 export const useVenueSearch = (filterQuery: VenueQuery) => {
@@ -19,8 +19,8 @@ export const useVenueSearch = (filterQuery: VenueQuery) => {
   const isIdle = term === "";
 
   const { data, isPending, isError, refetch } = useQuery({
-    queryKey: venueKeys.list(query),
-    queryFn: isIdle ? skipToken : () => fetchVenues(query),
+    queryKey: venueKeys.search(query),
+    queryFn: isIdle ? skipToken : () => searchVenues(query),
     ...queryTimes.long,
   });
 
@@ -28,7 +28,8 @@ export const useVenueSearch = (filterQuery: VenueQuery) => {
     searchText,
     setSearchText,
     term,
-    venues: data ?? [],
+    venues: data?.venues ?? [],
+    isApproximate: data?.isApproximate ?? false,
     isIdle,
     isPending: !isIdle && isPending,
     isError,

@@ -869,3 +869,377 @@ describe("checkins history API", () => {
     });
   });
 });
+
+describe("PATCH /checkins/{id}", () => {
+  const ORIGINAL_COMMENT = "Trés bonne";
+
+  let app: INestApplication;
+  let orvalId: number;
+  let fineMousseId: number;
+
+  const findBeerId = async (name: string): Promise<number> => {
+    const response = await request(app.getHttpServer())
+      .get(BEERS_PATH)
+      .query({ q: name })
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+    expect(response.status).toBe(HttpStatus.OK);
+    const beer = (response.body as BeerPageDto).items.find((item) => item.name === name);
+    if (beer === undefined) {
+      throw new Error(`${name} is not seeded`);
+    }
+    return beer.id;
+  };
+
+  const findVenueId = async (name: string): Promise<number> => {
+    const response = await request(app.getHttpServer())
+      .get(VENUES_PATH)
+      .query({ q: name })
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+    expect(response.status).toBe(HttpStatus.OK);
+    const venue = (response.body as { id: number; name: string }[]).find((item) => item.name === name);
+    if (venue === undefined) {
+      throw new Error(`${name} is not seeded`);
+    }
+    return venue.id;
+  };
+
+  const create = async (
+    userId: number,
+    fields: Record<string, string>,
+    photo?: Buffer,
+  ): Promise<CheckinDto> => {
+    const test = request(app.getHttpServer()).post(CHECKINS_PATH).set(USER_ID_HEADER_NAME, String(userId));
+    Object.entries({
+      beerId: String(orvalId),
+      drankAt: PAST_DATE,
+      place: "Le Bistrot",
+      format: "bottle",
+      ...fields,
+    }).forEach(([name, value]) => {
+      test.field(name, value);
+    });
+    if (photo !== undefined) {
+      test.attach("file", photo, { filename: "photo.png", contentType: "image/png" });
+    }
+    const response = await test;
+    expect(response.status).toBe(HttpStatus.CREATED);
+    return (response.body as CreatedCheckinDto).checkin;
+  };
+
+  const patch = (userId: number, id: number | string, body: object): request.Test =>
+    request(app.getHttpServer())
+      .patch(`${CHECKINS_PATH}/${id}`)
+      .set(USER_ID_HEADER_NAME, String(userId))
+      .send(body);
+
+  const read = async (userId: number, id: number): Promise<CheckinDto> => {
+    const response = await request(app.getHttpServer())
+      .get(`${CHECKINS_PATH}/${id}`)
+      .set(USER_ID_HEADER_NAME, String(userId));
+    expect(response.status).toBe(HttpStatus.OK);
+    return response.body as CheckinDto;
+  };
+
+  const listAll = async (userId: number): Promise<CheckinDto[]> => {
+    const response = await request(app.getHttpServer())
+      .get(CHECKINS_PATH)
+      .set(USER_ID_HEADER_NAME, String(userId));
+    expect(response.status).toBe(HttpStatus.OK);
+    return (response.body as { items: CheckinDto[] }).items;
+  };
+
+  beforeAll(async () => {
+    app = await createTestApp();
+    orvalId = await findBeerId("Orval");
+    fineMousseId = await findVenueId("La Fine Mousse");
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("corrects the rating and the comment, answers the complete check-in and shows it in the list with the photo unchanged", async () => {
+    const original = await create(
+      ALICE_USER_ID,
+      { rating: "3", comment: ORIGINAL_COMMENT, price: "6.5", aromas: "fruity,hoppy" },
+      PNG_BUFFER,
+    );
+    expect(original.photoId).toMatch(UUID_PATTERN);
+
+    const response = await patch(ALICE_USER_ID, original.id, { rating: 4, comment: "Très bonne" });
+
+    expect(response.status).toBe(HttpStatus.OK);
+    expect(response.body).toEqual({ ...original, rating: 4, comment: "Très bonne" });
+    expect((response.body as CheckinDto).beerName).toBe("Orval");
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(response.body);
+    expect((await listAll(ALICE_USER_ID)).find((item) => item.id === original.id)).toEqual(response.body);
+  });
+
+  it("changes every field at once, with the instant of drankAt, the trimmed place and normalized line endings", async () => {
+    const original = await create(ALICE_USER_ID, { rating: "3", price: "6.5" });
+
+    const response = await patch(ALICE_USER_ID, original.id, {
+      drankAt: "2026-03-15T20:30:00+02:00",
+      place: "  Chez moi  ",
+      rating: 5,
+      aromas: ["citrus", "floral"],
+      format: "can",
+      price: 2.25,
+      comment: "Ligne 1\r\nLigne 2",
+    });
+
+    expect(response.status).toBe(HttpStatus.OK);
+    expect(response.body).toEqual({
+      ...original,
+      drankAt: "2026-03-15T18:30:00.000Z",
+      place: "Chez moi",
+      rating: 5,
+      aromas: ["citrus", "floral"],
+      format: "can",
+      price: 2.25,
+      comment: "Ligne 1\nLigne 2",
+    });
+  });
+
+  it("links the check-in to a venue of the map when venueId comes with a place", async () => {
+    const original = await create(ALICE_USER_ID, {});
+
+    const response = await patch(ALICE_USER_ID, original.id, { place: "La Fine Mousse", venueId: fineMousseId });
+
+    expect(response.status).toBe(HttpStatus.OK);
+    expect(response.body).toEqual({ ...original, place: "La Fine Mousse", venueId: fineMousseId });
+  });
+
+  it("turns a venue-linked check-in into free text when only a new place is sent", async () => {
+    const linked = await create(ALICE_USER_ID, { place: "La Fine Mousse", venueId: String(fineMousseId) });
+    expect(linked.venueId).toBe(fineMousseId);
+
+    const response = await patch(ALICE_USER_ID, linked.id, { place: "Au parc" });
+
+    expect(response.status).toBe(HttpStatus.OK);
+    expect(response.body).toEqual({ ...linked, place: "Au parc", venueId: null });
+    expect(await read(ALICE_USER_ID, linked.id)).toEqual({ ...linked, place: "Au parc", venueId: null });
+  });
+
+  it("clears the venue link and keeps the place text when venueId is null", async () => {
+    const linked = await create(ALICE_USER_ID, { place: "La Fine Mousse", venueId: String(fineMousseId) });
+
+    const response = await patch(ALICE_USER_ID, linked.id, { venueId: null });
+
+    expect(response.status).toBe(HttpStatus.OK);
+    expect(response.body).toEqual({ ...linked, venueId: null });
+  });
+
+  it("answers 404 for an unknown venue with a place and changes nothing", async () => {
+    const original = await create(ALICE_USER_ID, { comment: "Avant" });
+
+    const response = await patch(ALICE_USER_ID, original.id, {
+      place: "Ailleurs",
+      venueId: UNKNOWN_VENUE_ID,
+      comment: "Après",
+    });
+
+    expect(response.status).toBe(HttpStatus.NOT_FOUND);
+    expect(response.body).toEqual({ message: `Venue ${UNKNOWN_VENUE_ID} not found.` });
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(original);
+  });
+
+  it("answers 400 for a venueId without place and changes nothing", async () => {
+    const original = await create(ALICE_USER_ID, { comment: "Avant" });
+
+    const response = await patch(ALICE_USER_ID, original.id, { venueId: fineMousseId, comment: "Après" });
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(response.body).toEqual({ message: "venueId requires place." });
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(original);
+  });
+
+  it("answers 400 for a venueId without place before the 404 of an unknown check-in", async () => {
+    const response = await patch(ALICE_USER_ID, UNKNOWN_CHECKIN_ID, { venueId: fineMousseId });
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(response.body).toEqual({ message: "venueId requires place." });
+  });
+
+  it("answers 400 for a date beyond five minutes ahead and changes nothing, but accepts four minutes ahead", async () => {
+    const original = await create(ALICE_USER_ID, {});
+
+    const tooLate = await patch(ALICE_USER_ID, original.id, { drankAt: minutesFromNow(6) });
+
+    expect(tooLate.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(tooLate.body).toEqual({ message: "drankAt must not be in the future." });
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(original);
+    const soon = minutesFromNow(4);
+    const accepted = await patch(ALICE_USER_ID, original.id, { drankAt: soon });
+    expect(accepted.status).toBe(HttpStatus.OK);
+    expect((accepted.body as CheckinDto).drankAt).toBe(soon);
+  });
+
+  it("answers 400 for an empty body, for an empty JSON object and changes nothing", async () => {
+    const original = await create(ALICE_USER_ID, {});
+
+    const empty = await patch(ALICE_USER_ID, original.id, {});
+    const bare = await request(app.getHttpServer())
+      .patch(`${CHECKINS_PATH}/${original.id}`)
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+
+    expect(empty.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(empty.body).toEqual({ message: "At least one field must be supplied." });
+    expect(bare.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(bare.body).toEqual({ message: "At least one field must be supplied." });
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(original);
+  });
+
+  it("answers 400 for a beerId and changes nothing", async () => {
+    const original = await create(ALICE_USER_ID, {});
+
+    const response = await patch(ALICE_USER_ID, original.id, { beerId: orvalId + 1, comment: "Après" });
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(response.body).toEqual({ message: "property beerId should not exist" });
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(original);
+  });
+
+  it("answers 403 to Alice for Bob's check-in and changes nothing", async () => {
+    const bobs = await create(BOB_USER_ID, { comment: "Chez Bob" });
+
+    const response = await patch(ALICE_USER_ID, bobs.id, { comment: "Piraté" });
+
+    expect(response.status).toBe(HttpStatus.FORBIDDEN);
+    expect(response.body).toEqual({ message: "You can only access your own check-ins." });
+    expect(await read(BOB_USER_ID, bobs.id)).toEqual(bobs);
+  });
+
+  it("answers 403 for Bob's check-in before the 404 of an unknown venue", async () => {
+    const bobs = await create(BOB_USER_ID, {});
+
+    const response = await patch(ALICE_USER_ID, bobs.id, { place: "Bar", venueId: UNKNOWN_VENUE_ID });
+
+    expect(response.status).toBe(HttpStatus.FORBIDDEN);
+    expect(response.body).toEqual({ message: "You can only access your own check-ins." });
+  });
+
+  it("answers 404 for an unknown check-in", async () => {
+    const response = await patch(ALICE_USER_ID, UNKNOWN_CHECKIN_ID, { comment: "x" });
+
+    expect(response.status).toBe(HttpStatus.NOT_FOUND);
+    expect(response.body).toEqual({ message: `Check-in ${UNKNOWN_CHECKIN_ID} not found.` });
+  });
+
+  it("answers 400 for a non-numeric id", async () => {
+    const response = await patch(ALICE_USER_ID, "abc", { comment: "x" });
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(response.body).toEqual({ message: "Validation failed (numeric string is expected)" });
+  });
+
+  it("answers 401 without identity and changes nothing", async () => {
+    const original = await create(ALICE_USER_ID, {});
+
+    const response = await request(app.getHttpServer()).patch(`${CHECKINS_PATH}/${original.id}`).send({ comment: "x" });
+
+    expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
+    expect(response.body).toEqual({ message: UNIDENTIFIED_USER_MESSAGE });
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(original);
+  });
+
+  it("clears the rating and the price with null, the comment with an empty string and the aromas with an empty list", async () => {
+    const original = await create(ALICE_USER_ID, {
+      rating: "4",
+      price: "6.5",
+      comment: "Avant",
+      aromas: "fruity,hoppy",
+    });
+    expect(original).toMatchObject({ rating: 4, price: 6.5, comment: "Avant", aromas: ["fruity", "hoppy"] });
+
+    const response = await patch(ALICE_USER_ID, original.id, { rating: null, price: null, comment: "", aromas: [] });
+
+    expect(response.status).toBe(HttpStatus.OK);
+    expect(response.body).toEqual({ ...original, rating: null, price: null, comment: "", aromas: [] });
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(response.body);
+  });
+
+  it.each([
+    ["drankAt", { drankAt: null }, "drankAt must be a valid ISO 8601 date string"],
+    ["place", { place: null }, "place must be shorter than or equal to 80 characters; place should not be empty; place must be a string"],
+    ["format", { format: null }, "format must be one of the following values: bottle, can, draft"],
+  ])("answers 400 for a null %s and changes nothing", async (_name, body, message) => {
+    const original = await create(ALICE_USER_ID, {});
+
+    const response = await patch(ALICE_USER_ID, original.id, body);
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(response.body).toEqual({ message });
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(original);
+  });
+
+  it.each([
+    ["aromas as null", { aromas: null }],
+    ["comment as null", { comment: null }],
+    ["a blank place", { place: "   " }],
+    ["a place of 81 characters", { place: "a".repeat(81) }],
+    ["a malformed date", { drankAt: "2026-13-45" }],
+    ["an impossible calendar date", { drankAt: "2026-02-30T10:00:00Z" }],
+    ["a rating of 0", { rating: 0 }],
+    ["a rating of 5.5", { rating: 5.5 }],
+    ["a rating off the half-point step", { rating: 4.2 }],
+    ["a negative price", { price: -1 }],
+    ["a price above 1000", { price: 1000.5 }],
+    ["a price with three decimals", { price: 2.555 }],
+    ["six aromas", { aromas: ["fruity", "citrus", "hoppy", "floral", "spicy", "malty"] }],
+    ["duplicated aromas", { aromas: ["fruity", "fruity"] }],
+    ["an unknown aroma", { aromas: ["unknown"] }],
+    ["aromas as a comma-separated string", { aromas: "fruity,hoppy" }],
+    ["a comment of 501 characters", { comment: "a".repeat(501) }],
+    ["an unknown format", { format: "keg" }],
+    ["a venueId of 0", { place: "Bar", venueId: 0 }],
+    ["a fractional venueId", { place: "Bar", venueId: 1.5 }],
+  ])("answers 400 for %s and changes nothing", async (_name, body) => {
+    const original = await create(ALICE_USER_ID, {});
+
+    const response = await patch(ALICE_USER_ID, original.id, body);
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(response.body).toEqual({ message: expect.any(String) });
+    expect((response.body as { message: string }).message).not.toBe("");
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(original);
+  });
+
+  it("writes only the corrected check-in and leaves the other check-ins of the same user, of the same beer and of other users untouched", async () => {
+    const corrected = await create(ALICE_USER_ID, { rating: "3", comment: "A corriger" });
+    const sameBeer = await create(ALICE_USER_ID, { rating: "2", comment: "Autre verre", price: "4" });
+    const otherUser = await create(BOB_USER_ID, { rating: "5", comment: "Chez Bob" });
+
+    const response = await patch(ALICE_USER_ID, corrected.id, { rating: null, comment: "Corrigée", place: "Ailleurs" });
+
+    expect(response.status).toBe(HttpStatus.OK);
+    expect(response.body).toEqual({ ...corrected, rating: null, comment: "Corrigée", place: "Ailleurs" });
+    expect(await read(ALICE_USER_ID, sameBeer.id)).toEqual(sameBeer);
+    expect(await read(BOB_USER_ID, otherUser.id)).toEqual(otherUser);
+  });
+
+  it("rejects an unknown field by the shape check, before the empty-body check, and changes nothing", async () => {
+    const original = await create(ALICE_USER_ID, {});
+
+    const response = await patch(ALICE_USER_ID, original.id, { color: "blonde" });
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(response.body).toEqual({ message: "property color should not exist" });
+    expect(await read(ALICE_USER_ID, original.id)).toEqual(original);
+  });
+
+  it("accepts the limits: a place of 80 characters once trimmed, a comment of 500, five aromas, a rating of 0.5 and of 5, a zero price", async () => {
+    const original = await create(ALICE_USER_ID, {});
+    const place = "a".repeat(80);
+    const comment = "c".repeat(500);
+    const aromas = ["fruity", "citrus", "hoppy", "floral", "spicy"];
+
+    const first = await patch(ALICE_USER_ID, original.id, { place: `  ${place}  `, comment, aromas, rating: 0.5, price: 0 });
+    const second = await patch(ALICE_USER_ID, original.id, { rating: 5, price: 1000 });
+
+    expect(first.status).toBe(HttpStatus.OK);
+    expect(first.body).toEqual({ ...original, place, comment, aromas, rating: 0.5, price: 0 });
+    expect(second.status).toBe(HttpStatus.OK);
+    expect(second.body).toEqual({ ...original, place, comment, aromas, rating: 5, price: 1000 });
+  });
+});

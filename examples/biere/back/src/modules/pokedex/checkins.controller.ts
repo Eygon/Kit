@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { MEMORY_UPLOAD_OPTIONS } from "@/common/uploads/memory-upload.options";
 import { CurrentUserId } from "@/common/security/current-user-id.decorator";
@@ -8,6 +8,7 @@ import { CheckinsQueryDto } from "@/modules/pokedex/dtos/checkins-query.dto";
 import type { CreatedCheckinDto } from "@/modules/pokedex/dtos/created-checkin.dto";
 import { PokedexService } from "@/modules/pokedex/pokedex.service";
 import { CreateCheckinDto } from "@/modules/tastings/dtos/create-checkin.dto";
+import { UpdateCheckinDto } from "@/modules/tastings/dtos/update-checkin.dto";
 
 @Controller("checkins")
 export class CheckinsController {
@@ -34,6 +35,16 @@ export class CheckinsController {
   @HttpCode(HttpStatus.OK)
   getOne(@CurrentUserId() userId: number, @Param("id", ParseIntPipe) id: number): Promise<CheckinDto> {
     return this.pokedexService.getCheckin(userId, id);
+  }
+
+  @Patch(":id")
+  @HttpCode(HttpStatus.OK)
+  update(
+    @CurrentUserId() userId: number,
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdateCheckinDto,
+  ): Promise<CheckinDto> {
+    return this.pokedexService.updateCheckin(userId, id, dto);
   }
 
   @Delete(":id")

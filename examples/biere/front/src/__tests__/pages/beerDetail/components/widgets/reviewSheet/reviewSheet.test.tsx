@@ -102,6 +102,7 @@ const publish = (user: ReturnType<typeof userEvent.setup>) =>
 describe("ReviewSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, writable: true, value: vi.fn() });
     vi.stubGlobal("fetch", mockFetch);
     vi.spyOn(toast, "success").mockImplementation(() => "toast-id");
     vi.spyOn(toast, "danger").mockImplementation(() => "toast-id");
@@ -400,6 +401,7 @@ describe("ReviewSheet", () => {
 describe("ReviewSheet deletion", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, writable: true, value: vi.fn() });
     vi.stubGlobal("fetch", mockFetch);
     vi.spyOn(toast, "success").mockImplementation(() => "toast-id");
     vi.spyOn(toast, "danger").mockImplementation(() => "toast-id");

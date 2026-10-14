@@ -11,6 +11,7 @@ import { ReviewCriterionEnum } from "@/modules/beers/enums/review-criterion.enum
 import type { BeerUserStateDto } from "@/modules/tastings/dtos/beer-user-state.dto";
 import { toBitternessLevel, toColorLevel, toLevelRange } from "@/modules/beers/beer-levels";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
+import type { BeerSearchCandidateDto } from "@/modules/beers/dtos/beer-search-candidate.dto";
 import type { Beer } from "@/modules/beers/entities/beer.entity";
 import type { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import type { Brewery } from "@/modules/beers/entities/brewery.entity";
@@ -34,6 +35,11 @@ export const toBeerDto = (entity: Beer & { brewery: Brewery; style: BeerStyle })
   styleColorRange: entity.ebc === null ? toLevelRange(entity.style.ebcMin, entity.style.ebcMax) : null,
   source: entity.createdBy === null ? BeerSourceEnum.OFFICIAL : BeerSourceEnum.COMMUNITY,
   createdBy: entity.createdBy,
+});
+
+export const toBeerSearchCandidateDto = (entity: Pick<Beer, "id" | "searchText">): BeerSearchCandidateDto => ({
+  id: entity.id,
+  searchText: entity.searchText,
 });
 
 const CRITERION_ORDER: readonly ReviewCriterionEnum[] = Object.values(ReviewCriterionEnum);

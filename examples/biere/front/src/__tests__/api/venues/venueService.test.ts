@@ -140,6 +140,71 @@ const venueBeerDto = {
   lastCheckinAt: null,
 };
 
+describe("VenueService.search", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("requests /venues with a GET and the same parameters as the map, q included", async () => {
+    mockFetch.mockImplementation(async () => json([]));
+
+    await VenueService.search({ ...EMPTY_VENUE_QUERY, types: [VenueTypeEnum.BAR], confirmedOnly: true, q: "  taverne cluni " });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${VENUES_URL}?type=bar&confirmedOnly=true&q=taverne+cluni`);
+    expect(init.method).toBe("GET");
+  });
+
+  it("is not approximate when no venue carries the flag or when it is false", async () => {
+    mockFetch.mockImplementation(async () => json([venueDto, { ...venueDto, id: 13, isApproximateMatch: false }]));
+
+    const result = await VenueService.search({ ...EMPTY_VENUE_QUERY, q: "trappiste" });
+
+    expect(result).toEqual({
+      venues: [venueDtoToModel(venueDto), venueDtoToModel({ ...venueDto, id: 13 })],
+      isApproximate: false,
+    });
+  });
+
+  it("is approximate when a single venue is flagged, whatever its position in the list", async () => {
+    const flagged = { ...venueDto, id: 14, name: "La Taverne de Cluny", isApproximateMatch: true };
+    mockFetch.mockImplementation(async () => json([venueDto, flagged]));
+    const first = await VenueService.search({ ...EMPTY_VENUE_QUERY, q: "taverne cluni" });
+    mockFetch.mockImplementation(async () => json([flagged, venueDto]));
+    const second = await VenueService.search({ ...EMPTY_VENUE_QUERY, q: "taverne cluni" });
+
+    expect(first.isApproximate).toBe(true);
+    expect(second.isApproximate).toBe(true);
+    expect(first.venues).toHaveLength(2);
+    expect(first.venues[1]).toEqual(venueDtoToModel(flagged));
+    expect(first.venues[1]).not.toHaveProperty("isApproximateMatch");
+  });
+
+  it("returns no venue and no approximation on an empty body", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(VenueService.search({ ...EMPTY_VENUE_QUERY, q: "zzzz" })).resolves.toEqual({
+      venues: [],
+      isApproximate: false,
+    });
+  });
+
+  it("returns no venue and no approximation on an empty list", async () => {
+    mockFetch.mockImplementation(async () => json([]));
+
+    await expect(VenueService.search({ ...EMPTY_VENUE_QUERY, q: "zzzz" })).resolves.toEqual({
+      venues: [],
+      isApproximate: false,
+    });
+  });
+});
+
 describe("VenueService.getBeers", () => {
   beforeEach(() => {
     mockFetch.mockReset();

@@ -29,6 +29,7 @@ export const useBeerCatalogQuery = (query: BeerQuery) => {
     beers: data?.pages.flatMap((page) => page.items) ?? [],
     total: lastPage?.total ?? 0,
     facets: data?.pages[0]?.facets ?? null,
+    isApproximate: data?.pages[0]?.isApproximate ?? false,
     isPending,
     isError,
     refetch,

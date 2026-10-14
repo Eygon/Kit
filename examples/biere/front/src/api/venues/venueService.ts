@@ -7,12 +7,14 @@ import { beerVenueDtoToModel } from "@/types/mappers/venue/beerVenueMapper";
 import { newVenueToDto } from "@/types/mappers/venue/newVenueMapper";
 import { venueBeerDtoToModel } from "@/types/mappers/venue/venueBeerMapper";
 import { venueDtoToModel } from "@/types/mappers/venue/venueMapper";
+import { venueDtosToSearchResult } from "@/types/mappers/venue/venueSearchResultMapper";
 import { venueQueryToSearchParams } from "@/types/mappers/venue/venueQueryMapper";
 import type { BeerVenue } from "@/types/models/venue/beerVenue";
 import type { NewVenue } from "@/types/models/venue/newVenue";
 import type { VenueBeer } from "@/types/models/venue/venueBeer";
 import type { Venue } from "@/types/models/venue/venue";
 import type { VenueQuery } from "@/types/models/venue/venueQuery";
+import type { VenueSearchResult } from "@/types/models/venue/venueSearchResult";
 import { HttpStatusCodeEnum } from "@/types/enums/http/httpStatusCodeEnum";
 import type { VoteSenseEnum } from "@/types/enums/venue/voteSenseEnum";
 import { BEER_VENUES, VENUES, VENUE_BEERS, VENUE_BEER_VOTES, VENUE_BY_ID } from "@/utils/apiURL/apiURL";
@@ -44,6 +46,12 @@ export default class VenueService {
     const response = await httpClient.get<VenueDto[]>(`${VENUES()}?${venueQueryToSearchParams(query)}`);
     if (response.data === null) return [];
     return response.data.map(venueDtoToModel);
+  }
+
+  static async search(query: VenueQuery): Promise<VenueSearchResult> {
+    const response = await httpClient.get<VenueDto[]>(`${VENUES()}?${venueQueryToSearchParams(query)}`);
+    if (response.data === null) return { venues: [], isApproximate: false };
+    return venueDtosToSearchResult(response.data);
   }
 
   static async getById(venueId: number): Promise<Venue | null> {

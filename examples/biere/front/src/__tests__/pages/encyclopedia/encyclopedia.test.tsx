@@ -108,6 +108,7 @@ const stubCatalog = (overrides: Record<string, unknown> = {}) => {
     fetchNextPage,
     hasNextPage: true,
     isFetchingNextPage: false,
+    isApproximate: false,
     ...overrides,
   });
 };
@@ -122,6 +123,54 @@ describe("EncyclopediaPage", () => {
 
   afterEach(async () => {
     await i18n.changeLanguage("fr");
+  });
+
+  describe("approximate results", () => {
+    const NOTICE_FR = "Aucun résultat exact : voici des bières proches";
+    const NOTICE_EN = "No exact match: here are similar beers";
+
+    it("announces politely, above the grid, that the beers are close matches", () => {
+      stubCatalog({ isApproximate: true, beers: buildBeers(3), total: 3 });
+
+      renderWithProviders(<EncyclopediaPage />);
+
+      const notice = screen.getByText(NOTICE_FR);
+      expect(notice.tagName).toBe("P");
+      expect(notice).toHaveAttribute("aria-live", "polite");
+      const grid = screen.getAllByRole("list")[0];
+      expect(notice.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("shows the notice in English", async () => {
+      await i18n.changeLanguage("en");
+      stubCatalog({ isApproximate: true, beers: buildBeers(3), total: 3 });
+
+      renderWithProviders(<EncyclopediaPage />);
+
+      expect(screen.getByText(NOTICE_EN)).toBeInTheDocument();
+    });
+
+    it("shows no notice for an exact search", () => {
+      stubCatalog({ isApproximate: false, beers: buildBeers(3), total: 3 });
+
+      renderWithProviders(<EncyclopediaPage />);
+
+      expect(screen.queryByText(NOTICE_FR)).not.toBeInTheDocument();
+    });
+
+    it("keeps the existing empty state, without the notice, when nothing matches even loosely", () => {
+      stubCatalog({ isApproximate: true, beers: [], total: 0, hasNextPage: false });
+
+      renderWithProviders(<EncyclopediaPage />);
+
+      expect(screen.queryByText(NOTICE_FR)).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { level: 2, name: "Aucune bière ne correspond" })).toBeInTheDocument();
+      const emptyTitle = screen.getByRole("heading", { level: 2, name: "Aucune bière ne correspond" });
+      const addButtons = screen.getAllByRole("button", { name: "Ajouter une bière" });
+      expect(addButtons).toHaveLength(2);
+      expect(emptyTitle.compareDocumentPosition(addButtons[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeFalsy();
+      expect(emptyTitle.compareDocumentPosition(addButtons[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
   });
 
   it("loads the unfiltered catalog", () => {

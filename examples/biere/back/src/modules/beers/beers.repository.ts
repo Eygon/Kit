@@ -8,6 +8,7 @@ import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import type { BeerFacetsDto } from "@/modules/beers/dtos/beer-facets.dto";
 import type { BeerFilters } from "@/modules/beers/dtos/beer-filters.dto";
 import type { FacetCountDto } from "@/modules/beers/dtos/facet-count.dto";
+import type { BeerSearchCandidateDto } from "@/modules/beers/dtos/beer-search-candidate.dto";
 import type { BeerSliceDto } from "@/modules/beers/dtos/beer-slice.dto";
 import type { RatingSummaryDto } from "@/modules/beers/dtos/rating-summary.dto";
 import type { ReviewStatsDto } from "@/modules/beers/dtos/review-stats.dto";
@@ -25,7 +26,7 @@ import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
 import { ReviewCriterionEnum } from "@/modules/beers/enums/review-criterion.enum";
 import { BEER_SORT_ORDERS } from "@/modules/beers/enums/beer-sort.enum";
 import type { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
-import { toBeerDto } from "@/modules/beers/mappers/beer.mapper";
+import { toBeerDto, toBeerSearchCandidateDto } from "@/modules/beers/mappers/beer.mapper";
 import type { BeerInsertRow } from "@/modules/beers/mappers/beer.mapper";
 import { toBreweryDto } from "@/modules/beers/mappers/brewery.mapper";
 import { toBeerStyleGroupDtos } from "@/modules/beers/mappers/beer-style.mapper";
@@ -97,6 +98,14 @@ export class BeersRepository {
       .limit(size)
       .getManyAndCount();
     return { items: entities.map(toBeerDto), total };
+  }
+
+  async findSearchCandidates(filters: BeerFilters): Promise<BeerSearchCandidateDto[]> {
+    const entities = await this.createFacetQuery("", filters)
+      .select(["beer.id", "beer.searchText"])
+      .orderBy("beer.id", "ASC")
+      .getMany();
+    return entities.map(toBeerSearchCandidateDto);
   }
 
   async findFacets(search: string, filters: BeerFilters): Promise<BeerFacetsDto> {

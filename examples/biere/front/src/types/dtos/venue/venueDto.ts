@@ -11,4 +11,5 @@ export interface VenueDto {
   checkinCount: number;
   lastCheckinAt: string | null;
   status: string;
+  isApproximateMatch?: boolean;
 }

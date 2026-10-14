@@ -5,6 +5,8 @@ import type { Mock } from "vitest";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 import CheckinService from "@/api/checkins/checkinService";
 import { JournalPage } from "@/pages/journal/journal";
+import { BeerAromaEnum } from "@/types/enums/beer/beerAromaEnum";
+import { BeerFormatEnum } from "@/types/enums/beer/beerFormatEnum";
 import { MascotMoodEnum } from "@/types/enums/mascot/mascotMoodEnum";
 import type { Checkin } from "@/types/models/checkin/checkin";
 
@@ -256,6 +258,92 @@ describe("JournalPage", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  describe("the detail of a tasting", () => {
+    const LONG_COMMENT = "Robe cuivrée, mousse tenace, belle amertume en finale ".repeat(8).trim();
+    const DETAILED = buildCheckin(2, {
+      place: "Delirium Café",
+      venueId: 42,
+      rating: 3.5,
+      format: BeerFormatEnum.DRAFT,
+      price: 6.5,
+      comment: LONG_COMMENT,
+    });
+    const BARE = buildCheckin(1, { rating: null, format: null, price: null, comment: "" });
+
+    const entryOf = async (beerName: string) => {
+      const link = await screen.findByRole("link", { name: beerName });
+      return link.closest("li") as HTMLElement;
+    };
+
+    const stubOverflow = (isOverflowing: boolean) => {
+      vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(isOverflowing ? 96 : 48);
+      vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(48);
+    };
+
+    const stubTwoTastings = (first: Checkin = DETAILED) =>
+      (CheckinService.getPage as Mock).mockResolvedValue({ items: [first, BARE], total: 2, page: 1, size: PAGE_SIZE });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("shows the format, the price and the folded comment with Voir plus on the card of a long comment", async () => {
+      stubOverflow(true);
+      stubTwoTastings();
+      renderWithProviders(<JournalPage />);
+
+      const card = await entryOf("Bière 2");
+
+      expect(within(card).getByText("Pression")).toBeInTheDocument();
+      expect(within(card).getByText(/^6,50\s€$/)).toBeInTheDocument();
+      expect(within(card).getByText(LONG_COMMENT)).toHaveClass("line-clamp-3");
+      expect(within(card).getByRole("button", { name: "Voir plus" })).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("unfolds the comment of that card only, then folds it again", async () => {
+      stubOverflow(true);
+      const user = userEvent.setup();
+      stubTwoTastings();
+      renderWithProviders(<JournalPage />);
+      const card = await entryOf("Bière 2");
+
+      await user.click(within(card).getByRole("button", { name: "Voir plus" }));
+
+      expect(within(card).getByText(LONG_COMMENT)).not.toHaveClass("line-clamp-3");
+      expect(within(card).getByRole("button", { name: "Voir moins" })).toHaveAttribute("aria-expanded", "true");
+      await user.click(within(card).getByRole("button", { name: "Voir moins" }));
+      expect(within(card).getByText(LONG_COMMENT)).toHaveClass("line-clamp-3");
+    });
+
+    it("shows a short comment whole, with no Voir plus", async () => {
+      stubOverflow(false);
+      stubTwoTastings({ ...DETAILED, comment: "Bien fraîche" });
+      renderWithProviders(<JournalPage />);
+
+      const card = await entryOf("Bière 2");
+
+      expect(within(card).getByText("Pression")).toBeInTheDocument();
+      expect(within(card).getByText(/^6,50\s€$/)).toBeInTheDocument();
+      expect(within(card).getByText("Bien fraîche")).toBeInTheDocument();
+      expect(within(card).queryByRole("button", { name: "Voir plus" })).not.toBeInTheDocument();
+    });
+
+    it("shows no format, price, comment, rating nor null on the card of a bare tasting", async () => {
+      stubOverflow(true);
+      stubTwoTastings();
+      renderWithProviders(<JournalPage />);
+
+      const card = await entryOf("Bière 1");
+
+      expect(card).not.toHaveTextContent("null");
+      expect(card).not.toHaveTextContent("€");
+      expect(card).not.toHaveTextContent("★");
+      expect(within(card).queryByText("Pression")).not.toBeInTheDocument();
+      expect(within(card).queryByRole("button", { name: "Voir plus" })).not.toBeInTheDocument();
+      expect(card.querySelectorAll("p")).toHaveLength(0);
+    });
+  });
+
   describe("deleting a tasting", () => {
     const entryOf = async (beerName: string) => {
       const link = await screen.findByRole("link", { name: beerName });
@@ -397,6 +485,122 @@ describe("JournalPage", () => {
       expect(within(screen.getByRole("list")).getAllByRole("listitem")).toHaveLength(20);
       expect(success).not.toHaveBeenCalled();
       success.mockRestore();
+    });
+  });
+
+  describe("editing a tasting", () => {
+    const entryOf = async (beerName: string) => {
+      const link = await screen.findByRole("link", { name: beerName });
+      return link.closest("li") as HTMLElement;
+    };
+
+    const openEditSheet = async (user: ReturnType<typeof userEvent.setup>, beerName: string) => {
+      await user.click(within(await entryOf(beerName)).getByRole("button", { name: "Modifier la dégustation" }));
+      return screen.findByRole("dialog");
+    };
+
+    it("puts a Modifier and a Supprimer button of at least 44 px on every tasting", async () => {
+      renderWithProviders(<JournalPage />);
+
+      const items = within(await screen.findByRole("list")).getAllByRole("listitem");
+
+      expect(items).toHaveLength(20);
+      items.forEach((item) => {
+        const edit = within(item).getByRole("button", { name: "Modifier la dégustation" });
+        const remove = within(item).getByRole("button", { name: "Supprimer" });
+        expect(edit).toHaveClass("button--lg", "button--icon-only");
+        expect(remove).toHaveClass("button--lg", "button--icon-only");
+      });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("opens the sheet of this very tasting, prefilled, when Modifier is pressed", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<JournalPage />);
+
+      const dialog = await openEditSheet(user, "Bière 24");
+
+      expect(within(dialog).getByRole("heading", { name: "Modifier : Bière 24" })).toBeInTheDocument();
+      expect(within(dialog).getByRole("combobox", { name: /^Lieu/ })).toHaveValue("Bar 24");
+      expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    });
+
+    it("prefills the sheet with the rating, the aromas, the format, the price and the comment of that tasting", async () => {
+      const user = userEvent.setup();
+      (CheckinService.getPage as Mock).mockResolvedValue({
+        items: [
+          buildCheckin(2, {
+            place: "Delirium Café",
+            venueId: 42,
+            rating: 3.5,
+            aromas: [BeerAromaEnum.FRUITY],
+            format: BeerFormatEnum.CAN,
+            price: 6.5,
+            comment: "Bien fraîche",
+          }),
+          buildCheckin(1, { place: "Chez moi", rating: 1, format: BeerFormatEnum.BOTTLE, price: 2, comment: "Autre" }),
+        ],
+        total: 2,
+        page: 1,
+        size: PAGE_SIZE,
+      });
+      renderWithProviders(<JournalPage />);
+
+      const dialog = await openEditSheet(user, "Bière 2");
+
+      expect(within(dialog).getByRole("combobox", { name: /^Lieu/ })).toHaveValue("Delirium Café");
+      expect(within(dialog).getByText("3,5 / 5")).toBeInTheDocument();
+      expect(within(dialog).getByRole("row", { name: "Fruité" })).toHaveAttribute("aria-selected", "true");
+      expect(within(dialog).getByRole("radio", { name: "Canette" })).toBeChecked();
+      expect(within(dialog).getByRole("radio", { name: "Bouteille" })).not.toBeChecked();
+      expect((within(dialog).getByRole("textbox", { name: "Prix" }) as HTMLInputElement).value).toMatch(/6,50/);
+      expect((within(dialog).getByLabelText("Commentaire") as HTMLTextAreaElement).value).toBe("Bien fraîche");
+    });
+
+    it("offers the wrong-beer deletion in the sheet and closes the sheet once the tasting is deleted", async () => {
+      const user = userEvent.setup();
+      (CheckinService.remove as Mock).mockImplementation(async () => {
+        stubPages(TOTAL - 1);
+      });
+      renderWithProviders(<JournalPage />);
+      const dialog = await openEditSheet(user, "Bière 25");
+
+      await user.click(within(dialog).getByRole("button", { name: "Mauvaise bière ? Supprimer et recréer" }));
+      const confirmation = await screen.findByRole("alertdialog", { name: "Supprimer cette dégustation ?" });
+      await user.click(within(confirmation).getByRole("button", { name: "Supprimer" }));
+
+      await waitFor(() => expect(CheckinService.remove).toHaveBeenCalledWith(25));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
+
+    it("closes the sheet through onDeleted even while the deleted tasting is still listed", async () => {
+      const user = userEvent.setup();
+      (CheckinService.remove as Mock).mockResolvedValue(undefined);
+      renderWithProviders(<JournalPage />);
+      const dialog = await openEditSheet(user, "Bière 25");
+
+      await user.click(within(dialog).getByRole("button", { name: "Mauvaise bière ? Supprimer et recréer" }));
+      const confirmation = await screen.findByRole("alertdialog", { name: "Supprimer cette dégustation ?" });
+      await user.click(within(confirmation).getByRole("button", { name: "Supprimer" }));
+
+      await waitFor(() => expect(CheckinService.remove).toHaveBeenCalledWith(25));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(await screen.findByRole("link", { name: "Bière 25" })).toBeInTheDocument();
+    });
+
+    it("keeps the sheet open and deletes nothing when the wrong-beer confirmation is cancelled", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<JournalPage />);
+      const dialog = await openEditSheet(user, "Bière 25");
+
+      await user.click(within(dialog).getByRole("button", { name: "Mauvaise bière ? Supprimer et recréer" }));
+      const confirmation = await screen.findByRole("alertdialog");
+      await user.click(within(confirmation).getByRole("button", { name: "Annuler" }));
+
+      await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+      expect(CheckinService.remove).not.toHaveBeenCalled();
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
   });
 });

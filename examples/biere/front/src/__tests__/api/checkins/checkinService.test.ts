@@ -351,3 +351,86 @@ describe("CheckinService.remove", () => {
     expect(toast.danger).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("CheckinService.update", () => {
+  const changes = { rating: 4 };
+
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.mocked(toast.danger).mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends a JSON PATCH to the checkin url with only the changed fields", async () => {
+    mockFetch.mockImplementation(async () => json({ ...checkinDto, rating: 4 }));
+
+    await CheckinService.update(11, changes);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(CHECKIN_BY_ID(11));
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({ rating: 4 });
+    expect((init.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
+  });
+
+  it("sends the place and the venue together and keeps null values", async () => {
+    mockFetch.mockImplementation(async () => json(checkinDto));
+
+    await CheckinService.update(11, { place: "Chez Paul", venueId: null, rating: null, price: null });
+
+    const init = mockFetch.mock.calls[0][1] as RequestInit;
+    expect(JSON.parse(init.body as string)).toEqual({ place: "Chez Paul", venueId: null, rating: null, price: null });
+  });
+
+  it("maps the answer to a checkin model, dropping unknown aromas and formats", async () => {
+    mockFetch.mockImplementation(async () => json({ ...checkinDto, format: "keg" }));
+
+    const checkin = await CheckinService.update(11, changes);
+
+    expect(checkin).toEqual({
+      id: 11,
+      beerId: 7,
+      beerName: "Orval",
+      drankAt: "2026-10-12T12:00:00.000Z",
+      place: "Chez Paul",
+      rating: 4.5,
+      aromas: [BeerAromaEnum.FRUITY],
+      format: null,
+      price: 3.5,
+      comment: "Top",
+      photoId: "6f1c0a52-8d3e-4c7b-9a1f-2b5e7d9c0a11",
+      venueId: 42,
+    });
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it.each([400, 403, 404, 500])("shows one toast then rethrows the HttpError on status %s", async (status) => {
+    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+
+    const failure = CheckinService.update(11, changes);
+
+    await expect(failure).rejects.toBeInstanceOf(HttpError);
+    await expect(failure).rejects.toMatchObject({ status });
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(toast.danger).mock.calls[0][0]).toEqual(expect.stringMatching(/\S/));
+  });
+
+  it("shows one toast then rethrows on a network failure", async () => {
+    mockFetch.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    await expect(CheckinService.update(11, changes)).rejects.toThrow("Failed to fetch");
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects on an empty answer instead of returning a checkin", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(CheckinService.update(11, changes)).rejects.toMatchObject({ status: 204 });
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+  });
+});

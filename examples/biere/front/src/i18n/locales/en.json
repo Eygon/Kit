@@ -5,6 +5,9 @@
   "common": {
     "retry": "Retry",
     "close": "Close",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "saving": "Saving…",
     "photo": {
       "open": "Enlarge the photo",
       "alt": "Tasting photo"
@@ -218,6 +221,18 @@
       "voters_other": "{{count}} people"
     }
   },
+  "checkinSheet": {
+    "edit": {
+      "open": "Edit tasting",
+      "title": "Edit: {{name}}",
+      "submit": "Save",
+      "saved": "Tasting updated."
+    },
+    "draft": {
+      "restored": "Draft restored",
+      "clear": "Clear draft"
+    }
+  },
   "pages": {
     "home": {
       "title": "Home",
@@ -257,6 +272,7 @@
         "ringLabel": "Pokédex progress",
         "errorTitle": "Progress unavailable."
       },
+      "approximateResults": "No exact match: here are similar beers",
       "resultCount_one": "{{count}} result",
       "resultCount_other": "{{count}} results",
       "search": {
@@ -489,7 +505,8 @@
         "errorTitle": "Could not search places.",
         "emptyTitle": "No place found",
         "emptyDescription": "Try another name or city.",
-        "emptyWithFilters": "No place matches with the active filters. Try removing some."
+        "emptyWithFilters": "No place matches with the active filters. Try removing some.",
+        "approximateResults": "No exact match: here are similar places"
       },
       "venue": {
         "address": "Address",
@@ -601,6 +618,7 @@
       "loadMore": "Show more",
       "delete": {
         "action": "Delete",
+        "wrongBeer": "Wrong beer? Delete and log again",
         "confirmTitle": "Delete this tasting?",
         "confirm": "Delete",
         "cancel": "Cancel",
@@ -644,6 +662,12 @@
       "notFoundTitle": "Profile not found",
       "notFoundDescription": "This profile does not exist.",
       "seeProfiles": "See profiles"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "emptyTitle": "This page does not exist",
+      "emptyDescription": "The address may be mistyped or the page has moved.",
+      "backHome": "Back to home"
     },
     "profile": {
       "title": "Profile",

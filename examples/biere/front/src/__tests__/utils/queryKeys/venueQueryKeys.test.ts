@@ -44,3 +44,26 @@ describe("venueKeys.detail", () => {
     expect(venueKeys.detail(5)).not.toEqual(venueKeys.detail(6));
   });
 });
+
+describe("venueKeys.search", () => {
+  it("sits under the lists so that a list invalidation reaches it, with its own segment", () => {
+    const query = { ...EMPTY_VENUE_QUERY, q: "cluny" };
+
+    expect(venueKeys.search(query)).toEqual(["venues", "list", "search", query]);
+    expect(venueKeys.search(query).slice(0, 2)).toEqual(venueKeys.lists());
+  });
+
+  it("never collides with the map list key of the same query", () => {
+    const query = { ...EMPTY_VENUE_QUERY, q: "cluny" };
+
+    expect(venueKeys.search(query)).not.toEqual(venueKeys.list(query));
+  });
+
+  it("gives equal keys to equal queries and distinct keys to distinct ones", () => {
+    const query = { ...EMPTY_VENUE_QUERY, q: "cluny" };
+
+    expect(venueKeys.search({ ...query })).toEqual(venueKeys.search(query));
+    expect(venueKeys.search({ ...query, q: "cluni" })).not.toEqual(venueKeys.search(query));
+    expect(venueKeys.search({ ...query, confirmedOnly: true })).not.toEqual(venueKeys.search(query));
+  });
+});

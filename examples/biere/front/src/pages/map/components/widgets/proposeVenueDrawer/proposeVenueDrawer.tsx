@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { HttpError } from "@/api/httpError";
+import { SubmitButton } from "@/components/elements/submitButton/submitButton";
 import { useCreateVenueMutation } from "@/pages/map/hooks/useCreateVenueMutation";
 import type { ProposeVenueDrawerProps } from "@/pages/map/types/proposeVenueDrawer";
 import type { VenueFormValues } from "@/pages/map/types/venueFormValues";
@@ -161,9 +162,12 @@ export const ProposeVenueDrawer = ({ position, isOpen, onOpenChange, onCreated }
               <Button slot="close" variant="secondary" size="lg">
                 {t("pages.map.propose.close")}
               </Button>
-              <Button type="submit" form={PROPOSE_VENUE_FORM_ID} variant="primary" size="lg" isPending={isPending}>
-                {t("pages.map.propose.submit")}
-              </Button>
+              <SubmitButton
+                label={t("pages.map.propose.submit")}
+                isPending={isPending}
+                form={PROPOSE_VENUE_FORM_ID}
+                isFullWidth={false}
+              />
             </Drawer.Footer>
           </Drawer.Dialog>
         </Drawer.Content>

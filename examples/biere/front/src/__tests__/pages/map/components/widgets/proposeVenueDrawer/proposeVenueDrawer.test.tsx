@@ -239,6 +239,39 @@ describe("ProposeVenueDrawer", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
+  it("AC4 keeps the submit button in the footer, outside the form, bound to it by its form attribute", () => {
+    renderDrawer();
+
+    const button = within(dialog()).getByRole("button", { name: "Proposer" });
+    const form = dialog().querySelector("form") as HTMLFormElement;
+    expect(button).toHaveAttribute("type", "submit");
+    expect(button).toHaveAttribute("form", form.id);
+    expect(form.id).toBe("propose-venue-form");
+    expect(form.contains(button)).toBe(false);
+    expect(button.closest(".drawer__footer")).not.toBeNull();
+    expect(button.className).not.toContain("button--full-width");
+    expect(button.className).toContain("button--lg");
+  });
+
+  it("AC3 shows Enregistrement… on a busy submit button while the venue is being created", async () => {
+    let release: (response: Response) => void = () => undefined;
+    mockFetch.mockImplementation(() => new Promise<Response>((resolve) => (release = resolve)));
+    const user = userEvent.setup();
+    renderDrawer();
+    await fillValidForm(user);
+    expect(within(dialog()).getByRole("button", { name: "Proposer" })).toHaveAttribute("aria-busy", "false");
+
+    await submit(user);
+
+    const pending = await within(dialog()).findByRole("button", { name: /Enregistrement…/ });
+    expect(pending).toHaveAttribute("aria-busy", "true");
+    expect(pending).toHaveAttribute("data-pending", "true");
+    expect(pending).toHaveTextContent("Enregistrement…");
+    expect(within(dialog()).queryByRole("button", { name: "Proposer" })).not.toBeInTheDocument();
+    release(json(createdDto, 201));
+    await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
+  });
+
   it("sends nothing when no point has been chosen", async () => {
     const user = userEvent.setup();
     renderDrawer({ position: null });

@@ -65,6 +65,7 @@ describe("BeersController", () => {
       page: 2,
       size: 5,
       facets: { families: [], countries: [], formats: [] },
+      isApproximate: false,
     };
     const query = { q: "chimay", sort: BeerSortEnum.ABV, page: 2, size: 5 };
     service.getBeers.mockResolvedValue(page);

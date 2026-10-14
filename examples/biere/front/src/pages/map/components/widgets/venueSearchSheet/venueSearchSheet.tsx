@@ -29,6 +29,7 @@ export const VenueSearchSheet = ({
     searchText,
     setSearchText,
     venues,
+    isApproximate,
     isIdle,
     isPending,
     isError,
@@ -87,32 +88,39 @@ export const VenueSearchSheet = ({
         />
       );
     return (
-      <ul className="flex min-w-0 flex-col gap-3">
-        {venues.map((venue) => (
-          <li key={venue.id} className="min-w-0">
-            <Button
-              variant="ghost"
-              className="h-auto min-h-11 w-full min-w-0 flex-col items-start justify-start gap-1 p-3 text-left"
-              onPress={() => handleSelect(venue)}
-            >
-              <span className="min-w-0 font-bold break-words text-foreground">
-                {venue.name}
-              </span>
-              <span className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-sm text-muted">
-                {venue.type !== null && (
-                  <span>{t(VENUE_TYPE_LABEL_KEYS[venue.type])}</span>
-                )}
-                {venue.city !== "" && (
-                  <span className="min-w-0 break-words">{venue.city}</span>
-                )}
-                {venue.distanceKm !== null && (
-                  <span>{formatDistance(venue.distanceKm, i18n.language)}</span>
-                )}
-              </span>
-            </Button>
-          </li>
-        ))}
-      </ul>
+      <>
+        {isApproximate && (
+          <p aria-live="polite" className="text-muted">
+            {t("pages.map.search.approximateResults")}
+          </p>
+        )}
+        <ul className="flex min-w-0 flex-col gap-3">
+          {venues.map((venue) => (
+            <li key={venue.id} className="min-w-0">
+              <Button
+                variant="ghost"
+                className="h-auto min-h-11 w-full min-w-0 flex-col items-start justify-start gap-1 p-3 text-left"
+                onPress={() => handleSelect(venue)}
+              >
+                <span className="min-w-0 font-bold break-words text-foreground">
+                  {venue.name}
+                </span>
+                <span className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-sm text-muted">
+                  {venue.type !== null && (
+                    <span>{t(VENUE_TYPE_LABEL_KEYS[venue.type])}</span>
+                  )}
+                  {venue.city !== "" && (
+                    <span className="min-w-0 break-words">{venue.city}</span>
+                  )}
+                  {venue.distanceKm !== null && (
+                    <span>{formatDistance(venue.distanceKm, i18n.language)}</span>
+                  )}
+                </span>
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </>
     );
   };
 

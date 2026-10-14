@@ -81,6 +81,7 @@ describe("BeersService", () => {
   const repository = {
     findPage: vi.fn(),
     findFacets: vi.fn(),
+    findSearchCandidates: vi.fn(),
     findById: vi.fn(),
     findByIds: vi.fn(),
     findStyleGroups: vi.fn(),
@@ -134,6 +135,7 @@ describe("BeersService", () => {
       page: 1,
       size: BEER_PAGE_SIZE_DEFAULT,
       facets: FACETS,
+      isApproximate: false,
     });
     expect(repository.findPage).toHaveBeenCalledWith("", NO_FILTERS, BeerSortEnum.NAME, 1, BEER_PAGE_SIZE_DEFAULT);
     expect(repository.findFacets).toHaveBeenCalledWith("", NO_FILTERS);
@@ -148,6 +150,7 @@ describe("BeersService", () => {
       page: 3,
       size: 5,
       facets: FACETS,
+      isApproximate: false,
     });
     expect(repository.findPage).toHaveBeenCalledWith("chimay", NO_FILTERS, BeerSortEnum.ABV, 3, 5);
     expect(repository.findFacets).toHaveBeenCalledWith("chimay", NO_FILTERS);
@@ -250,6 +253,112 @@ describe("BeersService", () => {
 
     expect(await service.getBeersByIds([1, 9999])).toEqual([CHIMAY]);
     expect(repository.findByIds).toHaveBeenCalledExactlyOnceWith([1, 9999]);
+  });
+
+  describe("approximate search", () => {
+    const APPROXIMATE_FACETS: BeerFacetsDto = {
+      families: [{ value: "trappist", count: 1 }],
+      countries: [{ value: "BE", count: 1 }],
+      formats: [],
+    };
+    const MOUSSE: BeerDto = { ...CHIMAY, id: 8, name: "Mousse du Zinc", source: BeerSourceEnum.COMMUNITY, createdBy: ALICE };
+    const CANDIDATES = [
+      { id: 1, searchText: "chimay rouge bieres de chimay" },
+      { id: 8, searchText: "mousse du zinc brasserie du mont" },
+      { id: 9, searchText: "orval brasserie dorval" },
+    ];
+
+    beforeEach(() => {
+      repository.findSearchCandidates.mockResolvedValue(CANDIDATES);
+    });
+
+    it("keeps the exact page and never reads the candidates when the exact search finds something", async () => {
+      repository.findPage.mockResolvedValue({ items: [CHIMAY], total: 1 });
+
+      const page = await service.getBeers(ALICE, { q: "chimay" });
+
+      expect(page.isApproximate).toBe(false);
+      expect(page.total).toBe(1);
+      expect(repository.findSearchCandidates).not.toHaveBeenCalled();
+      expect(repository.findPage).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not look for candidates when the search is blank", async () => {
+      repository.findPage.mockResolvedValue({ items: [], total: 0 });
+
+      const page = await service.getBeers(ALICE, { q: "   " });
+
+      expect(page.isApproximate).toBe(false);
+      expect(repository.findSearchCandidates).not.toHaveBeenCalled();
+    });
+
+    it("falls back to the close candidates with the same filters, sort, page and size, and flags the page", async () => {
+      repository.findPage.mockResolvedValueOnce({ items: [], total: 0 }).mockResolvedValueOnce({ items: [MOUSSE], total: 1 });
+      repository.findFacets.mockResolvedValueOnce(FACETS).mockResolvedValueOnce(APPROXIMATE_FACETS);
+
+      const page = await service.getBeers(ALICE, { q: " mouse zinc ", country: ["BE"], abvMax: 9, sort: BeerSortEnum.ABV, page: 2, size: 5 });
+
+      expect(page).toEqual({
+        items: [{ ...UNTOUCHED_CHIMAY, ...MOUSSE, createdByName: "Alice" }],
+        total: 1,
+        page: 2,
+        size: 5,
+        facets: APPROXIMATE_FACETS,
+        isApproximate: true,
+      });
+      const filters = { ...NO_FILTERS, countries: ["BE"], abvMax: 9 };
+      expect(repository.findSearchCandidates).toHaveBeenCalledExactlyOnceWith(filters);
+      expect(repository.findPage).toHaveBeenLastCalledWith("", { ...filters, beerIds: [8] }, BeerSortEnum.ABV, 2, 5);
+      expect(repository.findFacets).toHaveBeenLastCalledWith("", { ...filters, beerIds: [8] });
+    });
+
+    it("keeps the status filter ids and the excluded ids in the fallback", async () => {
+      tastingsService.getDrunkBeerIds.mockResolvedValue([1, 7]);
+      repository.findPage.mockResolvedValueOnce({ items: [], total: 0 }).mockResolvedValueOnce({ items: [CHIMAY], total: 1 });
+
+      await service.getBeers(ALICE, { q: "chimai", status: BeerStatusEnum.UNTASTED });
+
+      expect(repository.findSearchCandidates).toHaveBeenCalledExactlyOnceWith({ ...NO_FILTERS, excludedBeerIds: [1, 7] });
+      expect(repository.findPage).toHaveBeenLastCalledWith(
+        "",
+        { ...NO_FILTERS, excludedBeerIds: [1, 7], beerIds: [1] },
+        BeerSortEnum.NAME,
+        1,
+        BEER_PAGE_SIZE_DEFAULT,
+      );
+    });
+
+    it("answers the empty exact page, not flagged, when no candidate approaches the search", async () => {
+      repository.findPage.mockResolvedValue({ items: [], total: 0 });
+
+      const page = await service.getBeers(ALICE, { q: "xyzwqk" });
+
+      expect(page).toEqual({ items: [], total: 0, page: 1, size: BEER_PAGE_SIZE_DEFAULT, facets: FACETS, isApproximate: false });
+      expect(repository.findPage).toHaveBeenCalledTimes(1);
+      expect(repository.findFacets).toHaveBeenCalledTimes(1);
+    });
+
+    it("answers the empty exact page, not flagged, for a term without word of 4 letters", async () => {
+      repository.findPage.mockResolvedValue({ items: [], total: 0 });
+      repository.findSearchCandidates.mockResolvedValue([{ id: 1, searchText: "xyz brasserie" }]);
+
+      const page = await service.getBeers(ALICE, { q: "xyz" });
+
+      expect(page.isApproximate).toBe(false);
+      expect(page.total).toBe(0);
+      expect(repository.findPage).toHaveBeenCalledTimes(1);
+      expect(repository.findSearchCandidates).not.toHaveBeenCalled();
+    });
+
+    it("answers the empty exact page, not flagged, when there is no candidate at all", async () => {
+      repository.findPage.mockResolvedValue({ items: [], total: 0 });
+      repository.findSearchCandidates.mockResolvedValue([]);
+
+      const page = await service.getBeers(ALICE, { q: "mouse zinc" });
+
+      expect(page.isApproximate).toBe(false);
+      expect(repository.findPage).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("status filter and user state", () => {

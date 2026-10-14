@@ -1,10 +1,15 @@
 import { httpClient } from "@/api/httpClient";
 import { HttpError } from "@/api/httpError";
+import type { CheckinDto } from "@/types/dtos/checkin/checkinDto";
 import type { CheckinPageDto } from "@/types/dtos/checkin/checkinPageDto";
 import type { CreatedCheckinDto } from "@/types/dtos/checkin/createdCheckinDto";
+import { checkinDtoToModel } from "@/types/mappers/checkin/checkinMapper";
 import { checkinPageDtoToModel } from "@/types/mappers/checkin/checkinPageMapper";
 import { checkinQueryToSearchParams } from "@/types/mappers/checkin/checkinQueryMapper";
 import { createdCheckinDtoToModel } from "@/types/mappers/checkin/createdCheckinMapper";
+import { buildUpdateCheckinDto } from "@/types/mappers/checkin/updateCheckinDtoMapper";
+import type { Checkin } from "@/types/models/checkin/checkin";
+import type { CheckinChanges } from "@/types/models/checkin/checkinChanges";
 import type { CheckinPage } from "@/types/models/checkin/checkinPage";
 import type { CreatedCheckin } from "@/types/models/checkin/createdCheckin";
 import type { NewCheckin } from "@/types/models/checkin/newCheckin";
@@ -38,6 +43,17 @@ export default class CheckinService {
       });
       if (response.data === null) throw new HttpError(response.status, "Empty created checkin");
       return createdCheckinDtoToModel(response.data);
+    } catch (error) {
+      DisplayError(error);
+      throw error;
+    }
+  }
+
+  static async update(checkinId: number, changes: CheckinChanges): Promise<Checkin> {
+    try {
+      const response = await httpClient.patch<CheckinDto>(CHECKIN_BY_ID(checkinId), buildUpdateCheckinDto(changes));
+      if (response.data === null) throw new HttpError(response.status, "Empty updated checkin");
+      return checkinDtoToModel(response.data);
     } catch (error) {
       DisplayError(error);
       throw error;

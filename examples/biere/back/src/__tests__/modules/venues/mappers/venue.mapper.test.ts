@@ -55,8 +55,9 @@ describe("toVenueDto", () => {
   const VISIT = { venueId: 7, checkinCount: 2, lastCheckinAt: "2026-10-09T18:30:00.000Z" };
 
   it("adds the status, a null distance and no visit to the record", () => {
-    expect(toVenueDto(RECORD, AvailabilityStatusEnum.MAYBE_GONE, null, undefined)).toEqual({
+    expect(toVenueDto(RECORD, AvailabilityStatusEnum.MAYBE_GONE, null, undefined, false)).toEqual({
       ...RECORD,
+      isApproximateMatch: false,
       distanceKm: null,
       status: AvailabilityStatusEnum.MAYBE_GONE,
       checkinCount: 0,
@@ -65,8 +66,9 @@ describe("toVenueDto", () => {
   });
 
   it("keeps a given distance", () => {
-    expect(toVenueDto(RECORD, AvailabilityStatusEnum.GONE, 1.25, undefined)).toEqual({
+    expect(toVenueDto(RECORD, AvailabilityStatusEnum.GONE, 1.25, undefined, false)).toEqual({
       ...RECORD,
+      isApproximateMatch: false,
       distanceKm: 1.25,
       status: AvailabilityStatusEnum.GONE,
       checkinCount: 0,
@@ -75,13 +77,23 @@ describe("toVenueDto", () => {
   });
 
   it("carries the count and the last date of the visit", () => {
-    expect(toVenueDto(RECORD, AvailabilityStatusEnum.CONFIRMED, null, VISIT)).toEqual({
+    expect(toVenueDto(RECORD, AvailabilityStatusEnum.CONFIRMED, null, VISIT, false)).toEqual({
       ...RECORD,
+      isApproximateMatch: false,
       distanceKm: null,
       status: AvailabilityStatusEnum.CONFIRMED,
       checkinCount: 2,
       lastCheckinAt: "2026-10-09T18:30:00.000Z",
     });
+  });
+
+  it("flags the venue as an approximate match when asked and leaves every other field unchanged", () => {
+    const exact = toVenueDto(RECORD, AvailabilityStatusEnum.CONFIRMED, 1.25, VISIT, false);
+    const approximate = toVenueDto(RECORD, AvailabilityStatusEnum.CONFIRMED, 1.25, VISIT, true);
+
+    expect(approximate.isApproximateMatch).toBe(true);
+    expect(exact.isApproximateMatch).toBe(false);
+    expect({ ...approximate, isApproximateMatch: false }).toEqual(exact);
   });
 });
 

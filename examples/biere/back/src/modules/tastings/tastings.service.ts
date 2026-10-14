@@ -8,6 +8,7 @@ import type { VenueVisitDto } from "@/modules/tastings/dtos/venue-visit.dto";
 import type { PhotoContentDto } from "@/modules/tastings/dtos/photo-content.dto";
 import type { Checkin } from "@/modules/tastings/entities/checkin.entity";
 import type { PhotoContentTypeEnum } from "@/modules/tastings/enums/photo-content-type.enum";
+import type { CheckinChanges } from "@/modules/tastings/mappers/checkin-record.mapper";
 import { TastingsRepository } from "@/modules/tastings/tastings.repository";
 
 @Injectable()
@@ -52,6 +53,11 @@ export class TastingsService {
   async deleteOwnedCheckin(userId: number, id: number): Promise<void> {
     const record = await this.getOwnedCheckin(userId, id);
     await this.tastingsRepository.deleteCheckinWithPhoto(id, record.photoId);
+  }
+
+  async updateOwnedCheckin(userId: number, id: number, changes: CheckinChanges): Promise<CheckinRecordDto> {
+    await this.getOwnedCheckin(userId, id);
+    return this.tastingsRepository.updateCheckin(id, changes);
   }
 
   getDiscoveries(userId: number): Promise<DiscoveryDto[]> {

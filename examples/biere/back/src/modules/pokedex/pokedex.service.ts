@@ -13,8 +13,9 @@ import { toWishlistItemDto } from "@/modules/pokedex/mappers/wishlist-item.mappe
 import { CHECKIN_FUTURE_TOLERANCE_MS, CHECKIN_PAGE_SIZE } from "@/modules/pokedex/pokedex.constants";
 import type { PhotoContentDto } from "@/modules/tastings/dtos/photo-content.dto";
 import type { CreateCheckinDto } from "@/modules/tastings/dtos/create-checkin.dto";
+import { hasAnySuppliedValue, type UpdateCheckinDto } from "@/modules/tastings/dtos/update-checkin.dto";
 import { detectPhotoContentType, type PhotoContentTypeEnum } from "@/modules/tastings/enums/photo-content-type.enum";
-import { toNewCheckin } from "@/modules/tastings/mappers/checkin-record.mapper";
+import { toCheckinChanges, toNewCheckin } from "@/modules/tastings/mappers/checkin-record.mapper";
 import { TastingsService } from "@/modules/tastings/tastings.service";
 import { VenuesService } from "@/modules/venues/venues.service";
 
@@ -48,6 +49,26 @@ export class PokedexService {
         ? await this.tastingsService.createCheckin(data)
         : await this.tastingsService.createCheckinWithPhoto(data, photo);
     return toCreatedCheckinDto(record, beer.name, isFirstDiscovery);
+  }
+
+  async updateCheckin(userId: number, id: number, dto: UpdateCheckinDto): Promise<CheckinDto> {
+    if (!hasAnySuppliedValue(dto)) {
+      throw new BadRequestException("At least one field must be supplied.");
+    }
+    if (dto.drankAt !== undefined && Date.parse(dto.drankAt) > Date.now() + CHECKIN_FUTURE_TOLERANCE_MS) {
+      throw new BadRequestException("drankAt must not be in the future.");
+    }
+    const linkedVenueId = dto.venueId ?? null;
+    if (linkedVenueId !== null && dto.place === undefined) {
+      throw new BadRequestException("venueId requires place.");
+    }
+    const current = await this.tastingsService.getOwnedCheckin(userId, id);
+    if (linkedVenueId !== null) {
+      await this.venuesService.ensureVenueExists(linkedVenueId);
+    }
+    const beer = await this.beersService.getBeer(current.beerId);
+    const record = await this.tastingsService.updateOwnedCheckin(userId, id, toCheckinChanges(dto));
+    return toCheckinDto(record, beer.name);
   }
 
   async getCheckin(userId: number, id: number): Promise<CheckinDto> {

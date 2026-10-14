@@ -7,4 +7,5 @@ export interface BeerPageDto {
   readonly page: number;
   readonly size: number;
   readonly facets: BeerFacetsDto;
+  readonly isApproximate: boolean;
 }

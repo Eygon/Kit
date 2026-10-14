@@ -16,11 +16,13 @@ import {
   TextField,
 } from "@heroui/react";
 import type { Key } from "@heroui/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { HttpError } from "@/api/httpError";
+import { SubmitButton } from "@/components/elements/submitButton/submitButton";
+import { useFocusFirstInvalidField } from "@/hooks/form/useFocusFirstInvalidField";
 import { useBreweriesQuery } from "@/pages/encyclopedia/hooks/useBreweriesQuery";
 import { useBeerStyleGroupsQuery } from "@/pages/encyclopedia/hooks/useBeerStyleGroupsQuery";
 import { useExistingBeerLoader } from "@/pages/encyclopedia/hooks/useExistingBeerLoader";
@@ -39,6 +41,11 @@ import { getCountryName } from "@/utils/country/getCountryName";
 
 const NO_BREWERY_SUGGESTIONS: Brewery[] = [];
 
+const markInvalid = (element: HTMLElement | null, isInvalid: boolean) => {
+  if (isInvalid) element?.setAttribute("aria-invalid", "true");
+  else element?.removeAttribute("aria-invalid");
+};
+
 export const ProposeBeerDrawer = ({ isOpen, onOpenChange, initialName, onCreated }: ProposeBeerDrawerProps) => {
   const { t, i18n } = useTranslation();
   const [values, setValues] = useState<BeerFormValues>({ ...EMPTY_BEER_FORM, name: initialName });
@@ -49,11 +56,19 @@ export const ProposeBeerDrawer = ({ isOpen, onOpenChange, initialName, onCreated
   const { groups, isPending: isStylesPending, isError: isStylesError, refetch: refetchStyles } = useBeerStyleGroupsQuery();
   const { breweries, isPending: isBreweriesPending, isError: isBreweriesError } = useBreweriesQuery(isOpen);
   const { loadExistingBeer } = useExistingBeerLoader();
+  const { formRef, focusFirstInvalidField } = useFocusFirstInvalidField();
+  const countryTriggerRef = useRef<HTMLButtonElement>(null);
+  const styleTriggerRef = useRef<HTMLButtonElement>(null);
   const isSubmitting = useRef(false);
   const lookupToken = useRef(0);
   const errorKeys = getBeerFormErrorKeys(values);
   const countryError = hasAttemptedSubmit && errorKeys.country !== undefined ? t(errorKeys.country) : null;
   const styleError = hasAttemptedSubmit && errorKeys.styleId !== undefined ? t(errorKeys.styleId) : null;
+
+  useLayoutEffect(() => {
+    markInvalid(countryTriggerRef.current, countryError !== null);
+    markInvalid(styleTriggerRef.current, styleError !== null);
+  }, [countryError, styleError]);
 
   const countryList = useMemo(
     () => (
@@ -169,7 +184,10 @@ export const ProposeBeerDrawer = ({ isOpen, onOpenChange, initialName, onCreated
     if (isSubmitting.current) return;
     setHasAttemptedSubmit(true);
     const newBeer = formValuesToNewBeer(values);
-    if (newBeer === null || Object.keys(errorKeys).length > 0) return;
+    if (newBeer === null || Object.keys(errorKeys).length > 0) {
+      focusFirstInvalidField();
+      return;
+    }
     isSubmitting.current = true;
     void send(newBeer);
   };
@@ -185,6 +203,7 @@ export const ProposeBeerDrawer = ({ isOpen, onOpenChange, initialName, onCreated
             </Drawer.Header>
             <Drawer.Body className="flex max-h-[70dvh] min-w-0 flex-col gap-4 overflow-y-auto p-1">
               <Form
+                ref={formRef}
                 id={PROPOSE_BEER_FORM_ID}
                 validationBehavior="aria"
                 validationErrors={serverErrors}
@@ -246,7 +265,7 @@ export const ProposeBeerDrawer = ({ isOpen, onOpenChange, initialName, onCreated
                   isInvalid={countryError !== null}
                 >
                   <Label>{t("pages.encyclopedia.propose.country")}</Label>
-                  <Select.Trigger className="min-h-11">
+                  <Select.Trigger ref={countryTriggerRef} className="min-h-11">
                     <Select.Value />
                     <Select.Indicator />
                   </Select.Trigger>
@@ -274,7 +293,7 @@ export const ProposeBeerDrawer = ({ isOpen, onOpenChange, initialName, onCreated
                   isInvalid={styleError !== null}
                 >
                   <Label>{t("pages.encyclopedia.propose.style")}</Label>
-                  <Select.Trigger className="min-h-11">
+                  <Select.Trigger ref={styleTriggerRef} className="min-h-11">
                     <Select.Value />
                     <Select.Indicator />
                   </Select.Trigger>
@@ -315,9 +334,12 @@ export const ProposeBeerDrawer = ({ isOpen, onOpenChange, initialName, onCreated
               <Button slot="close" variant="secondary" size="lg">
                 {t("pages.encyclopedia.propose.close")}
               </Button>
-              <Button type="submit" form={PROPOSE_BEER_FORM_ID} variant="primary" size="lg" isPending={isPending}>
-                {t("pages.encyclopedia.propose.submit")}
-              </Button>
+              <SubmitButton
+                label={t("pages.encyclopedia.propose.submit")}
+                isPending={isPending}
+                form={PROPOSE_BEER_FORM_ID}
+                isFullWidth={false}
+              />
             </Drawer.Footer>
           </Drawer.Dialog>
         </Drawer.Content>

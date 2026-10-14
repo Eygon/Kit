@@ -5,6 +5,8 @@ import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 import { ReviewForm } from "@/pages/beerDetail/components/elements/reviewForm/reviewForm";
 import type { Review } from "@/types/models/review/review";
 
+const scrollIntoView = vi.fn();
+
 const REVIEW: Review = {
   id: 5,
   beerId: 7,
@@ -63,6 +65,11 @@ const chooseRating = async (user: ReturnType<typeof userEvent.setup>) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  Object.defineProperty(Element.prototype, "scrollIntoView", {
+    configurable: true,
+    writable: true,
+    value: scrollIntoView,
+  });
   onSubmit.mockResolvedValue(undefined);
 });
 
@@ -325,7 +332,9 @@ describe("ReviewForm", () => {
       view.rerender(
         <ReviewForm initialReview={REVIEW} isSaving onSubmit={onSubmit} />,
       );
-      expect(submitButton()).toHaveAttribute("data-pending", "true");
+      expect(
+        screen.getByRole("button", { name: /Enregistrement…/ }),
+      ).toHaveAttribute("data-pending", "true");
       pending.resolve();
       await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     });
@@ -342,6 +351,97 @@ describe("ReviewForm", () => {
       await user.click(submitButton());
 
       await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+    });
+  });
+
+  describe("AC7 the rating is missing on submit", () => {
+    it("marks the rating slider invalid, scrolls to it and focuses it", async () => {
+      const user = userEvent.setup();
+      renderForm();
+      expect(ratingSlider()).not.toHaveAttribute("aria-invalid", "true");
+
+      await user.click(submitButton());
+
+      await waitFor(() => expect(ratingSlider()).toHaveFocus());
+      expect(ratingSlider()).toHaveAttribute("aria-invalid", "true");
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        block: "center",
+        behavior: "smooth",
+      });
+      expect(scrollIntoView.mock.contexts.at(-1)).toBe(ratingSlider());
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "La note est obligatoire",
+      );
+      expect(ratingSlider()).toHaveAccessibleDescription(
+        "La note est obligatoire",
+      );
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it("drops the invalid mark once a rating is chosen", async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await user.click(submitButton());
+      await waitFor(() => expect(ratingSlider()).toHaveFocus());
+
+      await chooseRating(user);
+
+      expect(ratingSlider()).not.toHaveAttribute("aria-invalid", "true");
+      expect(
+        screen.queryByText("La note est obligatoire"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("does not touch the focus when the review is valid", async () => {
+      const user = userEvent.setup();
+      renderForm({ initialReview: REVIEW });
+
+      await user.click(submitButton());
+
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(scrollIntoView).not.toHaveBeenCalled();
+      expect(ratingSlider()).not.toHaveAttribute("aria-invalid", "true");
+    });
+  });
+
+  describe("AC8 the sending state of the button", () => {
+    it("shows Enregistrement… and is busy while the review is being sent", () => {
+      renderForm({ isSaving: true });
+
+      const button = screen.getByRole("button", { name: /Enregistrement…/ });
+      expect(button).toHaveAttribute("aria-busy", "true");
+      expect(
+        screen.queryByRole("button", { name: "Publier mon avis" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("sends nothing when the busy button is pressed again", async () => {
+      const user = userEvent.setup();
+      renderForm({ initialReview: REVIEW, isSaving: true });
+
+      await user.click(screen.getByRole("button", { name: /Enregistrement…/ }));
+
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it("takes its label back once the sending is over, whether it worked or failed", async () => {
+      const view = renderForm({ initialReview: REVIEW, isSaving: true });
+      expect(
+        screen.getByRole("button", { name: /Enregistrement…/ }),
+      ).toBeInTheDocument();
+
+      view.rerender(
+        <ReviewForm
+          initialReview={REVIEW}
+          isSaving={false}
+          onSubmit={onSubmit}
+        />,
+      );
+
+      expect(submitButton()).toHaveAttribute("aria-busy", "false");
+      expect(
+        screen.queryByRole("button", { name: /Enregistrement…/ }),
+      ).not.toBeInTheDocument();
     });
   });
 

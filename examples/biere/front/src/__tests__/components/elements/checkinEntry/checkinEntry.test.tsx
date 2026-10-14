@@ -1,6 +1,8 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { CheckinEntry } from "@/components/elements/checkinEntry/checkinEntry";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
+import { BeerFormatEnum } from "@/types/enums/beer/beerFormatEnum";
 import type { CheckinEntryProps } from "@/types/components/checkinEntry";
 import type { Checkin } from "@/types/models/checkin/checkin";
 
@@ -116,7 +118,10 @@ describe("CheckinEntry", () => {
     expect(text).toHaveClass("min-w-0", "flex-1");
     const trailing = screen.getByRole("button", { name: "Agrandir la photo" }).parentElement as HTMLElement;
     expect(trailing).toHaveClass("flex", "shrink-0", "items-center");
-    expect(trailing.parentElement).toBe(item);
+    const header = trailing.parentElement as HTMLElement;
+    expect(header).toHaveClass("flex", "min-w-0", "items-start", "justify-between");
+    expect(header.parentElement).toBe(item);
+    expect(text.parentElement).toBe(header);
     expect(within(trailing).getByText("★ 4,5")).toBeInTheDocument();
     expect(within(trailing).getByRole("button", { name: "Supprimer" })).toBeInTheDocument();
     expect(text.contains(trailing)).toBe(false);
@@ -166,5 +171,108 @@ describe("CheckinEntry", () => {
     renderEntry({ showBeer: false, checkin: buildCheckin({ place, venueId: 3 }) });
 
     expect(screen.getByRole("link", { name: place })).toHaveClass("break-words");
+  });
+
+  describe("format, price and comment", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    const stubOverflow = (isOverflowing: boolean) => {
+      vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(isOverflowing ? 96 : 48);
+      vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(48);
+    };
+
+    it("shows Pression, 6,50 € and the whole short comment under the place, with no Voir plus", () => {
+      stubOverflow(false);
+      renderEntry({
+        checkin: buildCheckin({ format: BeerFormatEnum.DRAFT, price: 6.5, comment: "Bien fraîche", venueId: 42 }),
+      });
+
+      const item = screen.getByRole("listitem");
+      const place = within(item).getByRole("link", { name: "Chez Paul" });
+      const format = within(item).getByText("Pression");
+      const price = within(item).getByText(/^6,50\s€$/);
+      const comment = within(item).getByText("Bien fraîche");
+      expect(place.compareDocumentPosition(format) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(format.compareDocumentPosition(price) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(price.compareDocumentPosition(comment) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(comment).not.toHaveClass("hidden");
+      expect(within(item).queryByRole("button", { name: "Voir plus" })).not.toBeInTheDocument();
+    });
+
+    it.each([
+      [BeerFormatEnum.BOTTLE, "Bouteille"],
+      [BeerFormatEnum.CAN, "Canette"],
+      [BeerFormatEnum.DRAFT, "Pression"],
+    ])("labels the %s format %s", (format, label) => {
+      renderEntry({ checkin: buildCheckin({ format }) });
+
+      expect(within(screen.getByRole("listitem")).getByText(label)).toBeInTheDocument();
+    });
+
+    it("shows a free beer as 0,00 € since a price of 0 is a price", () => {
+      renderEntry({ checkin: buildCheckin({ price: 0 }) });
+
+      expect(screen.getByRole("listitem")).toHaveTextContent(/0,00\s€/);
+    });
+
+    it("renders nothing for a tasting without rating, format, price nor comment", () => {
+      renderEntry({ checkin: buildCheckin({ rating: null, format: null, price: null, comment: "" }) });
+
+      const item = screen.getByRole("listitem");
+      expect(item).not.toHaveTextContent("null");
+      expect(item).not.toHaveTextContent("€");
+      expect(item).not.toHaveTextContent("★");
+      expect(item.textContent).toBe("12/10/2026Orval" + "Chez Paul");
+      expect(within(item).queryByRole("button")).not.toBeInTheDocument();
+      expect(item.querySelectorAll("p")).toHaveLength(0);
+    });
+
+    it("shows no comment block for a comment made of spaces", () => {
+      renderEntry({ checkin: buildCheckin({ comment: "   " }) });
+
+      expect(screen.getByRole("listitem").querySelectorAll("p")).toHaveLength(0);
+    });
+
+    it("folds a comment over 3 lines behind Voir plus, which unfolds and folds it again", async () => {
+      stubOverflow(true);
+      const user = userEvent.setup();
+      const comment = "Un très long commentaire ".repeat(30).trim();
+      renderEntry({ checkin: buildCheckin({ comment }) });
+
+      const text = screen.getByText(comment);
+      expect(text).toHaveClass("line-clamp-3");
+      await user.click(screen.getByRole("button", { name: "Voir plus" }));
+      expect(text).not.toHaveClass("line-clamp-3");
+      expect(screen.getByRole("button", { name: "Voir moins" })).toHaveAttribute("aria-expanded", "true");
+      await user.click(screen.getByRole("button", { name: "Voir moins" }));
+      expect(text).toHaveClass("line-clamp-3");
+    });
+
+    it("keeps the text column shrinkable with a long unbroken comment", () => {
+      const comment = "Délicieuse".repeat(40);
+      renderEntry({ checkin: buildCheckin({ comment, format: BeerFormatEnum.CAN, price: 3 }) });
+
+      const column = screen.getByText("Chez Paul").parentElement as HTMLElement;
+      const item = screen.getByRole("listitem");
+      expect(column).toHaveClass("min-w-0", "flex-1");
+      // le commentaire et le format passent sous l'en-tête, sur toute la largeur de la carte (pas dans la colonne étroite)
+      expect(item).toContainElement(screen.getByText(comment));
+      expect(column).not.toContainElement(screen.getByText(comment));
+      expect(column).not.toContainElement(screen.getByText("Canette"));
+      expect(screen.getByText(comment)).toHaveClass("break-words");
+    });
+
+    it("keeps the rating pill and the actions beside the text", () => {
+      renderEntry({
+        checkin: buildCheckin({ format: BeerFormatEnum.CAN, price: 3, comment: "Top" }),
+        actions: <button type="button">Modifier</button>,
+      });
+
+      const item = screen.getByRole("listitem");
+      expect(within(item).getByText("★ 4,5")).toBeInTheDocument();
+      expect(within(item).getByRole("button", { name: "Modifier" })).toBeInTheDocument();
+    });
   });
 });

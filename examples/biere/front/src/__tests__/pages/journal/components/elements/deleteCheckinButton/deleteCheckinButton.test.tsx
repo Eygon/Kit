@@ -4,6 +4,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 import { DeleteCheckinButton } from "@/pages/journal/components/elements/deleteCheckinButton/deleteCheckinButton";
+import type { DeleteCheckinButtonProps } from "@/pages/journal/types/deleteCheckinButton";
 import { CHECKINS } from "@/utils/apiURL/apiURL";
 import { beerKeys } from "@/utils/queryKeys/beerQueryKeys";
 import { checkinKeys } from "@/utils/queryKeys/checkinQueryKeys";
@@ -18,9 +19,9 @@ const mockFetch = vi.fn();
 
 const buildClient = () => new QueryClient({ defaultOptions: { queries: { retry: 1, retryDelay: 1 } } });
 
-const renderButton = (client = buildClient()) => {
+const renderButton = (client = buildClient(), props: Partial<DeleteCheckinButtonProps> = {}) => {
   const user = userEvent.setup();
-  renderWithProviders(<DeleteCheckinButton checkinId={11} />, { queryClient: client });
+  renderWithProviders(<DeleteCheckinButton checkinId={11} {...props} />, { queryClient: client });
   return { user, client };
 };
 
@@ -172,5 +173,85 @@ describe("DeleteCheckinButton", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Supprimer" })).toBeEnabled();
+  });
+
+  describe("as a text trigger", () => {
+    const WRONG_BEER = "Mauvaise bière ? Supprimer et recréer";
+
+    it("shows a ghost text button of 44 px instead of the icon button", () => {
+      renderButton(buildClient(), { isTextTrigger: true });
+
+      const button = screen.getByRole("button", { name: WRONG_BEER });
+      expect(button).toHaveClass("button--ghost", "min-h-11");
+      expect(button).not.toHaveClass("button--icon-only");
+      expect(button).toHaveTextContent(WRONG_BEER);
+      expect(button.querySelector("svg")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Supprimer" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
+
+    it("keeps the icon button when isTextTrigger is false", () => {
+      renderButton(buildClient(), { isTextTrigger: false });
+
+      expect(screen.getByRole("button", { name: "Supprimer" })).toHaveClass("button--icon-only");
+      expect(screen.queryByRole("button", { name: WRONG_BEER })).not.toBeInTheDocument();
+    });
+
+    it("opens the same confirmation, deletes with the same DELETE and calls onDeleted once", async () => {
+      mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+      const onDeleted = vi.fn();
+      const { user } = renderButton(buildClient(), { isTextTrigger: true, onDeleted });
+      await user.click(screen.getByRole("button", { name: WRONG_BEER }));
+      const dialog = await screen.findByRole("alertdialog");
+      expect(dialog).toHaveAccessibleName("Supprimer cette dégustation ?");
+      expect(onDeleted).not.toHaveBeenCalled();
+
+      await user.click(within(dialog).getByRole("button", { name: "Supprimer" }));
+
+      await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${CHECKINS()}/11`);
+      expect(init.method).toBe("DELETE");
+      expect(toast.success).toHaveBeenCalledWith("Dégustation supprimée.");
+    });
+
+    it("does not call onDeleted when the confirmation is cancelled", async () => {
+      const onDeleted = vi.fn();
+      const { user } = renderButton(buildClient(), { isTextTrigger: true, onDeleted });
+      await user.click(screen.getByRole("button", { name: WRONG_BEER }));
+      const dialog = await screen.findByRole("alertdialog");
+
+      await user.click(within(dialog).getByRole("button", { name: "Annuler" }));
+
+      await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+      expect(onDeleted).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("does not call onDeleted when the server refuses", async () => {
+      mockFetch.mockImplementation(async () => new Response(JSON.stringify({ message: "boom" }), { status: 500 }));
+      const onDeleted = vi.fn();
+      const { user } = renderButton(buildClient(), { isTextTrigger: true, onDeleted });
+      await user.click(screen.getByRole("button", { name: WRONG_BEER }));
+      const dialog = await screen.findByRole("alertdialog");
+
+      await user.click(within(dialog).getByRole("button", { name: "Supprimer" }));
+
+      await waitFor(() => expect(toast.danger).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+      expect(onDeleted).not.toHaveBeenCalled();
+    });
+
+    it("calls onDeleted after a deletion made from the icon button too", async () => {
+      mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+      const onDeleted = vi.fn();
+      const { user } = renderButton(buildClient(), { onDeleted });
+      const dialog = await openConfirmation(user);
+
+      await user.click(within(dialog).getByRole("button", { name: "Supprimer" }));
+
+      await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+    });
   });
 });

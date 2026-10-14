@@ -109,6 +109,24 @@ describe("BeerService.getPage", () => {
     expect(page.facets.formats).toEqual([{ value: "bottle", count: 3 }]);
   });
 
+  it("returns isApproximate true when the API flags the page as approximate", async () => {
+    mockFetch.mockImplementation(async () => json({ ...pageDto, isApproximate: true }));
+
+    const page = await BeerService.getPage({ ...EMPTY_BEER_QUERY, search: "cantilon" }, 1, 20);
+
+    expect(page.isApproximate).toBe(true);
+  });
+
+  it("returns isApproximate false for an exact page, flagged or not", async () => {
+    mockFetch.mockImplementation(async () => json({ ...pageDto, isApproximate: false }));
+    const flagged = await BeerService.getPage(EMPTY_BEER_QUERY, 1, 20);
+    mockFetch.mockImplementation(async () => json(pageDto));
+    const unflagged = await BeerService.getPage(EMPTY_BEER_QUERY, 1, 20);
+
+    expect(flagged.isApproximate).toBe(false);
+    expect(unflagged.isApproximate).toBe(false);
+  });
+
   it.each([400, 401, 500])("rejects with the HttpError on status %s and shows no toast", async (status) => {
     mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
 

@@ -617,6 +617,70 @@ describe("TastingsRepository", () => {
     });
   });
 
+  describe("updateCheckin", () => {
+    const PHOTO_ID = "3f2b8c1e-5d4a-4e6b-9a7c-1d2e3f4a5b6c";
+
+    it("writes the changes, reads the record back and leaves the photo, the owner, the beer and the other rows intact", async () => {
+      const decoy = await repository.createCheckin(newCheckin(BOB, OTHER_BEER, { rating: 2, comment: "Bob" }));
+      const target = await repository.createCheckin(
+        newCheckin(ALICE, BEER, { rating: 3, comment: "Trés bonne", photoId: PHOTO_ID, venueId: 14, price: 4 }),
+      );
+      const decoyBefore = await repository.findCheckinById(decoy.id);
+
+      const updated = await repository.updateCheckin(target.id, {
+        rating: 4,
+        comment: "Très bonne",
+        drankAt: new Date("2026-04-01T10:00:00.000Z"),
+        place: "Chez moi",
+        venueId: null,
+        aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
+        format: BeerFormatEnum.CAN,
+        price: 5.5,
+      });
+
+      const expected = {
+        id: target.id,
+        userId: ALICE,
+        beerId: BEER,
+        drankAt: "2026-04-01T10:00:00.000Z",
+        place: "Chez moi",
+        venueId: null,
+        rating: 4,
+        aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
+        format: BeerFormatEnum.CAN,
+        price: 5.5,
+        comment: "Très bonne",
+        photoId: PHOTO_ID,
+      };
+      expect(updated).toStrictEqual(expected);
+      expect(await repository.findCheckinById(target.id)).toStrictEqual(expected);
+      expect(await repository.findCheckinById(decoy.id)).toStrictEqual(decoyBefore);
+    });
+
+    it("changes only the given fields", async () => {
+      const decoy = await repository.createCheckin(newCheckin(BOB, OTHER_BEER, { rating: 2 }));
+      const target = await repository.createCheckin(
+        newCheckin(ALICE, BEER, { rating: 3, comment: "Avant", price: 4, aromas: [BeerAromaEnum.FRUITY], venueId: 14 }),
+      );
+
+      const updated = await repository.updateCheckin(target.id, { comment: "Après" });
+
+      expect(updated).toStrictEqual({ ...target, comment: "Après" });
+      expect((await repository.findCheckinById(decoy.id))?.rating).toBe(2);
+    });
+
+    it("clears the rating and the price with null, the comment with an empty string and the aromas with an empty list", async () => {
+      const target = await repository.createCheckin(
+        newCheckin(ALICE, BEER, { rating: 4, price: 6.5, comment: "Avant", aromas: [BeerAromaEnum.FRUITY] }),
+      );
+
+      const updated = await repository.updateCheckin(target.id, { rating: null, price: null, comment: "", aromas: [] });
+
+      expect(updated).toStrictEqual({ ...target, rating: null, price: null, comment: "", aromas: [] });
+      expect(await repository.findCheckinById(target.id)).toStrictEqual(updated);
+    });
+  });
+
 });
 
 describe("checkins table created before F11", () => {

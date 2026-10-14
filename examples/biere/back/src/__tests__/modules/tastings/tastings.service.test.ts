@@ -34,7 +34,7 @@ const BOB_CHECKIN: CheckinRecordDto = {
 };
 
 describe("TastingsService", () => {
-  const repository = { createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), findCheckinById: vi.fn(), countCheckins: vi.fn(), findPhoto: vi.fn(), findCheckinPage: vi.fn(), deleteCheckinWithPhoto: vi.fn(), findWishlist: vi.fn(), existsWishlistItem: vi.fn(), addWishlistItem: vi.fn(), removeWishlistItem: vi.fn(), findDiscoveries: vi.fn(), findCheckinsByUser: vi.fn(), findCheckinsByUsers: vi.fn(), findBeerStates: vi.fn(), findDrunkBeerIds: vi.fn(), findWishlistBeerIds: vi.fn(), countDiscoveredBeersByUsers: vi.fn(), findVenueVisits: vi.fn() };
+  const repository = { createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), findCheckinById: vi.fn(), countCheckins: vi.fn(), findPhoto: vi.fn(), findCheckinPage: vi.fn(), deleteCheckinWithPhoto: vi.fn(), findWishlist: vi.fn(), existsWishlistItem: vi.fn(), addWishlistItem: vi.fn(), removeWishlistItem: vi.fn(), findDiscoveries: vi.fn(), findCheckinsByUser: vi.fn(), findCheckinsByUsers: vi.fn(), findBeerStates: vi.fn(), findDrunkBeerIds: vi.fn(), findWishlistBeerIds: vi.fn(), countDiscoveredBeersByUsers: vi.fn(), findVenueVisits: vi.fn(), updateCheckin: vi.fn() };
   let service: TastingsService;
 
   beforeEach(async () => {
@@ -331,6 +331,40 @@ describe("TastingsService", () => {
       repository.countDiscoveredBeersByUsers.mockResolvedValue([]);
 
       expect((await service.getDiscoveredCounts([ALICE])).size).toBe(0);
+    });
+  });
+
+
+  describe("updateOwnedCheckin", () => {
+    const changes = { rating: 4, comment: "Très bonne" };
+
+    it("updates the owned check-in through the repository and returns the record", async () => {
+      const updated: CheckinRecordDto = { ...BOB_CHECKIN, rating: 4, comment: "Très bonne" };
+      repository.findCheckinById.mockResolvedValue(BOB_CHECKIN);
+      repository.updateCheckin.mockResolvedValue(updated);
+
+      const result = await service.updateOwnedCheckin(BOB, BOB_CHECKIN.id, changes);
+
+      expect(result).toBe(updated);
+      expect(repository.updateCheckin).toHaveBeenCalledExactlyOnceWith(BOB_CHECKIN.id, changes);
+    });
+
+    it("throws 404 for an unknown check-in and writes nothing", async () => {
+      repository.findCheckinById.mockResolvedValue(null);
+
+      await expect(service.updateOwnedCheckin(ALICE, 99, changes)).rejects.toThrow(
+        new NotFoundException("Check-in 99 not found."),
+      );
+      expect(repository.updateCheckin).not.toHaveBeenCalled();
+    });
+
+    it("throws 403 for another user's check-in and writes nothing", async () => {
+      repository.findCheckinById.mockResolvedValue(BOB_CHECKIN);
+
+      await expect(service.updateOwnedCheckin(ALICE, BOB_CHECKIN.id, changes)).rejects.toThrow(
+        new ForbiddenException("You can only access your own check-ins."),
+      );
+      expect(repository.updateCheckin).not.toHaveBeenCalled();
     });
   });
 

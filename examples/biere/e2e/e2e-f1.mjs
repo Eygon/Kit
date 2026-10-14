@@ -28,7 +28,7 @@ log("2.voir-plus", (await cards().count()) === 120 && taps <= 5, `${await cards(
 const ids = await cards().evaluateAll((a) => a.map((x) => x.getAttribute("href"))); log("2.pas-de-doublon", new Set(ids).size === ids.length, `${new Set(ids).size} ids distincts`);
 t = w.take(); log("2.sans-erreur", !t.fiveXX.length && !t.console.length, `5xx=${t.fiveXX.length} console=${t.console.length}`);
 // 3. recherche
-await goto("/bieres"); const search = p.getByPlaceholder(/Rechercher/);
+await goto("/bieres"); const search = p.getByRole("searchbox", { name: /Rechercher une bière/ });
 await search.fill("weissbrau"); await p.waitForTimeout(900); await settle();
 log("3.recherche-sans-accent", (await cards().count()) === 3 && /q=weissbrau/.test(p.url()), `${await cards().count()} cartes ; url ${p.url().replace(URL0, "")}`);
 const cnt = await p.getByText(/\d+ résultats?/).first().innerText().catch(() => ""); log("3.compteur-resultats", /3/.test(cnt), `« ${cnt} »`);

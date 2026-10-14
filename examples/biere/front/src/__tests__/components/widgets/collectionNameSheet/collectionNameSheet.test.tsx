@@ -152,6 +152,36 @@ describe("CollectionNameSheet", () => {
     expect(postCalls()).toHaveLength(1);
   });
 
+  it("AC3 shows Enregistrement… on a busy create button while the creation is in flight", async () => {
+    const user = userEvent.setup();
+    let release: () => void = () => undefined;
+    mockFetch.mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          release = () =>
+            resolve(
+              new Response(JSON.stringify({ id: 8, kind: "custom", name: "Trappistes", beerCount: 0 }), {
+                status: 201,
+              }),
+            );
+        }),
+    );
+    renderSheet();
+    await openSheet(user);
+    expect(screen.getByRole("button", { name: "Créer" })).toHaveAttribute("aria-busy", "false");
+
+    await submit(user, "Trappistes");
+
+    const pending = await screen.findByRole("button", { name: /Enregistrement…/ });
+    expect(pending).toHaveAttribute("aria-busy", "true");
+    expect(pending).toHaveAttribute("data-pending", "true");
+    expect(pending).toHaveTextContent("Enregistrement…");
+    expect(pending.className).toContain("button--full-width");
+    expect(screen.queryByRole("button", { name: "Créer" })).not.toBeInTheDocument();
+    release();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
   it("starts from an empty field every time the sheet is opened again", async () => {
     const user = userEvent.setup();
     renderSheet();
@@ -419,6 +449,27 @@ describe("CollectionNameSheet", () => {
       expect(
         within(dialog).getByRole("button", { name: "Annuler" }),
       ).toBeInTheDocument();
+    });
+
+    it("AC3 shows Enregistrement… on a busy save button while the rename is pending, next to the cancel button", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <CollectionNameSheet
+          mode={CollectionNameSheetModeEnum.RENAME}
+          initialName="Trappistes"
+          isPending
+          onSave={vi.fn().mockResolvedValue(SAVED)}
+        />,
+      );
+
+      const dialog = await openRenameSheet(user);
+
+      const pending = within(dialog).getByRole("button", { name: /Enregistrement…/ });
+      expect(pending).toHaveAttribute("aria-busy", "true");
+      expect(pending).toHaveAttribute("data-pending", "true");
+      expect(pending).toHaveTextContent("Enregistrement…");
+      expect(within(dialog).queryByRole("button", { name: "Enregistrer" })).not.toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: "Annuler" })).toBeInTheDocument();
     });
 
     it("saves the typed name and closes the sheet", async () => {

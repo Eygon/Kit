@@ -123,7 +123,7 @@ describe("beers API", () => {
     expect(page.items).toHaveLength(BEER_PAGE_SIZE_DEFAULT);
     expect(page.items[0].name).toBe("3 Monts");
     expect(page).toMatchObject({ total: SEEDED_BEER_COUNT, page: 1, size: BEER_PAGE_SIZE_DEFAULT });
-    expect(Object.keys(page).sort()).toEqual(["facets", "items", "page", "size", "total"]);
+    expect(Object.keys(page).sort()).toEqual(["facets", "isApproximate", "items", "page", "size", "total"]);
   });
 
   it("GET /api/v1/beers lists the contract fields of every beer", async () => {
@@ -246,6 +246,7 @@ describe("beers API", () => {
       page: 7,
       size: 20,
       facets: { families: expect.any(Array), countries: expect.any(Array), formats: expect.any(Array) },
+      isApproximate: false,
     });
   });
 
@@ -647,7 +648,7 @@ describe("beers API user state", () => {
     const alice = await getAll(ALICE_USER_ID);
     const bob = await getAll(BOB_USER_ID);
 
-    expect(Object.keys(alice).sort()).toEqual(["facets", "items", "page", "size", "total"]);
+    expect(Object.keys(alice).sort()).toEqual(["facets", "isApproximate", "items", "page", "size", "total"]);
     expect(alice.total).toBe(SEEDED_BEER_COUNT);
     expect(alice.facets).toEqual(bob.facets);
     expect(alice.items.map((item) => withoutState(item))).toEqual(bob.items.map((item) => withoutState(item)));
@@ -1297,5 +1298,191 @@ describe("community beers API", () => {
 
     expect(created.name).toBe("<b>Bold</b> <script>x</script>");
     expect(created.description).toBe("<img src=x onerror=alert(1)>");
+  });
+});
+
+describe("beers API approximate search", () => {
+  const PIRATE_ABV = 8;
+  const CANTILLON_BEER_COUNT = 3;
+
+  let app: INestApplication;
+
+  const getBeersPage = async (query: Record<string, string | number>): Promise<BeerPageDto> => {
+    const response = await request(app.getHttpServer()).get(BEERS_PATH).query(query).set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+    expect(response.status).toBe(HttpStatus.OK);
+    return response.body as BeerPageDto;
+  };
+
+  const propose = async (body: Record<string, unknown>): Promise<void> => {
+    const response = await request(app.getHttpServer())
+      .post(BEERS_PATH)
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID))
+      .send(body);
+    expect(response.status).toBe(HttpStatus.CREATED);
+  };
+
+  const namesOf = (page: BeerPageDto): string[] => page.items.map((item) => item.name);
+
+  beforeAll(async () => {
+    app = await createTestApp();
+    const [gueuze] = (await getBeersPage({ q: "cantillon gueuze" })).items;
+    await propose({ styleId: gueuze.styleId, name: "Pirate Ale", breweryName: "Brasserie Cantillon", country: "FR", abv: PIRATE_ABV });
+    await propose({ styleId: gueuze.styleId, name: "Mousse du Zinc", breweryName: "Brasserie du Mont", country: "FR", abv: 5 });
+    const wished = await request(app.getHttpServer())
+      .post("/api/v1/me/wishlist")
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID))
+      .send({ beerId: gueuze.id });
+    expect(wished.status).toBe(HttpStatus.CREATED);
+    const [kriek] = (await getBeersPage({ q: "cantillon kriek" })).items;
+    const drunk = await request(app.getHttpServer())
+      .post("/api/v1/checkins")
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID))
+      .field("beerId", String(kriek.id))
+      .field("drankAt", "2025-10-01T18:00:00.000Z")
+      .field("place", "Le Bistrot")
+      .field("format", "bottle");
+    expect(drunk.status).toBe(HttpStatus.CREATED);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("AC2 answers the exact results of cantillon without the approximate flag", async () => {
+    const page = await getBeersPage({ q: "cantillon" });
+
+    expect(page.isApproximate).toBe(false);
+    expect(page.total).toBe(CANTILLON_BEER_COUNT + 1);
+    expect(namesOf(page)).toEqual([
+      "Cantillon Gueuze 100 % Lambic Bio",
+      "Cantillon Kriek 100 % Lambic Bio",
+      "Cantillon Rosé de Gambrinus",
+      "Pirate Ale",
+    ]);
+  });
+
+  it("AC1 answers the beers of Brasserie Cantillon for cantilon and flags the page as approximate", async () => {
+    const exact = await getBeersPage({ q: "cantillon" });
+
+    const page = await getBeersPage({ q: "cantilon" });
+
+    expect(page.isApproximate).toBe(true);
+    expect(page.total).toBe(CANTILLON_BEER_COUNT + 1);
+    expect(page.items.every((item) => item.breweryName === "Brasserie Cantillon")).toBe(true);
+    expect(page.items).toEqual(exact.items);
+    expect(page).toEqual({ ...exact, isApproximate: true });
+    expect(Object.keys(page).sort()).toEqual(["facets", "isApproximate", "items", "page", "size", "total"]);
+  });
+
+  it("E6 ignores the short words of a mixed search such as la cantilon", async () => {
+    const exact = await getBeersPage({ q: "cantillon" });
+
+    const page = await getBeersPage({ q: "la cantilon" });
+
+    expect(page.isApproximate).toBe(true);
+    expect(page.items).toEqual(exact.items);
+  });
+
+  it("AC1 flags a request without any search as not approximate", async () => {
+    const page = await getBeersPage({});
+
+    expect(page.isApproximate).toBe(false);
+    expect(page.total).toBeGreaterThan(CANTILLON_BEER_COUNT);
+  });
+
+  it("AC3 applies the degree filter to the approximate results and to their facets", async () => {
+    const exact = await getBeersPage({ q: "cantillon", abvMax: 6 });
+
+    const page = await getBeersPage({ q: "cantilon", abvMax: 6 });
+
+    expect(page.isApproximate).toBe(true);
+    expect(page.total).toBe(CANTILLON_BEER_COUNT);
+    expect(namesOf(page)).not.toContain("Pirate Ale");
+    expect(page).toEqual({ ...exact, isApproximate: true });
+  });
+
+  it("AC3 applies the country filter in both directions", async () => {
+    const french = await getBeersPage({ q: "cantilon", country: "FR" });
+    const belgian = await getBeersPage({ q: "cantilon", country: "BE" });
+
+    expect(namesOf(french)).toEqual(["Pirate Ale"]);
+    expect(french.isApproximate).toBe(true);
+    expect(namesOf(belgian)).toHaveLength(CANTILLON_BEER_COUNT);
+    expect(belgian.isApproximate).toBe(true);
+    expect(namesOf(belgian)).not.toContain("Pirate Ale");
+  });
+
+  it("AC3 gives no fallback and no flag when the filter excludes every close beer", async () => {
+    const page = await getBeersPage({ q: "cantilon", abvMin: BEER_ABV_MAX_PERCENT });
+
+    expect(page.isApproximate).toBe(false);
+    expect(page.total).toBe(0);
+    expect(page.items).toEqual([]);
+  });
+
+  it("AC3 sorts the approximate results", async () => {
+    const exact = await getBeersPage({ q: "cantillon", sort: "abv" });
+
+    const page = await getBeersPage({ q: "cantilon", sort: "abv" });
+
+    expect(page.isApproximate).toBe(true);
+    expect(namesOf(page)[0]).toBe("Pirate Ale");
+    expect(namesOf(page)).toEqual(namesOf(exact));
+  });
+
+  it("AC3 paginates the approximate results", async () => {
+    const exact = await getBeersPage({ q: "cantillon", page: 2, size: 3 });
+
+    const page = await getBeersPage({ q: "cantilon", page: 2, size: 3 });
+
+    expect(page.isApproximate).toBe(true);
+    expect(page.page).toBe(2);
+    expect(page.size).toBe(3);
+    expect(page.total).toBe(CANTILLON_BEER_COUNT + 1);
+    expect(namesOf(page)).toEqual(["Pirate Ale"]);
+    expect(page.items).toEqual(exact.items);
+  });
+
+  it("AC3 applies the status filter to the approximate results, in both directions", async () => {
+    const wishlist = await getBeersPage({ q: "cantilon", status: "wishlist" });
+    const drunk = await getBeersPage({ q: "cantilon", status: "drunk" });
+    const untasted = await getBeersPage({ q: "cantilon", status: "untasted" });
+
+    expect(wishlist.isApproximate).toBe(true);
+    expect(wishlist.total).toBe(1);
+    expect(namesOf(wishlist)).toEqual(["Cantillon Gueuze 100 % Lambic Bio"]);
+    expect(wishlist.items[0].inWishlist).toBe(true);
+    expect(drunk.isApproximate).toBe(true);
+    expect(drunk.total).toBe(1);
+    expect(namesOf(drunk)).toEqual(["Cantillon Kriek 100 % Lambic Bio"]);
+    expect(untasted.isApproximate).toBe(true);
+    expect(untasted.total).toBe(CANTILLON_BEER_COUNT);
+    expect(namesOf(untasted)).toEqual(["Cantillon Gueuze 100 % Lambic Bio", "Cantillon Rosé de Gambrinus", "Pirate Ale"]);
+  });
+
+  it("AC4 finds the community beer Mousse du Zinc with the search mouse zinc", async () => {
+    const page = await getBeersPage({ q: "mouse zinc" });
+
+    expect(page.total).toBe(1);
+    expect(page.isApproximate).toBe(true);
+    expect(namesOf(page)).toEqual(["Mousse du Zinc"]);
+    expect(page.items[0].source).toBe("community");
+  });
+
+  it("AC5 gives an empty page without the approximate flag for a term without word of 4 letters", async () => {
+    const page = await getBeersPage({ q: "xyz" });
+
+    expect(page.isApproximate).toBe(false);
+    expect(page.total).toBe(0);
+    expect(page.items).toEqual([]);
+  });
+
+  it("AC6 gives an empty page without the approximate flag when no word approaches", async () => {
+    const page = await getBeersPage({ q: "xyzwqk" });
+
+    expect(page.isApproximate).toBe(false);
+    expect(page.total).toBe(0);
+    expect(page.items).toEqual([]);
+    expect(page.facets).toEqual({ families: [], countries: [], formats: [] });
   });
 });

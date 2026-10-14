@@ -1,10 +1,10 @@
 import type { Mock } from "vitest";
 import VenueService from "@/api/venues/venueService";
 import { EMPTY_VENUE_QUERY } from "@/types/mappers/venue/venueQueryMapper";
-import { fetchVenue, fetchVenueBeers, fetchVenues } from "@/utils/queryFunctions/venueQueryFunctions";
+import { fetchVenue, fetchVenueBeers, fetchVenues, searchVenues } from "@/utils/queryFunctions/venueQueryFunctions";
 
 vi.mock("@/api/venues/venueService", () => ({
-  default: { getAll: vi.fn(), getBeers: vi.fn(), getById: vi.fn() },
+  default: { getAll: vi.fn(), getBeers: vi.fn(), getById: vi.fn(), search: vi.fn() },
 }));
 
 describe("fetchVenues", () => {
@@ -20,6 +20,23 @@ describe("fetchVenues", () => {
     await expect(fetchVenues(query)).resolves.toBe(venues);
     expect(VenueService.getAll).toHaveBeenCalledTimes(1);
     expect(VenueService.getAll).toHaveBeenCalledWith(query);
+  });
+});
+
+describe("searchVenues", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("delegates to VenueService.search with the query and returns its result, not the plain list", async () => {
+    const result = { venues: [{ id: 1, name: "La Taverne de Cluny" }], isApproximate: true };
+    (VenueService.search as Mock).mockResolvedValue(result);
+    const query = { ...EMPTY_VENUE_QUERY, q: "taverne cluni" };
+
+    await expect(searchVenues(query)).resolves.toBe(result);
+    expect(VenueService.search).toHaveBeenCalledTimes(1);
+    expect(VenueService.search).toHaveBeenCalledWith(query);
+    expect(VenueService.getAll).not.toHaveBeenCalled();
   });
 });
 
