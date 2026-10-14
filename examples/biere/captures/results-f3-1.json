@@ -1,0 +1,147 @@
+[
+ {
+  "id": "A.chargement",
+  "ok": true,
+  "detail": "Lieux (14) ; 14 reperes"
+ },
+ {
+  "id": "A.sans-erreur",
+  "ok": true,
+  "detail": "5xx=0 console=0 "
+ },
+ {
+  "id": "A.tuiles-indisponibles-non-bloquant",
+  "ok": true,
+  "detail": "message affiche et lieux utilisables"
+ },
+ {
+  "id": "A.reperes-pas-seulement-la-couleur",
+  "ok": true,
+  "detail": "chaque repere porte un glyphe (✓ ? ✕ –)"
+ },
+ {
+  "id": "A.oracle-recouvrement-controles",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "id": "A.sans-debordement",
+  "ok": true,
+  "detail": "overflow/unreachable"
+ },
+ {
+  "id": "A.reperes-44px",
+  "ok": true,
+  "detail": "plus petit repere : 44 px"
+ },
+ {
+  "id": "B.liste",
+  "ok": true,
+  "detail": "13 lignes"
+ },
+ {
+  "id": "B.fiche-lieu",
+  "ok": true,
+  "detail": "fiche « Au Général La Fayette » ; un seul dialogue : 1"
+ },
+ {
+  "id": "B.bieres-par-famille-et-etat",
+  "ok": true,
+  "detail": "Au Général La Fayette | Bar | Adresse | 52 rue La Fayette, 75009 Paris | Ville | Paris | Brasserie Belle Époque du 9e, réputée pour son choix de bières pression. | Bières | 9 bières à découvrir ici | "
+ },
+ {
+  "id": "C.vote-envoye-une-fois",
+  "ok": true,
+  "detail": "1 POST votes (201)"
+ },
+ {
+  "id": "C.apres-vote-revoter-dans",
+  "ok": true,
+  "detail": "Vous pourrez revoter dans 24 h"
+ },
+ {
+  "id": "C.boutons-desactives-apres-vote",
+  "ok": true,
+  "detail": "Toujours là désactivé pendant 24 h"
+ },
+ {
+  "id": "C.409-avec-delai",
+  "ok": true,
+  "detail": "{\"message\":\"You already voted for this beer here in the last 24 hours. Try again in 24 hours.\"}"
+ },
+ {
+  "id": "D.filtre-type",
+  "ok": true,
+  "detail": "14 -> 1 ; url /carte?type=brewery"
+ },
+ {
+  "id": "D.badge-filtres-actifs",
+  "ok": true,
+  "detail": "pastille « 1\n1 filtre actif » a cote du bouton"
+ },
+ {
+  "id": "D.url-partageable",
+  "ok": true,
+  "detail": "apres rechargement : 1"
+ },
+ {
+  "id": "D.coherence-api",
+  "ok": true,
+  "detail": "ecran 1 / API (toute la France) 7"
+ },
+ {
+  "id": "D.reinitialiser",
+  "ok": true,
+  "detail": "/carte"
+ },
+ {
+  "id": "E.puce-biere",
+  "ok": true,
+  "detail": "puce visible : true ; nom de la bière dans la puce : true"
+ },
+ {
+  "id": "E.retirer-puce",
+  "ok": true,
+  "detail": "1 -> 14 ; url /carte"
+ },
+ {
+  "id": "E.biere-inconnue-sans-plantage",
+  "ok": true,
+  "detail": "page rendue"
+ },
+ {
+  "id": "E.parametres-invalides-ignores",
+  "ok": true,
+  "detail": "Lieux (14)"
+ },
+ {
+  "id": "F.autour-de-moi-tri-par-distance",
+  "ok": true,
+  "detail": "10 distances : 400,560,780,830 ..."
+ },
+ {
+  "id": "F.refus-geolocalisation-message",
+  "ok": true,
+  "detail": "message de refus affiche"
+ },
+ {
+  "id": "F.refus-carte-utilisable",
+  "ok": true,
+  "detail": "reperes toujours la"
+ },
+ {
+  "id": "G.nom-de-lieu-avec-html-affiche-en-texte",
+  "ok": true,
+  "detail": "texte litteral affiche=true, script execute=false"
+ },
+ {
+  "id": "H.panne-api-alerte-et-reessayer",
+  "ok": true,
+  "detail": "Impossible de charger les lieux."
+ },
+ {
+  "id": "I.360px-carte",
+  "ok": true,
+  "detail": "360x740"
+ }
+]

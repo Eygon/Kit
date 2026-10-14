@@ -32,7 +32,7 @@
 - Observation produit : sans filtre de bière, l'état d'un lieu = meilleur état de ses bières, donc 32 lieux sur 36 sont « confirmés » : le repère n'est vraiment informatif qu'avec le filtre bière ou famille. Défaut théorique noté (pas corrigé) : une violation d'unicité en base ne serait pas traduite en 409 (impossible avec SQLite synchrone, possible avec un autre moteur).
 - Limite du bac à sable : les tuiles OpenStreetMap ne sont pas joignables ; l'écran affiche « Fond de carte indisponible » et reste utilisable (vérifié).
 - Kit : nouvel oracle `covered` (contrôle recouvert par un autre élément), documenté dans sk-e2e.md ; `unreachable` ignore le texte masqué visuellement.
-- Chiffres finaux : front 120 fichiers / 1034 tests, back 114 fichiers / 1078 tests, E2E F1 36/37 (anglais : F4), F2 38/38, F3 29/29, API F2 49/49, F3 48/48.
+- Chiffres finaux : front 120 fichiers / 1034 tests, back 114 fichiers / 1078 tests, E2E F1 37/37 (anglais levé par F4), F2 38/38, F3 29/29, API F2 49/49, F3 48/48.
 
 ## F4 Profil, badges, stats (13-14 octobre)
 - Prep Opus : back US1-4 (stats, badges, série de jours, Sentinelle/Cartographe) || front US5-11 (langue, anneaux par famille, partage, badges, stats, histogramme 12 mois, envies).
@@ -52,3 +52,7 @@
 - Review-lens : back 6 pistes (bornes des niveaux, concurrence, facettes sous `minRating`) ; front 10 fichiers de test + 1 défaut noté (avatar de l'auteur d'un avis sans la couleur de l'auteur, à traiter avec F5).
 - Passage réel : 46/46 (API : 403 sans dégustation, 400 sur 8 notes invalides, remplacement qui conserve `createdAt`, tri/filtre par note ; UI : niveaux, histogramme, formulaire à curseurs, publication, édition, suppression avec confirmation, panne API, 360 px).
 - Chiffres : front 189 fichiers / ~1880 tests, back 139 fichiers / 1525 tests.
+
+## Non-régression complète (14 octobre, après fusion F1-F7)
+- Les quatre suites navigateur précédentes sur le dev à jour : F1 36/37 → l'unique échec était l'assertion de la limite « anglais » (maintenant levée par F4, assertion corrigée), F2 37/37, F3 29/29, G (carte+point) 35/35. Aucune régression de F4/F6/F7 sur F1-F3.
+- Polish 1 (mois en initiale, Journal, un seul bandeau de carte) : 3 contrôles 360 px sans débordement.

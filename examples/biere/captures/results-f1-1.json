@@ -1,0 +1,187 @@
+[
+ {
+  "id": "1.chargement",
+  "ok": true,
+  "detail": "20 cartes, en-tete « Encyclopédie / 0 / 120 découvertes »"
+ },
+ {
+  "id": "1.sans-erreur",
+  "ok": true,
+  "detail": "5xx=0 console=0 "
+ },
+ {
+  "id": "1.pas-de-debordement-horizontal",
+  "ok": true,
+  "detail": "debordement 0 px"
+ },
+ {
+  "id": "1.oracle-debordement",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "id": "1.oracle-atteignable",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "id": "1.oracle-contraste",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "id": "1.placeholder-lisible",
+  "ok": true,
+  "detail": "placeholder « Rechercher une bière ou une brasserie » entier"
+ },
+ {
+  "id": "2.voir-plus",
+  "ok": true,
+  "detail": "120 cartes en 5 appuis (SC-001 : 5 au plus)"
+ },
+ {
+  "id": "2.pas-de-doublon",
+  "ok": true,
+  "detail": "120 ids distincts"
+ },
+ {
+  "id": "2.sans-erreur",
+  "ok": true,
+  "detail": "5xx=0 console=0"
+ },
+ {
+  "id": "3.recherche-sans-accent",
+  "ok": true,
+  "detail": "3 cartes ; url /?q=weissbrau"
+ },
+ {
+  "id": "3.compteur-resultats",
+  "ok": true,
+  "detail": "« 3 résultats »"
+ },
+ {
+  "id": "3.url-partageable",
+  "ok": true,
+  "detail": "apres rechargement : 3 cartes, champ « weissbrau »"
+ },
+ {
+  "id": "3.etat-vide",
+  "ok": true,
+  "detail": "0 cartes ; message vide 1"
+ },
+ {
+  "id": "3.pourcent-litteral",
+  "ok": true,
+  "detail": "q=% -> 3 carte(s) (les 3 Cantillon « 100 % »)"
+ },
+ {
+  "id": "3.injection-sql",
+  "ok": true,
+  "detail": "0 cartes, pas d erreur"
+ },
+ {
+  "id": "4.puce-famille",
+  "ok": true,
+  "detail": "Stout (6) -> 6 cartes ; url /?family=stout"
+ },
+ {
+  "id": "4.historique-retour",
+  "ok": true,
+  "detail": "retour : /"
+ },
+ {
+  "id": "4.rangee-puces-defilante",
+  "ok": true,
+  "detail": "{\"scrolls\":true,\"cw\":358,\"sw\":1625}"
+ },
+ {
+  "id": "5.tiroir-dans-ecran",
+  "ok": true,
+  "detail": "{\"x\":0,\"y\":177.609375,\"width\":390,\"height\":666.390625}"
+ },
+ {
+  "id": "5.cibles-tactiles-radios",
+  "ok": true,
+  "detail": "28 choix, 0 sous 40 px de haut : "
+ },
+ {
+  "id": "5.tiroir-debordement",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "id": "5.sections-tiroir",
+  "ok": true,
+  "detail": "sections vues : Famille,Degré,Pays,Format,Tri"
+ },
+ {
+  "id": "5.compteur-live",
+  "ok": true,
+  "detail": "« Voir 120 bières » -> « Voir 49 bières »"
+ },
+ {
+  "id": "5.appliquer",
+  "ok": true,
+  "detail": "url /?country=BE ; 20 cartes"
+ },
+ {
+  "id": "5.coherence-api",
+  "ok": true,
+  "detail": "ecran 49 / API 49"
+ },
+ {
+  "id": "5.reinitialiser",
+  "ok": true,
+  "detail": "url /"
+ },
+ {
+  "id": "6.fiche",
+  "ok": true,
+  "detail": "url /bieres/58 ; contient nom+brasserie"
+ },
+ {
+  "id": "6.fiche-debordement",
+  "ok": true,
+  "detail": "h-overflow 0"
+ },
+ {
+  "id": "6.fiche-onglet-courant",
+  "ok": true,
+  "detail": "onglet courant « Encyclopédie »"
+ },
+ {
+  "id": "6.id-invalide",
+  "ok": true,
+  "detail": "« Retour | Bière inconnue |  | Cette bière n'est pas dans l'encyclopédie. |  | Retour à l'En »"
+ },
+ {
+  "id": "6.biere-inconnue",
+  "ok": true,
+  "detail": "404 -> etat biere inconnue"
+ },
+ {
+  "id": "6.sans-erreur",
+  "ok": true,
+  "detail": "5xx=0"
+ },
+ {
+  "id": "7.etat-erreur",
+  "ok": true,
+  "detail": "bouton Réessayer true ; cartes 0"
+ },
+ {
+  "id": "7.reessayer",
+  "ok": true,
+  "detail": "20 cartes apres Reessayer"
+ },
+ {
+  "id": "8.anglais-detection-navigateur (limite connue : langue fixe fr, choix en F4)",
+  "ok": false,
+  "detail": "« Encyclopedia |  | 0 / 120 discovered |  | Filters | All | Lager (19) | Pilsner (5) | Pale Ale (2 »"
+ },
+ {
+  "id": "8.360px-sans-debordement",
+  "ok": true,
+  "detail": "360x740"
+ }
+]

@@ -1,0 +1,187 @@
+[
+ {
+  "id": "A.compteur-0",
+  "ok": true,
+  "detail": "0 / 120 découvertes"
+ },
+ {
+  "id": "A.anneau-accessible",
+  "ok": true,
+  "detail": "{\"now\":\"0\",\"max\":\"120\"}"
+ },
+ {
+  "id": "A.carte-grisee",
+  "ok": true,
+  "detail": "??? | Pas encore goûtée | 3 Monts |  | Brasserie de Saint-Sylvestre |  | Bière d"
+ },
+ {
+  "id": "A.sans-debordement",
+  "ok": true,
+  "detail": "h-overflow 0"
+ },
+ {
+  "id": "A.sans-erreur",
+  "ok": true,
+  "detail": "5xx=0 console=0"
+ },
+ {
+  "id": "B.fiche-historique-vide",
+  "ok": true,
+  "detail": "etat vide"
+ },
+ {
+  "id": "B.envie-optimiste",
+  "ok": true,
+  "detail": "aria-pressed juste apres l appui : true"
+ },
+ {
+  "id": "B.envie-en-base",
+  "ok": true,
+  "detail": "[{\"beerId\":58,\"beerName\":\"3 Monts\",\"addedAt\":\"2026-10-14T01:06:47.000Z\"}]"
+ },
+ {
+  "id": "B.envie-persistante",
+  "ok": true,
+  "detail": "apres rechargement"
+ },
+ {
+  "id": "B.double-appui-coherent",
+  "ok": true,
+  "detail": "0 en base apres double appui (retire puis remis ou inverse, jamais de doublon)"
+ },
+ {
+  "id": "C.validation-lieu-format",
+  "ok": true,
+  "detail": "POST=0 ; message vu : Indiquez le lieu."
+ },
+ {
+  "id": "C.champs-en-erreur-signales",
+  "ok": true,
+  "detail": "2 champ(s) aria-invalid"
+ },
+ {
+  "id": "C.date-max-maintenant",
+  "ok": true,
+  "detail": "max=2026-10-14T01:06"
+ },
+ {
+  "id": "C.date-future-refusee",
+  "ok": true,
+  "detail": "aucun POST avec une date dans le futur"
+ },
+ {
+  "id": "C.note-clavier",
+  "ok": true,
+  "detail": "4,5"
+ },
+ {
+  "id": "C.compteur-commentaire",
+  "ok": true,
+  "detail": "24 / 500"
+ },
+ {
+  "id": "C.feuille-sans-debordement-atteignable",
+  "ok": true,
+  "detail": "[[],[]]"
+ },
+ {
+  "id": "C.envoi-unique-double-appui",
+  "ok": true,
+  "detail": "1 POST /checkins (201)"
+ },
+ {
+  "id": "C.reussite-mascotte-captured",
+  "ok": true,
+  "detail": "mascotte captured=1 ; texte : capturée !"
+ },
+ {
+  "id": "C.5-aromes-au-plus-en-base",
+  "ok": true,
+  "detail": "5 aromes enregistres sur 6 clics"
+ },
+ {
+  "id": "C.donnees-en-base",
+  "ok": true,
+  "detail": "{\"id\":1,\"beerId\":58,\"beerName\":\"3 Monts\",\"drankAt\":\"2026-10-14T00:56:00.000Z\",\"place\":\"Bar du Coin\",\"rating\":4.5,\"aromas\":[\"fruity\",\"citrus\",\"hoppy\",\"floral\",\"spicy\"],\"format\":\"can\",\"price\":3.5,\"comment\":\"Très bon\\nsur deux lignes\",\"photoId\":null}"
+ },
+ {
+  "id": "C.fuseau-date-correct",
+  "ok": true,
+  "detail": "ecart 58 s entre l heure saisie et la base (UTC)"
+ },
+ {
+  "id": "D.historique",
+  "ok": true,
+  "detail": "Mon historique | 14/10/2026 | Bar du Coin | ★ 4,5 | Note : 4,5 sur 5 | Où en boire | Le Supercoin | Bar · Paris | ✓ | Confirmée | Confirmée il y a 3 jours par 4 personnes | Au Vieux de la Vieille | "
+ },
+ {
+  "id": "D.2e-checkin-pas-de-mascotte",
+  "ok": true,
+  "detail": "mascotte captured=0 (1ere decouverte seulement)"
+ },
+ {
+  "id": "D.2-checkins",
+  "ok": true,
+  "detail": 2
+ },
+ {
+  "id": "D.historique-ordre",
+  "ok": true,
+  "detail": "plus recent en haut"
+ },
+ {
+  "id": "E.compteur-1",
+  "ok": true,
+  "detail": "1 / 120 découvertes"
+ },
+ {
+  "id": "E.carte-tamponnee",
+  "ok": true,
+  "detail": "1 carte(s) tamponnee(s) : Bue le 14/10/2026 | 3 Monts |  | Brasserie de Saint-Sylvestre |  | Biè"
+ },
+ {
+  "id": "E.filtre-bues-compteur",
+  "ok": true,
+  "detail": "Voir 1 bière"
+ },
+ {
+  "id": "E.filtre-bues",
+  "ok": true,
+  "detail": "url /?status=drunk ; 1 carte"
+ },
+ {
+  "id": "E.filtre-jamais-goutees",
+  "ok": true,
+  "detail": "Voir 119 bières"
+ },
+ {
+  "id": "F.autre-utilisateur-0",
+  "ok": true,
+  "detail": "Bob voit 0 / 120"
+ },
+ {
+  "id": "G.panne-feuille-ouverte-donnees-gardees",
+  "ok": true,
+  "detail": "dialogue ouvert=1, lieu conserve « Test panne »"
+ },
+ {
+  "id": "G.panne-un-seul-message",
+  "ok": true,
+  "detail": "1 message(s) d erreur"
+ },
+ {
+  "id": "G.reessai-ok",
+  "ok": true,
+  "detail": "1 check-in apres reessai"
+ },
+ {
+  "id": "G2.commentaire-500-avec-retour-ligne",
+  "ok": true,
+  "detail": "1 check-in (500 caracteres saisis dont un retour a la ligne) ; POST [201]"
+ },
+ {
+  "id": "H.360px-feuille",
+  "ok": true,
+  "detail": "360x740"
+ }
+]

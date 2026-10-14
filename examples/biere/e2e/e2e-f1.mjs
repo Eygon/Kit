@@ -80,7 +80,7 @@ await p.unroute("**/api/v1/beers?**"); await p.unroute("**/api/v1/beers"); await
 log("7.reessayer", (await cards().count()) === 20, `${await cards().count()} cartes apres Reessayer`);
 // 8. anglais + petit ecran
 const ctxEn = await b.newContext({ viewport: { width: 360, height: 740 }, locale: "en-US", hasTouch: true, isMobile: true }); const pe = await ctxEn.newPage(); await pe.goto(URL0); await pe.waitForLoadState("networkidle"); await pe.waitForTimeout(400);
-const en = await pe.locator("body").innerText(); log("8.anglais-detection-navigateur (limite connue : langue fixe fr, choix en F4)", /Encyclopedia/.test(en) && /beers/.test(en) && /Filters/.test(en), `« ${en.slice(0, 80).replace(/\n/g, " | ")} »`);
+const en = await pe.locator("body").innerText(); log("8.anglais-detection-navigateur (levee par F4 : langue detectee + selecteur)", /Encyclopedia/.test(en) && /discovered/.test(en) && /Filters/.test(en), `« ${en.slice(0, 80).replace(/\n/g, " | ")} »`);
 log("8.360px-sans-debordement", (await pe.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0 && (await overflowing(pe)).length === 0, "360x740");
 await pe.screenshot({ path: "f1-en-360.png" });
 writeFileSync(`results-f1-${RUN}.json`, JSON.stringify(results, null, 1)); await b.close();

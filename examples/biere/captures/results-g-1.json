@@ -1,0 +1,177 @@
+[
+ {
+  "id": "P.apercu-photo",
+  "ok": true,
+  "detail": "1 image(s), bouton Retirer present"
+ },
+ {
+  "id": "P.retirer-photo",
+  "ok": true,
+  "detail": "aperçu retiré"
+ },
+ {
+  "id": "P.refus-6Mo-avant-envoi",
+  "ok": true,
+  "detail": "La photo dépasse 5 Mo."
+ },
+ {
+  "id": "P.refus-fichier-non-image",
+  "ok": true,
+  "detail": "Choisissez une image JPEG, PNG ou WebP."
+ },
+ {
+  "id": "P.envoi-multipart-unique",
+  "ok": true,
+  "detail": "1 POST (201)"
+ },
+ {
+  "id": "P.photo-enregistree",
+  "ok": true,
+  "detail": "photoId 5ce48760…"
+ },
+ {
+  "id": "P.photo-servie",
+  "ok": true,
+  "detail": 200
+ },
+ {
+  "id": "P.vignette-dans-lhistorique",
+  "ok": true,
+  "detail": "{\"ok\":true,\"alt\":\"Photo de la dégustation\"}"
+ },
+ {
+  "id": "P.photo-en-grand",
+  "ok": true,
+  "detail": "1 image(s) dans la fenêtre"
+ },
+ {
+  "id": "P.echap-ferme-la-photo",
+  "ok": true,
+  "detail": "dialogue fermé"
+ },
+ {
+  "id": "P.photo-cassee-repli",
+  "ok": true,
+  "detail": "img restantes 0 (pictogramme de repli)"
+ },
+ {
+  "id": "J.journal-vide",
+  "ok": true,
+  "detail": "Aucune dégustation pour l'instant"
+ },
+ {
+  "id": "J.journal-liste",
+  "ok": true,
+  "detail": "24 entrées, Voir plus true"
+ },
+ {
+  "id": "J.sans-debordement-ni-recouvrement",
+  "ok": true,
+  "detail": "[[],[]]"
+ },
+ {
+  "id": "J.pagination",
+  "ok": true,
+  "detail": "24 -> 29"
+ },
+ {
+  "id": "J.ordre-recent-dabord-api",
+  "ok": true,
+  "detail": "ordre de la première page"
+ },
+ {
+  "id": "J.lien-vers-la-fiche",
+  "ok": true,
+  "detail": "25 liens"
+ },
+ {
+  "id": "J.confirmation-avant-suppression",
+  "ok": true,
+  "detail": "Supprimer cette dégustation ? | Annuler | Supprimer"
+ },
+ {
+  "id": "J.annuler-ne-supprime-pas",
+  "ok": true,
+  "detail": "total inchangé"
+ },
+ {
+  "id": "J.suppression-unique",
+  "ok": true,
+  "detail": "1 DELETE (204) ; une seule suppression effective"
+ },
+ {
+  "id": "J.total-decremente",
+  "ok": true,
+  "detail": "25 -> 24"
+ },
+ {
+  "id": "J.photo-supprimee-avec-lentree",
+  "ok": true,
+  "detail": "vérifié côté API (49/49)"
+ },
+ {
+  "id": "W.ou-en-boire",
+  "ok": true,
+  "detail": "1 section"
+ },
+ {
+  "id": "W.voir-sur-la-carte-avec-puce",
+  "ok": true,
+  "detail": "/carte?beer=1"
+ },
+ {
+  "id": "R.bouton-signaler",
+  "ok": true,
+  "detail": "Au Général La Fayette"
+ },
+ {
+  "id": "R.recherche-minimum-2-caracteres",
+  "ok": true,
+  "detail": "1 caractère : pas de recherche ou indication"
+ },
+ {
+  "id": "R.resultats-recherche",
+  "ok": true,
+  "detail": "3 boutons"
+ },
+ {
+  "id": "R.signalement-unique",
+  "ok": true,
+  "detail": "1 POST (201)"
+ },
+ {
+  "id": "R.bière-ajoutée-au-lieu",
+  "ok": true,
+  "detail": "10 bières"
+ },
+ {
+  "id": "R.409-un-seul-message",
+  "ok": true,
+  "detail": "1 message(s) « déjà signalée »"
+ },
+ {
+  "id": "V.appui-long-puis-confirmer-ouvre-le-formulaire",
+  "ok": true,
+  "detail": "Proposer un lieu |  | Point choisi : 48.8299, 2.3264 |  | Nom du lieu | Type de lieu | Bar | Cave | Brasserie | Adresse "
+ },
+ {
+  "id": "V.validation-champs",
+  "ok": true,
+  "detail": "formulaire vide refusé sans requête"
+ },
+ {
+  "id": "V.creation-unique",
+  "ok": true,
+  "detail": "1 POST (201)"
+ },
+ {
+  "id": "V.lieu-cree-en-base",
+  "ok": true,
+  "detail": "présent dans GET /venues"
+ },
+ {
+  "id": "Z.erreurs-console",
+  "ok": true,
+  "detail": "pas de 5xx"
+ }
+]
