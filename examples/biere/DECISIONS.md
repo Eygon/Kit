@@ -35,6 +35,12 @@ Si tu ne dis rien, tout reste tel quel.
 | 30 | **Le degré est obligatoire (0 à 20, un chiffre après la virgule)** pour proposer une bière, même règle côté API et côté écran | Une carte sans degré casserait le tri, les statistiques et le filtre |
 | 31 | **Modifier ou supprimer sa bière proposée est reporté** : pour l'instant une proposition est définitive | Réduit le run ; à reprendre si tu le veux |
 
+| 32 | **Modifier une dégustation (F13)** : on peut changer lieu, date, note, arômes, format, prix et commentaire, **pas la bière ni la photo** ; pour une mauvaise bière, un lien « Mauvaise bière ? Supprimer et recréer » ouvre la confirmation de suppression | Changer la bière déplacerait la découverte du Pokédex et les badges |
+| 33 | **PATCH d'une dégustation d'un autre = 403** (404 si elle n'existe pas), comme la lecture et la suppression | Standard `authorization/resource-access`, même comportement partout |
+| 34 | **Brouillon de « Je l'ai bue » gardé en mémoire de session**, par bière et par utilisateur, perdu au rechargement de la page, jamais envoyé au serveur, photo comprise | Évite de perdre un commentaire sur une fermeture accidentelle sans stocker de données |
+| 35 | **Recherche tolérante aux fautes** seulement quand il n'y a aucun résultat exact : 1 faute pour les mots de 4 à 7 lettres, 2 à partir de 8, mots de moins de 4 lettres ignorés ; le résultat est signalé (« Aucun résultat exact : voici des bières / lieux proches ») ; avec un filtre pays ou famille actif, les compteurs de facettes du repli montrent moins de valeurs que la recherche exacte (limite connue) | Aide sans noyer les vraies recherches vides |
+| 36 | **Page « Page introuvable »** au lieu de la redirection silencieuse vers l'Accueil | Une adresse mal saisie doit se voir |
+
 ## Choix techniques
 
 | # | Décision | Pourquoi |
