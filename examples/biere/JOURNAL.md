@@ -89,3 +89,10 @@
 ## Polish 4 + kit (14 octobre, après-midi)
 - Back : `authorAvatar` dans `ReviewDto` (prévu au contrat F5, jamais fait) ; histogramme des notes à l'étoile la plus proche (0,5 → 1 étoile, 4,5 → 5). Front : avatar de l'auteur dans les avis, « Nouvelle collection » dans sa section, message de limite à 20 collections (relecture de la liste sur un 409, le standard interdit de lire le message du back), barre d'outils de la carte sur 2 rangées (noms accessibles conservés), placeholder « Bière ou brasserie ». Non-régression navigateur sur la version finale : F2 37, F3 29, G 35, F5 68, collections 62, F6 39, F7 46, F8 17 (tous verts).
 - Kit : liste permanente de « trous de tests » dans le brief worker (`us-sonnet.md`) ; règle `route-without-tab-owner` dans `audit-lint` ; 88 tests.
+
+## F11 Lieux de dégustation liés à la carte (14 octobre, soir)
+- Back 5 US + front 7 US en parallèle, prep Opus (14 hypothèses H1-H14, 4 réponses du superviseur), 12 US sur 12 en PASS dès le premier passage, 0 escalade, 36 agents, 4,1 M de jetons de sous-agents.
+- Fusion sans conflit. Tsc et eslint propres ; back 166 fichiers / 2 079 tests, front 262 fichiers / 2 906 tests.
+- Review-lens back : 3 pistes confirmées (migration d'une table existante sans la colonne, 404 sans lecture de visites, filtre `visited` combiné aux autres filtres), 5 tests rouges sous mutation, aucun défaut de prod.
+- Passage réel : 53/53 (API réelle avec démo, 390 et 360 px) : lien suggestion → dégustation liée, texte libre sans lien, retrait du lien à la frappe, accents et ville, panne des suggestions, fiche « Vous avez bu ici 3 fois », adresse partageable, filtre carte, Journal en lien (clavier compris), suggestions de 52 px à 360 px. Les 7 échecs du premier tour venaient de mon script (forme des réponses, libellés), pas du produit.
+- Kit : règle sk-prep « un champ obligatoire ajouté à une entité impose les types dérivés (`Omit`/`Pick`) dans les chemins de la US » (vu en F12 US2).

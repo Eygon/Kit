@@ -25,6 +25,11 @@ Si tu ne dis rien, tout reste tel quel.
 | 15 | **Degré moyen et pays** comptés par bière découverte ; **famille préférée** par dégustation (F4) | — |
 | 16 | **Réessayer recharge la page** quand une page lourde ne s'est pas chargée (F9) | Le navigateur garde l'échec en mémoire : sinon le bouton ne fait rien |
 
+| 24 | **Lieu d'une dégustation (F11)** : le champ « Lieu » propose les lieux de la carte (nom ou ville, sans casse ni accents) ; en choisir un lie la dégustation à ce lieu ; la moindre frappe ensuite retire le lien ; un texte libre reste possible et reste obligatoire | Évite les fautes de frappe sans interdire « Chez moi » |
+| 25 | **« Vous avez bu ici N fois (dernière fois le …) »** compte seulement les dégustations liées au lieu, jamais celles dont le texte ressemble au nom ; les anciennes dégustations ne sont pas rattrapées (F11) | Pas de devinette sur des textes libres. Une base neuve crée la démo déjà liée |
+| 26 | **Un lieu inconnu à l'enregistrement = erreur 404 « Venue N not found. »** ; le filtre « Lieux où j'ai bu » est dans l'adresse de la carte (`visited=1`) et une autre valeur côté API = 400 (F11) | Même règle que pour les bières inconnues |
+| 27 | **La carte s'ouvre sur un lieu par l'adresse** (`/carte?venue=N`) ; fermer la fiche retire le lieu de l'adresse ; lieu introuvable = message « Ce lieu n'est plus sur la carte. » ; dans le Journal et l'historique d'une bière, le lieu lié est un lien (F11) | Lien partageable, et Journal et carte se parlent |
+
 ## Choix techniques
 
 | # | Décision | Pourquoi |
