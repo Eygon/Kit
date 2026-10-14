@@ -3,8 +3,11 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStatePanel";
 import { PageHeader } from "@/components/elements/pageHeader/pageHeader";
+import { BeerLevels } from "@/pages/beerDetail/components/elements/beerLevels/beerLevels";
 import { CheckinHistory } from "@/pages/beerDetail/components/widgets/checkinHistory/checkinHistory";
 import { CheckinSheet } from "@/pages/beerDetail/components/widgets/checkinSheet/checkinSheet";
+import { ReviewsSection } from "@/pages/beerDetail/components/widgets/reviewsSection/reviewsSection";
+import { WhereToDrinkSection } from "@/pages/beerDetail/components/widgets/whereToDrinkSection/whereToDrinkSection";
 import { useBeerQuery } from "@/pages/beerDetail/hooks/useBeerQuery";
 import { useWishlistToggle } from "@/pages/beerDetail/hooks/useWishlistToggle";
 import { BEER_AROMA_LABEL_KEYS } from "@/types/enums/beer/beerAromaEnum";
@@ -119,6 +122,11 @@ export const BeerDetailPage = () => {
             </dd>
           </div>
         </dl>
+        <BeerLevels
+          bitternessLevel={beer.bitternessLevel}
+          colorLevel={beer.colorLevel}
+          styleColorRange={beer.styleColorRange}
+        />
         {chipSections.map(({ key, title, labels }) => (
           <section key={key} className="flex flex-col gap-2">
             <h2 className="font-display text-xl text-foreground">{title}</h2>
@@ -137,7 +145,9 @@ export const BeerDetailPage = () => {
           <h2 className="font-display text-xl text-foreground">{t("pages.beerDetail.description")}</h2>
           <p className="break-words">{beer.description}</p>
         </section>
+        <ReviewsSection beer={beer} />
         <CheckinHistory beerId={beer.id} />
+        <WhereToDrinkSection beerId={beer.id} />
       </>
     );
   };

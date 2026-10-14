@@ -1,22 +1,37 @@
 import { httpClient } from "@/api/httpClient";
 import { HttpError } from "@/api/httpError";
+import type { BeerVenueDto } from "@/types/dtos/venue/beerVenueDto";
 import type { VenueBeerDto } from "@/types/dtos/venue/venueBeerDto";
 import type { VenueDto } from "@/types/dtos/venue/venueDto";
+import { beerVenueDtoToModel } from "@/types/mappers/venue/beerVenueMapper";
+import { newVenueToDto } from "@/types/mappers/venue/newVenueMapper";
 import { venueBeerDtoToModel } from "@/types/mappers/venue/venueBeerMapper";
 import { venueDtoToModel } from "@/types/mappers/venue/venueMapper";
 import { venueQueryToSearchParams } from "@/types/mappers/venue/venueQueryMapper";
+import type { BeerVenue } from "@/types/models/venue/beerVenue";
+import type { NewVenue } from "@/types/models/venue/newVenue";
 import type { VenueBeer } from "@/types/models/venue/venueBeer";
 import type { Venue } from "@/types/models/venue/venue";
 import type { VenueQuery } from "@/types/models/venue/venueQuery";
 import { HttpStatusCodeEnum } from "@/types/enums/http/httpStatusCodeEnum";
 import type { VoteSenseEnum } from "@/types/enums/venue/voteSenseEnum";
-import { VENUES, VENUE_BEERS, VENUE_BEER_VOTES } from "@/utils/apiURL/apiURL";
+import { BEER_VENUES, VENUES, VENUE_BEERS, VENUE_BEER_VOTES } from "@/utils/apiURL/apiURL";
 import { DisplayError } from "@/utils/displayError/displayError";
 import { getErrorTranslationKey } from "@/utils/displayError/getErrorTranslationKey";
 
 const getVoteErrorTranslationKey = (error: unknown): string =>
   error instanceof HttpError && error.status === HttpStatusCodeEnum.CONFLICT
     ? "pages.map.vote.alreadyVoted"
+    : getErrorTranslationKey(error);
+
+const getReportErrorTranslationKey = (error: unknown): string =>
+  error instanceof HttpError && error.status === HttpStatusCodeEnum.CONFLICT
+    ? "pages.map.report.alreadyListed"
+    : getErrorTranslationKey(error);
+
+const getCreateErrorTranslationKey = (error: unknown): string =>
+  error instanceof HttpError && error.status === HttpStatusCodeEnum.CONFLICT
+    ? "pages.map.propose.nameTaken"
     : getErrorTranslationKey(error);
 
 export default class VenueService {
@@ -32,6 +47,12 @@ export default class VenueService {
     return response.data.map(venueBeerDtoToModel);
   }
 
+  static async getForBeer(beerId: number): Promise<BeerVenue[]> {
+    const response = await httpClient.get<BeerVenueDto[]>(BEER_VENUES(beerId));
+    if (response.data === null) return [];
+    return response.data.map(beerVenueDtoToModel);
+  }
+
   static async vote(venueId: number, beerId: number, sense: VoteSenseEnum): Promise<VenueBeer> {
     try {
       const response = await httpClient.post<VenueBeerDto>(VENUE_BEER_VOTES(venueId, beerId), { sense });
@@ -39,6 +60,28 @@ export default class VenueService {
       return venueBeerDtoToModel(response.data);
     } catch (error) {
       DisplayError(error, getVoteErrorTranslationKey);
+      throw error;
+    }
+  }
+
+  static async reportBeer(venueId: number, beerId: number): Promise<VenueBeer> {
+    try {
+      const response = await httpClient.post<VenueBeerDto>(VENUE_BEERS(venueId), { beerId });
+      if (response.data === null) throw new Error("Empty report response");
+      return venueBeerDtoToModel(response.data);
+    } catch (error) {
+      DisplayError(error, getReportErrorTranslationKey);
+      throw error;
+    }
+  }
+
+  static async create(newVenue: NewVenue): Promise<Venue> {
+    try {
+      const response = await httpClient.post<VenueDto>(VENUES(), newVenueToDto(newVenue));
+      if (response.data === null) throw new Error("Empty create response");
+      return venueDtoToModel(response.data);
+    } catch (error) {
+      DisplayError(error, getCreateErrorTranslationKey);
       throw error;
     }
   }

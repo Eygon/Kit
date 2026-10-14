@@ -40,6 +40,10 @@ export class TastingsService {
     return this.tastingsRepository.findCheckinPage(userId, beerId, page, size);
   }
 
+  getUserCheckins(userId: number): Promise<CheckinRecordDto[]> {
+    return this.tastingsRepository.findCheckinsByUser(userId);
+  }
+
   async deleteOwnedCheckin(userId: number, id: number): Promise<void> {
     const record = await this.getOwnedCheckin(userId, id);
     await this.tastingsRepository.deleteCheckinWithPhoto(id, record.photoId);

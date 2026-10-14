@@ -6,5 +6,6 @@ export interface MapFilters {
   family: BeerFamilyEnum | null;
   beerId: number | null;
   confirmedOnly: boolean;
+  undiscovered: boolean;
   radiusKm: number | null;
 }

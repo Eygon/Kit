@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, NotFoundException } from "@nest
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BeersService } from "@/modules/beers/beers.service";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
+import type { TastingsService } from "@/modules/tastings/tastings.service";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import type { VenueLinkDto } from "@/modules/venues/dtos/venue-link.dto";
 import type { VenueRecordDto } from "@/modules/venues/dtos/venue-record.dto";
@@ -50,6 +51,8 @@ const GONE_VOTES = votesOf(VoteSenseEnum.GONE, 3);
 const MAYBE_GONE_VOTES = votesOf(VoteSenseEnum.GONE, 1);
 
 const BEER_ID = 4;
+const ALICE = 1;
+const BOB = 2;
 const POSITION_MESSAGE = "latitude and longitude must be supplied together.";
 const RADIUS_MESSAGE = "radiusKm requires latitude and longitude.";
 const PARIS = { latitude: 48.8566, longitude: 2.3522 };
@@ -66,19 +69,28 @@ describe("VenuesService", () => {
     findLinksByVenue: vi.fn(),
     findLink: vi.fn(),
     findLastUserVote: vi.fn(),
+    findVotesByUser: vi.fn(),
     createVote: vi.fn(),
     existsByNameKey: vi.fn(),
     createVenue: vi.fn(),
     createLink: vi.fn(),
   };
   const beersService = { getBeer: vi.fn(), getBeersByIds: vi.fn() };
+  const tastingsService = { getBeerStates: vi.fn(), getDiscoveries: vi.fn(), getDrunkBeerIds: vi.fn() };
   let service: VenuesService;
 
   beforeEach(() => {
     vi.resetAllMocks();
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(NOW);
-    service = new VenuesService(repository as unknown as VenuesRepository, beersService as unknown as BeersService);
+    service = new VenuesService(
+      repository as unknown as VenuesRepository,
+      beersService as unknown as BeersService,
+      tastingsService as unknown as TastingsService,
+    );
+    tastingsService.getBeerStates.mockResolvedValue([]);
+    tastingsService.getDiscoveries.mockResolvedValue([]);
+    tastingsService.getDrunkBeerIds.mockResolvedValue([]);
     repository.findLinksByBeer.mockResolvedValue([]);
     repository.findVenuesByIds.mockResolvedValue([]);
     beersService.getBeer.mockResolvedValue({ id: BEER_ID });
@@ -97,40 +109,40 @@ describe("VenuesService", () => {
       ["north, south and east", { north: 51, south: 50, east: 4 }],
       ["west only", { west: 3 }],
     ])("rejects partial bounds (%s) without reading anything", async (_label, query) => {
-      await expect(service.getVenues(query)).rejects.toThrow(new BadRequestException(PARTIAL_BOUNDS_MESSAGE));
+      await expect(service.getVenues(ALICE, query)).rejects.toThrow(new BadRequestException(PARTIAL_BOUNDS_MESSAGE));
       expect(repository.findVenues).not.toHaveBeenCalled();
       expect(repository.findLinks).not.toHaveBeenCalled();
     });
 
     it("rejects a south bound above the north bound", async () => {
-      await expect(service.getVenues({ north: 50, south: 51, east: 4, west: 3 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 50, south: 51, east: 4, west: 3 })).rejects.toThrow(
         new BadRequestException(SOUTH_ABOVE_NORTH_MESSAGE),
       );
       expect(repository.findVenues).not.toHaveBeenCalled();
     });
 
     it("rejects a west bound east of the east bound", async () => {
-      await expect(service.getVenues({ north: 51, south: 50, east: 3, west: 4 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 51, south: 50, east: 3, west: 4 })).rejects.toThrow(
         new BadRequestException(WEST_AFTER_EAST_MESSAGE),
       );
       expect(repository.findVenues).not.toHaveBeenCalled();
     });
 
     it("reports partial bounds before a south bound above the north bound", async () => {
-      await expect(service.getVenues({ north: 50, south: 51, east: 4 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 50, south: 51, east: 4 })).rejects.toThrow(
         new BadRequestException(PARTIAL_BOUNDS_MESSAGE),
       );
     });
 
     it("reports partial bounds before a west bound east of the east bound", async () => {
-      await expect(service.getVenues({ north: 50, east: 3, west: 4 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 50, east: 3, west: 4 })).rejects.toThrow(
         new BadRequestException(PARTIAL_BOUNDS_MESSAGE),
       );
       expect(repository.findVenues).not.toHaveBeenCalled();
     });
 
     it("reports a south bound above the north bound before a west bound east of the east bound", async () => {
-      await expect(service.getVenues({ north: 50, south: 51, east: 3, west: 4 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 50, south: 51, east: 3, west: 4 })).rejects.toThrow(
         new BadRequestException(SOUTH_ABOVE_NORTH_MESSAGE),
       );
     });
@@ -141,80 +153,81 @@ describe("VenuesService", () => {
       ["a latitude of 0 without longitude", { latitude: 0 }],
       ["a longitude of 0 without latitude", { longitude: 0 }],
     ])("rejects %s without reading anything", async (_label, query) => {
-      await expect(service.getVenues(query)).rejects.toThrow(new BadRequestException(POSITION_MESSAGE));
+      await expect(service.getVenues(ALICE, query)).rejects.toThrow(new BadRequestException(POSITION_MESSAGE));
       expect(repository.findVenues).not.toHaveBeenCalled();
       expect(repository.findLinks).not.toHaveBeenCalled();
       expect(beersService.getBeersByIds).not.toHaveBeenCalled();
     });
 
     it("rejects a radius without position without reading anything", async () => {
-      await expect(service.getVenues({ radiusKm: 5 })).rejects.toThrow(new BadRequestException(RADIUS_MESSAGE));
+      await expect(service.getVenues(ALICE, { radiusKm: 5 })).rejects.toThrow(new BadRequestException(RADIUS_MESSAGE));
       expect(repository.findVenues).not.toHaveBeenCalled();
       expect(beersService.getBeersByIds).not.toHaveBeenCalled();
     });
 
     it("reports partial bounds before a half position", async () => {
-      await expect(service.getVenues({ north: 50, latitude: 48.8 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 50, latitude: 48.8 })).rejects.toThrow(
         new BadRequestException(PARTIAL_BOUNDS_MESSAGE),
       );
     });
 
     it("reports a south bound above the north bound before a half position", async () => {
-      await expect(service.getVenues({ north: 50, south: 51, east: 4, west: 3, latitude: 48.8 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 50, south: 51, east: 4, west: 3, latitude: 48.8 })).rejects.toThrow(
         new BadRequestException(SOUTH_ABOVE_NORTH_MESSAGE),
       );
     });
 
     it("reports a west bound east of the east bound before a half position", async () => {
-      await expect(service.getVenues({ north: 51, south: 50, east: 3, west: 4, longitude: 2.3 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 51, south: 50, east: 3, west: 4, longitude: 2.3 })).rejects.toThrow(
         new BadRequestException(WEST_AFTER_EAST_MESSAGE),
       );
     });
 
     it("reports a half position before a radius", async () => {
-      await expect(service.getVenues({ latitude: 48.8, radiusKm: 5 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { latitude: 48.8, radiusKm: 5 })).rejects.toThrow(
         new BadRequestException(POSITION_MESSAGE),
       );
     });
 
     it("reports a west bound east of the east bound before a radius without position", async () => {
-      await expect(service.getVenues({ north: 51, south: 50, east: 3, west: 4, radiusKm: 5 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 51, south: 50, east: 3, west: 4, radiusKm: 5 })).rejects.toThrow(
         new BadRequestException(WEST_AFTER_EAST_MESSAGE),
       );
     });
 
     it("reports partial bounds before a radius without position", async () => {
-      await expect(service.getVenues({ north: 50, radiusKm: 5 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 50, radiusKm: 5 })).rejects.toThrow(
         new BadRequestException(PARTIAL_BOUNDS_MESSAGE),
       );
       expect(repository.findVenues).not.toHaveBeenCalled();
     });
 
     it("reports a south bound above the north bound before a radius without position", async () => {
-      await expect(service.getVenues({ north: 50, south: 51, east: 4, west: 3, radiusKm: 5 })).rejects.toThrow(
+      await expect(service.getVenues(ALICE, { north: 50, south: 51, east: 4, west: 3, radiusKm: 5 })).rejects.toThrow(
         new BadRequestException(SOUTH_ABOVE_NORTH_MESSAGE),
       );
       expect(repository.findVenues).not.toHaveBeenCalled();
     });
 
     it("accepts a zone of size zero", async () => {
-      await expect(service.getVenues({ north: 50.5, south: 50.5, east: 3, west: 3 })).resolves.toEqual([]);
+      await expect(service.getVenues(ALICE, { north: 50.5, south: 50.5, east: 3, west: 3 })).resolves.toEqual([]);
       expect(repository.findVenues).toHaveBeenCalledWith({
         bounds: { north: 50.5, south: 50.5, east: 3, west: 3 },
         types: [],
+        search: "",
       });
     });
   });
 
   describe("getVenues", () => {
     it("reads the whole area when no filter is given", async () => {
-      await service.getVenues(WHOLE_AREA);
+      await service.getVenues(ALICE, WHOLE_AREA);
 
-      expect(repository.findVenues).toHaveBeenCalledWith({ bounds: null, types: [] });
+      expect(repository.findVenues).toHaveBeenCalledWith({ bounds: null, types: [], search: "" });
     });
 
     it("passes the bounds and the requested types to the repository", async () => {
-      await service.getVenues({
+      await service.getVenues(ALICE, {
         north: 51,
         south: 50,
         east: 4,
@@ -225,13 +238,14 @@ describe("VenuesService", () => {
       expect(repository.findVenues).toHaveBeenCalledWith({
         bounds: { north: 51, south: 50, east: 4, west: 3 },
         types: [VenueTypeEnum.BAR, VenueTypeEnum.SHOP],
+        search: "",
       });
     });
 
     it("reads the links of every venue found in one call", async () => {
       repository.findVenues.mockResolvedValue([toRecord(1, "Alpha"), toRecord(2, "Bravo")]);
 
-      await service.getVenues(WHOLE_AREA);
+      await service.getVenues(ALICE, WHOLE_AREA);
 
       expect(repository.findLinks).toHaveBeenCalledTimes(1);
       expect(repository.findLinks).toHaveBeenCalledWith([1, 2]);
@@ -252,7 +266,7 @@ describe("VenuesService", () => {
         toLink(14, 4, GONE_VOTES),
       ]);
 
-      const venues = await service.getVenues(WHOLE_AREA);
+      const venues = await service.getVenues(ALICE, WHOLE_AREA);
 
       expect(venues).toEqual([
         { ...toRecord(1, "Alpha"), distanceKm: null, status: AvailabilityStatusEnum.CONFIRMED },
@@ -266,13 +280,13 @@ describe("VenuesService", () => {
       repository.findVenues.mockResolvedValue([toRecord(1, "Alpha")]);
       repository.findLinks.mockResolvedValue([toLink(10, 1, GONE_VOTES), toLink(11, 1, [])]);
 
-      expect(await service.getVenues(WHOLE_AREA)).toEqual([
+      expect(await service.getVenues(ALICE, WHOLE_AREA)).toEqual([
         { ...toRecord(1, "Alpha"), distanceKm: null, status: AvailabilityStatusEnum.UNKNOWN },
       ]);
     });
 
     it("returns an empty list when no venue matches", async () => {
-      expect(await service.getVenues(WHOLE_AREA)).toEqual([]);
+      expect(await service.getVenues(ALICE, WHOLE_AREA)).toEqual([]);
     });
   });
 
@@ -296,6 +310,9 @@ describe("VenuesService", () => {
       aromas: [],
       formats: [],
       description: "Une bière.",
+      bitternessLevel: null,
+      colorLevel: null,
+      styleColorRange: null,
     });
 
     const CATALOGUE = [
@@ -331,7 +348,7 @@ describe("VenuesService", () => {
     it("does not read the beers when no beer, family or style filter is given", async () => {
       given(THREE_VENUES, [linkTo(1, 1, ORVAL_ID, CONFIRMED_VOTES)]);
 
-      await service.getVenues({ confirmedOnly: false });
+      await service.getVenues(ALICE, { confirmedOnly: false });
 
       expect(beersService.getBeersByIds).not.toHaveBeenCalled();
     });
@@ -343,7 +360,7 @@ describe("VenuesService", () => {
         linkTo(3, 2, GUINNESS_ID, []),
       ]);
 
-      await service.getVenues({ beer: ORVAL_ID });
+      await service.getVenues(ALICE, { beer: ORVAL_ID });
 
       expect(beersService.getBeersByIds).toHaveBeenCalledTimes(1);
       expect(beersService.getBeersByIds).toHaveBeenCalledWith([ORVAL_ID, GUINNESS_ID]);
@@ -357,7 +374,7 @@ describe("VenuesService", () => {
         linkTo(4, 3, CHIMAY_ID, CONFIRMED_VOTES),
       ]);
 
-      const venues = await service.getVenues({ beer: ORVAL_ID });
+      const venues = await service.getVenues(ALICE, { beer: ORVAL_ID });
 
       expect(venues.map((venue) => [venue.name, venue.status])).toEqual([
         ["Alpha", AvailabilityStatusEnum.UNKNOWN],
@@ -368,13 +385,13 @@ describe("VenuesService", () => {
     it("returns an empty list for a beer that is not in the catalogue", async () => {
       given(THREE_VENUES, [linkTo(1, 1, ORVAL_ID, CONFIRMED_VOTES)]);
 
-      expect(await service.getVenues({ beer: 999 })).toEqual([]);
+      expect(await service.getVenues(ALICE, { beer: 999 })).toEqual([]);
     });
 
     it("returns an empty list for a beer that no venue sells", async () => {
       given(THREE_VENUES, [linkTo(1, 1, ORVAL_ID, CONFIRMED_VOTES)]);
 
-      expect(await service.getVenues({ beer: CHIMAY_ID })).toEqual([]);
+      expect(await service.getVenues(ALICE, { beer: CHIMAY_ID })).toEqual([]);
     });
 
     it("keeps the venues with a beer of the family and computes the state on those beers only", async () => {
@@ -385,7 +402,7 @@ describe("VenuesService", () => {
         linkTo(4, 3, ORVAL_ID, CONFIRMED_VOTES),
       ]);
 
-      const venues = await service.getVenues({ family: BeerFamilyEnum.STOUT });
+      const venues = await service.getVenues(ALICE, { family: BeerFamilyEnum.STOUT });
 
       expect(venues.map((venue) => [venue.name, venue.status])).toEqual([
         ["Alpha", AvailabilityStatusEnum.GONE],
@@ -400,8 +417,8 @@ describe("VenuesService", () => {
         linkTo(3, 3, ORVAL_ID, CONFIRMED_VOTES),
       ]);
 
-      expect(namesOf(await service.getVenues({ style: [STOUT_STYLE_ID] }))).toEqual(["Alpha"]);
-      expect(namesOf(await service.getVenues({ style: [STOUT_STYLE_ID, IMPERIAL_STYLE_ID] }))).toEqual([
+      expect(namesOf(await service.getVenues(ALICE, { style: [STOUT_STYLE_ID] }))).toEqual(["Alpha"]);
+      expect(namesOf(await service.getVenues(ALICE, { style: [STOUT_STYLE_ID, IMPERIAL_STYLE_ID] }))).toEqual([
         "Alpha",
         "Bravo",
       ]);
@@ -415,17 +432,17 @@ describe("VenuesService", () => {
       ]);
 
       expect(
-        namesOf(await service.getVenues({ beer: GUINNESS_ID, family: BeerFamilyEnum.STOUT, style: [STOUT_STYLE_ID] })),
+        namesOf(await service.getVenues(ALICE, { beer: GUINNESS_ID, family: BeerFamilyEnum.STOUT, style: [STOUT_STYLE_ID] })),
       ).toEqual(["Alpha"]);
-      expect(await service.getVenues({ beer: GUINNESS_ID, family: BeerFamilyEnum.TRAPPIST })).toEqual([]);
-      expect(await service.getVenues({ beer: GUINNESS_ID, style: [IMPERIAL_STYLE_ID] })).toEqual([]);
-      expect(await service.getVenues({ family: BeerFamilyEnum.TRAPPIST, style: [STOUT_STYLE_ID] })).toEqual([]);
+      expect(await service.getVenues(ALICE, { beer: GUINNESS_ID, family: BeerFamilyEnum.TRAPPIST })).toEqual([]);
+      expect(await service.getVenues(ALICE, { beer: GUINNESS_ID, style: [IMPERIAL_STYLE_ID] })).toEqual([]);
+      expect(await service.getVenues(ALICE, { family: BeerFamilyEnum.TRAPPIST, style: [STOUT_STYLE_ID] })).toEqual([]);
     });
 
     it("requires a venue to hold one single link matching every filter", async () => {
       given(THREE_VENUES, [linkTo(1, 1, ORVAL_ID, CONFIRMED_VOTES), linkTo(2, 1, GUINNESS_ID, CONFIRMED_VOTES)]);
 
-      expect(await service.getVenues({ beer: ORVAL_ID, family: BeerFamilyEnum.STOUT })).toEqual([]);
+      expect(await service.getVenues(ALICE, { beer: ORVAL_ID, family: BeerFamilyEnum.STOUT })).toEqual([]);
     });
 
     it("keeps only the venues with a confirmed beer for the confirmed only filter, without beer filter", async () => {
@@ -436,7 +453,7 @@ describe("VenuesService", () => {
         linkTo(4, 3, ORVAL_ID, []),
       ]);
 
-      const venues = await service.getVenues({ confirmedOnly: true });
+      const venues = await service.getVenues(ALICE, { confirmedOnly: true });
 
       expect(venues.map((venue) => [venue.name, venue.status])).toEqual([["Alpha", AvailabilityStatusEnum.CONFIRMED]]);
     });
@@ -444,8 +461,8 @@ describe("VenuesService", () => {
     it("keeps a venue without any link out of the confirmed only answer and in the unfiltered one", async () => {
       given(THREE_VENUES, [linkTo(1, 1, ORVAL_ID, CONFIRMED_VOTES)]);
 
-      expect(namesOf(await service.getVenues({ confirmedOnly: true }))).toEqual(["Alpha"]);
-      expect(namesOf(await service.getVenues({ confirmedOnly: false }))).toEqual(["Alpha", "Bravo", "Charlie"]);
+      expect(namesOf(await service.getVenues(ALICE, { confirmedOnly: true }))).toEqual(["Alpha"]);
+      expect(namesOf(await service.getVenues(ALICE, { confirmedOnly: false }))).toEqual(["Alpha", "Bravo", "Charlie"]);
     });
 
     it("keeps only the venues where the filtered beer itself is confirmed", async () => {
@@ -456,8 +473,8 @@ describe("VenuesService", () => {
         linkTo(4, 3, ORVAL_ID, []),
       ]);
 
-      expect(namesOf(await service.getVenues({ beer: ORVAL_ID, confirmedOnly: true }))).toEqual(["Alpha"]);
-      expect(namesOf(await service.getVenues({ beer: ORVAL_ID, confirmedOnly: false }))).toEqual([
+      expect(namesOf(await service.getVenues(ALICE, { beer: ORVAL_ID, confirmedOnly: true }))).toEqual(["Alpha"]);
+      expect(namesOf(await service.getVenues(ALICE, { beer: ORVAL_ID, confirmedOnly: false }))).toEqual([
         "Alpha",
         "Bravo",
         "Charlie",
@@ -467,11 +484,12 @@ describe("VenuesService", () => {
     it("passes the zone and the types to the repository whatever the beer filters", async () => {
       given([], []);
 
-      await service.getVenues({ north: 51, south: 50, east: 4, west: 3, type: [VenueTypeEnum.SHOP], beer: ORVAL_ID });
+      await service.getVenues(ALICE, { north: 51, south: 50, east: 4, west: 3, type: [VenueTypeEnum.SHOP], beer: ORVAL_ID });
 
       expect(repository.findVenues).toHaveBeenCalledWith({
         bounds: { north: 51, south: 50, east: 4, west: 3 },
         types: [VenueTypeEnum.SHOP],
+        search: "",
       });
     });
 
@@ -486,7 +504,7 @@ describe("VenuesService", () => {
         [linkTo(1, 1, ORVAL_ID, CONFIRMED_VOTES), linkTo(2, 2, ORVAL_ID, GONE_VOTES)],
       );
 
-      const venues = await service.getVenues(PARIS);
+      const venues = await service.getVenues(ALICE, PARIS);
 
       expect(namesOf(venues)).toEqual(["Paris Alpha", "Paris Zeta", "Lille", "Brussels"]);
       expect(venues[0].distanceKm).toBe(0);
@@ -502,10 +520,10 @@ describe("VenuesService", () => {
         [at(1, "Near", 48.8566, 2.3622), at(2, "Edge", 48.8566, 2.3722), at(3, "Far", 48.8566, 2.4522)],
         [],
       );
-      const distances = (await service.getVenues(PARIS)).map((venue) => venue.distanceKm as number);
+      const distances = (await service.getVenues(ALICE, PARIS)).map((venue) => venue.distanceKm as number);
       const edgeDistance = distances[1];
 
-      const venues = await service.getVenues({ ...PARIS, radiusKm: edgeDistance });
+      const venues = await service.getVenues(ALICE, { ...PARIS, radiusKm: edgeDistance });
 
       expect(namesOf(venues)).toEqual(["Near", "Edge"]);
       expect(distances[2]).toBeGreaterThan(edgeDistance);
@@ -514,7 +532,7 @@ describe("VenuesService", () => {
     it("treats a position at latitude 0 and longitude 0 as supplied and applies the radius", async () => {
       given([at(1, "Origin", 0, 0), at(2, "Away", 10, 10)], []);
 
-      const venues = await service.getVenues({ latitude: 0, longitude: 0, radiusKm: 5 });
+      const venues = await service.getVenues(ALICE, { latitude: 0, longitude: 0, radiusKm: 5 });
 
       expect(venues.map((venue) => [venue.name, venue.distanceKm])).toEqual([["Origin", 0]]);
     });
@@ -525,7 +543,7 @@ describe("VenuesService", () => {
         [linkTo(1, 1, ORVAL_ID, CONFIRMED_VOTES), linkTo(2, 2, ORVAL_ID, CONFIRMED_VOTES)],
       );
 
-      const venues = await service.getVenues({ ...PARIS, beer: ORVAL_ID });
+      const venues = await service.getVenues(ALICE, { ...PARIS, beer: ORVAL_ID });
 
       expect(namesOf(venues)).toEqual(["Near", "Far"]);
       expect(venues.every((venue) => venue.distanceKm !== null)).toBe(true);
@@ -534,10 +552,444 @@ describe("VenuesService", () => {
     it("keeps the order of the repository and no distance without position", async () => {
       given([toRecord(2, "Bravo"), toRecord(1, "Alpha"), toRecord(3, "Charlie")], []);
 
-      const venues = await service.getVenues({});
+      const venues = await service.getVenues(ALICE, {});
 
       expect(namesOf(venues)).toEqual(["Bravo", "Alpha", "Charlie"]);
       expect(venues.map((venue) => venue.distanceKm)).toEqual([null, null, null]);
+    });
+  });
+
+  describe("getVenues undiscovered", () => {
+    const ORVAL_ID = 10;
+    const CHIMAY_ID = 20;
+    const GUINNESS_ID = 30;
+
+    const beerOf = (id: number, family: BeerFamilyEnum): BeerDto => ({
+      id,
+      name: `Beer ${id}`,
+      breweryName: `Brasserie ${id}`,
+      country: "BE",
+      styleId: id,
+      styleName: `Style ${id}`,
+      family,
+      abv: 5,
+      aromas: [],
+      formats: [],
+      description: "Une bière.",
+      bitternessLevel: null,
+      colorLevel: null,
+      styleColorRange: null,
+    });
+
+    const linkTo = (id: number, venueId: number, beerId: number, votes: VenueLinkDto["votes"]): VenueLinkDto => ({
+      id,
+      venueId,
+      beerId,
+      votes,
+    });
+
+    const namesOf = (venues: { name: string }[]) => venues.map((venue) => venue.name);
+
+    const THREE_VENUES = [toRecord(1, "Alpha"), toRecord(2, "Bravo"), toRecord(3, "Charlie")];
+
+    const given = (links: VenueLinkDto[], drunkBeerIds: number[]) => {
+      repository.findVenues.mockResolvedValue(THREE_VENUES);
+      repository.findLinks.mockResolvedValue(links);
+      beersService.getBeersByIds.mockResolvedValue([
+        beerOf(ORVAL_ID, BeerFamilyEnum.TRAPPIST),
+        beerOf(CHIMAY_ID, BeerFamilyEnum.TRAPPIST),
+        beerOf(GUINNESS_ID, BeerFamilyEnum.STOUT),
+      ]);
+      tastingsService.getDrunkBeerIds.mockResolvedValue(drunkBeerIds);
+    };
+
+    it("keeps the venues with a beer not yet drunk and drops the venue without any link", async () => {
+      given([linkTo(1, 1, ORVAL_ID, []), linkTo(2, 2, CHIMAY_ID, [])], []);
+
+      const venues = await service.getVenues(ALICE, { undiscovered: true });
+
+      expect(namesOf(venues)).toEqual(["Alpha", "Bravo"]);
+      expect(tastingsService.getDrunkBeerIds).toHaveBeenCalledExactlyOnceWith(ALICE);
+    });
+
+    it("drops a venue whose every beer is drunk and keeps one with a single beer left", async () => {
+      given(
+        [
+          linkTo(1, 1, ORVAL_ID, []),
+          linkTo(2, 2, ORVAL_ID, []),
+          linkTo(3, 2, CHIMAY_ID, []),
+          linkTo(4, 3, ORVAL_ID, []),
+          linkTo(5, 3, CHIMAY_ID, []),
+          linkTo(6, 3, GUINNESS_ID, []),
+        ],
+        [ORVAL_ID, CHIMAY_ID],
+      );
+
+      const venues = await service.getVenues(ALICE, { undiscovered: true });
+
+      expect(namesOf(venues)).toEqual(["Charlie"]);
+    });
+
+    it("reads the drunk beers of the current user only", async () => {
+      given([linkTo(1, 1, ORVAL_ID, [])], [ORVAL_ID]);
+      tastingsService.getDrunkBeerIds.mockImplementation((userId: number) => Promise.resolve(userId === ALICE ? [ORVAL_ID] : []));
+
+      expect(await service.getVenues(ALICE, { undiscovered: true })).toEqual([]);
+      expect(namesOf(await service.getVenues(BOB, { undiscovered: true }))).toEqual(["Alpha"]);
+      expect(tastingsService.getDrunkBeerIds).toHaveBeenCalledWith(BOB);
+    });
+
+    it.each([
+      ["false", { undiscovered: false }],
+      ["absent", {}],
+    ])("does not read the drunk beers and keeps every venue when undiscovered is %s", async (_label, query) => {
+      given([linkTo(1, 1, ORVAL_ID, [])], [ORVAL_ID]);
+
+      const venues = await service.getVenues(ALICE, query);
+
+      expect(namesOf(venues)).toEqual(["Alpha", "Bravo", "Charlie"]);
+      expect(tastingsService.getDrunkBeerIds).not.toHaveBeenCalled();
+    });
+
+    it("judges only the links kept by the beer filter", async () => {
+      given([linkTo(1, 1, ORVAL_ID, []), linkTo(2, 1, CHIMAY_ID, []), linkTo(3, 2, ORVAL_ID, [])], [ORVAL_ID]);
+      tastingsService.getDrunkBeerIds.mockImplementation((userId: number) => Promise.resolve(userId === ALICE ? [ORVAL_ID] : []));
+
+      expect(await service.getVenues(ALICE, { beer: ORVAL_ID, undiscovered: true })).toEqual([]);
+      expect(namesOf(await service.getVenues(BOB, { beer: ORVAL_ID, undiscovered: true }))).toEqual(["Alpha", "Bravo"]);
+      expect(namesOf(await service.getVenues(ALICE, { family: BeerFamilyEnum.TRAPPIST, undiscovered: true }))).toEqual([
+        "Alpha",
+      ]);
+    });
+
+    it("still computes the state on the retained links of the venue", async () => {
+      given([linkTo(1, 1, ORVAL_ID, CONFIRMED_VOTES), linkTo(2, 1, CHIMAY_ID, GONE_VOTES)], [ORVAL_ID]);
+
+      const venues = await service.getVenues(ALICE, { undiscovered: true });
+
+      expect(venues.map((venue) => [venue.name, venue.status])).toEqual([["Alpha", AvailabilityStatusEnum.CONFIRMED]]);
+    });
+
+    it("applies confirmedOnly after the undiscovered filter", async () => {
+      given([linkTo(1, 1, ORVAL_ID, CONFIRMED_VOTES), linkTo(2, 2, CHIMAY_ID, GONE_VOTES), linkTo(3, 3, ORVAL_ID, CONFIRMED_VOTES)], [
+        ORVAL_ID,
+      ]);
+
+      const venues = await service.getVenues(ALICE, { undiscovered: true, confirmedOnly: true });
+
+      expect(venues).toEqual([]);
+      expect(namesOf(await service.getVenues(ALICE, { undiscovered: true, confirmedOnly: false }))).toEqual(["Bravo"]);
+    });
+
+    it("sorts the remaining venues by distance when a position is given", async () => {
+      repository.findVenues.mockResolvedValue([
+        { ...toRecord(1, "Far"), latitude: 50.64, longitude: 3.06 },
+        { ...toRecord(2, "Near"), latitude: 48.86, longitude: 2.35 },
+        { ...toRecord(3, "Drunk"), latitude: 48.86, longitude: 2.36 },
+      ]);
+      repository.findLinks.mockResolvedValue([
+        linkTo(1, 1, CHIMAY_ID, []),
+        linkTo(2, 2, CHIMAY_ID, []),
+        linkTo(3, 3, ORVAL_ID, []),
+      ]);
+      tastingsService.getDrunkBeerIds.mockResolvedValue([ORVAL_ID]);
+
+      const venues = await service.getVenues(ALICE, { ...PARIS, undiscovered: true });
+
+      expect(namesOf(venues)).toEqual(["Near", "Far"]);
+    });
+
+    describe("combined with the radius, the type and the style", () => {
+      const NEAR = { latitude: 48.86, longitude: 2.35 };
+      const FAR = { latitude: 50.64, longitude: 3.06 };
+      const RADIUS_KM = 50;
+
+      const recordOf = (id: number, name: string, place: typeof NEAR, type: VenueTypeEnum): VenueRecordDto => ({
+        ...toRecord(id, name),
+        ...place,
+        type,
+      });
+
+      const givenVenues = () => {
+        const records = [
+          recordOf(1, "Near bar", NEAR, VenueTypeEnum.BAR),
+          recordOf(2, "Near shop", NEAR, VenueTypeEnum.SHOP),
+          recordOf(3, "Far bar", FAR, VenueTypeEnum.BAR),
+          recordOf(4, "Near drunk", NEAR, VenueTypeEnum.BAR),
+        ];
+        repository.findVenues.mockImplementation(({ types }: { types: VenueTypeEnum[] }) =>
+          Promise.resolve(records.filter((record) => types.length === 0 || types.includes(record.type))),
+        );
+        repository.findLinks.mockImplementation((venueIds: number[]) =>
+          Promise.resolve(
+            [
+              linkTo(1, 1, CHIMAY_ID, []),
+              linkTo(2, 2, CHIMAY_ID, []),
+              linkTo(3, 3, CHIMAY_ID, []),
+              linkTo(4, 4, ORVAL_ID, []),
+              linkTo(5, 1, GUINNESS_ID, []),
+            ].filter((link) => venueIds.includes(link.venueId)),
+          ),
+        );
+        beersService.getBeersByIds.mockResolvedValue([
+          beerOf(ORVAL_ID, BeerFamilyEnum.TRAPPIST),
+          beerOf(CHIMAY_ID, BeerFamilyEnum.TRAPPIST),
+          beerOf(GUINNESS_ID, BeerFamilyEnum.STOUT),
+        ]);
+        tastingsService.getDrunkBeerIds.mockResolvedValue([ORVAL_ID]);
+      };
+
+      it("keeps only the nearby venues with a beer left to discover when a radius is given", async () => {
+        givenVenues();
+
+        expect(namesOf(await service.getVenues(ALICE, { ...PARIS, undiscovered: true }))).toEqual([
+          "Near bar",
+          "Near shop",
+          "Far bar",
+        ]);
+        expect(namesOf(await service.getVenues(ALICE, { ...PARIS, radiusKm: RADIUS_KM, undiscovered: true }))).toEqual([
+          "Near bar",
+          "Near shop",
+        ]);
+      });
+
+      it("keeps the intersection of the type and of the beers left to discover", async () => {
+        givenVenues();
+
+        const venues = await service.getVenues(ALICE, { type: [VenueTypeEnum.BAR], undiscovered: true });
+
+        expect(namesOf(venues)).toEqual(["Near bar", "Far bar"]);
+      });
+
+      it("keeps the intersection of the style and of the beers left to discover", async () => {
+        givenVenues();
+
+        const venues = await service.getVenues(ALICE, { style: [GUINNESS_ID], undiscovered: true });
+
+        expect(namesOf(venues)).toEqual(["Near bar"]);
+      });
+
+      it("intersects the radius, the type and the beers left to discover", async () => {
+        givenVenues();
+
+        const venues = await service.getVenues(ALICE, {
+          ...PARIS,
+          radiusKm: RADIUS_KM,
+          type: [VenueTypeEnum.BAR],
+          undiscovered: true,
+        });
+
+        expect(namesOf(venues)).toEqual(["Near bar"]);
+      });
+    });
+
+    it("passes the search text to the repository and keeps its order", async () => {
+      repository.findVenues.mockResolvedValue([toRecord(2, "Bravo"), toRecord(1, "Alpha")]);
+      repository.findLinks.mockResolvedValue([linkTo(1, 1, ORVAL_ID, []), linkTo(2, 2, ORVAL_ID, [])]);
+
+      const venues = await service.getVenues(ALICE, { q: "paris", undiscovered: true });
+
+      expect(repository.findVenues).toHaveBeenCalledWith(expect.objectContaining({ search: "paris" }));
+      expect(namesOf(venues)).toEqual(["Bravo", "Alpha"]);
+    });
+
+    it("rejects an invalid zone, position or radius before reading the drunk beers", async () => {
+      await expect(service.getVenues(ALICE, { north: 50, undiscovered: true })).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.getVenues(ALICE, { latitude: 48.8, undiscovered: true })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      await expect(service.getVenues(ALICE, { radiusKm: 5, undiscovered: true })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+
+      expect(tastingsService.getDrunkBeerIds).not.toHaveBeenCalled();
+      expect(repository.findVenues).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getVenues search", () => {
+    const BRUSSELS_TEXT = "bruxelles";
+    const ORVAL_ID = 10;
+
+    const at = (id: number, name: string, latitude: number, longitude: number): VenueRecordDto => ({
+      ...toRecord(id, name),
+      latitude,
+      longitude,
+    });
+
+    const namesOf = (venues: { name: string }[]) => venues.map((venue) => venue.name);
+
+    it("passes the text as the search of the area filters with the zone and the types", async () => {
+      await service.getVenues(ALICE, {
+        north: 51,
+        south: 50,
+        east: 4,
+        west: 3,
+        type: [VenueTypeEnum.SHOP],
+        q: BRUSSELS_TEXT,
+      });
+
+      expect(repository.findVenues).toHaveBeenCalledWith({
+        bounds: { north: 51, south: 50, east: 4, west: 3 },
+        types: [VenueTypeEnum.SHOP],
+        search: BRUSSELS_TEXT,
+      });
+    });
+
+    it("passes an empty search when the text is an empty string", async () => {
+      await service.getVenues(ALICE, { q: "" });
+
+      expect(repository.findVenues).toHaveBeenCalledWith({ bounds: null, types: [], search: "" });
+    });
+
+    it("keeps the relevance order of the repository and gives each venue its distance when a text and a position are given", async () => {
+      repository.findVenues.mockResolvedValue([
+        at(1, "Far first", 50.8503, 4.3517),
+        at(2, "Near second", 48.8566, 2.3522),
+        at(3, "Middle third", 50.6292, 3.0573),
+      ]);
+
+      const venues = await service.getVenues(ALICE, { ...PARIS, q: BRUSSELS_TEXT });
+
+      expect(namesOf(venues)).toEqual(["Far first", "Near second", "Middle third"]);
+      expect(venues.map((venue) => venue.distanceKm)).toEqual([expect.any(Number), 0, expect.any(Number)]);
+      expect(venues[0].distanceKm as number).toBeGreaterThan(venues[2].distanceKm as number);
+    });
+
+    it("still sorts by distance when the position comes with an empty text", async () => {
+      repository.findVenues.mockResolvedValue([at(1, "Far first", 50.8503, 4.3517), at(2, "Near second", 48.8566, 2.3522)]);
+
+      const venues = await service.getVenues(ALICE, { ...PARIS, q: "" });
+
+      expect(namesOf(venues)).toEqual(["Near second", "Far first"]);
+    });
+
+    it("keeps the relevance order without position and gives no distance", async () => {
+      repository.findVenues.mockResolvedValue([toRecord(2, "Bravo"), toRecord(1, "Alpha")]);
+
+      const venues = await service.getVenues(ALICE, { q: "a" });
+
+      expect(namesOf(venues)).toEqual(["Bravo", "Alpha"]);
+      expect(venues.map((venue) => venue.distanceKm)).toEqual([null, null]);
+    });
+
+    it("applies the radius on the venues found while keeping the relevance order", async () => {
+      repository.findVenues.mockResolvedValue([
+        at(1, "Far first", 50.8503, 4.3517),
+        at(2, "Near second", 48.8566, 2.3522),
+        at(3, "Near third", 48.8566, 2.3622),
+      ]);
+
+      const venues = await service.getVenues(ALICE, { ...PARIS, radiusKm: 5, q: BRUSSELS_TEXT });
+
+      expect(namesOf(venues)).toEqual(["Near second", "Near third"]);
+    });
+
+    it("applies the beer filter on the venues found while keeping the relevance order", async () => {
+      repository.findVenues.mockResolvedValue([toRecord(1, "Zulu"), toRecord(2, "Alpha"), toRecord(3, "Mike")]);
+      repository.findLinks.mockResolvedValue([
+        { id: 1, venueId: 1, beerId: ORVAL_ID, votes: [] },
+        { id: 2, venueId: 3, beerId: ORVAL_ID, votes: [] },
+      ]);
+      beersService.getBeersByIds.mockResolvedValue([
+        {
+          id: ORVAL_ID,
+          name: "Orval",
+          breweryName: "Orval",
+          country: "BE",
+          styleId: 100,
+          styleName: "Trappiste",
+          family: BeerFamilyEnum.TRAPPIST,
+          abv: 6.2,
+          aromas: [],
+          formats: [],
+          description: "Une bière.",
+        },
+      ]);
+
+      const venues = await service.getVenues(ALICE, { beer: ORVAL_ID, q: "u" });
+
+      expect(namesOf(venues)).toEqual(["Zulu", "Mike"]);
+    });
+
+    describe("combined with the other filters", () => {
+      const CHIMAY_ID = 20;
+      const TRAPPIST_STYLE_ID = 100;
+      const STOUT_STYLE_ID = 300;
+
+      const beerOf = (id: number, family: BeerFamilyEnum, styleId: number): BeerDto => ({
+        id,
+        name: `Beer ${id}`,
+        breweryName: `Brasserie ${id}`,
+        country: "BE",
+        styleId,
+        styleName: `Style ${styleId}`,
+        family,
+        abv: 5,
+        aromas: [],
+        formats: [],
+        description: "Une bière.",
+        bitternessLevel: null,
+        colorLevel: null,
+        styleColorRange: null,
+      });
+
+      const linkTo = (id: number, venueId: number, beerId: number, votes: VenueLinkDto["votes"]): VenueLinkDto => ({
+        id,
+        venueId,
+        beerId,
+        votes,
+      });
+
+      const givenFoundVenues = () => {
+        repository.findVenues.mockResolvedValue([toRecord(1, "Zulu"), toRecord(2, "Alpha"), toRecord(3, "Mike")]);
+        repository.findLinks.mockResolvedValue([
+          linkTo(1, 1, ORVAL_ID, CONFIRMED_VOTES),
+          linkTo(2, 2, CHIMAY_ID, CONFIRMED_VOTES),
+          linkTo(3, 3, ORVAL_ID, GONE_VOTES),
+        ]);
+        beersService.getBeersByIds.mockResolvedValue([
+          beerOf(ORVAL_ID, BeerFamilyEnum.TRAPPIST, TRAPPIST_STYLE_ID),
+          beerOf(CHIMAY_ID, BeerFamilyEnum.STOUT, STOUT_STYLE_ID),
+        ]);
+      };
+
+      it("keeps only the confirmed venues among the venues found by the text", async () => {
+        givenFoundVenues();
+
+        expect(namesOf(await service.getVenues(ALICE, { q: "u" }))).toEqual(["Zulu", "Alpha", "Mike"]);
+        expect(namesOf(await service.getVenues(ALICE, { q: "u", confirmedOnly: true }))).toEqual(["Zulu", "Alpha"]);
+      });
+
+      it.each([
+        ["family", { family: BeerFamilyEnum.TRAPPIST }],
+        ["style", { style: [TRAPPIST_STYLE_ID] }],
+        ["beer", { beer: ORVAL_ID }],
+      ])("drops the venues found by the text whose beers do not match the %s filter", async (_label, filter) => {
+        givenFoundVenues();
+
+        expect(namesOf(await service.getVenues(ALICE, { q: "u", ...filter }))).toEqual(["Zulu", "Mike"]);
+      });
+
+      it("intersects the text with the confirmation and the beer filters", async () => {
+        givenFoundVenues();
+
+        const venues = await service.getVenues(ALICE, { q: "u", confirmedOnly: true, family: BeerFamilyEnum.TRAPPIST });
+
+        expect(namesOf(venues)).toEqual(["Zulu"]);
+      });
+    });
+
+    it("rejects a bad zone before reading anything even with a text", async () => {
+      await expect(service.getVenues(ALICE, { north: 50, south: 51, east: 4, west: 3, q: BRUSSELS_TEXT })).rejects.toThrow(
+        new BadRequestException(SOUTH_ABOVE_NORTH_MESSAGE),
+      );
+      expect(repository.findVenues).not.toHaveBeenCalled();
+    });
+
+    it("rejects a radius without position before reading anything even with a text", async () => {
+      await expect(service.getVenues(ALICE, { radiusKm: 5, q: BRUSSELS_TEXT })).rejects.toBeInstanceOf(BadRequestException);
+      expect(repository.findVenues).not.toHaveBeenCalled();
     });
   });
 
@@ -761,6 +1213,9 @@ describe("VenuesService", () => {
       aromas: [],
       formats: [],
       description: "Une bière.",
+      bitternessLevel: null,
+      colorLevel: null,
+      styleColorRange: null,
     });
 
     const linkOf = (beerId: number, votes: VenueLinkDto["votes"] = []): VenueLinkDto => ({
@@ -787,6 +1242,8 @@ describe("VenuesService", () => {
       await expect(service.getVenueBeers(ALICE, 42, {})).rejects.toThrow(new NotFoundException("Venue 42 not found."));
       expect(repository.findLinksByVenue).not.toHaveBeenCalled();
       expect(beersService.getBeersByIds).not.toHaveBeenCalled();
+      expect(tastingsService.getBeerStates).not.toHaveBeenCalled();
+      expect(tastingsService.getDiscoveries).not.toHaveBeenCalled();
     });
 
     it("returns an empty list for a venue without beer", async () => {
@@ -837,8 +1294,56 @@ describe("VenuesService", () => {
           lastConfirmedAt: daysAgo(1).toISOString(),
           recentVoterCount: 2,
           nextVoteAt: null,
+          drunk: false,
+          checkinCount: 0,
+          lastCheckinAt: null,
         },
       ]);
+    });
+
+    it("gives Alice the count and last check-in of her drunk beer and Bob the untouched state of the same beer", async () => {
+      const orvalDiscovery = {
+        beerId: 1,
+        firstCheckinAt: "2026-10-02T18:00:00.000Z",
+        lastCheckinAt: "2026-10-10T18:00:00.000Z",
+      };
+      const chimayDiscovery = {
+        beerId: 2,
+        firstCheckinAt: "2026-10-12T18:00:00.000Z",
+        lastCheckinAt: "2026-10-12T19:00:00.000Z",
+      };
+      given(
+        [toBeer(1, "Orval", BeerFamilyEnum.TRAPPIST), toBeer(2, "Chimay", BeerFamilyEnum.TRAPPIST), toBeer(3, "Delirium", BeerFamilyEnum.TRAPPIST)],
+        [linkOf(1), linkOf(2), linkOf(3)],
+      );
+      tastingsService.getBeerStates.mockImplementation(async (userId: number) =>
+        userId === ALICE
+          ? [
+              { beerId: 1, drunk: true, checkinCount: 2, inWishlist: false },
+              { beerId: 2, drunk: true, checkinCount: 1, inWishlist: true },
+              { beerId: 3, drunk: false, checkinCount: 0, inWishlist: true },
+            ]
+          : [],
+      );
+      tastingsService.getDiscoveries.mockImplementation(async (userId: number) =>
+        userId === ALICE ? [chimayDiscovery, orvalDiscovery] : [],
+      );
+
+      const forAlice = await service.getVenueBeers(ALICE, VENUE_ID, {});
+      const forBob = await service.getVenueBeers(BOB, VENUE_ID, {});
+
+      expect(forAlice.map((item) => [item.beerName, item.drunk, item.checkinCount, item.lastCheckinAt])).toEqual([
+        ["Chimay", true, 1, "2026-10-12T19:00:00.000Z"],
+        ["Delirium", false, 0, null],
+        ["Orval", true, 2, "2026-10-10T18:00:00.000Z"],
+      ]);
+      expect(forBob.map((item) => [item.drunk, item.checkinCount, item.lastCheckinAt])).toEqual([
+        [false, 0, null],
+        [false, 0, null],
+        [false, 0, null],
+      ]);
+      expect(tastingsService.getBeerStates).toHaveBeenCalledWith(ALICE, [1, 2, 3]);
+      expect(tastingsService.getDiscoveries).toHaveBeenCalledWith(ALICE);
     });
 
     it("gives a never confirmed beer a null last confirmation and the unknown state", async () => {
@@ -882,6 +1387,19 @@ describe("VenuesService", () => {
       given([toBeer(1, "Orval", BeerFamilyEnum.TRAPPIST)], [linkOf(1), linkOf(2)]);
 
       expect(namesOf(await service.getVenueBeers(ALICE, VENUE_ID, {}))).toEqual(["Orval"]);
+    });
+  });
+
+  describe("getUserVotes", () => {
+    it("hands back the votes of the user read by the repository, untouched", async () => {
+      const votes = [
+        { userId: 7, sense: VoteSenseEnum.STILL, votedAt: new Date("2026-03-01T10:00:00.000Z") },
+        { userId: 7, sense: VoteSenseEnum.GONE, votedAt: new Date("2026-03-02T10:00:00.000Z") },
+      ];
+      repository.findVotesByUser.mockResolvedValue(votes);
+
+      expect(await service.getUserVotes(7)).toBe(votes);
+      expect(repository.findVotesByUser).toHaveBeenCalledExactlyOnceWith(7);
     });
   });
 
@@ -1027,8 +1545,33 @@ describe("VenuesService", () => {
         lastConfirmedAt: NOW.toISOString(),
         recentVoterCount: 2,
         nextVoteAt: new Date(NOW.getTime() + COOLDOWN_MS).toISOString(),
+        drunk: false,
+        checkinCount: 0,
+        lastCheckinAt: null,
       });
       expect(beersService.getBeer).toHaveBeenCalledWith(BEER_ID);
+    });
+
+    it("carries the check-ins of the voter on the beer returned by the vote", async () => {
+      given();
+      tastingsService.getBeerStates.mockResolvedValue([{ beerId: BEER_ID, drunk: true, checkinCount: 2, inWishlist: false }]);
+      tastingsService.getDiscoveries.mockResolvedValue([
+        { beerId: 99, firstCheckinAt: "2026-10-13T08:00:00.000Z", lastCheckinAt: "2026-10-13T09:00:00.000Z" },
+        { beerId: BEER_ID, firstCheckinAt: "2026-10-02T18:00:00.000Z", lastCheckinAt: "2026-10-10T18:00:00.000Z" },
+      ]);
+
+      const result = await service.vote(USER_ID, VOTE_VENUE_ID, BEER_ID, STILL_DTO);
+
+      expect([result.drunk, result.checkinCount, result.lastCheckinAt]).toEqual([true, 2, "2026-10-10T18:00:00.000Z"]);
+      expect(tastingsService.getBeerStates).toHaveBeenCalledWith(USER_ID, [BEER_ID]);
+      expect(tastingsService.getDiscoveries).toHaveBeenCalledWith(USER_ID);
+    });
+
+    it("reads no state of the user when the vote is refused", async () => {
+      given({ lastVote: lastVoteAt(ago(HOUR_MS)) });
+
+      await expect(service.vote(USER_ID, VOTE_VENUE_ID, BEER_ID, STILL_DTO)).rejects.toBeInstanceOf(ConflictException);
+      expect(tastingsService.getBeerStates).not.toHaveBeenCalled();
     });
 
     it("counts only the new vote of a user who changes sense after 25 hours", async () => {
@@ -1080,6 +1623,8 @@ describe("VenuesService", () => {
       expect(repository.createVenue).toHaveBeenCalledWith({
         name: "Chez Mousse",
         nameKey: "chez mousse",
+        searchName: "chez mousse",
+        searchCity: "lille",
         type: VenueTypeEnum.SHOP,
         city: "Lille",
         address: "12 rue de la Biere",
@@ -1103,6 +1648,7 @@ describe("VenuesService", () => {
   describe("reportBeer", () => {
     const REPORT_VENUE_ID = 3;
     const REPORT_BEER_ID = 4;
+    const REPORTER_ID = 5;
     const BEER = {
       id: REPORT_BEER_ID,
       name: "Orval",
@@ -1123,10 +1669,37 @@ describe("VenuesService", () => {
 
     const expectNoWrite = () => expect(repository.createLink).not.toHaveBeenCalled();
 
+    it("returns the beer as drunk with the count and last check-in of the reporter once the link is created", async () => {
+      given();
+      tastingsService.getBeerStates.mockResolvedValue([
+        { beerId: REPORT_BEER_ID, drunk: true, checkinCount: 2, inWishlist: false },
+      ]);
+      tastingsService.getDiscoveries.mockResolvedValue([
+        { beerId: REPORT_BEER_ID, firstCheckinAt: "2026-10-02T18:00:00.000Z", lastCheckinAt: "2026-10-10T18:00:00.000Z" },
+      ]);
+
+      const result = await service.reportBeer(REPORTER_ID, REPORT_VENUE_ID, DTO);
+
+      expect([result.drunk, result.checkinCount, result.lastCheckinAt]).toEqual([true, 2, "2026-10-10T18:00:00.000Z"]);
+      expect(tastingsService.getBeerStates).toHaveBeenCalledWith(REPORTER_ID, [REPORT_BEER_ID]);
+      expect(tastingsService.getDiscoveries).toHaveBeenCalledWith(REPORTER_ID);
+      expect(repository.createLink.mock.invocationCallOrder[0]).toBeLessThan(
+        tastingsService.getBeerStates.mock.invocationCallOrder[0],
+      );
+    });
+
+    it("reads no state of the user when the report is refused", async () => {
+      given();
+      repository.findLink.mockResolvedValue(CREATED_LINK);
+
+      await expect(service.reportBeer(REPORTER_ID, REPORT_VENUE_ID, DTO)).rejects.toBeInstanceOf(ConflictException);
+      expect(tastingsService.getBeerStates).not.toHaveBeenCalled();
+    });
+
     it("creates the link and returns the beer unknown with no vote", async () => {
       given();
 
-      expect(await service.reportBeer(REPORT_VENUE_ID, DTO)).toEqual({
+      expect(await service.reportBeer(REPORTER_ID, REPORT_VENUE_ID, DTO)).toEqual({
         beerId: REPORT_BEER_ID,
         beerName: "Orval",
         breweryName: "Brasserie d'Orval",
@@ -1136,6 +1709,9 @@ describe("VenuesService", () => {
         lastConfirmedAt: null,
         recentVoterCount: 0,
         nextVoteAt: null,
+        drunk: false,
+        checkinCount: 0,
+        lastCheckinAt: null,
       });
       expect(repository.findLink).toHaveBeenCalledWith(REPORT_VENUE_ID, REPORT_BEER_ID);
       expect(repository.createLink).toHaveBeenCalledWith(REPORT_VENUE_ID, REPORT_BEER_ID);
@@ -1146,7 +1722,7 @@ describe("VenuesService", () => {
       repository.findVenueById.mockResolvedValue(null);
       beersService.getBeer.mockRejectedValue(new NotFoundException("Beer 4 not found."));
 
-      await expect(service.reportBeer(REPORT_VENUE_ID, DTO)).rejects.toThrow(new NotFoundException("Venue 3 not found."));
+      await expect(service.reportBeer(REPORTER_ID, REPORT_VENUE_ID, DTO)).rejects.toThrow(new NotFoundException("Venue 3 not found."));
       expect(beersService.getBeer).not.toHaveBeenCalled();
       expect(repository.findLink).not.toHaveBeenCalled();
       expectNoWrite();
@@ -1157,7 +1733,7 @@ describe("VenuesService", () => {
       repository.findLink.mockResolvedValue(CREATED_LINK);
       beersService.getBeer.mockRejectedValue(new NotFoundException("Beer 4 not found."));
 
-      await expect(service.reportBeer(REPORT_VENUE_ID, DTO)).rejects.toThrow(new NotFoundException("Beer 4 not found."));
+      await expect(service.reportBeer(REPORTER_ID, REPORT_VENUE_ID, DTO)).rejects.toThrow(new NotFoundException("Beer 4 not found."));
       expect(beersService.getBeer).toHaveBeenCalledWith(REPORT_BEER_ID);
       expect(repository.findLink).not.toHaveBeenCalled();
       expectNoWrite();
@@ -1167,7 +1743,7 @@ describe("VenuesService", () => {
       given();
       repository.findLink.mockResolvedValue(CREATED_LINK);
 
-      await expect(service.reportBeer(REPORT_VENUE_ID, DTO)).rejects.toThrow(
+      await expect(service.reportBeer(REPORTER_ID, REPORT_VENUE_ID, DTO)).rejects.toThrow(
         new ConflictException("Beer 4 is already listed at venue 3."),
       );
       expectNoWrite();

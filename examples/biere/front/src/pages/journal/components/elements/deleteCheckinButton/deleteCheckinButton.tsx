@@ -1,0 +1,50 @@
+import { AlertDialog, Button } from "@heroui/react";
+import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useDeleteCheckinMutation } from "@/pages/journal/hooks/useDeleteCheckinMutation";
+import type { DeleteCheckinButtonProps } from "@/pages/journal/types/deleteCheckinButton";
+
+export const DeleteCheckinButton = ({ checkinId }: DeleteCheckinButtonProps) => {
+  const { t } = useTranslation();
+  const { removeCheckin, isRemoving } = useDeleteCheckinMutation();
+  const [isOpen, setIsOpen] = useState(false);
+  const isInFlight = useRef(false);
+
+  const confirmRemoval = async () => {
+    if (isInFlight.current) return;
+    isInFlight.current = true;
+    try {
+      await removeCheckin(checkinId);
+    } catch {
+      return;
+    } finally {
+      isInFlight.current = false;
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <AlertDialog isOpen={isOpen} onOpenChange={setIsOpen}>
+      <Button variant="danger-soft" size="lg" className="shrink-0">
+        {t("pages.journal.delete.action")}
+      </Button>
+      <AlertDialog.Backdrop>
+        <AlertDialog.Container>
+          <AlertDialog.Dialog>
+            <AlertDialog.Header>
+              <AlertDialog.Heading>{t("pages.journal.delete.confirmTitle")}</AlertDialog.Heading>
+            </AlertDialog.Header>
+            <AlertDialog.Footer>
+              <Button size="lg" variant="tertiary" slot="close">
+                {t("pages.journal.delete.cancel")}
+              </Button>
+              <Button size="lg" variant="danger" isPending={isRemoving} onPress={() => void confirmRemoval()}>
+                {t("pages.journal.delete.confirm")}
+              </Button>
+            </AlertDialog.Footer>
+          </AlertDialog.Dialog>
+        </AlertDialog.Container>
+      </AlertDialog.Backdrop>
+    </AlertDialog>
+  );
+};

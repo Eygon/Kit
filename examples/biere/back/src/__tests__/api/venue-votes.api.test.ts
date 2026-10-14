@@ -11,6 +11,7 @@ const VENUES_PATH = "/api/v1/venues";
 const BEERS_PATH = "/api/v1/beers";
 const ALICE_ID = "1";
 const BOB_ID = "2";
+const CAROL_ID = "3";
 const UNKNOWN_ID = 999_999;
 const HOUR_MS = 3_600_000;
 const COOLDOWN_MS = VOTE_COOLDOWN_HOURS * HOUR_MS;
@@ -32,6 +33,9 @@ interface VenueBeerBody {
   readonly lastConfirmedAt: string | null;
   readonly recentVoterCount: number;
   readonly nextVoteAt: string | null;
+  readonly drunk: boolean;
+  readonly checkinCount: number;
+  readonly lastCheckinAt: string | null;
 }
 
 describe("venue votes API", () => {
@@ -102,6 +106,9 @@ describe("venue votes API", () => {
       expect(alice.status).toBe(HttpStatus.CREATED);
       expect(alice.body).toEqual({
         ...before,
+        drunk: false,
+        checkinCount: 0,
+        lastCheckinAt: null,
         status: "unknown",
         lastConfirmedAt: at(0).toISOString(),
         recentVoterCount: 1,
@@ -270,6 +277,28 @@ describe("venue votes API", () => {
 
       expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
       expect(response.body).toEqual({ message: UNIDENTIFIED_USER_MESSAGE });
+    });
+  });
+
+  describe("POST /api/v1/venues/:id/beers/:beerId/votes drunk state", () => {
+    it("returns the beer as drunk with the count and last check-in of the voter, and as not drunk for a voter without check-in", async () => {
+      for (const drankAt of ["2026-10-10T18:00:00.000Z", "2026-10-02T18:00:00.000Z"]) {
+        const checkin = await request(app.getHttpServer())
+          .post("/api/v1/checkins")
+          .set(USER_ID_HEADER_NAME, CAROL_ID)
+          .field("beerId", String(beerIds.get(ORVAL)))
+          .field("drankAt", drankAt)
+          .field("place", "Le Bistrot")
+          .field("format", "bottle");
+        expect(checkin.status).toBe(HttpStatus.CREATED);
+      }
+
+      const carol = await voteAs(CAROL_ID, BERTHOM_LYON, ORVAL, { sense: "still" });
+
+      expect(carol.status).toBe(HttpStatus.CREATED);
+      expect(carol.body).toMatchObject({ drunk: true, checkinCount: 2, lastCheckinAt: "2026-10-10T18:00:00.000Z" });
+      expect(await beerOf(CAROL_ID, BERTHOM_LYON, ORVAL)).toEqual(carol.body);
+      expect(await beerOf(BOB_ID, BERTHOM_LYON, ORVAL)).toMatchObject({ drunk: false, checkinCount: 0, lastCheckinAt: null });
     });
   });
 });

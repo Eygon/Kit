@@ -4,7 +4,11 @@
   },
   "common": {
     "retry": "Réessayer",
-    "close": "Fermer"
+    "close": "Fermer",
+    "photo": {
+      "open": "Agrandir la photo",
+      "alt": "Photo de la dégustation"
+    }
   },
   "nav": {
     "label": "Navigation principale",
@@ -22,6 +26,12 @@
     }
   },
   "beer": {
+    "rating": {
+      "summary": "{{rating}} ({{count}})",
+      "label_one": "Note moyenne {{rating}} sur 5, {{count}} avis",
+      "label_other": "Note moyenne {{rating}} sur 5, {{count}} avis",
+      "none": "Aucun avis"
+    },
     "families": {
       "lager": "Lager",
       "pilsner": "Pilsner",
@@ -41,6 +51,38 @@
       "sourLambic": "Sour / Lambic",
       "fruit": "Fruitée",
       "nonAlcoholic": "Sans alcool"
+    },
+    "bitterness": {
+      "levels": {
+        "1": "Très légère",
+        "2": "Légère",
+        "3": "Modérée",
+        "4": "Marquée",
+        "5": "Intense"
+      }
+    },
+    "color": {
+      "levels": {
+        "1": "Pâle",
+        "2": "Dorée",
+        "3": "Ambrée",
+        "4": "Brune",
+        "5": "Noire"
+      }
+    },
+    "criteria": {
+      "sweetness": {
+        "name": "Douceur",
+        "levels": { "1": "Très sèche", "2": "Sèche", "3": "Équilibrée", "4": "Douce", "5": "Très douce" }
+      },
+      "acidity": {
+        "name": "Acidité",
+        "levels": { "1": "Nulle", "2": "Légère", "3": "Moyenne", "4": "Vive", "5": "Très vive" }
+      },
+      "body": {
+        "name": "Corps",
+        "levels": { "1": "Très léger", "2": "Léger", "3": "Moyen", "4": "Rond", "5": "Très plein" }
+      }
     },
     "aromas": {
       "fruity": "Fruité",
@@ -70,7 +112,8 @@
     "sorts": {
       "name": "Nom",
       "abv": "Degré",
-      "brewery": "Brasserie"
+      "brewery": "Brasserie",
+      "rating": "Mieux notées"
     },
     "statuses": {
       "drunk": "Bues",
@@ -138,6 +181,9 @@
         "abvRange": "{{min}} à {{max}} %",
         "status": "Statut",
         "allStatuses": "Toutes",
+        "minRating": "Note minimale",
+        "minRatingAll": "Toutes",
+        "minRatingOption": "{{rating}}+",
         "family": "Famille",
         "styles": "Styles",
         "stylesError": "Impossible de charger les styles.",
@@ -164,6 +210,66 @@
       "unknownDescription": "Cette bière n'est pas dans l'encyclopédie.",
       "backToEncyclopedia": "Retour à l'Encyclopédie",
       "errorTitle": "Impossible de charger cette bière.",
+      "levels": {
+        "bitterness": "Amertume",
+        "color": "Couleur",
+        "notAvailable": "Non renseignée",
+        "score": "{{level}} / 5",
+        "bitternessValue": "{{label}} · {{score}}",
+        "styleRange": "{{min}} à {{max}} · typique du style",
+        "styleSingle": "{{label}} · typique du style"
+      },
+      "reviews": {
+        "title": "Avis",
+        "noRating": "Pas encore de note",
+        "ratingLabel": "{{rating}} sur 5",
+        "count_one": "{{count}} avis",
+        "count_other": "{{count}} avis",
+        "histogram": {
+          "label": "Répartition des notes",
+          "stars_one": "{{count}} étoile",
+          "stars_other": "{{count}} étoiles",
+          "bar": "{{stars}} : {{reviews}}"
+        },
+        "criteria": {
+          "label": "Moyennes de la communauté",
+          "value": "{{name}} {{average}} / 5 · {{level}}",
+          "hidden_one": "{{name}} : encore {{count}} avis pour afficher ce critère",
+          "hidden_other": "{{name}} : encore {{count}} avis pour afficher ce critère"
+        },
+        "list": {
+          "mine": "Mon avis",
+          "errorTitle": "Impossible de charger les avis.",
+          "emptyTitle": "Aucun avis pour l'instant",
+          "emptyDescription": "Soyez le premier à donner votre avis.",
+          "loadMore": "Voir plus",
+          "criterion": "{{name}} : {{level}}"
+        },
+        "form": {
+          "rating": "Note",
+          "ratingValue": "{{rating}} sur 5",
+          "noRating": "Aucune note",
+          "ratingRequired": "La note est obligatoire",
+          "notRated": "Non renseigné",
+          "text": "Votre avis",
+          "textCount": "{{count}} / 500",
+          "submit": "Publier mon avis"
+        },
+        "sheet": {
+          "open": "Donner mon avis",
+          "edit": "Modifier mon avis",
+          "title": "Votre avis sur {{name}}",
+          "saved": "Avis enregistré"
+        },
+        "delete": {
+          "action": "Supprimer mon avis",
+          "confirmTitle": "Supprimer votre avis ?",
+          "cancel": "Annuler",
+          "confirm": "Supprimer",
+          "done": "Avis supprimé"
+        },
+        "checkinRequired": "Enregistrez d'abord une dégustation de cette bière."
+      },
       "wishlist": {
         "toggle": "À goûter",
         "added": "Ajoutée à vos envies.",
@@ -176,6 +282,13 @@
         "loadMore": "Voir plus",
         "rating": "★ {{rating}}",
         "ratingLabel": "Note : {{rating}} sur 5"
+      },
+      "whereToDrink": {
+        "title": "Où en boire",
+        "emptyTitle": "Pas encore de lieu connu",
+        "emptyDescription": "Aucun lieu ne sert cette bière pour l'instant : la carte vous dira où en trouver.",
+        "errorTitle": "Impossible de charger les lieux.",
+        "seeOnMap": "Voir sur la carte"
       },
       "checkin": {
         "open": "Je l'ai bue",
@@ -194,6 +307,14 @@
         "price": "Prix",
         "comment": "Commentaire",
         "commentCount": "{{count}} / 500",
+        "photo": {
+          "take": "Prendre une photo",
+          "pick": "Choisir dans la galerie",
+          "remove": "Retirer la photo",
+          "preview": "Aperçu de la photo",
+          "tooLarge": "La photo dépasse 5 Mo.",
+          "badType": "Choisissez une image JPEG, PNG ou WebP."
+        },
         "submit": "Enregistrer",
         "saved": "Dégustation enregistrée.",
         "capturedTitle": "Nouvelle bière capturée !",
@@ -218,17 +339,44 @@
         "emptyTitle": "Aucun lieu ici",
         "emptyDescription": "Déplacez la carte ou retirez des filtres."
       },
+      "search": {
+        "trigger": "Rechercher un lieu",
+        "title": "Rechercher un lieu",
+        "label": "Nom d'un lieu ou d'une ville",
+        "clear": "Effacer la recherche",
+        "hint": "Tapez le nom d'un lieu ou d'une ville",
+        "errorTitle": "Impossible de chercher les lieux.",
+        "emptyTitle": "Aucun lieu trouvé",
+        "emptyDescription": "Essayez un autre nom ou une autre ville.",
+        "emptyWithFilters": "Aucun lieu ne correspond avec les filtres actifs. Essayez d'en retirer."
+      },
       "venue": {
         "address": "Adresse",
         "city": "Ville",
         "close": "Fermer"
       },
       "venueBeers": {
+        "discovery": {
+          "count_one": "{{count}} bière à découvrir ici",
+          "count_other": "{{count}} bières à découvrir ici",
+          "allTasted": "Tu as déjà goûté toutes les bières d'ici",
+          "undrunkOnly": "Bières que je n'ai pas encore bues",
+          "emptyTitle": "Rien de nouveau ici",
+          "emptyDescription": "Désactivez le filtre pour revoir toutes les bières du lieu."
+        },
         "title": "Bières",
         "otherFamily": "Autres",
         "errorTitle": "Impossible de charger les bières.",
         "emptyTitle": "Aucune bière signalée ici",
-        "emptyDescription": "Soyez le premier à en signaler une."
+        "emptyDescription": "Soyez le premier à en signaler une.",
+        "stamp": {
+          "drunk": "Déjà bue",
+          "undiscovered": "À découvrir",
+          "count_one": "Bue {{count}} fois",
+          "count_other": "Bue {{count}} fois",
+          "countWithDate_one": "Bue {{count}} fois · dernière fois le {{date}}",
+          "countWithDate_other": "Bue {{count}} fois · dernière fois le {{date}}"
+        }
       },
       "vote": {
         "still": "Toujours là",
@@ -238,6 +386,40 @@
         "cooldown": "Vous pourrez revoter dans {{count}} h",
         "saved": "Vote enregistré",
         "alreadyVoted": "Vous avez déjà voté pour cette bière ici dans les dernières 24 h."
+      },
+      "report": {
+        "action": "Signaler une bière ici",
+        "title": "Signaler une bière",
+        "searchLabel": "Rechercher une bière",
+        "clearLabel": "Effacer la recherche",
+        "hint": "Saisissez au moins 2 caractères.",
+        "noResultTitle": "Aucune bière trouvée",
+        "noResultDescription": "Essayez un autre nom.",
+        "errorTitle": "Impossible de chercher les bières.",
+        "saved": "Bière signalée",
+        "alreadyListed": "Cette bière est déjà signalée ici",
+        "close": "Fermer"
+      },
+      "propose": {
+        "action": "Proposer un lieu",
+        "pickHint": "Touchez la carte pour choisir l'emplacement du lieu.",
+        "pickedHint": "Glissez le repère pour ajuster le point, puis confirmez.",
+        "confirmPoint": "Confirmer le point",
+        "cancel": "Annuler",
+        "pointMarker": "Point choisi pour le nouveau lieu",
+        "title": "Proposer un lieu",
+        "point": "Point choisi : {{latitude}}, {{longitude}}",
+        "name": "Nom du lieu",
+        "type": "Type de lieu",
+        "address": "Adresse",
+        "city": "Ville",
+        "description": "Description",
+        "nameRequired": "Le nom est requis",
+        "addressRequired": "L'adresse est requise",
+        "nameTaken": "Ce lieu existe déjà",
+        "submit": "Proposer",
+        "close": "Fermer",
+        "saved": "Lieu proposé"
       },
       "beerFilter": {
         "label": "Où boire : {{name}}",
@@ -250,6 +432,7 @@
         "family": "Famille de bière",
         "anyFamily": "Toutes",
         "confirmedOnly": "Disponibilité confirmée seulement",
+        "undiscovered": "Lieux avec des bières à découvrir",
         "radius": "Rayon",
         "radiusOption": "{{count}} km",
         "radiusNeedsPosition": "Utilisez Autour de moi pour choisir un rayon.",
@@ -264,13 +447,20 @@
       "title": "Journal",
       "subtitle": "Vos dégustations, au fil des verres.",
       "emptyTitle": "Aucune dégustation pour l'instant",
-      "emptyDescription": "Vos notes de dégustation apparaîtront ici."
+      "emptyDescription": "Vos notes de dégustation apparaîtront ici.",
+      "errorTitle": "Impossible de charger le journal.",
+      "loadMore": "Voir plus",
+      "delete": {
+        "action": "Supprimer",
+        "confirmTitle": "Supprimer cette dégustation ?",
+        "confirm": "Supprimer",
+        "cancel": "Annuler",
+        "done": "Dégustation supprimée."
+      }
     },
     "profile": {
       "title": "Profil",
       "subtitle": "Votre compte et vos préférences.",
-      "emptyTitle": "Aucune préférence pour l'instant",
-      "emptyDescription": "Vos réglages apparaîtront ici.",
       "demoUser": {
         "title": "Utilisateur de démonstration",
         "description": "Les requêtes sont envoyées au nom de cet utilisateur.",
@@ -280,6 +470,110 @@
           "bob": "Bob (utilisateur 2)",
           "carol": "Carol (utilisateur 3)"
         }
+      },
+      "language": {
+        "title": "Langue",
+        "description": "Choisissez la langue de l'appli.",
+        "label": "Langue de l'appli",
+        "options": {
+          "fr": "Français",
+          "en": "English"
+        }
+      },
+      "progress": {
+        "title": "Progression",
+        "summary": "{{discovered}} / {{total}} découvertes",
+        "family": "{{family}} {{discovered}} / {{total}}",
+        "ringLabel": "{{family}} : {{discovered}} sur {{total}}",
+        "errorTitle": "Progression indisponible."
+      },
+      "share": {
+        "action": "Partager",
+        "text_one": "J'ai découvert {{count}} bière sur Mousse ({{percent}} %)",
+        "text_other": "J'ai découvert {{count}} bières sur Mousse ({{percent}} %)",
+        "copied": "Copié dans le presse-papiers.",
+        "failed": "Impossible de partager."
+      },
+      "badges": {
+        "title": "Badges",
+        "unlockedOn": "Débloqué le {{date}}",
+        "progress": "{{current}} / {{target}}",
+        "comingSoon": "Bientôt",
+        "specialistGroup": "Spécialiste {{unlocked}} / {{total}}",
+        "errorTitle": "Badges indisponibles.",
+        "emptyTitle": "Aucun badge",
+        "emptyDescription": "Les badges apparaîtront ici.",
+        "kinds": {
+          "firstSip": {
+            "name": "Première gorgée",
+            "criterion": "Découvrir une première bière"
+          },
+          "explorer": {
+            "name": "Explorateur",
+            "criterion": "Découvrir {{count}} bières"
+          },
+          "collector": {
+            "name": "Collectionneur",
+            "criterion": "Découvrir {{count}} bières"
+          },
+          "completionist": {
+            "name": "Complétiste",
+            "criterion": "Découvrir les {{count}} bières du catalogue"
+          },
+          "globetrotter": {
+            "name": "Globe-trotter",
+            "criterion": "Goûter des bières de {{count}} pays"
+          },
+          "specialist": {
+            "name": "Spécialiste",
+            "criterion": "Découvrir toutes les bières d'une famille"
+          },
+          "photographer": {
+            "name": "Photographe",
+            "criterion": "{{count}} dégustations avec photo"
+          },
+          "regular": {
+            "name": "Habitué",
+            "criterion": "Déguster {{count}} jours de suite"
+          },
+          "sentinel": {
+            "name": "Sentinelle",
+            "criterion": "Voter {{count}} fois sur la carte"
+          },
+          "cartographer": {
+            "name": "Cartographe",
+            "criterion": "Proposer un lieu ou signaler une bière"
+          }
+        }
+      },
+      "stats": {
+        "title": "Statistiques",
+        "checkins": "Dégustations",
+        "discovered": "Bières découvertes",
+        "averageAbv": "Degré moyen",
+        "averageRating": "Note moyenne",
+        "ratingValue": "{{rating}} / 5",
+        "favoriteFamily": "Famille préférée",
+        "currentStreak": "Série en cours",
+        "bestStreak": "Meilleure série",
+        "days_one": "{{count}} jour",
+        "days_other": "{{count}} jours",
+        "countries": "Pays goûtés",
+        "countryCount": "{{country}} · {{count}}",
+        "none": "—",
+        "monthsTitle": "12 derniers mois",
+        "monthBar_one": "{{month}} : {{count}} dégustation",
+        "monthBar_other": "{{month}} : {{count}} dégustations",
+        "errorTitle": "Statistiques indisponibles."
+      },
+      "wishlist": {
+        "title": "À goûter",
+        "remove": "Retirer",
+        "removeLabel": "Retirer {{name}} des envies",
+        "removed": "Retirée de vos envies.",
+        "emptyTitle": "Aucune envie pour l'instant",
+        "emptyDescription": "Ajoutez des bières « À goûter » depuis l'Encyclopédie.",
+        "errorTitle": "Liste d'envies indisponible."
       }
     }
   },

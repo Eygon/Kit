@@ -18,6 +18,7 @@ import type { Selection } from "@heroui/react";
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { PhotoPicker } from "@/pages/beerDetail/components/elements/photoPicker/photoPicker";
 import { useCreateCheckinMutation } from "@/pages/beerDetail/hooks/useCreateCheckinMutation";
 import type { CheckinFormProps } from "@/pages/beerDetail/types/checkinForm";
 import type { CheckinFormValues } from "@/pages/beerDetail/types/checkinFormValues";
@@ -193,6 +194,7 @@ export const CheckinForm = ({ beerId, onSaved }: CheckinFormProps) => {
         <TextArea />
         <Description>{t("pages.beerDetail.checkin.commentCount", { count: values.comment.length })}</Description>
       </TextField>
+      <PhotoPicker file={values.photo} onChange={(photo) => updateValue("photo", photo)} />
       <Button type="submit" size="lg" fullWidth isPending={isSaving}>
         {t("pages.beerDetail.checkin.submit")}
       </Button>

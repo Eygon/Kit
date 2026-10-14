@@ -14,6 +14,7 @@ const FILLED: CheckinFormValues = {
   format: "bottle",
   price: 4.2,
   comment: "Très bonne",
+  photo: null,
 };
 
 describe("createEmptyCheckinForm", () => {
@@ -31,6 +32,7 @@ describe("createEmptyCheckinForm", () => {
       format: "",
       price: Number.NaN,
       comment: "",
+      photo: null,
     });
   });
 });
@@ -69,7 +71,14 @@ describe("formValuesToNewCheckin", () => {
       aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
       price: 4.2,
       comment: "Très bonne",
+      photo: null,
     });
+  });
+
+  it("carries the chosen photo file", () => {
+    const photo = new File([new Uint8Array(4)], "beer.png", { type: "image/png" });
+
+    expect(formValuesToNewCheckin({ ...FILLED, photo }, 7).photo).toBe(photo);
   });
 
   it("turns the zero rating of « Sans note » into no rating", () => {

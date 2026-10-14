@@ -11,4 +11,7 @@ export interface VenueBeer {
   lastConfirmedAt: Date | null;
   recentVoterCount: number;
   nextVoteAt: Date | null;
+  drunk: boolean;
+  checkinCount: number;
+  lastCheckinAt: Date | null;
 }

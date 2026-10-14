@@ -54,6 +54,32 @@ describe("httpClient", () => {
     expect(patchInit.body).toBe('{"name":"Stout"}');
   });
 
+  it("serializes a JSON body on put with the PUT method and the JSON content type", async () => {
+    mockFetch.mockImplementation(async () => new Response('{"id":1}', { status: 200 }));
+
+    const response = await httpClient.put("http://x/api/v1/beers/1/reviews/me", { rating: 4 });
+
+    expect(response).toEqual({ status: 200, data: { id: 1 } });
+    expect(lastInit().method).toBe("PUT");
+    expect(lastInit().body).toBe('{"rating":4}');
+    expect(lastInit().headers).toMatchObject({ "Content-Type": "application/json", "X-User-Id": "1" });
+  });
+
+  it("returns a null data on a 204 put", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(httpClient.put("http://x/a", { rating: 4 })).resolves.toEqual({ status: 204, data: null });
+  });
+
+  it("passes the abort signal on put", async () => {
+    mockFetch.mockImplementation(async () => new Response("{}", { status: 200 }));
+    const controller = new AbortController();
+
+    await httpClient.put("http://x/a", { rating: 4 }, { signal: controller.signal });
+
+    expect(lastInit().signal).toBe(controller.signal);
+  });
+
   it("posts a form data body without a hand-set content type", async () => {
     mockFetch.mockResolvedValue(new Response("{}", { status: 201 }));
     const formData = new FormData();

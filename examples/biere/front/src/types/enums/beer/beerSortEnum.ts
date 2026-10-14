@@ -2,6 +2,7 @@ export enum BeerSortEnum {
   NAME = "name",
   ABV = "abv",
   BREWERY = "brewery",
+  RATING = "rating",
 }
 
 export const DEFAULT_BEER_SORT = BeerSortEnum.NAME;
@@ -10,6 +11,7 @@ export const BEER_SORT_LABEL_KEYS: Record<BeerSortEnum, string> = {
   [BeerSortEnum.NAME]: "beer.sorts.name",
   [BeerSortEnum.ABV]: "beer.sorts.abv",
   [BeerSortEnum.BREWERY]: "beer.sorts.brewery",
+  [BeerSortEnum.RATING]: "beer.sorts.rating",
 };
 
 export const isBeerSort = (value: unknown): value is BeerSortEnum =>

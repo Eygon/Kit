@@ -8,4 +8,7 @@ export interface VenueBeerDto {
   lastConfirmedAt: string | null;
   recentVoterCount: number;
   nextVoteAt: string | null;
+  drunk: boolean;
+  checkinCount: number;
+  lastCheckinAt: string | null;
 }

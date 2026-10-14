@@ -3,7 +3,9 @@ import {
   BEERS,
   BEER_BY_ID,
   BEER_STYLES,
+  ME_BADGES,
   ME_DEX,
+  ME_STATS,
   VENUES,
   VENUE_BEERS,
   VENUE_BEER_VOTES,
@@ -38,6 +40,20 @@ describe("apiURL", () => {
   it("builds the venues collection route from the api root", () => {
     expect(VENUES()).toBe(`${API_V1()}/venues`);
     expect(VENUES()).toMatch(/\/api\/v1\/venues$/);
+  });
+});
+
+describe("ME_BADGES", () => {
+  it("builds the badges route of the current user from the api root", () => {
+    expect(ME_BADGES()).toBe(`${API_V1()}/me/badges`);
+    expect(ME_BADGES()).toMatch(/\/api\/v1\/me\/badges$/);
+  });
+});
+
+describe("ME_STATS", () => {
+  it("builds the stats route of the current user from the api root", () => {
+    expect(ME_STATS()).toBe(`${API_V1()}/me/stats`);
+    expect(ME_STATS()).toMatch(/\/api\/v1\/me\/stats$/);
   });
 });
 

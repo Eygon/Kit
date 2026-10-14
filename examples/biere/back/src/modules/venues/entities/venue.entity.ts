@@ -35,4 +35,10 @@ export class Venue {
 
   @Column({ type: "varchar", length: VENUE_NAME_MAX_LENGTH, unique: true })
   nameKey!: string;
+
+  @Column({ type: "varchar", length: VENUE_NAME_MAX_LENGTH, default: "" })
+  searchName!: string;
+
+  @Column({ type: "varchar", length: VENUE_CITY_MAX_LENGTH, default: "" })
+  searchCity!: string;
 }

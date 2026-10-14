@@ -1,3 +1,4 @@
+import { toVenueSearchKeys } from "@/modules/venues/mappers/venue.mapper";
 import type { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
 import type { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
 import type { Venue } from "@/modules/venues/entities/venue.entity";
@@ -31,6 +32,7 @@ const toVenueRow = (row: VenueSeedRow): Omit<Venue, "id"> => {
     longitude: row.longitude,
     description: row.description,
     nameKey: row.name.trim().toLocaleLowerCase(NAME_KEY_LOCALE),
+    ...toVenueSearchKeys(row.name, row.city),
   };
 };
 

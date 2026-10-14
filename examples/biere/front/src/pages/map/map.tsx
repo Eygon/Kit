@@ -1,9 +1,11 @@
 import { Alert, Button } from "@heroui/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BeerFilterChip } from "@/pages/map/components/elements/beerFilterChip/beerFilterChip";
+import { ProposeVenueDrawer } from "@/pages/map/components/widgets/proposeVenueDrawer/proposeVenueDrawer";
 import { MapFiltersDrawer } from "@/pages/map/components/widgets/mapFiltersDrawer/mapFiltersDrawer";
 import { VenueListDrawer } from "@/pages/map/components/widgets/venueListDrawer/venueListDrawer";
+import { VenueSearchSheet } from "@/pages/map/components/widgets/venueSearchSheet/venueSearchSheet";
 import { VenueSheet } from "@/pages/map/components/widgets/venueSheet/venueSheet";
 import { VenueMap } from "@/pages/map/components/widgets/venueMap/venueMap";
 import { useGeolocation } from "@/pages/map/hooks/useGeolocation";
@@ -11,6 +13,7 @@ import { useMapFilters } from "@/pages/map/hooks/useMapFilters";
 import { useVenuesQuery } from "@/pages/map/hooks/useVenuesQuery";
 import { GeolocationStatusEnum } from "@/pages/map/types/geolocationStatusEnum";
 import { EMPTY_VENUE_QUERY } from "@/types/mappers/venue/venueQueryMapper";
+import type { GeoPosition } from "@/types/models/venue/geoPosition";
 import type { MapBounds } from "@/types/models/venue/mapBounds";
 import type { Venue } from "@/types/models/venue/venue";
 
@@ -19,22 +22,40 @@ export const MapPage = () => {
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [tilesUnavailable, setTilesUnavailable] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+  const [focusedPosition, setFocusedPosition] = useState<GeoPosition | null>(null);
   const [isListOpen, setIsListOpen] = useState(false);
+  const [isPickingPoint, setIsPickingPoint] = useState(false);
+  const [pickedPoint, setPickedPoint] = useState<GeoPosition | null>(null);
+  const [isProposeOpen, setIsProposeOpen] = useState(false);
   const { position, status, locate } = useGeolocation();
-  const { filters, applyFilters } = useMapFilters();
-  const { venues, isPending, isError, refetch } = useVenuesQuery({
-    ...EMPTY_VENUE_QUERY,
-    bounds,
-    position,
-    types: filters.types,
-    family: filters.family,
-    beerId: filters.beerId,
-    confirmedOnly: filters.confirmedOnly,
-    radiusKm: position === null ? null : filters.radiusKm,
-  });
+  const { filters, applyFilters, activeCount } = useMapFilters();
+  const radiusKm = position === null ? null : filters.radiusKm;
+  const filterQuery = useMemo(
+    () => ({
+      ...EMPTY_VENUE_QUERY,
+      position,
+      types: filters.types,
+      family: filters.family,
+      beerId: filters.beerId,
+      confirmedOnly: filters.confirmedOnly,
+      undiscovered: filters.undiscovered,
+      radiusKm,
+    }),
+    [position, filters.types, filters.family, filters.beerId, filters.confirmedOnly, filters.undiscovered, radiusKm],
+  );
+  const { venues, isPending, isError, refetch } = useVenuesQuery({ ...filterQuery, bounds });
   const selectVenue = (venue: Venue) => {
     setIsListOpen(false);
     setSelectedVenue(venue);
+  };
+  const selectSearchedVenue = (venue: Venue) => {
+    setFocusedPosition({ latitude: venue.latitude, longitude: venue.longitude });
+    selectVenue(venue);
+  };
+  const hasPointPrompt = isPickingPoint || pickedPoint !== null;
+  const cancelPointPicking = () => {
+    setIsPickingPoint(false);
+    setPickedPoint(null);
   };
   const locateErrorKey =
     status === GeolocationStatusEnum.DENIED
@@ -50,13 +71,18 @@ export const MapPage = () => {
         <VenueMap
           venues={isError ? [] : venues}
           userPosition={position}
+          focusedPosition={focusedPosition}
           onBoundsChange={setBounds}
           onTilesUnavailable={() => setTilesUnavailable(true)}
           onSelectVenue={selectVenue}
+          pickedPoint={pickedPoint}
+          isPickingPoint={isPickingPoint}
+          onPickPoint={setPickedPoint}
         />
       </div>
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 p-4">
         <div className="pointer-events-auto flex flex-wrap gap-2 self-start">
+          <VenueSearchSheet filterQuery={filterQuery} activeFilterCount={activeCount} onSelectVenue={selectSearchedVenue} />
           <VenueListDrawer
             venues={venues}
             isPending={isPending}
@@ -75,11 +101,32 @@ export const MapPage = () => {
           >
             {t("pages.map.locate.action")}
           </Button>
+          <Button variant="secondary" size="lg" onPress={() => setIsPickingPoint(true)}>
+            {t("pages.map.propose.action")}
+          </Button>
         </div>
         {filters.beerId !== null && (
           <div className="pointer-events-auto flex min-w-0 self-start p-1">
             <BeerFilterChip beerId={filters.beerId} onRemove={() => applyFilters({ ...filters, beerId: null })} />
           </div>
+        )}
+        {hasPointPrompt && (
+          <Alert status="default" className="pointer-events-auto">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>{t(pickedPoint === null ? "pages.map.propose.pickHint" : "pages.map.propose.pickedHint")}</Alert.Title>
+            </Alert.Content>
+            <div className="flex flex-wrap gap-2">
+              {pickedPoint !== null && (
+                <Button variant="primary" size="lg" onPress={() => setIsProposeOpen(true)}>
+                  {t("pages.map.propose.confirmPoint")}
+                </Button>
+              )}
+              <Button variant="tertiary" size="lg" onPress={cancelPointPicking}>
+                {t("pages.map.propose.cancel")}
+              </Button>
+            </div>
+          </Alert>
         )}
         {locateErrorKey !== null && (
           <Alert status="danger" role="alert" className="pointer-events-auto">
@@ -99,6 +146,12 @@ export const MapPage = () => {
         )}
       </div>
       <VenueSheet venue={selectedVenue} onClose={() => setSelectedVenue(null)} />
+      <ProposeVenueDrawer
+        position={pickedPoint}
+        isOpen={isProposeOpen}
+        onOpenChange={setIsProposeOpen}
+        onCreated={cancelPointPicking}
+      />
     </div>
   );
 };

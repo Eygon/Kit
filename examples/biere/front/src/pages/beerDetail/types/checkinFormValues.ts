@@ -8,4 +8,5 @@ export type CheckinFormValues = Readonly<{
   format: string;
   price: number;
   comment: string;
+  photo: File | null;
 }>;

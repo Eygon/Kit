@@ -9,6 +9,8 @@ export interface VenueQuery {
   family: BeerFamilyEnum | null;
   beerId: number | null;
   confirmedOnly: boolean;
+  undiscovered: boolean;
   position: GeoPosition | null;
   radiusKm: number | null;
+  q: string;
 }

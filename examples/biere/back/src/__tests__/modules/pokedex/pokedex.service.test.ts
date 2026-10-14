@@ -35,6 +35,9 @@ const ORVAL: BeerDto = {
   aromas: [],
   formats: [],
   description: "Trappiste.",
+  bitternessLevel: null,
+  colorLevel: null,
+  styleColorRange: null,
 };
 
 const buildDto = (drankAt: string): CreateCheckinDto => ({

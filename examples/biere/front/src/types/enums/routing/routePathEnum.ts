@@ -11,5 +11,7 @@ const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/;
 export const buildBeerDetailPath = (beerId: number): string =>
   RoutePathEnum.BEER_DETAIL.replace(":beerId", beerId.toString());
 
+export const buildMapPathForBeer = (beerId: number): string => `${RoutePathEnum.MAP}?beer=${beerId}`;
+
 export const parseBeerIdParam = (value: string | undefined): number | null =>
   value !== undefined && POSITIVE_INTEGER_PATTERN.test(value) ? Number(value) : null;

@@ -9,4 +9,5 @@ export interface NewCheckin {
   aromas: BeerAromaEnum[];
   price: number | null;
   comment: string;
+  photo?: File | null;
 }

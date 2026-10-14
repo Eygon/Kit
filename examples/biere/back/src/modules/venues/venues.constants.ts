@@ -6,6 +6,8 @@ export const VENUE_CITY_MAX_LENGTH = 60;
 
 export const VENUE_DESCRIPTION_MAX_LENGTH = 300;
 
+export const VENUE_SEARCH_MAX_LENGTH = 100;
+
 export const LATITUDE_MAX_DEGREES = 90;
 
 export const LONGITUDE_MAX_DEGREES = 180;

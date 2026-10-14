@@ -15,3 +15,5 @@ if (typeof window.matchMedia !== "function") {
     }),
   });
 }
+
+Object.defineProperty(window.navigator, "language", { value: "fr-FR", configurable: true });

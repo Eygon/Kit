@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 import { VenueSheet } from "@/pages/map/components/widgets/venueSheet/venueSheet";
@@ -130,6 +130,9 @@ describe("VenueSheet", () => {
           lastConfirmedAt: null,
           recentVoterCount: 0,
           nextVoteAt: null,
+          drunk: false,
+          checkinCount: 0,
+          lastCheckinAt: null,
         },
       ],
       isPending: false,
@@ -163,5 +166,79 @@ describe("VenueSheet", () => {
     renderSheet(null);
 
     expect(mockQuery.useVenueBeersQuery).not.toHaveBeenCalled();
+  });
+
+  it("US17 shows a Signaler une bière ici button in the sheet and no report sheet until it is pressed", async () => {
+    renderSheet(VENUE);
+
+    const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+
+    expect(within(dialog).getByRole("button", { name: "Signaler une bière ici" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Signaler une bière" })).not.toBeInTheDocument();
+  });
+
+  it("US17 opens the report sheet for the venue on top of the venue sheet when the button is pressed", async () => {
+    const user = userEvent.setup();
+    renderSheet(VENUE);
+    const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+
+    await user.click(within(dialog).getByRole("button", { name: "Signaler une bière ici" }));
+
+    const report = await screen.findByRole("dialog", { name: "Signaler une bière" });
+    expect(within(report).getByRole("searchbox", { name: "Rechercher une bière" })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("US17 stacks the report sheet on the venue sheet on purpose, and its Fermer button closes only the report sheet", async () => {
+    const user = userEvent.setup();
+    renderSheet(VENUE);
+    const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+    await user.click(within(dialog).getByRole("button", { name: "Signaler une bière ici" }));
+    const report = await screen.findByRole("dialog", { name: "Signaler une bière" });
+
+    await user.click(within(report).getByRole("button", { name: "Fermer" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Signaler une bière", hidden: true })).not.toBeInTheDocument());
+    expect(await screen.findByRole("dialog", { name: "La Fine Mousse" })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("US17 closes only the report sheet on Escape", async () => {
+    const user = userEvent.setup();
+    renderSheet(VENUE);
+    const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+    await user.click(within(dialog).getByRole("button", { name: "Signaler une bière ici" }));
+    await screen.findByRole("dialog", { name: "Signaler une bière" });
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Signaler une bière", hidden: true })).not.toBeInTheDocument());
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("US17 reports the chosen beer for the id of the selected venue", async () => {
+    const orval = { id: 7, name: "Orval", breweryName: "Brasserie d'Orval", country: "BE", styleId: 12, styleName: "Trappiste", family: "trappist", abv: 6.2, aromas: [], formats: [], description: "", drunk: false, checkinCount: 0, inWishlist: false };
+    const created = { beerId: 7, beerName: "Orval", breweryName: "Orval", styleName: "Trappiste", family: "trappist", status: "unknown", lastConfirmedAt: null, recentVoterCount: 0, nextVoteAt: null, drunk: false, checkinCount: 0, lastCheckinAt: null };
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "POST"
+        ? new Response(JSON.stringify(created), { status: 201 })
+        : new Response(JSON.stringify({ items: [orval], total: 1, page: 1, size: 10, facets: { families: [], countries: [], formats: [] } }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderSheet({ ...VENUE, id: 42 });
+    const dialog = await screen.findByRole("dialog", { name: "La Fine Mousse" });
+    await user.click(within(dialog).getByRole("button", { name: "Signaler une bière ici" }));
+    const report = await screen.findByRole("dialog", { name: "Signaler une bière" });
+    await user.type(within(report).getByRole("searchbox"), "orv");
+
+    await user.click(await within(report).findByRole("button", { name: /Orval/ }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Signaler une bière", hidden: true })).not.toBeInTheDocument());
+    const posts = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
+    expect(posts).toHaveLength(1);
+    expect(posts[0][0]).toMatch(/\/api\/v1\/venues\/42\/beers$/);
+    expect(await screen.findByRole("dialog", { name: "La Fine Mousse" })).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 });

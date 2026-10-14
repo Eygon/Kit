@@ -5,4 +5,5 @@ export const venueKeys = {
   lists: () => [...venueKeys.all(), "list"] as const,
   list: (query: VenueQuery) => [...venueKeys.lists(), query] as const,
   beers: (venueId: number | null) => [...venueKeys.all(), "beers", venueId] as const,
+  forBeer: (beerId: number) => [...venueKeys.all(), "forBeer", beerId] as const,
 };

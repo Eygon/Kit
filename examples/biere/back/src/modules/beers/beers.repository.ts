@@ -1,31 +1,37 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Brackets, In, Repository } from "typeorm";
+import { Brackets, In, Not, Repository } from "typeorm";
 import type { SelectQueryBuilder } from "typeorm";
+import { escapeLikePattern } from "@/common/text/escape-like-pattern";
 import { normalizeSearchText } from "@/common/text/normalize-search-text";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import type { BeerFacetsDto } from "@/modules/beers/dtos/beer-facets.dto";
 import type { BeerFilters } from "@/modules/beers/dtos/beer-filters.dto";
 import type { FacetCountDto } from "@/modules/beers/dtos/facet-count.dto";
 import type { BeerSliceDto } from "@/modules/beers/dtos/beer-slice.dto";
+import type { RatingSummaryDto } from "@/modules/beers/dtos/rating-summary.dto";
+import type { ReviewStatsDto } from "@/modules/beers/dtos/review-stats.dto";
+import type { ReviewRecordDto } from "@/modules/beers/dtos/review-record.dto";
+import type { ReviewRecordSliceDto } from "@/modules/beers/dtos/review-record-slice.dto";
 import type { BeerStyleGroupDto } from "@/modules/beers/dtos/beer-style-group.dto";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
+import { Review } from "@/modules/beers/entities/review.entity";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
+import { ReviewCriterionEnum } from "@/modules/beers/enums/review-criterion.enum";
 import { BEER_SORT_ORDERS } from "@/modules/beers/enums/beer-sort.enum";
 import type { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
 import { toBeerDto } from "@/modules/beers/mappers/beer.mapper";
 import { toBeerStyleGroupDtos } from "@/modules/beers/mappers/beer-style.mapper";
 import { toFacetCountDto } from "@/modules/beers/mappers/facet-count.mapper";
-
-const LIKE_WILDCARDS = /[\\%_]/g;
+import { toReviewRecordDto } from "@/modules/beers/mappers/review.mapper";
+import { toRatingSummaryDto, toReviewStatsDto } from "@/modules/beers/mappers/review-stats.mapper";
+import type { RawCriteriaRow, RawRatingBucketRow, RawRatingSummaryRow } from "@/modules/beers/mappers/review-stats.mapper";
 
 const NO_BEER_CONDITION = "1 = 0";
 
 const FORMATS_LIST_EXPRESSION = "(',' || beer.formats || ',')";
-
-const escapeLikePattern = (term: string): string => term.replace(LIKE_WILDCARDS, (character) => `\\${character}`);
 
 const toFormatPattern = (format: BeerFormatEnum): string => `%,${format},%`;
 
@@ -47,6 +53,7 @@ export class BeersRepository {
   constructor(
     @InjectRepository(Beer) private readonly beers: Repository<Beer>,
     @InjectRepository(BeerStyle) private readonly styles: Repository<BeerStyle>,
+    @InjectRepository(Review) private readonly reviews: Repository<Review>,
   ) {}
 
   async findStyleGroups(): Promise<BeerStyleGroupDto[]> {
@@ -101,6 +108,70 @@ export class BeersRepository {
     return entities.map(toBeerDto);
   }
 
+  async findReview(userId: number, beerId: number): Promise<ReviewRecordDto | null> {
+    const entity = await this.reviews.findOneBy({ userId, beerId });
+    return entity === null ? null : toReviewRecordDto(entity);
+  }
+
+  async findReviewPage(beerId: number, excludedUserId: number, page: number, size: number): Promise<ReviewRecordSliceDto> {
+    const [entities, total] = await this.reviews.findAndCount({
+      where: { beerId, userId: Not(excludedUserId) },
+      order: { updatedAt: "DESC", id: "DESC" },
+      skip: (page - 1) * size,
+      take: size,
+    });
+    return { items: entities.map(toReviewRecordDto), total };
+  }
+
+  async findRatingSummaries(beerIds: readonly number[]): Promise<RatingSummaryDto[]> {
+    if (beerIds.length === 0) {
+      return [];
+    }
+    const rows = await this.reviews
+      .createQueryBuilder("review")
+      .select("review.beerId", "beerId")
+      .addSelect("ROUND(AVG(review.rating), 1)", "averageRating")
+      .addSelect("COUNT(*)", "reviewCount")
+      .where("review.beerId IN (:...beerIds)", { beerIds })
+      .groupBy("review.beerId")
+      .orderBy("review.beerId", "ASC")
+      .getRawMany<RawRatingSummaryRow>();
+    return rows.map(toRatingSummaryDto);
+  }
+
+  async findReviewStats(beerId: number): Promise<ReviewStatsDto> {
+    const bucketRows = await this.reviews
+      .createQueryBuilder("review")
+      .select("CAST(review.rating AS INTEGER)", "stars")
+      .addSelect("COUNT(*)", "count")
+      .where("review.beerId = :beerId", { beerId })
+      .groupBy("CAST(review.rating AS INTEGER)")
+      .getRawMany<RawRatingBucketRow>();
+    const criteriaQuery = this.reviews.createQueryBuilder("review").where("review.beerId = :beerId", { beerId });
+    Object.values(ReviewCriterionEnum).forEach((criterion) => {
+      criteriaQuery.addSelect(`ROUND(AVG(review.${criterion}), 1)`, `${criterion}Average`);
+      criteriaQuery.addSelect(`COUNT(review.${criterion})`, `${criterion}Count`);
+    });
+    const [criteriaRow] = await criteriaQuery.getRawMany<RawCriteriaRow>();
+    return toReviewStatsDto(bucketRows, criteriaRow);
+  }
+
+  async upsertReview(row: Omit<Review, "id">): Promise<ReviewRecordDto> {
+    await this.reviews
+      .createQueryBuilder()
+      .insert()
+      .values(row)
+      .orUpdate(["rating", "text", "sweetness", "acidity", "body", "updatedAt"], ["userId", "beerId"])
+      .execute();
+    const entity = await this.reviews.findOneByOrFail({ userId: row.userId, beerId: row.beerId });
+    return toReviewRecordDto(entity);
+  }
+
+  async deleteReview(userId: number, beerId: number): Promise<boolean> {
+    const result = await this.reviews.delete({ userId, beerId });
+    return result.affected === 1;
+  }
+
   private async findFamilyFacet(search: string, filters: BeerFilters): Promise<FacetCountDto[]> {
     const rows = await this.createFacetQuery(search, filters)
       .select("style.family", "value")
@@ -144,6 +215,17 @@ export class BeersRepository {
   }
 
   private applyConditions(query: SelectQueryBuilder<Beer>, search: string, filters: BeerFilters): void {
+    query.leftJoin(
+      (subQuery) =>
+        subQuery
+          .select("review.beerId", "beerId")
+          .addSelect("ROUND(AVG(review.rating), 1)", "averageRating")
+          .addSelect("COUNT(*)", "reviewCount")
+          .from(Review, "review")
+          .groupBy("review.beerId"),
+      "rating",
+      "rating.beerId = beer.id",
+    );
     const term = normalizeSearchText(search);
     if (term !== "") {
       query.andWhere("beer.searchText LIKE :pattern ESCAPE '\\'", { pattern: `%${escapeLikePattern(term)}%` });
@@ -172,6 +254,9 @@ export class BeersRepository {
     }
     if (filters.abvMax !== undefined) {
       query.andWhere("beer.abv <= :abvMax", { abvMax: filters.abvMax });
+    }
+    if (filters.minRating !== undefined) {
+      query.andWhere("rating.averageRating >= :minRating", { minRating: filters.minRating });
     }
     if (filters.beerIds !== undefined) {
       if (filters.beerIds.length === 0) {

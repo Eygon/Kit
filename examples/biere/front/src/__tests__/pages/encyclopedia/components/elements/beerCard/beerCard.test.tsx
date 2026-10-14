@@ -19,6 +19,13 @@ const BEER: Beer = {
   drunk: false,
   checkinCount: 0,
   inWishlist: false,
+  bitternessLevel: null,
+  colorLevel: null,
+  styleColorRange: null,
+  averageRating: null,
+  reviewCount: 0,
+  ratingDistribution: [],
+  criteria: [],
 };
 
 const DRUNK_BEER: Beer = { ...BEER, drunk: true, checkinCount: 2 };
@@ -141,5 +148,47 @@ describe("BeerCard", () => {
     renderCard(DRUNK_BEER, null);
 
     expect(screen.getByText("Tasted")).toBeInTheDocument();
+  });
+
+  it("US9 AC1 shows the average and the count on the card, with the spoken sentence", () => {
+    renderCard({ ...BEER, averageRating: 4.2, reviewCount: 18 });
+
+    expect(screen.getByText("4,2 (18)")).toBeInTheDocument();
+    expect(screen.getByText("Note moyenne 4,2 sur 5, 18 avis")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Note moyenne 4,2 sur 5, 18 avis/ })).toHaveAttribute("href", "/bieres/12");
+  });
+
+  it("US9 AC1 shows the average with a decimal point in English", async () => {
+    await i18n.changeLanguage("en");
+    renderCard({ ...BEER, averageRating: 4.2, reviewCount: 18 });
+
+    expect(screen.getByText("4.2 (18)")).toBeInTheDocument();
+  });
+
+  it("US9 AC2 shows one decimal for a whole average", () => {
+    renderCard({ ...BEER, averageRating: 4, reviewCount: 7 });
+
+    expect(screen.getByText("4,0 (7)")).toBeInTheDocument();
+  });
+
+  it("US9 AC3 shows a muted No reviews text for a beer without review", () => {
+    renderCard();
+
+    expect(screen.getByText("Aucun avis")).toHaveClass("text-muted");
+    expect(screen.queryByText(/Note moyenne/)).not.toBeInTheDocument();
+  });
+
+  it("US9 AC4 keeps the rating inside the card content, after the country, without letting it overflow", () => {
+    renderCard({ ...BEER, averageRating: 4.2, reviewCount: 18 });
+
+    const country = screen.getByText("Belgique");
+    const rating = screen.getByText("4,2 (18)");
+    const content = country.parentElement as HTMLElement;
+    expect(content.contains(rating)).toBe(true);
+    expect(content.lastElementChild?.contains(rating)).toBe(true);
+    expect(screen.getByRole("link", { name: /Orval/ }).className).toContain("h-full");
+    expect(content.className).toContain("min-w-0");
+    expect(rating).toHaveClass("truncate");
+    expect(rating.parentElement).toHaveClass("min-w-0");
   });
 });

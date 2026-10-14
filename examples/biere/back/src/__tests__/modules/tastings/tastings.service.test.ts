@@ -33,7 +33,7 @@ const BOB_CHECKIN: CheckinRecordDto = {
 };
 
 describe("TastingsService", () => {
-  const repository = { createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), findCheckinById: vi.fn(), countCheckins: vi.fn(), findPhoto: vi.fn(), findCheckinPage: vi.fn(), deleteCheckinWithPhoto: vi.fn(), findWishlist: vi.fn(), existsWishlistItem: vi.fn(), addWishlistItem: vi.fn(), removeWishlistItem: vi.fn(), findDiscoveries: vi.fn(), findBeerStates: vi.fn(), findDrunkBeerIds: vi.fn(), findWishlistBeerIds: vi.fn() };
+  const repository = { createCheckin: vi.fn(), createCheckinWithPhoto: vi.fn(), findCheckinById: vi.fn(), countCheckins: vi.fn(), findPhoto: vi.fn(), findCheckinPage: vi.fn(), deleteCheckinWithPhoto: vi.fn(), findWishlist: vi.fn(), existsWishlistItem: vi.fn(), addWishlistItem: vi.fn(), removeWishlistItem: vi.fn(), findDiscoveries: vi.fn(), findCheckinsByUser: vi.fn(), findBeerStates: vi.fn(), findDrunkBeerIds: vi.fn(), findWishlistBeerIds: vi.fn() };
   let service: TastingsService;
 
   beforeEach(async () => {
@@ -237,6 +237,16 @@ describe("TastingsService", () => {
       await expect(service.removeFromWishlist(ALICE, BEER)).rejects.toThrow(
         new NotFoundException(`Beer ${BEER} is not in the wishlist.`),
       );
+    });
+  });
+
+  describe("getUserCheckins", () => {
+    it("returns the check-ins the repository finds for the user", async () => {
+      const records = [BOB_CHECKIN];
+      repository.findCheckinsByUser.mockResolvedValue(records);
+
+      expect(await service.getUserCheckins(ALICE)).toBe(records);
+      expect(repository.findCheckinsByUser).toHaveBeenCalledExactlyOnceWith(ALICE);
     });
   });
 

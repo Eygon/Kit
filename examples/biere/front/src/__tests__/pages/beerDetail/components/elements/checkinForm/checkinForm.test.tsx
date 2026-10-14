@@ -68,6 +68,8 @@ describe("CheckinForm", () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(NOW);
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, writable: true, value: vi.fn((file: File) => `blob:${file.name}`) });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, writable: true, value: vi.fn() });
     mockMutation.saveCheckin.mockResolvedValue(CREATED);
     mockMutation.useCreateCheckinMutation.mockReturnValue({ saveCheckin: mockMutation.saveCheckin, isSaving: false });
   });
@@ -243,7 +245,7 @@ describe("CheckinForm", () => {
       const slider = screen.getByRole("slider");
       slider.focus();
       await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}");
-      await user.type(screen.getByRole("textbox", { name: "Prix" }), "4.5");
+      await user.type(screen.getByRole("textbox", { name: "Prix" }), "4,5");
       await user.tab();
 
       await user.click(submitButton());
@@ -258,6 +260,7 @@ describe("CheckinForm", () => {
         aromas: [BeerAromaEnum.HOPPY, BeerAromaEnum.FLORAL],
         price: 4.5,
         comment: "Top",
+        photo: null,
       });
       await waitFor(() => expect(onSaved).toHaveBeenCalledWith(CREATED));
       expect(onSaved).toHaveBeenCalledTimes(1);
@@ -280,6 +283,7 @@ describe("CheckinForm", () => {
         aromas: [],
         price: null,
         comment: "",
+        photo: null,
       });
     });
 
@@ -344,6 +348,83 @@ describe("CheckinForm", () => {
       renderForm();
 
       expect(submitButton()).not.toHaveAttribute("data-pending");
+    });
+  });
+
+  describe("photo", () => {
+    const galleryInput = (container: HTMLElement) =>
+      container.querySelector<HTMLInputElement>('input[type="file"]:not([capture])') as HTMLInputElement;
+    const choosePhoto = (container: HTMLElement, file: File) =>
+      fireEvent.change(galleryInput(container), { target: { files: [file] } });
+    const png = () => new File([new Uint8Array(10)], "beer.png", { type: "image/png" });
+
+    it("offers the camera and the gallery with no preview at first", () => {
+      renderForm();
+
+      expect(screen.getByRole("button", { name: "Prendre une photo" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Choisir dans la galerie" })).toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: "Aperçu de la photo" })).not.toBeInTheDocument();
+    });
+
+    it("previews the chosen png and sends that very file with the tasting", async () => {
+      const user = userEvent.setup();
+      const { container } = renderForm();
+      await fillValidForm(user);
+      const photo = png();
+
+      choosePhoto(container, photo);
+
+      expect(await screen.findByRole("img", { name: "Aperçu de la photo" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Retirer la photo" })).toBeInTheDocument();
+      await user.click(submitButton());
+      await waitFor(() => expect(mockMutation.saveCheckin).toHaveBeenCalledTimes(1));
+      expect(mockMutation.saveCheckin.mock.calls[0][0].photo).toBe(photo);
+    });
+
+    it("sends the tasting without a photo once the photo is removed", async () => {
+      const user = userEvent.setup();
+      const { container } = renderForm();
+      await fillValidForm(user);
+      choosePhoto(container, png());
+      await user.click(await screen.findByRole("button", { name: "Retirer la photo" }));
+      expect(screen.queryByRole("img", { name: "Aperçu de la photo" })).not.toBeInTheDocument();
+
+      await user.click(submitButton());
+
+      await waitFor(() => expect(mockMutation.saveCheckin).toHaveBeenCalledTimes(1));
+      expect(mockMutation.saveCheckin.mock.calls[0][0].photo).toBeNull();
+    });
+
+    it("shows a message and sends no photo for a pdf", async () => {
+      const user = userEvent.setup();
+      const { container } = renderForm();
+      await fillValidForm(user);
+
+      choosePhoto(container, new File([new Uint8Array(10)], "doc.pdf", { type: "application/pdf" }));
+
+      expect(await screen.findByText("Choisissez une image JPEG, PNG ou WebP.")).toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: "Aperçu de la photo" })).not.toBeInTheDocument();
+      await user.click(submitButton());
+      await waitFor(() => expect(mockMutation.saveCheckin).toHaveBeenCalledTimes(1));
+      expect(mockMutation.saveCheckin.mock.calls[0][0].photo).toBeNull();
+    });
+
+    it("keeps the photo when the server fails so the user can send again", async () => {
+      const user = userEvent.setup();
+      mockMutation.saveCheckin.mockRejectedValueOnce(new Error("boom"));
+      const { container } = renderForm();
+      await fillValidForm(user);
+      const photo = png();
+      choosePhoto(container, photo);
+
+      await user.click(submitButton());
+
+      await waitFor(() => expect(mockMutation.saveCheckin).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(submitButton()).not.toHaveAttribute("data-pending"));
+      expect(screen.getByRole("img", { name: "Aperçu de la photo" })).toBeInTheDocument();
+      await user.click(submitButton());
+      await waitFor(() => expect(mockMutation.saveCheckin).toHaveBeenCalledTimes(2));
+      expect(mockMutation.saveCheckin.mock.calls[1][0].photo).toBe(photo);
     });
   });
 

@@ -16,6 +16,9 @@ const buildBeer = (id: number, family: BeerFamilyEnum): BeerDto => ({
   aromas: [],
   formats: [],
   description: "Description.",
+  bitternessLevel: null,
+  colorLevel: null,
+  styleColorRange: null,
 });
 
 const DUVEL_DISCOVERY: DiscoveryDto = { beerId: 5, firstCheckinAt: "2025-10-05T18:00:00.000Z", lastCheckinAt: "2025-10-05T18:00:00.000Z" };

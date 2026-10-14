@@ -1,6 +1,7 @@
 import { HttpStatus } from "@nestjs/common";
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
+import { DataSource } from "typeorm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTestApp } from "@/__tests__/support/test-app";
 import { USER_ID_HEADER_NAME } from "@/__tests__/support/user-header";
@@ -24,8 +25,11 @@ const SEEDED_BEER_COUNT = 120;
 const BEER_FIELDS = [
   "abv",
   "aromas",
+  "averageRating",
+  "bitternessLevel",
   "breweryName",
   "checkinCount",
+  "colorLevel",
   "country",
   "description",
   "drunk",
@@ -34,11 +38,26 @@ const BEER_FIELDS = [
   "id",
   "inWishlist",
   "name",
+  "reviewCount",
+  "styleColorRange",
   "styleId",
   "styleName",
 ];
 
+const BITTERNESS_LEVEL_BY_BEER: Readonly<Record<string, number>> = {
+  "Sierra Nevada Pale Ale": 3,
+  "Pilsner Urquell": 3,
+  "Lagunitas IPA": 4,
+  "Goose Island IPA": 4,
+  "Torpedo Extra IPA": 5,
+};
+
 const STATE_FIELDS: readonly string[] = ["drunk", "checkinCount", "inWishlist"];
+
+const NO_REVIEW_STATS = {
+  ratingDistribution: [1, 2, 3, 4, 5].map((stars) => ({ stars, count: 0 })),
+  criteria: ["sweetness", "acidity", "body"].map((criterion) => ({ criterion, average: null, count: 0 })),
+};
 
 const asciiLower = (value: string): string => value.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
 
@@ -112,13 +131,34 @@ describe("beers API", () => {
       aromas: ["malty", "honey", "fruity", "herbal", "spicy"],
       formats: ["bottle"],
       description: "Bière de garde blonde de Flandre française, forte, sèche et légèrement herbacée.",
+      bitternessLevel: null,
+      colorLevel: null,
+      styleColorRange: { min: 1, max: 4 },
       drunk: false,
       checkinCount: 0,
       inWishlist: false,
+      averageRating: null,
+      reviewCount: 0,
     });
     for (const beer of page.items) {
       expect(Object.keys(beer).sort()).toEqual(BEER_FIELDS);
     }
+  });
+
+  it("GET /api/v1/beers gives the five seeded IBU beers their bitterness level and no other beer", async () => {
+    const beers = await getAllBeers("name");
+
+    const levelled = Object.fromEntries(
+      beers.filter((beer) => beer.bitternessLevel !== null).map((beer) => [beer.name, beer.bitternessLevel]),
+    );
+    expect(levelled).toEqual(BITTERNESS_LEVEL_BY_BEER);
+  });
+
+  it("GET /api/v1/beers serves the style color range of every beer without EBC", async () => {
+    const beers = await getAllBeers("name");
+
+    expect(beers).toHaveLength(SEEDED_BEER_COUNT);
+    expect(beers.every((beer) => beer.colorLevel === null && beer.styleColorRange !== null)).toBe(true);
   });
 
   it("GET /api/v1/beers sorts by name without case over the whole catalogue", async () => {
@@ -214,7 +254,7 @@ describe("beers API", () => {
     [{ page: 0 }, "page must not be less than 1"],
     [{ size: 1.5 }, "size must be an integer number"],
     [{ page: 1.5 }, "page must be an integer number"],
-    [{ sort: "unknown" }, "sort must be one of the following values: name, abv, brewery"],
+    [{ sort: "unknown" }, "sort must be one of the following values: name, abv, brewery, rating"],
     [{ q: "a".repeat(101) }, "q must be shorter than or equal to 100 characters"],
   ])("GET /api/v1/beers with %j returns 400 and a message", async (query, message) => {
     const response = await request(app.getHttpServer()).get(BEERS_PATH).query(query).set(USER_ID_HEADER_NAME, "1");
@@ -251,9 +291,15 @@ describe("beers API", () => {
       aromas: ["fruity", "caramel", "spicy", "malty"],
       formats: ["bottle"],
       description: "Trappiste cuivrée, douce et fruitée, la plus ancienne recette de l'abbaye de Scourmont.",
+      bitternessLevel: null,
+      colorLevel: null,
+      styleColorRange: { min: 3, max: 4 },
       drunk: false,
       checkinCount: 0,
       inWishlist: false,
+      averageRating: null,
+      reviewCount: 0,
+      ...NO_REVIEW_STATS,
     });
   });
 
@@ -510,9 +556,9 @@ describe("beers API user state", () => {
   });
 
   it("GET /api/v1/beers/:id gives Alice the state of Orval and Duvel and Bob an empty state", async () => {
-    expect(await getSheet(ALICE_USER_ID, orval.id)).toEqual({ ...orval, drunk: true, checkinCount: 2, inWishlist: false });
-    expect(await getSheet(ALICE_USER_ID, duvel.id)).toEqual({ ...duvel, drunk: false, checkinCount: 0, inWishlist: true });
-    expect(await getSheet(BOB_USER_ID, orval.id)).toEqual({ ...orval, drunk: false, checkinCount: 0, inWishlist: false });
+    expect(await getSheet(ALICE_USER_ID, orval.id)).toEqual({ ...orval, drunk: true, checkinCount: 2, inWishlist: false, ...NO_REVIEW_STATS });
+    expect(await getSheet(ALICE_USER_ID, duvel.id)).toEqual({ ...duvel, drunk: false, checkinCount: 0, inWishlist: true, ...NO_REVIEW_STATS });
+    expect(await getSheet(BOB_USER_ID, orval.id)).toEqual({ ...orval, drunk: false, checkinCount: 0, inWishlist: false, ...NO_REVIEW_STATS });
   });
 
   it("GET /api/v1/beers carries the state of the user on every item of the list", async () => {
@@ -605,7 +651,7 @@ describe("beers API user state", () => {
     await wish(BOB_USER_ID, chimay.id);
     const checkinId = await drink(BOB_USER_ID, chimay.id);
 
-    expect(await getSheet(BOB_USER_ID, chimay.id)).toEqual({ ...chimay, drunk: true, checkinCount: 1, inWishlist: true });
+    expect(await getSheet(BOB_USER_ID, chimay.id)).toEqual({ ...chimay, drunk: true, checkinCount: 1, inWishlist: true, ...NO_REVIEW_STATS });
     expect((await getBeers(BOB_USER_ID, { status: "wishlist" })).items.map((item) => item.name)).toEqual(["Chimay Rouge"]);
     expect((await getBeers(BOB_USER_ID, { status: "drunk" })).items.map((item) => item.name)).toEqual(["Chimay Rouge"]);
 
@@ -614,8 +660,252 @@ describe("beers API user state", () => {
       .set(USER_ID_HEADER_NAME, asUser(BOB_USER_ID));
     expect(deletion.status).toBe(HttpStatus.NO_CONTENT);
 
-    expect(await getSheet(BOB_USER_ID, chimay.id)).toEqual({ ...chimay, drunk: false, checkinCount: 0, inWishlist: true });
+    expect(await getSheet(BOB_USER_ID, chimay.id)).toEqual({ ...chimay, drunk: false, checkinCount: 0, inWishlist: true, ...NO_REVIEW_STATS });
     expect((await getBeers(BOB_USER_ID, { status: "drunk" })).total).toBe(0);
     expect((await getBeers(BOB_USER_ID, { status: "untasted" })).total).toBe(SEEDED_BEER_COUNT);
+  });
+});
+
+describe("beers API rating statistics", () => {
+  let app: INestApplication;
+  const FIRST_REVIEWER_ID = 101;
+
+  const insertReview = async (
+    userId: number,
+    beerId: number,
+    rating: number,
+    sweetness: number | null = null,
+  ): Promise<void> => {
+    const now = "2026-03-01T10:00:00.000Z";
+    await app
+      .get(DataSource)
+      .query(
+        "INSERT INTO reviews (userId, beerId, rating, text, sweetness, acidity, body, createdAt, updatedAt) VALUES (?, ?, ?, 'Avis', ?, NULL, NULL, ?, ?)",
+        [userId, beerId, rating, sweetness, now, now],
+      );
+  };
+
+  const insertRatings = async (beerId: number, ratings: readonly number[]): Promise<void> => {
+    for (const [index, rating] of ratings.entries()) {
+      await insertReview(FIRST_REVIEWER_ID + index, beerId, rating);
+    }
+  };
+
+  const getSheet = async (beerId: number): Promise<CatalogBeerDto & typeof NO_REVIEW_STATS> => {
+    const response = await request(app.getHttpServer())
+      .get(`${BEERS_PATH}/${beerId}`)
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+    expect(response.status).toBe(HttpStatus.OK);
+    return response.body as CatalogBeerDto & typeof NO_REVIEW_STATS;
+  };
+
+  const getListItem = async (name: string): Promise<CatalogBeerDto> => {
+    const response = await request(app.getHttpServer())
+      .get(BEERS_PATH)
+      .query({ q: name })
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+    expect(response.status).toBe(HttpStatus.OK);
+    const [beer] = (response.body as BeerPageDto).items.filter((item) => item.name === name);
+    return beer;
+  };
+
+  const findBeerId = async (name: string): Promise<number> => (await getListItem(name)).id;
+
+  beforeAll(async () => {
+    app = await createTestApp();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("US5 AC1 gives a beer rated 4 and 4.5 the average 4.3 and 2 reviews in the list and on the sheet", async () => {
+    const orvalId = await findBeerId("Orval");
+    await insertRatings(orvalId, [4, 4.5]);
+    await insertReview(FIRST_REVIEWER_ID, await findBeerId("Duvel"), 1);
+
+    const item = await getListItem("Orval");
+    const sheet = await getSheet(orvalId);
+
+    expect([item.averageRating, item.reviewCount]).toEqual([4.3, 2]);
+    expect([sheet.averageRating, sheet.reviewCount]).toEqual([4.3, 2]);
+  });
+
+  it("US5 AC2 gives a beer without review a null average, 0 reviews, five empty bars and three hidden criteria", async () => {
+    const trippelId = await findBeerId("Rochefort 8");
+
+    const item = await getListItem("Rochefort 8");
+    const sheet = await getSheet(trippelId);
+
+    expect([item.averageRating, item.reviewCount]).toEqual([null, 0]);
+    expect(sheet).toMatchObject({ averageRating: null, reviewCount: 0, ...NO_REVIEW_STATS });
+  });
+
+  it("US5 AC3 counts the ratings 1, 1.5, 3.5, 4.5 and 5 in the bar of their integer part", async () => {
+    const chimayId = await findBeerId("Chimay Rouge");
+    await insertRatings(chimayId, [1, 1.5, 3.5, 4.5, 5]);
+
+    const sheet = await getSheet(chimayId);
+
+    expect(sheet.ratingDistribution).toEqual([
+      { stars: 1, count: 2 },
+      { stars: 2, count: 0 },
+      { stars: 3, count: 1 },
+      { stars: 4, count: 1 },
+      { stars: 5, count: 1 },
+    ]);
+    expect([sheet.averageRating, sheet.reviewCount]).toEqual([3.1, 5]);
+  });
+
+  it("US5 AC4 hides the average of a criterion filled by 2 reviews and shows it to the tenth with a 3rd", async () => {
+    const westmalleId = await findBeerId("Westmalle Tripel");
+    await insertReview(FIRST_REVIEWER_ID, westmalleId, 4, 2);
+    await insertReview(FIRST_REVIEWER_ID + 1, westmalleId, 4, 3);
+    await insertReview(FIRST_REVIEWER_ID + 2, westmalleId, 4);
+
+    const before = await getSheet(westmalleId);
+    await insertReview(FIRST_REVIEWER_ID + 3, westmalleId, 4, 3);
+    const after = await getSheet(westmalleId);
+
+    expect(before.criteria).toEqual([
+      { criterion: "sweetness", average: null, count: 2 },
+      { criterion: "acidity", average: null, count: 0 },
+      { criterion: "body", average: null, count: 0 },
+    ]);
+    expect(after.criteria).toEqual([
+      { criterion: "sweetness", average: 2.7, count: 3 },
+      { criterion: "acidity", average: null, count: 0 },
+      { criterion: "body", average: null, count: 0 },
+    ]);
+  });
+
+  it("US5 AC5 keeps the average null when the only rating is the 5 of a check-in without review", async () => {
+    const leffeId = await findBeerId("Leffe Blonde");
+    const checkin = await request(app.getHttpServer())
+      .post("/api/v1/checkins")
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID))
+      .field("beerId", String(leffeId))
+      .field("drankAt", "2025-10-01T18:00:00.000Z")
+      .field("place", "Le Bistrot")
+      .field("format", "bottle")
+      .field("rating", "5");
+    expect(checkin.status).toBe(HttpStatus.CREATED);
+
+    const sheet = await getSheet(leffeId);
+    const item = await getListItem("Leffe Blonde");
+
+    expect(sheet).toMatchObject({ drunk: true, checkinCount: 1, averageRating: null, reviewCount: 0, ...NO_REVIEW_STATS });
+    expect([item.averageRating, item.reviewCount]).toEqual([null, 0]);
+  });
+});
+
+describe("beers API rating sort and minimum rating", () => {
+  let app: INestApplication;
+  const FIRST_REVIEWER_ID = 101;
+
+  const insertRatings = async (beerId: number, ratings: readonly number[]): Promise<void> => {
+    const now = "2026-03-01T10:00:00.000Z";
+    for (const [index, rating] of ratings.entries()) {
+      await app
+        .get(DataSource)
+        .query(
+          "INSERT INTO reviews (userId, beerId, rating, text, sweetness, acidity, body, createdAt, updatedAt) VALUES (?, ?, ?, 'Avis', NULL, NULL, NULL, ?, ?)",
+          [FIRST_REVIEWER_ID + index, beerId, rating, now, now],
+        );
+    }
+  };
+
+  const getRaw = (entries: readonly (readonly [string, string | number])[]) =>
+    request(app.getHttpServer())
+      .get(`${BEERS_PATH}?${new URLSearchParams(entries.map(([key, value]): [string, string] => [key, String(value)])).toString()}`)
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+
+  const getList = async (entries: readonly (readonly [string, string | number])[]): Promise<BeerPageDto> => {
+    const response = await getRaw(entries);
+    expect(response.status).toBe(HttpStatus.OK);
+    return response.body as BeerPageDto;
+  };
+
+  const findBeerId = async (name: string): Promise<number> => {
+    const beer = (await getList([["q", name]])).items.find((item) => item.name === name);
+    if (beer === undefined) {
+      throw new Error(`${name} is not seeded`);
+    }
+    return beer.id;
+  };
+
+  beforeAll(async () => {
+    app = await createTestApp();
+    await app.get(DataSource).query("DELETE FROM reviews");
+    await insertRatings(await findBeerId("Westmalle Tripel"), [4, 5]);
+    await insertRatings(await findBeerId("Orval"), [4.5]);
+    await insertRatings(await findBeerId("Duvel"), [3]);
+    await insertRatings(await findBeerId("Chimay Rouge"), [3.5, 4, 4, 4, 4]);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("US6 AC1 sorts by rating: 4.5 with 2 reviews, 4.5 with 1, 3.9, 3, then the unrated by name", async () => {
+    const page = await getList([["sort", "rating"], ["size", 7]]);
+
+    expect(page.items.map((item) => [item.name, item.averageRating, item.reviewCount])).toEqual([
+      ["Westmalle Tripel", 4.5, 2],
+      ["Orval", 4.5, 1],
+      ["Chimay Rouge", 3.9, 5],
+      ["Duvel", 3, 1],
+      [page.items[4].name, null, 0],
+      [page.items[5].name, null, 0],
+      [page.items[6].name, null, 0],
+    ]);
+    const unrated = page.items.slice(4).map((item) => item.name.toLowerCase());
+    expect(unrated).toEqual([...unrated].sort());
+  });
+
+  it("US6 AC2 keeps the beers at 4 or more, with the total and the facets", async () => {
+    const page = await getList([["minRating", 4]]);
+
+    expect(page.items.map((item) => item.name)).toEqual(["Orval", "Westmalle Tripel"]);
+    expect(page.total).toBe(2);
+    expect(page.facets.countries).toEqual([{ value: "BE", count: 2 }]);
+    expect(page.facets.families).toEqual([{ value: "trappist", count: 2 }]);
+    expect((await getList([["minRating", 3.5]])).total).toBe(3);
+    expect((await getList([["minRating", 5]])).total).toBe(0);
+  });
+
+  it.each([0.5, 5.5, 3.3])("US6 AC3 answers 400 and a message for the minimum rating %s", async (value) => {
+    const response = await getRaw([["minRating", value]]);
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect((response.body as { message: string }).message).toContain("minRating");
+  });
+
+  it("US6 AC3 answers 400 and a message for a non numeric minimum rating", async () => {
+    const response = await getRaw([["minRating", "abc"]]);
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect((response.body as { message: string }).message).toContain("minRating");
+  });
+
+  it("US6 AC4 applies the drunk filter and the minimum rating together", async () => {
+    const westmalleId = await findBeerId("Westmalle Tripel");
+    const checkin = await request(app.getHttpServer())
+      .post("/api/v1/checkins")
+      .set(USER_ID_HEADER_NAME, String(ALICE_USER_ID))
+      .field("beerId", String(westmalleId))
+      .field("drankAt", "2025-10-01T18:00:00.000Z")
+      .field("place", "Le Bistrot")
+      .field("format", "bottle");
+    expect(checkin.status).toBe(HttpStatus.CREATED);
+
+    const page = await getList([["status", "drunk"], ["minRating", 4]]);
+    const drunkOnly = await getList([["status", "drunk"]]);
+    const ratedOnly = await getList([["minRating", 4]]);
+
+    expect(page.items.map((item) => item.name)).toEqual(["Westmalle Tripel"]);
+    expect(page.total).toBe(1);
+    expect(drunkOnly.total).toBe(1);
+    expect(ratedOnly.total).toBe(2);
   });
 });

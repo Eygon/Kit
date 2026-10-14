@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { escapeLikePattern } from "@/common/text/escape-like-pattern";
+import { normalizeSearchText } from "@/common/text/normalize-search-text";
 import type { VenueAreaFiltersDto } from "@/modules/venues/dtos/venue-area-filters.dto";
 import type { VenueLinkDto } from "@/modules/venues/dtos/venue-link.dto";
 import type { VoteRecordDto } from "@/modules/venues/dtos/vote-record.dto";
@@ -10,6 +12,11 @@ import { Venue } from "@/modules/venues/entities/venue.entity";
 import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
 import { toVenueLinkDto, toVoteRecordDto } from "@/modules/venues/mappers/venue-beer.mapper";
 import { toVenueRecordDto } from "@/modules/venues/mappers/venue.mapper";
+
+const SEARCH_CONDITION = "(venue.searchName LIKE :pattern ESCAPE '\\' OR venue.searchCity LIKE :pattern ESCAPE '\\')";
+
+const SEARCH_RELEVANCE_ORDER =
+  "CASE WHEN venue.searchName LIKE :prefix ESCAPE '\\' THEN 0 WHEN venue.searchName LIKE :pattern ESCAPE '\\' THEN 1 ELSE 2 END";
 
 @Injectable()
 export class VenuesRepository {
@@ -29,7 +36,18 @@ export class VenuesRepository {
     if (area.types.length > 0) {
       query.andWhere("venue.type IN (:...types)", { types: area.types });
     }
-    const entities = await query.orderBy("venue.name", "ASC").addOrderBy("venue.id", "ASC").getMany();
+    const term = normalizeSearchText(area.search);
+    if (term === "") {
+      query.orderBy("venue.name", "ASC");
+    } else {
+      const escaped = escapeLikePattern(term);
+      query
+        .andWhere(SEARCH_CONDITION, { pattern: `%${escaped}%` })
+        .setParameter("prefix", `${escaped}%`)
+        .orderBy(SEARCH_RELEVANCE_ORDER, "ASC")
+        .addOrderBy("venue.searchName", "ASC");
+    }
+    const entities = await query.addOrderBy("venue.id", "ASC").getMany();
     return entities.map(toVenueRecordDto);
   }
 
@@ -91,6 +109,11 @@ export class VenuesRepository {
       order: { votedAt: "DESC", id: "DESC" },
     });
     return entity === null ? null : toVoteRecordDto(entity);
+  }
+
+  async findVotesByUser(userId: number): Promise<VoteRecordDto[]> {
+    const entities = await this.votes.find({ where: { userId }, order: { votedAt: "ASC", id: "ASC" } });
+    return entities.map(toVoteRecordDto);
   }
 
   async createVote(data: Omit<AvailabilityVote, "id" | "venueBeer">): Promise<void> {

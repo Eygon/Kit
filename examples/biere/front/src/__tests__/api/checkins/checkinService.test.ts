@@ -3,7 +3,7 @@ import CheckinService from "@/api/checkins/checkinService";
 import { HttpError } from "@/api/httpError";
 import { BeerAromaEnum } from "@/types/enums/beer/beerAromaEnum";
 import type { NewCheckin } from "@/types/models/checkin/newCheckin";
-import { CHECKINS } from "@/utils/apiURL/apiURL";
+import { CHECKIN_BY_ID, CHECKINS } from "@/utils/apiURL/apiURL";
 
 vi.mock("@heroui/react", () => ({
   toast: { danger: vi.fn() },
@@ -206,14 +206,52 @@ describe("CheckinService.create", () => {
     expect(sentBody().get("price")).toBe("0");
   });
 
-  it("bounds the request with a thirty second timeout signal", async () => {
+  it("appends the photo as the file part, first, before every other field", async () => {
+    mockFetch.mockImplementation(async () => json(createdDto, 201));
+    const photo = new File([new Uint8Array(8)], "beer.png", { type: "image/png" });
+
+    await CheckinService.create({ ...fullCheckin, photo });
+
+    const entries = [...sentBody().entries()];
+    expect(entries[0][0]).toBe("file");
+    expect(entries.filter(([name]) => name === "file")).toHaveLength(1);
+    const sentFile = sentBody().get("file") as File;
+    expect(sentFile).toBeInstanceOf(File);
+    expect(sentFile.name).toBe("beer.png");
+    expect(sentFile.type).toBe("image/png");
+    expect(sentFile.size).toBe(8);
+    expect(entries.slice(1).map(([name]) => name)).toEqual([
+      "beerId",
+      "drankAt",
+      "place",
+      "format",
+      "rating",
+      "aromas",
+      "price",
+      "comment",
+    ]);
+  });
+
+  it.each([
+    ["null", null],
+    ["missing", undefined],
+  ])("sends no file part when the photo is %s", async (_name, photo) => {
+    mockFetch.mockImplementation(async () => json(createdDto, 201));
+
+    await CheckinService.create({ ...fullCheckin, photo });
+
+    expect(sentBody().has("file")).toBe(false);
+    expect([...sentBody().keys()][0]).toBe("beerId");
+  });
+
+  it("bounds the request with a ninety second timeout signal", async () => {
     mockFetch.mockImplementation(async () => json(createdDto, 201));
     const timeout = vi.spyOn(AbortSignal, "timeout");
 
     await CheckinService.create(minimalCheckin);
 
     expect(timeout).toHaveBeenCalledTimes(1);
-    expect(timeout).toHaveBeenCalledWith(30_000);
+    expect(timeout).toHaveBeenCalledWith(90_000);
   });
 
   it("returns the created checkin as a model with the first discovery flag", async () => {
@@ -246,6 +284,53 @@ describe("CheckinService.create", () => {
     mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
 
     await expect(CheckinService.create(fullCheckin)).rejects.toMatchObject({ status: 204 });
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("CheckinService.remove", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.mocked(toast.danger).mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("builds the checkin url from the checkins url and the id", () => {
+    expect(CHECKIN_BY_ID(11)).toBe(`${CHECKINS()}/11`);
+  });
+
+  it("sends a DELETE to the checkin url and resolves with nothing on 204", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    const result = await CheckinService.remove(11);
+
+    expect(result).toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${CHECKINS()}/11`);
+    expect(init.method).toBe("DELETE");
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it.each([404, 500])("shows one toast then rethrows the HttpError on status %s", async (status) => {
+    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+
+    const failure = CheckinService.remove(11);
+
+    await expect(failure).rejects.toBeInstanceOf(HttpError);
+    await expect(failure).rejects.toMatchObject({ status });
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(toast.danger).mock.calls[0][0]).toEqual(expect.stringMatching(/\S/));
+  });
+
+  it("shows one toast then rethrows on a network failure", async () => {
+    mockFetch.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    await expect(CheckinService.remove(11)).rejects.toThrow("Failed to fetch");
     expect(toast.danger).toHaveBeenCalledTimes(1);
   });
 });

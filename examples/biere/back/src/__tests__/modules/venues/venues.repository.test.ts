@@ -3,6 +3,7 @@ import { Test } from "@nestjs/testing";
 import type { TestingModule } from "@nestjs/testing";
 import type { Repository } from "typeorm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { VenueBoundsDto } from "@/modules/venues/dtos/venue-area-filters.dto";
 import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
 import { Venue } from "@/modules/venues/entities/venue.entity";
 import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
@@ -23,6 +24,8 @@ const toVenue = (id: number, name: string, type: VenueTypeEnum, latitude: number
   id,
   name,
   nameKey: name.toLowerCase(),
+  searchName: name.toLowerCase(),
+  searchCity: "lille",
   type,
   city: "Lille",
   address: `${id} rue de Test`,
@@ -56,13 +59,13 @@ describe("VenuesRepository", () => {
   });
 
   it("lists every venue ordered by name when there is no filter", async () => {
-    const venues = await repository.findVenues({ bounds: null, types: [] });
+    const venues = await repository.findVenues({ bounds: null, types: [], search: "" });
 
     expect(venues.map((venue) => venue.name)).toEqual(["Alpha", "Bord", "Brasserie Nord", "Zythos"]);
   });
 
   it("returns venues as DTOs with empty strings for an absent city and description", async () => {
-    const venues = await repository.findVenues({ bounds: null, types: [] });
+    const venues = await repository.findVenues({ bounds: null, types: [], search: "" });
 
     expect(venues[0]).toEqual({
       id: ALPHA_ID,
@@ -80,6 +83,7 @@ describe("VenuesRepository", () => {
     const venues = await repository.findVenues({
       bounds: { north: 50.65, south: 50.63, east: 3.1, west: 3.05 },
       types: [],
+      search: "",
     });
 
     expect(venues.map((venue) => venue.name)).toEqual(["Zythos"]);
@@ -89,6 +93,7 @@ describe("VenuesRepository", () => {
     const venues = await repository.findVenues({
       bounds: { north: 50.64, south: 50.64, east: 3.06, west: 3.06 },
       types: [],
+      search: "",
     });
 
     expect(venues.map((venue) => venue.name)).toEqual(["Zythos"]);
@@ -103,16 +108,17 @@ describe("VenuesRepository", () => {
     ];
 
     for (const bounds of outside) {
-      const venues = await repository.findVenues({ bounds, types: [VenueTypeEnum.BAR] });
+      const venues = await repository.findVenues({ bounds, types: [VenueTypeEnum.BAR], search: "" });
       expect(venues.map((venue) => venue.id)).not.toContain(ZYTHOS_ID);
     }
   });
 
   it("keeps the venues of any requested type", async () => {
-    const bars = await repository.findVenues({ bounds: null, types: [VenueTypeEnum.BAR] });
+    const bars = await repository.findVenues({ bounds: null, types: [VenueTypeEnum.BAR], search: "" });
     const barsAndShops = await repository.findVenues({
       bounds: null,
       types: [VenueTypeEnum.BAR, VenueTypeEnum.SHOP],
+      search: "",
     });
 
     expect(bars.map((venue) => venue.name)).toEqual(["Bord", "Zythos"]);
@@ -123,9 +129,113 @@ describe("VenuesRepository", () => {
     const venues = await repository.findVenues({
       bounds: { north: 50.8, south: 50.5, east: 3.5, west: 3.0 },
       types: [VenueTypeEnum.BREWERY],
+      search: "",
     });
 
     expect(venues.map((venue) => venue.name)).toEqual(["Brasserie Nord"]);
+  });
+
+  describe("findVenues search", () => {
+    const LYON_BOUNDS: VenueBoundsDto = { north: 45.8, south: 45.6, east: 4.9, west: 4.7 };
+
+    const inCity = (
+      id: number,
+      name: string,
+      type: VenueTypeEnum,
+      city: string,
+      searchName: string = name.toLowerCase(),
+      latitude = 45.7,
+    ) => ({
+      ...toVenue(id, name, type, latitude, 4.8),
+      searchName,
+      city,
+      searchCity: city.toLowerCase(),
+    });
+
+    const namesFor = async (
+      text: string,
+      types: VenueTypeEnum[] = [],
+      bounds: VenueBoundsDto | null = null,
+    ): Promise<string[]> => (await repository.findVenues({ bounds, types, search: text })).map((venue) => venue.name);
+
+    beforeEach(async () => {
+      await moduleRef.get<Repository<Venue>>(getRepositoryToken(Venue)).insert([
+        inCity(10, "Le Lyonnais", VenueTypeEnum.BAR, "Lyon"),
+        inCity(11, "Lyon Bière", VenueTypeEnum.BAR, "Lyon", "lyon biere"),
+        inCity(12, "Abbaye", VenueTypeEnum.SHOP, "Lyon"),
+        inCity(13, "Zeta", VenueTypeEnum.BREWERY, "Lyon", "zeta", 45.9),
+        inCity(14, "Lyonel", VenueTypeEnum.BAR, "Paris"),
+        inCity(15, "100% Houblon", VenueTypeEnum.BAR, "Gand"),
+        inCity(16, "1000 Bières", VenueTypeEnum.BAR, "Gand", "1000 bieres"),
+        inCity(17, "a_b Bar", VenueTypeEnum.BAR, "Gand"),
+        inCity(18, "axb Bar", VenueTypeEnum.BAR, "Gand"),
+        inCity(19, "Back\\Slash", VenueTypeEnum.BAR, "Gand"),
+        inCity(20, "Backslash", VenueTypeEnum.BAR, "Gand"),
+      ]);
+    });
+
+    it("ranks a name starting with the text, then a name containing it, then a city match, each group by name", async () => {
+      expect(await namesFor("lyon")).toEqual(["Lyon Bière", "Lyonel", "Le Lyonnais", "Abbaye", "Zeta"]);
+    });
+
+    it("matches the folded keys whatever the case, the accents and the surrounding spaces", async () => {
+      const expected = await namesFor("lyon");
+
+      expect(await namesFor("  LYON  ")).toEqual(expected);
+      expect(await namesFor("lyôn")).toEqual(expected);
+      expect(await namesFor("BIERE")).toEqual(["1000 Bières", "Lyon Bière"]);
+    });
+
+    it("matches the folded city key alone", async () => {
+      expect(await namesFor("gand")).toEqual(["100% Houblon", "1000 Bières", "a_b Bar", "axb Bar", "Back\\Slash", "Backslash"]);
+    });
+
+    it("lists the same venues in the same order as no text when the text is only spaces", async () => {
+      const everything = await namesFor("");
+
+      expect(await namesFor("   ")).toEqual(everything);
+      expect(everything).toHaveLength(15);
+      expect(everything.slice(0, 3)).toEqual(["100% Houblon", "1000 Bières", "Abbaye"]);
+    });
+
+    it("treats the percent sign as a literal character", async () => {
+      expect(await namesFor("100%")).toEqual(["100% Houblon"]);
+    });
+
+    it("treats the underscore as a literal character", async () => {
+      expect(await namesFor("a_b")).toEqual(["a_b Bar"]);
+    });
+
+    it("treats the backslash as a literal character", async () => {
+      expect(await namesFor("\\")).toEqual(["Back\\Slash"]);
+    });
+
+    it("returns nothing when no name nor city contains the text", async () => {
+      expect(await namesFor("introuvable")).toEqual([]);
+    });
+
+    it("keeps only the requested types among the matches", async () => {
+      expect(await namesFor("lyon", [VenueTypeEnum.SHOP])).toEqual(["Abbaye"]);
+      expect(await namesFor("lyon", [VenueTypeEnum.BAR, VenueTypeEnum.BREWERY])).toEqual([
+        "Lyon Bière",
+        "Lyonel",
+        "Le Lyonnais",
+        "Zeta",
+      ]);
+    });
+
+    it("keeps only the matches inside the bounds", async () => {
+      expect(await namesFor("lyon", [], LYON_BOUNDS)).toEqual(["Lyon Bière", "Lyonel", "Le Lyonnais", "Abbaye"]);
+    });
+
+    it("orders by id when two venues share the same folded name", async () => {
+      await moduleRef.get<Repository<Venue>>(getRepositoryToken(Venue)).insert([
+        { ...inCity(21, "Twin Un", VenueTypeEnum.BAR, "Gand", "twin"), nameKey: "twin un" },
+        { ...inCity(22, "Twin Deux", VenueTypeEnum.BAR, "Gand", "twin"), nameKey: "twin deux" },
+      ]);
+
+      expect(await namesFor("twin")).toEqual(["Twin Un", "Twin Deux"]);
+    });
   });
 
   it("finds a venue by id as a DTO", async () => {
@@ -417,6 +527,47 @@ describe("VenuesRepository", () => {
       expect(await repository.findLastUserVote(LINK_ID, ALICE)).toBeNull();
     });
 
+    it("lists the votes of a user over every link, excluding other users and anonymous votes", async () => {
+      await insertLinks();
+      await votesStore().insert([
+        { id: 1, venueBeerId: LINK_ID, userId: null, sense: VoteSenseEnum.STILL, votedAt: FIRST_VOTE_DATE },
+        { id: 2, venueBeerId: LINK_ID, userId: BOB, sense: VoteSenseEnum.STILL, votedAt: FIRST_VOTE_DATE },
+        { id: 3, venueBeerId: OTHER_LINK_ID, userId: ALICE, sense: VoteSenseEnum.GONE, votedAt: SECOND_VOTE_DATE },
+        { id: 4, venueBeerId: LINK_ID, userId: ALICE, sense: VoteSenseEnum.STILL, votedAt: THIRD_VOTE_DATE },
+      ]);
+
+      expect(await repository.findVotesByUser(ALICE)).toEqual([
+        { userId: ALICE, sense: VoteSenseEnum.GONE, votedAt: SECOND_VOTE_DATE },
+        { userId: ALICE, sense: VoteSenseEnum.STILL, votedAt: THIRD_VOTE_DATE },
+      ]);
+    });
+
+    it("orders the votes of a user by date, then by vote id, whatever the insertion order", async () => {
+      await insertLinks();
+      await votesStore().insert([
+        { id: 1, venueBeerId: LINK_ID, userId: ALICE, sense: VoteSenseEnum.STILL, votedAt: THIRD_VOTE_DATE },
+        { id: 9, venueBeerId: OTHER_LINK_ID, userId: ALICE, sense: VoteSenseEnum.GONE, votedAt: FIRST_VOTE_DATE },
+        { id: 5, venueBeerId: LINK_ID, userId: ALICE, sense: VoteSenseEnum.STILL, votedAt: FIRST_VOTE_DATE },
+        { id: 3, venueBeerId: OTHER_LINK_ID, userId: ALICE, sense: VoteSenseEnum.GONE, votedAt: SECOND_VOTE_DATE },
+      ]);
+
+      expect((await repository.findVotesByUser(ALICE)).map((vote) => [vote.sense, vote.votedAt])).toEqual([
+        [VoteSenseEnum.STILL, FIRST_VOTE_DATE],
+        [VoteSenseEnum.GONE, FIRST_VOTE_DATE],
+        [VoteSenseEnum.GONE, SECOND_VOTE_DATE],
+        [VoteSenseEnum.STILL, THIRD_VOTE_DATE],
+      ]);
+    });
+
+    it("answers an empty list for a user without any vote", async () => {
+      await insertLinks();
+      await votesStore().insert([
+        { id: 1, venueBeerId: LINK_ID, userId: BOB, sense: VoteSenseEnum.STILL, votedAt: FIRST_VOTE_DATE },
+      ]);
+
+      expect(await repository.findVotesByUser(ALICE)).toEqual([]);
+    });
+
     it("stores a vote that findLink then returns", async () => {
       await insertLinks();
 
@@ -438,6 +589,8 @@ describe("VenuesRepository", () => {
     const NEW_VENUE = {
       name: "Chez Mousse",
       nameKey: "chez mousse",
+      searchName: "chez mousse",
+      searchCity: "lille",
       type: VenueTypeEnum.SHOP,
       city: "Lille",
       address: "12 rue de la Biere",

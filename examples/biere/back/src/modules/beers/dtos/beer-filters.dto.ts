@@ -8,6 +8,7 @@ export interface BeerFilters {
   readonly formats?: readonly BeerFormatEnum[];
   readonly abvMin?: number;
   readonly abvMax?: number;
+  readonly minRating?: number;
   readonly beerIds?: readonly number[];
   readonly excludedBeerIds?: readonly number[];
 }

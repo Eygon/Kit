@@ -66,6 +66,7 @@ disagree, this one wins — and the older one is the bug.
 | Secondary (30 %) | Brun Cuir `#4A2E1B` | `--mousse-leather` | `--secondary` → `bg-secondary text-secondary-foreground` (`bg-secondary-hover`) | secondary buttons, secondary cards (`Card variant="secondary"`), categories, secondary navigation |
 | Highlight (10 %) | Jaune Ambré `#E9A825` | `--mousse-amber` | `--highlight` (also `--warning`) → `bg-highlight text-highlight-foreground` | **key interactions only**, see §2 |
 | Ink | Noir Encre `#1D1C1A` | `--mousse-ink` | `--foreground`, `--border` → `text-foreground`, `border-border`; `--muted` (ink 72 % on paper) → `text-muted` | all text, every line, icons, hard shadows |
+| Beer colour (content) | Pâle `#F3E3A0`, Dorée `#E3C35A`, Ambrée `#B8642A`, Brune `#6B3A1F`, Noire `#2A1A12` | `--beer-color-1..5` | `--color-beer-1..5` → `bg-beer-1` … `bg-beer-5` | the swatch of a beer colour level (`aria-hidden`, the label carries the meaning); content data, never UI chrome or text |
 
 - Contrast (WCAG AA holds for every pair the tokens produce): ink on paper ≈ 15:1, ink on
   cream ≈ 16:1, cream on hop green ≈ 5.7:1, cream on leather ≈ 11:1, ink on amber ≈ 8:1,

@@ -3,7 +3,7 @@ import { CurrentUserId } from "@/common/security/current-user-id.decorator";
 import { BeersService } from "@/modules/beers/beers.service";
 import type { BeerPageDto } from "@/modules/beers/dtos/beer-page.dto";
 import { BeersQueryDto } from "@/modules/beers/dtos/beers-query.dto";
-import type { CatalogBeerDto } from "@/modules/beers/dtos/catalog-beer.dto";
+import type { BeerDetailDto } from "@/modules/beers/dtos/beer-detail.dto";
 
 @Controller("beers")
 export class BeersController {
@@ -17,7 +17,7 @@ export class BeersController {
 
   @Get(":id")
   @HttpCode(HttpStatus.OK)
-  getOne(@CurrentUserId() userId: number, @Param("id", ParseIntPipe) id: number): Promise<CatalogBeerDto> {
+  getOne(@CurrentUserId() userId: number, @Param("id", ParseIntPipe) id: number): Promise<BeerDetailDto> {
     return this.beersService.getBeerForUser(userId, id);
   }
 }

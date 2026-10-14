@@ -6,7 +6,7 @@ import type { Mock } from "vitest";
 import { createTestQueryClient } from "@/__tests__/utils/renderWithProviders";
 import DexService from "@/api/dex/dexService";
 import { queryTimes } from "@/config/tanstackQuery";
-import { useDexQuery } from "@/pages/encyclopedia/hooks/useDexQuery";
+import { useDexQuery } from "@/hooks/dex/useDexQuery";
 import { dexKeys } from "@/utils/queryKeys/dexQueryKeys";
 
 vi.mock("@/api/dex/dexService", () => ({

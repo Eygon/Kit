@@ -10,4 +10,5 @@ export interface VenueBoundsDto {
 export interface VenueAreaFiltersDto {
   readonly bounds: VenueBoundsDto | null;
   readonly types: readonly VenueTypeEnum[];
+  readonly search: string;
 }

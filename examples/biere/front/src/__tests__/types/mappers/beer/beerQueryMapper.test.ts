@@ -15,6 +15,7 @@ describe("EMPTY_BEER_QUERY", () => {
       abvMin: null,
       abvMax: null,
       status: null,
+      minRating: null,
       sort: BeerSortEnum.NAME,
     });
   });
@@ -32,6 +33,7 @@ describe("beerQueryToSearchParams", () => {
         abvMin: 4.5,
         abvMax: 8,
         status: BeerStatusEnum.WISHLIST,
+        minRating: 3.5,
         sort: BeerSortEnum.ABV,
       },
       2,
@@ -39,7 +41,7 @@ describe("beerQueryToSearchParams", () => {
     );
 
     expect(params.toString()).toBe(
-      "q=ipa&family=ipa&style=3&style=7&country=BE&country=DE&format=bottle&format=can&abvMin=4.5&abvMax=8&status=wishlist&sort=abv&page=2&size=20",
+      "q=ipa&family=ipa&style=3&style=7&country=BE&country=DE&format=bottle&format=can&abvMin=4.5&abvMax=8&status=wishlist&minRating=3.5&sort=abv&page=2&size=20",
     );
     expect(params.getAll("style")).toEqual(["3", "7"]);
     expect(params.getAll("country")).toEqual(["BE", "DE"]);
@@ -80,6 +82,16 @@ describe("beerQueryToSearchParams", () => {
     expect(beerQueryToSearchParams({ ...EMPTY_BEER_QUERY, status: null }).has("status")).toBe(false);
   });
 
+  it("AC1 writes the minimum rating once and omits a null one", () => {
+    expect(beerQueryToSearchParams({ ...EMPTY_BEER_QUERY, minRating: 4 }).toString()).toBe("minRating=4");
+    expect(beerQueryToSearchParams({ ...EMPTY_BEER_QUERY, minRating: 3.5 }).getAll("minRating")).toEqual(["3.5"]);
+    expect(beerQueryToSearchParams({ ...EMPTY_BEER_QUERY, minRating: null }).has("minRating")).toBe(false);
+  });
+
+  it("AC2 writes the rating sort", () => {
+    expect(beerQueryToSearchParams({ ...EMPTY_BEER_QUERY, sort: BeerSortEnum.RATING }).toString()).toBe("sort=rating");
+  });
+
   it("omits empty lists and a null family", () => {
     const params = beerQueryToSearchParams({ ...EMPTY_BEER_QUERY, search: "x" }, 3, 50);
 
@@ -113,6 +125,7 @@ describe("searchParamsToBeerQuery", () => {
       abvMin: 4.5,
       abvMax: 8,
       status: null,
+      minRating: null,
       sort: BeerSortEnum.ABV,
     });
   });
@@ -130,6 +143,26 @@ describe("searchParamsToBeerQuery", () => {
     expect(parse("status=all")).toEqual(EMPTY_BEER_QUERY);
   });
 
+  it("AC1 reads each minimum rating option", () => {
+    expect(parse("minRating=3")).toEqual({ ...EMPTY_BEER_QUERY, minRating: 3 });
+    expect(parse("minRating=3.5&q=x")).toEqual({ ...EMPTY_BEER_QUERY, search: "x", minRating: 3.5 });
+    expect(parse("minRating=4")).toEqual({ ...EMPTY_BEER_QUERY, minRating: 4 });
+    expect(parse("minRating=4.5")).toEqual({ ...EMPTY_BEER_QUERY, minRating: 4.5 });
+  });
+
+  it("AC3 ignores a minimum rating that is not one of the options and keeps the other parameters", () => {
+    expect(parse("minRating=7")).toEqual(EMPTY_BEER_QUERY);
+    expect(parse("minRating=3.3&q=ipa")).toEqual({ ...EMPTY_BEER_QUERY, search: "ipa" });
+    expect(parse("minRating=abc")).toEqual(EMPTY_BEER_QUERY);
+    expect(parse("minRating=")).toEqual(EMPTY_BEER_QUERY);
+    expect(parse("minRating=0")).toEqual(EMPTY_BEER_QUERY);
+    expect(parse("minRating=5")).toEqual(EMPTY_BEER_QUERY);
+  });
+
+  it("AC2 reads the rating sort", () => {
+    expect(parse("sort=rating")).toEqual({ ...EMPTY_BEER_QUERY, sort: BeerSortEnum.RATING });
+  });
+
   it("round-trips a fully filtered query through beerQueryToSearchParams", () => {
     const query = {
       search: "orval",
@@ -140,6 +173,7 @@ describe("searchParamsToBeerQuery", () => {
       abvMin: 0,
       abvMax: 14,
       status: BeerStatusEnum.UNTASTED,
+      minRating: 4.5,
       sort: BeerSortEnum.BREWERY,
     };
 
@@ -205,6 +239,7 @@ describe("isEmptyBeerQuery", () => {
     ["a drunk status", { status: BeerStatusEnum.DRUNK }],
     ["a wishlist status", { status: BeerStatusEnum.WISHLIST }],
     ["an untasted status", { status: BeerStatusEnum.UNTASTED }],
+    ["a minimum rating", { minRating: 3 }],
   ])("is false with %s", (_label, overrides) => {
     expect(isEmptyBeerQuery({ ...EMPTY_BEER_QUERY, ...overrides })).toBe(false);
   });

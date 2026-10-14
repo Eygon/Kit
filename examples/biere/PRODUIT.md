@@ -60,3 +60,9 @@ Idées ajoutées par moi (à garder ou couper) : badges, rareté, bières simila
 ## 7. Hors périmètre (v1)
 
 Comptes avec mots de passe, modération, paiement, réseau social complet (amis, fil), recommandation par apprentissage, application native (PWA possible ensuite).
+
+### Polish noté (13-14 octobre, nuit)
+- Fiche bière : l'avatar de l'auteur d'un avis ignore la couleur de l'auteur (`reviewEntry.tsx` : `Avatar color="accent"` fixe ; `authorAvatarColor` mappé mais jamais lu) → à traiter avec les avatars de F5.
+- Profil : libellés de mois tronqués dans l'histogramme (« dé… », « jan… »).
+- Histogramme des notes : une note 4,5 est comptée dans « 4 étoiles » (arrondi bas) — décision à confirmer.
+- Carte : trois bandeaux empilés en haut, repères qui se superposent à Paris (pas de regroupement).

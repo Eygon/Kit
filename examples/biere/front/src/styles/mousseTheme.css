@@ -6,6 +6,12 @@
   --mousse-cream: #f4f1ea;
   --mousse-ink: #1d1c1a;
 
+  --beer-color-1: #f3e3a0;
+  --beer-color-2: #e3c35a;
+  --beer-color-3: #b8642a;
+  --beer-color-4: #6b3a1f;
+  --beer-color-5: #2a1a12;
+
   --mousse-border: 2px;
   --mousse-shadow: 4px 4px 0 var(--mousse-ink);
   --mousse-shadow-pressed: 2px 2px 0 var(--mousse-ink);
@@ -81,6 +87,11 @@
   --color-secondary-hover: var(--secondary-hover);
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
+  --color-beer-1: var(--beer-color-1);
+  --color-beer-2: var(--beer-color-2);
+  --color-beer-3: var(--beer-color-3);
+  --color-beer-4: var(--beer-color-4);
+  --color-beer-5: var(--beer-color-5);
 
   --shadow-mousse: var(--mousse-shadow);
   --shadow-mousse-pressed: var(--mousse-shadow-pressed);

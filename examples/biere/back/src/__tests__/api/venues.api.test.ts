@@ -27,6 +27,15 @@ const BRUSSELS_ORVAL_COUNT = 5;
 const MIN_FARTHEST_KM = 390;
 const FINE_MOUSSE = { latitude: 48.8655, longitude: 2.3802 };
 const BRUSSELS_ZONE = "north=50.86&south=50.83&east=4.38&west=4.34";
+const SEARCH_MAX_LENGTH = 100;
+const PARIS_ZONE = "north=49&south=48.7&east=2.6&west=2.1";
+const SEARCH_TOO_LONG_MESSAGE = "q must be shorter than or equal to 100 characters";
+const CHECKINS_PATH = "/api/v1/checkins";
+const BOB_ID = "2";
+const CAROL_ID = "3";
+const VENUE_WITHOUT_BEER = "Le Triangle";
+const FULLY_DRUNK_VENUE = "Au Trappiste";
+const UNDISCOVERED_NOT_A_BOOLEAN_MESSAGE = "undiscovered must be a boolean value";
 const LYON_ZONE = "north=45.8&south=45.7&east=4.9&west=4.8";
 
 interface VenueBody {
@@ -509,6 +518,271 @@ describe("venues API", () => {
 
       expect(response.status).toBe(HttpStatus.BAD_REQUEST);
       expect(response.body).toEqual({ message: "Validation failed (numeric string is expected)" });
+    });
+  });
+
+  describe("GET /api/v1/venues with a search text", () => {
+    const search = (text: string, extra = "") => get(`${VENUES_PATH}?q=${encodeURIComponent(text)}${extra}`);
+
+    it("finds Académie de la Bière with the unaccented text academie", async () => {
+      const response = await search("academie");
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(namesOf(response.body)).toEqual(["Académie de la Bière"]);
+    });
+
+    it("lists the Lille venues whose name contains the text before those matching by city, each group by name", async () => {
+      const response = await search("LILLE");
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(namesOf(response.body)).toEqual([
+        "Les 3 Brasseurs Lille",
+        "Les Berthom Lille",
+        "Au Vieux de la Vieille",
+        "Estaminet T'Rijsel",
+        "L'Abbaye des Saveurs",
+        "La Capsule",
+      ]);
+    });
+
+    it("ignores the spaces around the text", async () => {
+      const response = await search("   mort subite  ");
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(namesOf(response.body)).toEqual(["À la Mort Subite"]);
+    });
+
+    it("answers the same venues with a text of only spaces as without text", async () => {
+      const withoutText = await get(VENUES_PATH);
+      const blank = await search("     ");
+
+      expect(blank.status).toBe(HttpStatus.OK);
+      expect(blank.body).toEqual(withoutText.body);
+      expect(blank.body).toHaveLength(VENUE_COUNT);
+    });
+
+    it("accepts a text of 100 characters once the spaces are removed", async () => {
+      const text = "a".repeat(SEARCH_MAX_LENGTH);
+
+      expect((await search(text)).status).toBe(HttpStatus.OK);
+      expect((await search(`  ${text}  `)).status).toBe(HttpStatus.OK);
+    });
+
+    it("rejects a text of 101 characters once the spaces are removed with a message", async () => {
+      const text = "a".repeat(SEARCH_MAX_LENGTH + 1);
+
+      const plain = await search(text);
+      const padded = await search(`  ${text}  `);
+
+      expect(plain.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(plain.body).toEqual({ message: SEARCH_TOO_LONG_MESSAGE });
+      expect(padded.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(padded.body).toEqual({ message: SEARCH_TOO_LONG_MESSAGE });
+    });
+
+    it("rejects a text given twice", async () => {
+      const response = await get(`${VENUES_PATH}?q=a&q=b`);
+
+      expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+      expect((response.body as { message: string }).message).not.toBe("");
+    });
+
+    it.each(["100%", "a_b", "%", "_", "\\"])("searches %s as literal characters and finds no seeded venue", async (text) => {
+      const response = await search(text);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.body).toEqual([]);
+    });
+
+    it("gives each venue its distance and keeps the relevance order rather than the distance order", async () => {
+      const response = await search("bruxelles", `&latitude=${FINE_MOUSSE.latitude}&longitude=${FINE_MOUSSE.longitude}`);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      const bodies = response.body as VenueBody[];
+      expect(namesOf(bodies)).toEqual([
+        "À la Mort Subite",
+        "Beermania",
+        "Bier Circus",
+        "Brasserie Cantillon",
+        "Brasserie de la Senne",
+        "Brussels Beer Project",
+        "Délices et Caprices",
+        "Delirium Café",
+        "Moeder Lambic Fontainas",
+        "Poechenellekelder",
+      ]);
+      expect(bodies.every((body) => typeof body.distanceKm === "number")).toBe(true);
+      const distances = bodies.map((body) => body.distanceKm as number);
+      expect(distances).not.toEqual([...distances].sort((left, right) => left - right));
+    });
+
+    it("keeps only the shops of Brussels for the text bruxelles and the type shop", async () => {
+      const response = await search("bruxelles", "&type=shop");
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(namesOf(response.body)).toEqual(["Beermania", "Délices et Caprices"]);
+    });
+
+    it("returns an empty list for the text bruxelles in a zone around Paris", async () => {
+      const response = await search("bruxelles", `&${PARIS_ZONE}`);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.body).toEqual([]);
+    });
+
+    it("reports an invalid zone with a 400 even when a text is given", async () => {
+      const response = await search("bruxelles", "&north=50");
+
+      expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(response.body).toEqual({ message: "north, south, east and west must be supplied together." });
+    });
+  });
+
+  describe("GET /api/v1/venues ranking of created venues", () => {
+    let writesApp: INestApplication;
+
+    beforeAll(async () => {
+      writesApp = await createTestApp();
+      for (const name of ["Le Lyonnais", "Lyon Bière"]) {
+        const created = await request(writesApp.getHttpServer())
+          .post(VENUES_PATH)
+          .set(USER_ID_HEADER_NAME, ALICE_ID)
+          .send({ name, type: "bar", city: "Lyon", address: "1 rue de Lyon", latitude: 45.76, longitude: 4.83 });
+        expect(created.status).toBe(HttpStatus.CREATED);
+      }
+    });
+
+    afterAll(async () => {
+      await writesApp.close();
+    });
+
+    it("ranks a name starting with lyon, then names containing it, then the other venues of the city", async () => {
+      const response = await request(writesApp.getHttpServer()).get(`${VENUES_PATH}?q=lyon`).set(USER_ID_HEADER_NAME, ALICE_ID);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(namesOf(response.body)).toEqual([
+        "Lyon Bière",
+        "Le Lyonnais",
+        "Les Berthom Lyon",
+        "Brasserie Georges",
+        "Dikkenek Café",
+        "Le Smoking Dog",
+        "Ninkasi Gerland",
+        "The Wallace Bar",
+      ]);
+    });
+  });
+
+  describe("GET /api/v1/venues with undiscovered", () => {
+    const UNDISCOVERED = "undiscovered=true";
+    const venuesWithBeers = seededNames((venue) => venueBeersSeed.some((link) => link.venueName === venue.name));
+    const parisVenuesWithBeers = seededNames(
+      (venue) => venue.city === "Paris" && venueBeersSeed.some((link) => link.venueName === venue.name),
+    );
+
+    const getAs = (userId: string, query: string) =>
+      request(app.getHttpServer()).get(`${VENUES_PATH}?${query}`).set(USER_ID_HEADER_NAME, userId);
+
+    const drink = async (beerId: number, drankAt: string): Promise<void> => {
+      const response = await request(app.getHttpServer())
+        .post(CHECKINS_PATH)
+        .set(USER_ID_HEADER_NAME, ALICE_ID)
+        .field("beerId", String(beerId))
+        .field("drankAt", drankAt)
+        .field("place", "Le Bistrot")
+        .field("format", "bottle");
+      expect(response.status).toBe(HttpStatus.CREATED);
+    };
+
+    it("returns every venue with a known beer and not the venue without beer for a user who drank nothing", async () => {
+      const response = await getAs(CAROL_ID, UNDISCOVERED);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(namesOf(response.body)).toEqual(venuesWithBeers);
+      expect(namesOf(response.body)).not.toContain(VENUE_WITHOUT_BEER);
+      expect(venuesWithBeers.length).toBeLessThan(VENUE_COUNT);
+      const everything = (await getAs(CAROL_ID, "")).body as VenueBody[];
+      expect((response.body as VenueBody[])).toEqual(everything.filter((venue) => venuesWithBeers.includes(venue.name)));
+    });
+
+    it("drops the venue whose beers are all drunk for Alice and keeps it for Bob", async () => {
+      const beerNames = [
+        ...new Set(venueBeersSeed.filter((link) => link.venueName === FULLY_DRUNK_VENUE).map((link) => link.beerName)),
+      ];
+      expect(beerNames.length).toBeGreaterThan(1);
+      const drunkAt = "2026-10-02T18:00:00.000Z";
+      for (const beerName of beerNames) {
+        await drink(await findBeerId(beerName), drunkAt);
+      }
+
+      const alice = await getAs(ALICE_ID, UNDISCOVERED);
+      const bob = await getAs(BOB_ID, UNDISCOVERED);
+
+      expect(alice.status).toBe(HttpStatus.OK);
+      expect(namesOf(alice.body)).toEqual(venuesWithBeers.filter((name) => name !== FULLY_DRUNK_VENUE));
+      expect(namesOf(bob.body)).toEqual(venuesWithBeers);
+      expect(namesOf(bob.body)).toContain(FULLY_DRUNK_VENUE);
+    });
+
+    it("keeps a venue where Alice drank only some of the beers", async () => {
+      const response = await getAs(ALICE_ID, `${UNDISCOVERED}&${LYON_ZONE}`);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(namesOf(response.body)).toEqual(
+        seededNames((venue) => venue.city === "Lyon" && venueBeersSeed.some((link) => link.venueName === venue.name)),
+      );
+    });
+
+    it("returns no venue for Alice on Orval and the Orval venues for Bob in the same request", async () => {
+      await drink(orvalId, "2026-10-03T18:00:00.000Z");
+
+      const alice = await getAs(ALICE_ID, `beer=${orvalId}&${UNDISCOVERED}`);
+      const bob = await getAs(BOB_ID, `beer=${orvalId}&${UNDISCOVERED}`);
+      const withoutFilter = await getAs(ALICE_ID, `beer=${orvalId}`);
+
+      expect(alice.status).toBe(HttpStatus.OK);
+      expect(alice.body).toEqual([]);
+      expect(namesOf(bob.body)).toEqual(namesOf(withoutFilter.body));
+      expect(bob.body).toHaveLength(ORVAL_VENUE_COUNT);
+    });
+
+    it.each(["undiscovered=false", ""])("answers the same body as without the filter for %j", async (query) => {
+      const baseline = await get(VENUES_PATH);
+
+      const response = await getAs(ALICE_ID, query);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.body).toEqual(baseline.body);
+      expect(response.body).toHaveLength(VENUE_COUNT);
+    });
+
+    it.each(["yes", "1", "TRUE"])("returns 400 for undiscovered=%s", async (value) => {
+      const response = await getAs(ALICE_ID, `undiscovered=${value}`);
+
+      expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(response.body).toEqual({ message: UNDISCOVERED_NOT_A_BOOLEAN_MESSAGE });
+    });
+
+    it("keeps only the Paris venues with a beer to discover when a text is given", async () => {
+      const alice = await getAs(ALICE_ID, `q=paris&${UNDISCOVERED}`);
+      const bob = await getAs(BOB_ID, `q=paris&${UNDISCOVERED}`);
+
+      expect(alice.status).toBe(HttpStatus.OK);
+      expect([...namesOf(alice.body)].sort(byName)).toEqual(
+        parisVenuesWithBeers.filter((name) => name !== FULLY_DRUNK_VENUE),
+      );
+      expect([...namesOf(bob.body)].sort(byName)).toEqual(parisVenuesWithBeers);
+      expect(namesOf(alice.body)).not.toContain(VENUE_WITHOUT_BEER);
+    });
+
+    it("returns 400 for a bad filter before reading the drunk beers and 401 without identity", async () => {
+      const badZone = await getAs(ALICE_ID, `north=50&${UNDISCOVERED}`);
+      const anonymous = await request(app.getHttpServer()).get(`${VENUES_PATH}?${UNDISCOVERED}`);
+
+      expect(badZone.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(badZone.body).toEqual({ message: "north, south, east and west must be supplied together." });
+      expect(anonymous.status).toBe(HttpStatus.UNAUTHORIZED);
+      expect(anonymous.body).toEqual({ message: UNIDENTIFIED_USER_MESSAGE });
     });
   });
 

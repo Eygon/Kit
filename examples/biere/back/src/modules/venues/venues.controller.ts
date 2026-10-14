@@ -15,8 +15,8 @@ export class VenuesController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAll(@Query() query: VenuesQueryDto): Promise<VenueDto[]> {
-    return this.venuesService.getVenues(query);
+  getAll(@CurrentUserId() userId: number, @Query() query: VenuesQueryDto): Promise<VenueDto[]> {
+    return this.venuesService.getVenues(userId, query);
   }
 
   @Get(":id")
@@ -43,8 +43,12 @@ export class VenuesController {
 
   @Post(":id/beers")
   @HttpCode(HttpStatus.CREATED)
-  reportBeer(@Param("id", ParseIntPipe) id: number, @Body() dto: ReportVenueBeerDto): Promise<VenueBeerDto> {
-    return this.venuesService.reportBeer(id, dto);
+  reportBeer(
+    @CurrentUserId() userId: number,
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: ReportVenueBeerDto,
+  ): Promise<VenueBeerDto> {
+    return this.venuesService.reportBeer(userId, id, dto);
   }
 
   @Post(":id/beers/:beerId/votes")

@@ -21,6 +21,7 @@ export const createEmptyCheckinForm = (now: Date): CheckinFormValues => ({
   format: "",
   price: Number.NaN,
   comment: "",
+  photo: null,
 });
 
 export const formValuesToNewCheckin = (values: CheckinFormValues, beerId: number): NewCheckin => ({
@@ -32,6 +33,7 @@ export const formValuesToNewCheckin = (values: CheckinFormValues, beerId: number
   aromas: values.aromas,
   price: Number.isNaN(values.price) ? null : values.price,
   comment: values.comment,
+  photo: values.photo,
 });
 
 export const isFutureDateTime = (value: string, now: Date): boolean => new Date(value).getTime() > now.getTime();

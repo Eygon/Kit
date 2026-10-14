@@ -13,9 +13,28 @@ const dto: VenueBeerDto = {
   lastConfirmedAt: "2026-10-01T10:00:00.000Z",
   recentVoterCount: 3,
   nextVoteAt: "2026-10-02T10:00:00.000Z",
+  drunk: true,
+  checkinCount: 3,
+  lastCheckinAt: "2026-10-12T12:00:00.000Z",
 };
 
 describe("venueBeerDtoToModel", () => {
+  it("keeps a beer never tasted as not drunk, with a count of 0 and no last checkin date", () => {
+    const model = venueBeerDtoToModel({ ...dto, drunk: false, checkinCount: 0, lastCheckinAt: null });
+
+    expect(model.drunk).toBe(false);
+    expect(model.checkinCount).toBe(0);
+    expect(model.lastCheckinAt).toBeNull();
+  });
+
+  it("keeps a drunk beer without a known date as drunk with a null last checkin date", () => {
+    const model = venueBeerDtoToModel({ ...dto, drunk: true, checkinCount: 1, lastCheckinAt: null });
+
+    expect(model.drunk).toBe(true);
+    expect(model.checkinCount).toBe(1);
+    expect(model.lastCheckinAt).toBeNull();
+  });
+
   it("copies every field, narrows family and status to their enums and turns the two dates into Date", () => {
     expect(venueBeerDtoToModel(dto)).toEqual({
       beerId: 7,
@@ -27,6 +46,9 @@ describe("venueBeerDtoToModel", () => {
       lastConfirmedAt: new Date("2026-10-01T10:00:00.000Z"),
       recentVoterCount: 3,
       nextVoteAt: new Date("2026-10-02T10:00:00.000Z"),
+      drunk: true,
+      checkinCount: 3,
+      lastCheckinAt: new Date("2026-10-12T12:00:00.000Z"),
     });
   });
 

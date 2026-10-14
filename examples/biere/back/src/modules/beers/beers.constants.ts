@@ -21,3 +21,23 @@ export const BEER_PAGE_SIZE_DEFAULT = 20;
 export const BEER_PAGE_SIZE_MAX = 50;
 
 export const BEER_ABV_MAX_PERCENT = 14;
+
+export const BITTERNESS_LEVEL_IBU_MAX: readonly number[] = [15, 25, 40, 60];
+
+export const COLOR_LEVEL_EBC_MAX: readonly number[] = [8, 16, 33, 60];
+
+export const REVIEW_RATING_MIN = 1;
+
+export const REVIEW_RATING_MAX = 5;
+
+export const REVIEW_RATING_STEP = 0.5;
+
+export const REVIEW_TEXT_MAX_LENGTH = 500;
+
+export const REVIEW_CRITERION_MIN = 1;
+
+export const REVIEW_CRITERION_MAX = 5;
+
+export const REVIEW_PAGE_SIZE = 10;
+
+export const REVIEW_CRITERION_MIN_REVIEWS = 3;

@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { BeersService } from "@/modules/beers/beers.service";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
+import { TastingsService } from "@/modules/tastings/tastings.service";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import type { BeerVenueDto } from "@/modules/venues/dtos/beer-venue.dto";
 import type { GeoPointDto } from "@/modules/venues/dtos/geo-point.dto";
@@ -10,15 +11,17 @@ import type { CreateVenueDto } from "@/modules/venues/dtos/create-venue.dto";
 import type { CreateVoteDto } from "@/modules/venues/dtos/create-vote.dto";
 import type { ReportVenueBeerDto } from "@/modules/venues/dtos/report-venue-beer.dto";
 import type { VenueBeerDto } from "@/modules/venues/dtos/venue-beer.dto";
+import type { VenueBeerUserStateDto } from "@/modules/venues/dtos/venue-beer-user-state.dto";
 import type { VenueBeersQueryDto } from "@/modules/venues/dtos/venue-beers-query.dto";
 import type { VenueDto } from "@/modules/venues/dtos/venue.dto";
 import type { VenueLinkDto } from "@/modules/venues/dtos/venue-link.dto";
 import type { VenueRecordDto } from "@/modules/venues/dtos/venue-record.dto";
+import type { VoteRecordDto } from "@/modules/venues/dtos/vote-record.dto";
 import type { VenuesQueryDto } from "@/modules/venues/dtos/venues-query.dto";
 import { AVAILABILITY_STATUS_RANK, AvailabilityStatusEnum } from "@/modules/venues/enums/availability-status.enum";
 import { computeDistanceKm } from "@/modules/venues/geo-distance";
 import { toBeerVenueDto } from "@/modules/venues/mappers/beer-venue.mapper";
-import { toNewVote, toVenueBeerDto } from "@/modules/venues/mappers/venue-beer.mapper";
+import { toNewVote, toVenueBeerDto, toVenueBeerUserStateDto } from "@/modules/venues/mappers/venue-beer.mapper";
 import { toNewVenue, toVenueDto } from "@/modules/venues/mappers/venue.mapper";
 import { computeAvailability, computeNextVoteAt, pickBestStatus } from "@/modules/venues/venue-availability";
 import { HOUR_MS } from "@/modules/venues/venues.constants";
@@ -47,6 +50,7 @@ const toBounds = (query: VenuesQueryDto): VenueBoundsDto | null => {
 const toAreaFilters = (query: VenuesQueryDto): VenueAreaFiltersDto => ({
   bounds: toBounds(query),
   types: query.type ?? [],
+  search: query.q ?? "",
 });
 
 const groupByVenue = (links: readonly VenueLinkDto[]): Map<number, VenueLinkDto[]> => {
@@ -130,18 +134,23 @@ export class VenuesService {
   constructor(
     private readonly venuesRepository: VenuesRepository,
     private readonly beersService: BeersService,
+    private readonly tastingsService: TastingsService,
   ) {}
 
-  async getVenues(query: VenuesQueryDto): Promise<VenueDto[]> {
+  async getVenues(userId: number, query: VenuesQueryDto): Promise<VenueDto[]> {
     const area = toAreaFilters(query);
     const position = toPosition(query);
     const radiusKm = toRadiusKm(query, position);
     const records = await this.venuesRepository.findVenues(area);
     const links = await this.venuesRepository.findLinks(records.map((record) => record.id));
-    const linksByVenue = groupByVenue(await this.retainLinks(links, query));
+    const retainedLinks = await this.retainLinks(links, query);
+    const undiscoveredLinks = await this.keepUndiscoveredLinks(userId, retainedLinks, query);
+    const linksByVenue = groupByVenue(retainedLinks);
+    const undiscoveredVenueIds = new Set(undiscoveredLinks.map((link) => link.venueId));
     const now = new Date();
     const venues = records
       .filter((record) => !hasBeerFilter(query) || linksByVenue.has(record.id))
+      .filter((record) => query.undiscovered !== true || undiscoveredVenueIds.has(record.id))
       .map((record) =>
         toVenueWithStatus(
           record,
@@ -152,7 +161,7 @@ export class VenuesService {
       )
       .filter((venue) => query.confirmedOnly !== true || venue.status === AvailabilityStatusEnum.CONFIRMED)
       .filter((venue) => radiusKm === null || (venue.distanceKm as number) <= radiusKm);
-    return position === null ? venues : venues.sort(compareVenuesByDistance);
+    return position === null || area.search !== "" ? venues : venues.sort(compareVenuesByDistance);
   }
 
   async getVenue(id: number): Promise<VenueDto> {
@@ -187,15 +196,31 @@ export class VenuesService {
     const links = await this.venuesRepository.findLinksByVenue(venueId);
     const beers = await this.beersService.getBeersByIds(links.map((link) => link.beerId));
     const beersById = new Map(beers.filter((beer) => isInFamily(beer, query.family)).map((beer) => [beer.id, beer]));
+    const userStates = await this.getUserStates(
+      userId,
+      links.map((link) => link.beerId),
+    );
     const now = new Date();
     return links
       .flatMap((link) => {
         const beer = beersById.get(link.beerId);
         return beer === undefined
           ? []
-          : [toVenueBeerDto(link, beer, computeAvailability(link.votes, now), computeNextVoteAt(link.votes, userId, now))];
+          : [
+              toVenueBeerDto(
+                link,
+                beer,
+                computeAvailability(link.votes, now),
+                computeNextVoteAt(link.votes, userId, now),
+                userStates.get(link.beerId) as VenueBeerUserStateDto,
+              ),
+            ];
       })
       .sort(compareVenueBeers);
+  }
+
+  getUserVotes(userId: number): Promise<VoteRecordDto[]> {
+    return this.venuesRepository.findVotesByUser(userId);
   }
 
   async vote(userId: number, venueId: number, beerId: number, dto: CreateVoteDto): Promise<VenueBeerDto> {
@@ -211,7 +236,14 @@ export class VenuesService {
     const updated = await this.getLink(venueId, beerId);
     const beer = await this.beersService.getBeer(beerId);
     const availability = computeAvailability(updated.votes, now);
-    return toVenueBeerDto(updated, beer, availability, computeNextVoteAt(updated.votes, userId, now));
+    const userStates = await this.getUserStates(userId, [beerId]);
+    return toVenueBeerDto(
+      updated,
+      beer,
+      availability,
+      computeNextVoteAt(updated.votes, userId, now),
+      userStates.get(beerId) as VenueBeerUserStateDto,
+    );
   }
 
   async createVenue(dto: CreateVenueDto): Promise<VenueDto> {
@@ -223,14 +255,33 @@ export class VenuesService {
     return toVenueDto(record, AvailabilityStatusEnum.UNKNOWN, null);
   }
 
-  async reportBeer(venueId: number, dto: ReportVenueBeerDto): Promise<VenueBeerDto> {
+  async reportBeer(userId: number, venueId: number, dto: ReportVenueBeerDto): Promise<VenueBeerDto> {
     await this.getVenue(venueId);
     const beer = await this.beersService.getBeer(dto.beerId);
     if ((await this.venuesRepository.findLink(venueId, dto.beerId)) !== null) {
       throw new ConflictException(`Beer ${dto.beerId} is already listed at venue ${venueId}.`);
     }
     const link = await this.venuesRepository.createLink(venueId, dto.beerId);
-    return toVenueBeerDto(link, beer, computeAvailability([], new Date()), null);
+    const userStates = await this.getUserStates(userId, [dto.beerId]);
+    return toVenueBeerDto(
+      link,
+      beer,
+      computeAvailability([], new Date()),
+      null,
+      userStates.get(dto.beerId) as VenueBeerUserStateDto,
+    );
+  }
+
+  private async getUserStates(userId: number, beerIds: readonly number[]): Promise<Map<number, VenueBeerUserStateDto>> {
+    const [states, discoveries] = await Promise.all([
+      this.tastingsService.getBeerStates(userId, beerIds),
+      this.tastingsService.getDiscoveries(userId),
+    ]);
+    const statesByBeer = new Map(states.map((state) => [state.beerId, state]));
+    const discoveriesByBeer = new Map(discoveries.map((discovery) => [discovery.beerId, discovery]));
+    return new Map(
+      beerIds.map((beerId) => [beerId, toVenueBeerUserStateDto(statesByBeer.get(beerId), discoveriesByBeer.get(beerId))]),
+    );
   }
 
   private async getLink(venueId: number, beerId: number): Promise<VenueLinkDto> {
@@ -239,6 +290,18 @@ export class VenuesService {
       throw new NotFoundException(`Beer ${beerId} is not listed at venue ${venueId}.`);
     }
     return link;
+  }
+
+  private async keepUndiscoveredLinks(
+    userId: number,
+    links: readonly VenueLinkDto[],
+    query: VenuesQueryDto,
+  ): Promise<readonly VenueLinkDto[]> {
+    if (query.undiscovered !== true) {
+      return links;
+    }
+    const drunkBeerIds = new Set(await this.tastingsService.getDrunkBeerIds(userId));
+    return links.filter((link) => !drunkBeerIds.has(link.beerId));
   }
 
   private async retainLinks(links: readonly VenueLinkDto[], query: VenuesQueryDto): Promise<readonly VenueLinkDto[]> {

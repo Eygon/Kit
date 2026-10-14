@@ -10,6 +10,7 @@ import { DatabaseModule } from "@/database/database.module";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
+import { Review } from "@/modules/beers/entities/review.entity";
 import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
 import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
 import { Venue } from "@/modules/venues/entities/venue.entity";
@@ -70,6 +71,19 @@ describe("DatabaseModule", () => {
     expect(tables).toEqual([{ name: "availability_votes" }, { name: "venue_beers" }]);
     expect(moduleRef.get<Repository<VenueBeer>>(getRepositoryToken(VenueBeer))).toBeDefined();
     expect(moduleRef.get<Repository<AvailabilityVote>>(getRepositoryToken(AvailabilityVote))).toBeDefined();
+
+    await moduleRef.close();
+  });
+  it("creates the reviews table and registers its repository", async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppConfigModule, DatabaseModule] })
+      .overrideProvider(APP_CONFIG)
+      .useValue(TEST_CONFIG)
+      .compile();
+
+    const dataSource = moduleRef.get(DataSource);
+    const tables = await dataSource.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'reviews'");
+    expect(tables).toEqual([{ name: "reviews" }]);
+    expect(moduleRef.get<Repository<Review>>(getRepositoryToken(Review))).toBeDefined();
 
     await moduleRef.close();
   });

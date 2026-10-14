@@ -15,4 +15,7 @@ export const venueBeerDtoToModel = (dto: VenueBeerDto): VenueBeer => ({
   lastConfirmedAt: toDateOrNull(dto.lastConfirmedAt),
   recentVoterCount: dto.recentVoterCount,
   nextVoteAt: toDateOrNull(dto.nextVoteAt),
+  drunk: dto.drunk,
+  checkinCount: dto.checkinCount,
+  lastCheckinAt: toDateOrNull(dto.lastCheckinAt),
 });

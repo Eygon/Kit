@@ -1,4 +1,4 @@
-import { RoutePathEnum, buildBeerDetailPath, parseBeerIdParam } from "@/types/enums/routing/routePathEnum";
+import { RoutePathEnum, buildBeerDetailPath, buildMapPathForBeer, parseBeerIdParam } from "@/types/enums/routing/routePathEnum";
 
 describe("RoutePathEnum", () => {
   it("keeps the public url segments", () => {
@@ -24,5 +24,12 @@ describe("parseBeerIdParam", () => {
 
   it.each([undefined, "", "0", "-1", "1.5", "abc", "12abc", " 12", "1e3"])("rejects %s", (value) => {
     expect(parseBeerIdParam(value)).toBeNull();
+  });
+});
+
+describe("buildMapPathForBeer", () => {
+  it("points the map at the beer through the beer query parameter", () => {
+    expect(buildMapPathForBeer(12)).toBe("/carte?beer=12");
+    expect(buildMapPathForBeer(1)).toBe(`${RoutePathEnum.MAP}?beer=1`);
   });
 });

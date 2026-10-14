@@ -59,9 +59,10 @@ describe("countDrawerFilters", () => {
         abvMin: 4,
         abvMax: 9,
         status: BeerStatusEnum.DRUNK,
+        minRating: 4,
         sort: BeerSortEnum.ABV,
       }),
-    ).toBe(1 + 2 + 1 + 3 + 1 + 1 + 1);
+    ).toBe(1 + 2 + 1 + 3 + 1 + 1 + 1 + 1);
   });
 
   it("counts one for each status and none without a status", () => {
@@ -75,5 +76,11 @@ describe("countDrawerFilters", () => {
     expect(
       countDrawerFilters({ ...EMPTY_BEER_QUERY, family: BeerFamilyEnum.IPA, countries: ["BE"], status: BeerStatusEnum.UNTASTED }),
     ).toBe(3);
+  });
+
+  it("AC1 counts one for a minimum rating and none without one", () => {
+    expect(countDrawerFilters({ ...EMPTY_BEER_QUERY, minRating: null })).toBe(0);
+    expect(countDrawerFilters({ ...EMPTY_BEER_QUERY, minRating: 4 })).toBe(1);
+    expect(countDrawerFilters({ ...EMPTY_BEER_QUERY, family: BeerFamilyEnum.IPA, minRating: 3.5 })).toBe(2);
   });
 });

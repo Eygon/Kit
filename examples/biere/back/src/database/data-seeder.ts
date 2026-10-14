@@ -5,18 +5,22 @@ import { Repository } from "typeorm";
 import breweriesSeed from "@/database/seed/data/breweries.json";
 import beersSeed from "@/database/seed/data/beers.json";
 import stylesSeed from "@/database/seed/data/styles.json";
+import reviewsSeed from "@/database/seed/data/reviews.json";
 import venueBeersSeed from "@/database/seed/data/venue-beers.json";
 import venuesSeed from "@/database/seed/data/venues.json";
 import { buildBeerRows, buildBreweryRows, buildStyleRows } from "@/database/seed/catalog-seed";
+import { buildReviewRows } from "@/database/seed/review-seed";
 import { buildSeedVotes, buildVenueBeerRows, buildVenueRows } from "@/database/seed/venue-seed";
 import { SEED_USERS, SEED_VOTE_BATCH_SIZE } from "@/database/seed.constants";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
+import { Review } from "@/modules/beers/entities/review.entity";
 import { User } from "@/modules/users/entities/user.entity";
 import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
 import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
 import { Venue } from "@/modules/venues/entities/venue.entity";
+import { toVenueSearchKeys } from "@/modules/venues/mappers/venue.mapper";
 
 const toIdsByLowerName = (rows: readonly { id: number; name: string }[]): Map<string, number> =>
   new Map(rows.map(({ id, name }) => [name.toLowerCase(), id]));
@@ -36,6 +40,7 @@ export class DataSeeder implements OnApplicationBootstrap {
     @InjectRepository(Venue) private readonly venues: Repository<Venue>,
     @InjectRepository(VenueBeer) private readonly venueBeers: Repository<VenueBeer>,
     @InjectRepository(AvailabilityVote) private readonly availabilityVotes: Repository<AvailabilityVote>,
+    @InjectRepository(Review) private readonly reviews: Repository<Review>,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -49,6 +54,7 @@ export class DataSeeder implements OnApplicationBootstrap {
     await this.seedBeers();
     await this.seedVenues();
     await this.seedVenueBeers();
+    await this.seedReviews();
   }
 
   private async seedUsers(): Promise<void> {
@@ -83,9 +89,17 @@ export class DataSeeder implements OnApplicationBootstrap {
 
   private async seedVenues(): Promise<void> {
     if ((await this.venues.count()) > 0) {
+      await this.backfillVenueSearchKeys();
       return;
     }
     await this.venues.insert(buildVenueRows(venuesSeed));
+  }
+
+  private async backfillVenueSearchKeys(): Promise<void> {
+    const venuesWithoutKeys = await this.venues.find({ where: { searchName: "" } });
+    for (const { id, name, city } of venuesWithoutKeys) {
+      await this.venues.update({ id }, toVenueSearchKeys(name, city));
+    }
   }
 
   private async seedVenueBeers(): Promise<void> {
@@ -107,5 +121,13 @@ export class DataSeeder implements OnApplicationBootstrap {
     for (const batch of toBatches(votes, SEED_VOTE_BATCH_SIZE)) {
       await this.availabilityVotes.insert(batch);
     }
+  }
+
+  private async seedReviews(): Promise<void> {
+    if ((await this.reviews.count()) > 0) {
+      return;
+    }
+    const beerIdsByName = toIdsByLowerName(await this.beers.find());
+    await this.reviews.insert(buildReviewRows(reviewsSeed, beerIdsByName, new Date()));
   }
 }

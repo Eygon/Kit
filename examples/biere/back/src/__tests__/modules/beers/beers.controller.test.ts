@@ -5,14 +5,15 @@ import { Test } from "@nestjs/testing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BeersController } from "@/modules/beers/beers.controller";
 import { BeersService } from "@/modules/beers/beers.service";
-import type { CatalogBeerDto } from "@/modules/beers/dtos/catalog-beer.dto";
+import type { BeerDetailDto } from "@/modules/beers/dtos/beer-detail.dto";
 import type { BeerPageDto } from "@/modules/beers/dtos/beer-page.dto";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
+import { ReviewCriterionEnum } from "@/modules/beers/enums/review-criterion.enum";
 import { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
 
 const ALICE = 1;
 
-const CHIMAY: CatalogBeerDto = {
+const CHIMAY: BeerDetailDto = {
   id: 1,
   name: "Chimay Rouge",
   breweryName: "Bières de Chimay",
@@ -24,9 +25,20 @@ const CHIMAY: CatalogBeerDto = {
   aromas: [],
   formats: [],
   description: "Trappiste.",
+  bitternessLevel: null,
+  colorLevel: null,
+  styleColorRange: null,
   drunk: true,
   checkinCount: 2,
   inWishlist: false,
+  averageRating: 4.3,
+  reviewCount: 2,
+  ratingDistribution: [1, 2, 3, 4, 5].map((stars) => ({ stars, count: stars === 4 ? 2 : 0 })),
+  criteria: [
+    { criterion: ReviewCriterionEnum.SWEETNESS, average: null, count: 2 },
+    { criterion: ReviewCriterionEnum.ACIDITY, average: null, count: 0 },
+    { criterion: ReviewCriterionEnum.BODY, average: null, count: 0 },
+  ],
 };
 
 describe("BeersController", () => {

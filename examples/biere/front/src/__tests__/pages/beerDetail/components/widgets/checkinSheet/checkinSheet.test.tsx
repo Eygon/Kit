@@ -12,6 +12,7 @@ import { CHECKINS } from "@/utils/apiURL/apiURL";
 import { beerKeys } from "@/utils/queryKeys/beerQueryKeys";
 import { checkinKeys } from "@/utils/queryKeys/checkinQueryKeys";
 import { dexKeys } from "@/utils/queryKeys/dexQueryKeys";
+import { venueKeys } from "@/utils/queryKeys/venueQueryKeys";
 
 const CHIMAY: Beer = {
   id: 1,
@@ -28,6 +29,13 @@ const CHIMAY: Beer = {
   drunk: false,
   checkinCount: 0,
   inWishlist: false,
+  bitternessLevel: null,
+  colorLevel: null,
+  styleColorRange: null,
+  averageRating: null,
+  reviewCount: 0,
+  ratingDistribution: [],
+  criteria: [],
 };
 
 const checkinDto = {
@@ -148,10 +156,11 @@ describe("CheckinSheet", () => {
 
       await fillAndSend(user);
 
-      await waitFor(() => expect(invalidate).toHaveBeenCalledTimes(3));
+      await waitFor(() => expect(invalidate).toHaveBeenCalledTimes(4));
       expect(invalidate).toHaveBeenCalledWith({ queryKey: beerKeys.all() });
       expect(invalidate).toHaveBeenCalledWith({ queryKey: dexKeys.all() });
       expect(invalidate).toHaveBeenCalledWith({ queryKey: checkinKeys.all() });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: venueKeys.all() });
     });
   });
 
@@ -178,10 +187,11 @@ describe("CheckinSheet", () => {
 
       await fillAndSend(user);
 
-      await waitFor(() => expect(invalidate).toHaveBeenCalledTimes(3));
+      await waitFor(() => expect(invalidate).toHaveBeenCalledTimes(4));
       expect(invalidate).toHaveBeenCalledWith({ queryKey: beerKeys.all() });
       expect(invalidate).toHaveBeenCalledWith({ queryKey: dexKeys.all() });
       expect(invalidate).toHaveBeenCalledWith({ queryKey: checkinKeys.all() });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: venueKeys.all() });
     });
 
     it("posts the tasting of this beer to the checkins url", async () => {
@@ -268,7 +278,7 @@ describe("CheckinSheet", () => {
 
       answer(new Response(JSON.stringify({ checkin: checkinDto, isFirstDiscovery: false }), { status: 201 }));
 
-      await waitFor(() => expect(invalidate).toHaveBeenCalledTimes(3));
+      await waitFor(() => expect(invalidate).toHaveBeenCalledTimes(4));
       expect(toast.success).toHaveBeenCalledWith("Dégustation enregistrée.");
       expect(toast.success).toHaveBeenCalledTimes(1);
       expect(toast.danger).not.toHaveBeenCalled();

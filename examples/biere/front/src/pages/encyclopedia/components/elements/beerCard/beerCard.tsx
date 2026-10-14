@@ -1,6 +1,7 @@
 import { Card, Chip } from "@heroui/react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import { AverageRating } from "@/components/elements/averageRating/averageRating";
 import type { BeerCardProps } from "@/pages/encyclopedia/types/beerCard";
 import { buildBeerDetailPath } from "@/types/enums/routing/routePathEnum";
 import { formatAbv } from "@/utils/beer/formatAbv";
@@ -47,6 +48,7 @@ export const BeerCard = ({ beer, discoveredAt }: BeerCardProps) => {
           <p className="truncate">{beer.styleName}</p>
           <p className="truncate">{formatAbv(beer.abv, i18n.language)}</p>
           <p className="truncate text-muted">{getCountryName(beer.country, i18n.language)}</p>
+          <AverageRating averageRating={beer.averageRating} reviewCount={beer.reviewCount} />
         </Card.Content>
       </Card>
     </Link>

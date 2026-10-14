@@ -1,9 +1,9 @@
 import type { Mock } from "vitest";
 import WishlistService from "@/api/wishlist/wishlistService";
-import { addToWishlist, removeFromWishlist } from "@/utils/queryFunctions/wishlistQueryFunctions";
+import { addToWishlist, fetchWishlist, removeFromWishlist } from "@/utils/queryFunctions/wishlistQueryFunctions";
 
 vi.mock("@/api/wishlist/wishlistService", () => ({
-  default: { add: vi.fn(), remove: vi.fn() },
+  default: { add: vi.fn(), remove: vi.fn(), getAll: vi.fn() },
 }));
 
 describe("wishlist query functions", () => {
@@ -37,5 +37,21 @@ describe("wishlist query functions", () => {
 
     await expect(addToWishlist(7)).rejects.toThrow("conflict");
     await expect(removeFromWishlist(7)).rejects.toThrow("down");
+  });
+
+  it("fetchWishlist delegates to WishlistService.getAll and returns its items", async () => {
+    const items = [{ beerId: 7, beerName: "Orval", addedAt: "2026-10-12T12:00:00.000Z" }];
+    (WishlistService.getAll as Mock).mockResolvedValue(items);
+
+    const result = await fetchWishlist();
+
+    expect(WishlistService.getAll).toHaveBeenCalledTimes(1);
+    expect(result).toBe(items);
+  });
+
+  it("fetchWishlist lets the service rejection through", async () => {
+    (WishlistService.getAll as Mock).mockRejectedValue(new Error("down"));
+
+    await expect(fetchWishlist()).rejects.toThrow("down");
   });
 });

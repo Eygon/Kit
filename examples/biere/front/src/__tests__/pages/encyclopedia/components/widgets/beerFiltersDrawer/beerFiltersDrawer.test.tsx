@@ -363,7 +363,7 @@ describe("BeerFiltersDrawer", () => {
     expect(onApply).toHaveBeenCalledWith({ ...EMPTY_BEER_QUERY, sort: BeerSortEnum.ABV });
   });
 
-  it("offers the three sorts with a touch target of at least 44 px", async () => {
+  it("offers the four sorts with a touch target of at least 44 px", async () => {
     const user = userEvent.setup();
     renderDrawer({ ...EMPTY_BEER_QUERY, sort: BeerSortEnum.BREWERY });
     const dialog = await openDrawer(user);
@@ -373,7 +373,7 @@ describe("BeerFiltersDrawer", () => {
 
     await user.click(trigger);
 
-    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(["Nom", "Degré", "Brasserie"]);
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(["Nom", "Degré", "Brasserie", "Mieux notées"]);
   });
 
   it("AC9 says the number is unavailable when the preview failed, and still applies", async () => {
@@ -696,5 +696,120 @@ describe("BeerFiltersDrawer status section", () => {
     ["All", "Tasted", "To taste", "Never tasted"].forEach((name) =>
       expect(within(group).getByRole("radio", { name })).toBeInTheDocument(),
     );
+  });
+});
+
+describe("BeerFiltersDrawer minimum rating section", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    stubPreview();
+    stubStyles();
+  });
+
+  afterEach(async () => {
+    await i18n.changeLanguage("fr");
+  });
+
+  const getRatingGroup = (dialog: HTMLElement) => within(dialog).getByRole("radiogroup", { name: "Note minimale" });
+
+  it("puts a Minimum rating section after the status with All checked and the four options as chips", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = await openDrawer(user);
+
+    const ratingGroup = getRatingGroup(dialog);
+    const statusGroup = within(dialog).getByRole("radiogroup", { name: "Statut" });
+    expect(statusGroup.compareDocumentPosition(ratingGroup) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(ratingGroup).getAllByRole("radio").map((radio) => radio.closest("label")?.textContent)).toEqual([
+      "Toutes",
+      "3+",
+      "3,5+",
+      "4+",
+      "4,5+",
+    ]);
+    expect(within(ratingGroup).getByRole("radio", { name: "Toutes" })).toBeChecked();
+  });
+
+  it("AC1 applies the chosen minimum rating, counts it in the preview and on the button", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = await openDrawer(user);
+
+    await user.click(within(getRatingGroup(dialog)).getByRole("radio", { name: "4+" }));
+
+    expect(lastPreviewCall()[0]).toEqual({ ...EMPTY_BEER_QUERY, minRating: 4 });
+    expect(onApply).not.toHaveBeenCalled();
+    await user.click(getApplyButton(/^Voir \d+ bières$/));
+
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(onApply).toHaveBeenCalledWith({ ...EMPTY_BEER_QUERY, minRating: 4 });
+  });
+
+  it("AC1 shows the minimum rating as one more active filter on the button", () => {
+    renderDrawer({ ...EMPTY_BEER_QUERY, minRating: 4 });
+
+    expect(screen.getByText("1 filtre actif")).toBeInTheDocument();
+  });
+
+  it("AC1 applies a half-point option", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = await openDrawer(user);
+
+    await user.click(within(getRatingGroup(dialog)).getByRole("radio", { name: "3,5+" }));
+    await user.click(getApplyButton(/^Voir \d+ bières$/));
+
+    expect(onApply).toHaveBeenCalledWith({ ...EMPTY_BEER_QUERY, minRating: 3.5 });
+  });
+
+  it("starts on the applied minimum rating and goes back to none when All is chosen", async () => {
+    const user = userEvent.setup();
+    renderDrawer({ ...EMPTY_BEER_QUERY, minRating: 4.5 });
+    const dialog = await openDrawer(user);
+    expect(within(getRatingGroup(dialog)).getByRole("radio", { name: "4,5+" })).toBeChecked();
+
+    await user.click(within(getRatingGroup(dialog)).getByRole("radio", { name: "Toutes" }));
+    await user.click(getApplyButton(/^Voir \d+ bières$/));
+
+    expect(onApply).toHaveBeenCalledWith({ ...EMPTY_BEER_QUERY, minRating: null });
+  });
+
+  it("AC2 sorts by rating once chosen and applied", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = await openDrawer(user);
+
+    await user.click(within(dialog).getByRole("button", { name: /Trier par/ }));
+    await user.click(screen.getByRole("option", { name: "Mieux notées" }));
+    expect(lastPreviewCall()[0]).toEqual({ ...EMPTY_BEER_QUERY, sort: BeerSortEnum.RATING });
+    await user.click(getApplyButton(/^Voir \d+ bières$/));
+
+    expect(onApply).toHaveBeenCalledWith({ ...EMPTY_BEER_QUERY, sort: BeerSortEnum.RATING });
+  });
+
+  it("AC4 puts All back on Réinitialiser", async () => {
+    const user = userEvent.setup();
+    renderDrawer({ ...EMPTY_BEER_QUERY, minRating: 3 });
+    const dialog = await openDrawer(user);
+    expect(within(getRatingGroup(dialog)).getByRole("radio", { name: "3+" })).toBeChecked();
+
+    await user.click(getApplyButton("Réinitialiser"));
+
+    expect(within(getRatingGroup(dialog)).getByRole("radio", { name: "Toutes" })).toBeChecked();
+    expect(within(getRatingGroup(dialog)).getByRole("radio", { name: "3+" })).not.toBeChecked();
+    expect(lastPreviewCall()[0]).toEqual(EMPTY_BEER_QUERY);
+  });
+
+  it("writes the minimum rating section in English", async () => {
+    const user = userEvent.setup();
+    await i18n.changeLanguage("en");
+    renderDrawer();
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    const dialog = await screen.findByRole("dialog", { name: "Filters" });
+
+    const group = within(dialog).getByRole("radiogroup", { name: "Minimum rating" });
+    ["All", "3+", "3.5+", "4+", "4.5+"].forEach((name) => expect(within(group).getByRole("radio", { name })).toBeInTheDocument());
+    await user.click(within(dialog).getByRole("button", { name: /Sort by/ }));
+    expect(screen.getByRole("option", { name: "Top rated" })).toBeInTheDocument();
   });
 });

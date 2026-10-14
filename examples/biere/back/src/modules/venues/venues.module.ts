@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { BeersModule } from "@/modules/beers/beers.module";
+import { TastingsModule } from "@/modules/tastings/tastings.module";
 import { BeerVenuesController } from "@/modules/venues/beer-venues.controller";
 import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
 import { Venue } from "@/modules/venues/entities/venue.entity";
@@ -10,8 +11,9 @@ import { VenuesRepository } from "@/modules/venues/venues.repository";
 import { VenuesService } from "@/modules/venues/venues.service";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Venue, VenueBeer, AvailabilityVote]), BeersModule],
+  imports: [TypeOrmModule.forFeature([Venue, VenueBeer, AvailabilityVote]), BeersModule, TastingsModule],
   controllers: [VenuesController, BeerVenuesController],
   providers: [VenuesService, VenuesRepository],
+  exports: [VenuesService],
 })
 export class VenuesModule {}

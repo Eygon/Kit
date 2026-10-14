@@ -1,8 +1,25 @@
 import { Transform, Type } from "class-transformer";
-import { IsArray, IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, IsPositive, Max, Min } from "class-validator";
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from "class-validator";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { VenueTypeEnum } from "@/modules/venues/enums/venue-type.enum";
-import { LATITUDE_MAX_DEGREES, LONGITUDE_MAX_DEGREES, RADIUS_MAX_KM } from "@/modules/venues/venues.constants";
+import {
+  LATITUDE_MAX_DEGREES,
+  LONGITUDE_MAX_DEGREES,
+  RADIUS_MAX_KM,
+  VENUE_SEARCH_MAX_LENGTH,
+} from "@/modules/venues/venues.constants";
 
 const toArray = ({ value }: { value: unknown }): unknown => (Array.isArray(value) || value === undefined ? value : [value]);
 
@@ -13,7 +30,15 @@ const toBoolean = ({ value }: { value: unknown }): unknown => {
   return value === "false" ? false : value;
 };
 
+const trimString = ({ value }: { value: unknown }): unknown => (typeof value === "string" ? value.trim() : value);
+
 export class VenuesQueryDto {
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(VENUE_SEARCH_MAX_LENGTH)
+  readonly q?: string;
+
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -70,6 +95,11 @@ export class VenuesQueryDto {
   @Transform(toBoolean)
   @IsBoolean()
   readonly confirmedOnly?: boolean;
+
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  readonly undiscovered?: boolean;
 
   @IsOptional()
   @Type(() => Number)

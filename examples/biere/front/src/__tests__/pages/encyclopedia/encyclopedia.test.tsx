@@ -19,7 +19,7 @@ vi.mock("@/pages/encyclopedia/hooks/useBeerCatalogQuery", () => mockCatalog);
 
 const mockDex = vi.hoisted(() => ({ useDexQuery: vi.fn() }));
 
-vi.mock("@/pages/encyclopedia/hooks/useDexQuery", () => mockDex);
+vi.mock("@/hooks/dex/useDexQuery", () => mockDex);
 
 const mockPreview = vi.hoisted(() => ({
   useBeerPreviewQuery: vi.fn<(query: BeerQuery) => Record<string, unknown>>(() => ({
@@ -49,6 +49,13 @@ const buildBeer = (id: number, overrides: Partial<Beer> = {}): Beer => ({
   drunk: false,
   checkinCount: 0,
   inWishlist: false,
+  bitternessLevel: null,
+  colorLevel: null,
+  styleColorRange: null,
+  averageRating: null,
+  reviewCount: 0,
+  ratingDistribution: [],
+  criteria: [],
   ...overrides,
 });
 
@@ -555,6 +562,7 @@ describe("EncyclopediaPage search and family filters", () => {
       abvMin: 4,
       abvMax: 9,
       status: null,
+      minRating: null,
       sort: BeerSortEnum.ABV,
     });
     expect(mockCatalog.useBeerCatalogQuery).not.toHaveBeenCalledWith(EMPTY_BEER_QUERY);
@@ -927,5 +935,65 @@ describe("EncyclopediaPage status filter", () => {
     expect(screen.queryByText(/résultat/)).not.toBeInTheDocument();
     const dialog = await openFilters(user);
     expect(within(within(dialog).getByRole("radiogroup", { name: "Statut" })).getByRole("radio", { name: "Toutes" })).toBeChecked();
+  });
+});
+
+describe("EncyclopediaPage rating filter and sort", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    fetchNextPage.mockResolvedValue(undefined);
+    refetch.mockResolvedValue(undefined);
+    stubCatalogByQuery();
+    stubPreviewByQuery();
+  });
+
+  it("US11 AC1 applies 4+ to the URL and the grid, and adds one to the filters badge", async () => {
+    const user = userEvent.setup();
+    renderFilteredPage();
+    expect(screen.queryByText(/filtres? actifs?/)).not.toBeInTheDocument();
+    const dialog = await openFilters(user);
+
+    await user.click(within(within(dialog).getByRole("radiogroup", { name: "Note minimale" })).getByRole("radio", { name: "4+" }));
+    await user.click(screen.getByRole("button", { name: /^Voir \d+ bières$/ }));
+
+    expect(getLocationSearch()).toBe("?minRating=4");
+    expect(mockCatalog.useBeerCatalogQuery).toHaveBeenCalledWith({ ...EMPTY_BEER_QUERY, minRating: 4 });
+    expect(screen.getByText("1 filtre actif")).toBeInTheDocument();
+  });
+
+  it("US11 AC2 and Independent Test put 4+ and Mieux notées in the URL and count two filters", async () => {
+    const user = userEvent.setup();
+    renderFilteredPage();
+    const dialog = await openFilters(user);
+
+    await user.click(within(within(dialog).getByRole("radiogroup", { name: "Note minimale" })).getByRole("radio", { name: "4+" }));
+    await user.click(within(dialog).getByRole("button", { name: /Trier par/ }));
+    await user.click(screen.getByRole("option", { name: "Mieux notées" }));
+    await user.click(screen.getByRole("button", { name: /^Voir \d+ bières$/ }));
+
+    expect(getLocationSearch()).toBe("?minRating=4&sort=rating");
+    expect(mockCatalog.useBeerCatalogQuery).toHaveBeenCalledWith({ ...EMPTY_BEER_QUERY, minRating: 4, sort: BeerSortEnum.RATING });
+    expect(screen.getByText("2 filtres actifs")).toBeInTheDocument();
+  });
+
+  it("US11 AC1 opens on the minimum rating of a shared URL", async () => {
+    const user = userEvent.setup();
+    renderFilteredPage("/?minRating=4&sort=rating");
+
+    expect(mockCatalog.useBeerCatalogQuery).toHaveBeenCalledWith({ ...EMPTY_BEER_QUERY, minRating: 4, sort: BeerSortEnum.RATING });
+    expect(screen.getByText("2 filtres actifs")).toBeInTheDocument();
+    const dialog = await openFilters(user);
+    expect(within(within(dialog).getByRole("radiogroup", { name: "Note minimale" })).getByRole("radio", { name: "4+" })).toBeChecked();
+  });
+
+  it.each(["minRating=7", "minRating=3.3", "minRating=abc"])("US11 AC3 ignores %s of the URL and shows Toutes", async (search) => {
+    const user = userEvent.setup();
+    renderFilteredPage(`/?${search}`);
+
+    expect(mockCatalog.useBeerCatalogQuery).toHaveBeenCalledWith(EMPTY_BEER_QUERY);
+    expect(mockCatalog.useBeerCatalogQuery).not.toHaveBeenCalledWith(expect.objectContaining({ minRating: expect.any(Number) }));
+    expect(screen.queryByText(/filtres? actifs?/)).not.toBeInTheDocument();
+    const dialog = await openFilters(user);
+    expect(within(within(dialog).getByRole("radiogroup", { name: "Note minimale" })).getByRole("radio", { name: "Toutes" })).toBeChecked();
   });
 });

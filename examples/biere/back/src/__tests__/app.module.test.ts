@@ -10,6 +10,7 @@ import { DataSeeder } from "@/database/data-seeder";
 import { BeersController } from "@/modules/beers/beers.controller";
 import { HealthController } from "@/modules/health/health.controller";
 import { CheckinsController } from "@/modules/pokedex/checkins.controller";
+import { StatsController } from "@/modules/profile/stats.controller";
 import { TastingsService } from "@/modules/tastings/tastings.service";
 import { UsersController } from "@/modules/users/users.controller";
 import { UsersService } from "@/modules/users/users.service";
@@ -39,6 +40,10 @@ describe("AppModule", () => {
 
   it("mounts the pokedex module so the check-ins controller is served", () => {
     expect(app.get(CheckinsController)).toBeInstanceOf(CheckinsController);
+  });
+
+  it("mounts the profile module so the stats controller is served", () => {
+    expect(app.get(StatsController)).toBeInstanceOf(StatsController);
   });
 
   it("registers the identity guard, the validation pipe and the exception filter globally", () => {

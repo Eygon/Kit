@@ -6,8 +6,10 @@ export const EMPTY_VENUE_QUERY: VenueQuery = {
   family: null,
   beerId: null,
   confirmedOnly: false,
+  undiscovered: false,
   position: null,
   radiusKm: null,
+  q: "",
 };
 
 export const venueQueryToSearchParams = (query: VenueQuery): URLSearchParams => {
@@ -22,10 +24,13 @@ export const venueQueryToSearchParams = (query: VenueQuery): URLSearchParams => 
   if (query.beerId !== null) params.append("beer", query.beerId.toString());
   if (query.family !== null) params.append("family", query.family);
   if (query.confirmedOnly) params.append("confirmedOnly", "true");
+  if (query.undiscovered) params.append("undiscovered", "true");
   if (query.position !== null) {
     params.append("latitude", query.position.latitude.toString());
     params.append("longitude", query.position.longitude.toString());
   }
   if (query.radiusKm !== null) params.append("radiusKm", query.radiusKm.toString());
+  const text = query.q.trim();
+  if (text !== "") params.append("q", text);
   return params;
 };

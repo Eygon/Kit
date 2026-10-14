@@ -12,5 +12,6 @@ export interface BeerQuery {
   abvMin: number | null;
   abvMax: number | null;
   status: BeerStatusEnum | null;
+  minRating: number | null;
   sort: BeerSortEnum;
 }

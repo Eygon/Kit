@@ -2,6 +2,7 @@ export enum BeerSortEnum {
   NAME = "name",
   ABV = "abv",
   BREWERY = "brewery",
+  RATING = "rating",
 }
 
 export interface SortColumn {
@@ -17,6 +18,12 @@ export const BEER_SORT_ORDERS: Readonly<Record<BeerSortEnum, readonly SortColumn
   ],
   [BeerSortEnum.BREWERY]: [
     { expression: "LOWER(brewery.name)", direction: "ASC" },
+    { expression: "LOWER(beer.name)", direction: "ASC" },
+  ],
+  [BeerSortEnum.RATING]: [
+    { expression: "(rating.averageRating IS NULL)", direction: "ASC" },
+    { expression: "rating.averageRating", direction: "DESC" },
+    { expression: "rating.reviewCount", direction: "DESC" },
     { expression: "LOWER(beer.name)", direction: "ASC" },
   ],
 };

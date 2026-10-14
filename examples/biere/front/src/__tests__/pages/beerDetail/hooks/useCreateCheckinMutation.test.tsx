@@ -12,6 +12,7 @@ import { createCheckin } from "@/utils/queryFunctions/checkinQueryFunctions";
 import { beerKeys } from "@/utils/queryKeys/beerQueryKeys";
 import { checkinKeys } from "@/utils/queryKeys/checkinQueryKeys";
 import { dexKeys } from "@/utils/queryKeys/dexQueryKeys";
+import { venueKeys } from "@/utils/queryKeys/venueQueryKeys";
 
 vi.mock("@heroui/react", () => ({
   toast: { success: vi.fn(), danger: vi.fn() },
@@ -109,7 +110,7 @@ describe("useCreateCheckinMutation", () => {
     await waitFor(() => expect(result.current.isSaving).toBe(false));
   });
 
-  it.each([true, false])("invalidates the beers, the dex and the checkins when first discovery is %s", async (isFirstDiscovery) => {
+  it.each([true, false])("invalidates the beers, the dex, the checkins and the venues when first discovery is %s", async (isFirstDiscovery) => {
     (createCheckin as Mock).mockResolvedValue(created(isFirstDiscovery));
     const invalidate = vi.spyOn(client, "invalidateQueries");
     const { result } = renderHook(() => useCreateCheckinMutation(), { wrapper: wrapperFor(client) });
@@ -118,10 +119,11 @@ describe("useCreateCheckinMutation", () => {
       await result.current.saveCheckin(NEW_CHECKIN);
     });
 
-    expect(invalidate).toHaveBeenCalledTimes(3);
+    expect(invalidate).toHaveBeenCalledTimes(4);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: beerKeys.all() });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: dexKeys.all() });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: checkinKeys.all() });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: venueKeys.all() });
   });
 
   it("toasts the success when it is not the first discovery", async () => {
@@ -162,7 +164,7 @@ describe("useCreateCheckinMutation", () => {
     await waitFor(() => expect(result.current.isSaving).toBe(false));
   });
 
-  it("refreshes the beers, the dex and the checkins when the request times out, as the write may have landed", async () => {
+  it("refreshes the beers, the dex, the checkins and the venues when the request times out, as the write may have landed", async () => {
     (createCheckin as Mock).mockRejectedValue(new DOMException("signal timed out", "TimeoutError"));
     const invalidate = vi.spyOn(client, "invalidateQueries");
     const { result } = renderHook(() => useCreateCheckinMutation(), { wrapper: wrapperFor(client) });
@@ -171,10 +173,11 @@ describe("useCreateCheckinMutation", () => {
       await expect(result.current.saveCheckin(NEW_CHECKIN)).rejects.toThrow("signal timed out");
     });
 
-    expect(invalidate).toHaveBeenCalledTimes(3);
+    expect(invalidate).toHaveBeenCalledTimes(4);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: beerKeys.all() });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: dexKeys.all() });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: checkinKeys.all() });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: venueKeys.all() });
     expect(toast.success).not.toHaveBeenCalled();
   });
 });

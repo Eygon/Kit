@@ -8,7 +8,8 @@ import VenueService from "@/api/venues/venueService";
 import { HttpError } from "@/api/httpError";
 import { VoteSenseEnum } from "@/types/enums/venue/voteSenseEnum";
 import i18n from "@/i18n/i18n";
-import { voteVenueBeer } from "@/utils/queryFunctions/venueQueryFunctions";
+import type { NewVenue } from "@/types/models/venue/newVenue";
+import { createVenue, reportVenueBeer, voteVenueBeer } from "@/utils/queryFunctions/venueQueryFunctions";
 
 vi.mock("@heroui/react", () => ({
   toast: { danger: vi.fn() },
@@ -64,6 +65,14 @@ describe("VenueService.getAll", () => {
       `${VENUES_URL}?north=48.9&south=48.8&east=2.4&west=2.2&type=bar&type=brewery&beer=7&family=stout&confirmedOnly=true&latitude=48.85&longitude=2.35&radiusKm=10`,
     );
     expect(init.method).toBe("GET");
+  });
+
+  it("sends the trimmed search text as q next to the filters and without bounds", async () => {
+    mockFetch.mockImplementation(async () => json([]));
+
+    await VenueService.getAll({ ...EMPTY_VENUE_QUERY, types: [VenueTypeEnum.BAR], q: "  acad " });
+
+    expect(mockFetch.mock.calls[0][0]).toBe(`${VENUES_URL}?type=bar&q=acad`);
   });
 
   it("sends no parameter for an empty query", async () => {
@@ -122,6 +131,9 @@ const venueBeerDto = {
   lastConfirmedAt: "2026-10-01T10:00:00.000Z",
   recentVoterCount: 3,
   nextVoteAt: null,
+  drunk: false,
+  checkinCount: 0,
+  lastCheckinAt: null,
 };
 
 describe("VenueService.getBeers", () => {
@@ -288,5 +300,301 @@ describe("VenueService.vote", () => {
     expect(url).toBe(`${VENUES_URL}/12/beers/7/votes`);
     expect(JSON.parse(init.body as string)).toEqual({ sense: "gone" });
     expect(beer.beerId).toBe(7);
+  });
+});
+
+describe("VenueService.reportBeer", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.mocked(toast.danger).mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts the beerId as the only body field to /venues/{id}/beers", async () => {
+    mockFetch.mockImplementation(async () => json({ ...venueBeerDto, status: "unknown", recentVoterCount: 0 }, 201));
+
+    await VenueService.reportBeer(12, 7);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${VENUES_URL}/12/beers`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({ beerId: 7 });
+    expect((init.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
+  });
+
+  it("returns the created link as a model with no toast", async () => {
+    mockFetch.mockImplementation(async () =>
+      json({ ...venueBeerDto, status: "unknown", lastConfirmedAt: null, recentVoterCount: 0 }, 201),
+    );
+
+    const beer = await VenueService.reportBeer(12, 7);
+
+    expect(beer).toEqual({
+      ...venueBeerDto,
+      status: "unknown",
+      family: "ipa",
+      lastConfirmedAt: null,
+      recentVoterCount: 0,
+      nextVoteAt: null,
+    });
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it("AC2 on a 409 shows one toast with the dedicated already listed text and rethrows the HttpError", async () => {
+    mockFetch.mockImplementation(async () => json({ message: "already linked" }, 409));
+
+    const failure = await VenueService.reportBeer(12, 7).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).status).toBe(409);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith("Cette bière est déjà signalée ici");
+  });
+
+  it.each([
+    [400, "errors.badRequest"],
+    [401, "errors.unauthorized"],
+    [404, "errors.notFound"],
+    [500, "errors.generic"],
+  ])("on status %s shows one toast with the text of %s and rethrows", async (status, key) => {
+    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+
+    const failure = await VenueService.reportBeer(12, 7).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).status).toBe(status);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith(i18n.t(key));
+    expect(toast.danger).not.toHaveBeenCalledWith("Cette bière est déjà signalée ici");
+  });
+
+  it("on a network failure shows one generic toast and rethrows the original error", async () => {
+    const networkError = new TypeError("Failed to fetch");
+    mockFetch.mockRejectedValue(networkError);
+
+    await expect(VenueService.reportBeer(12, 7)).rejects.toBe(networkError);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith("Une erreur est survenue. Réessayez.");
+  });
+
+  it("treats an answer without a body as a failure: one generic toast and a rethrow", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(VenueService.reportBeer(12, 7)).rejects.toBeInstanceOf(Error);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith("Une erreur est survenue. Réessayez.");
+  });
+
+  it("is reached through the reportVenueBeer query function with the same arguments", async () => {
+    mockFetch.mockImplementation(async () => json({ ...venueBeerDto, status: "unknown" }, 201));
+
+    const beer = await reportVenueBeer(12, 7);
+
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${VENUES_URL}/12/beers`);
+    expect(JSON.parse(init.body as string)).toEqual({ beerId: 7 });
+    expect(beer.beerId).toBe(7);
+  });
+});
+
+const NEW_VENUE: NewVenue = {
+  name: "Le Trappiste",
+  type: VenueTypeEnum.BAR,
+  address: "1 rue de la Bière",
+  city: "Paris",
+  description: "Vingt pressions.",
+  latitude: 48.8566,
+  longitude: 2.3522,
+};
+
+describe("VenueService.create", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.mocked(toast.danger).mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts exactly the contract fields of the new venue to /venues", async () => {
+    mockFetch.mockImplementation(async () => json({ ...venueDto, status: "unknown" }, 201));
+
+    await VenueService.create(NEW_VENUE);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(VENUES_URL);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({
+      name: "Le Trappiste",
+      type: "bar",
+      address: "1 rue de la Bière",
+      city: "Paris",
+      description: "Vingt pressions.",
+      latitude: 48.8566,
+      longitude: 2.3522,
+    });
+    expect((init.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
+  });
+
+  it("returns the created venue as a model with no toast", async () => {
+    mockFetch.mockImplementation(async () => json({ ...venueDto, id: 40, status: "unknown" }, 201));
+
+    const venue = await VenueService.create(NEW_VENUE);
+
+    expect(venue).toEqual({ ...venueDto, id: 40, status: "unknown" });
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it("AC3 on a 409 shows one toast with the dedicated already existing text and rethrows the HttpError", async () => {
+    mockFetch.mockImplementation(async () => json({ message: "name taken" }, 409));
+
+    const failure = await VenueService.create(NEW_VENUE).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).status).toBe(409);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith("Ce lieu existe déjà");
+  });
+
+  it.each([
+    [400, "errors.badRequest"],
+    [401, "errors.unauthorized"],
+    [500, "errors.generic"],
+  ])("on status %s shows one toast with the text of %s and rethrows", async (status, key) => {
+    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+
+    const failure = await VenueService.create(NEW_VENUE).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).status).toBe(status);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith(i18n.t(key));
+    expect(toast.danger).not.toHaveBeenCalledWith("Ce lieu existe déjà");
+  });
+
+  it("on a network failure shows one generic toast and rethrows the original error", async () => {
+    const networkError = new TypeError("Failed to fetch");
+    mockFetch.mockRejectedValue(networkError);
+
+    await expect(VenueService.create(NEW_VENUE)).rejects.toBe(networkError);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith("Une erreur est survenue. Réessayez.");
+  });
+
+  it("treats an answer without a body as a failure: one generic toast and a rethrow", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(VenueService.create(NEW_VENUE)).rejects.toBeInstanceOf(Error);
+    expect(toast.danger).toHaveBeenCalledTimes(1);
+    expect(toast.danger).toHaveBeenCalledWith("Une erreur est survenue. Réessayez.");
+  });
+
+  it("is reached through the createVenue query function with the same argument", async () => {
+    mockFetch.mockImplementation(async () => json({ ...venueDto, status: "unknown" }, 201));
+
+    const venue = await createVenue(NEW_VENUE);
+
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(VENUES_URL);
+    expect(JSON.parse(init.body as string)).toMatchObject({ name: "Le Trappiste", latitude: 48.8566 });
+    expect(venue.id).toBe(12);
+  });
+});
+
+const beerVenueDto = {
+  venueId: 12,
+  venueName: "Le Trappiste",
+  venueType: "bar",
+  city: "Paris",
+  address: "1 rue de la Bière",
+  latitude: 48.8566,
+  longitude: 2.3522,
+  status: "confirmed",
+  lastConfirmedAt: "2026-10-01T10:00:00.000Z",
+  recentVoterCount: 3,
+  distanceKm: null,
+};
+
+describe("VenueService.getForBeer", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.mocked(toast.danger).mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("requests /beers/{id}/venues with a GET and no query string", async () => {
+    mockFetch.mockImplementation(async () => json([beerVenueDto]));
+
+    await VenueService.getForBeer(7);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${API_BASE_URL}/api/v1/beers/7/venues`);
+    expect(init.method).toBe("GET");
+  });
+
+  it("returns the venues as models in the received order, with unknown type and status narrowed and dates parsed", async () => {
+    mockFetch.mockImplementation(async () =>
+      json([
+        beerVenueDto,
+        { ...beerVenueDto, venueId: 13, venueType: "kiosk", status: "available", lastConfirmedAt: null, distanceKm: 1.2 },
+      ]),
+    );
+
+    const venues = await VenueService.getForBeer(7);
+
+    expect(venues).toHaveLength(2);
+    expect(venues[0]).toEqual({ ...beerVenueDto, venueType: "bar", lastConfirmedAt: new Date("2026-10-01T10:00:00.000Z") });
+    expect(venues[1]).toEqual({
+      ...beerVenueDto,
+      venueId: 13,
+      venueType: null,
+      status: "unknown",
+      lastConfirmedAt: null,
+      distanceKm: 1.2,
+    });
+  });
+
+  it("returns an empty list on a 204 answer without a toast", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(VenueService.getForBeer(7)).resolves.toEqual([]);
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it("returns an empty list on an empty array", async () => {
+    mockFetch.mockImplementation(async () => json([]));
+
+    await expect(VenueService.getForBeer(7)).resolves.toEqual([]);
+  });
+
+  it.each([400, 401, 404, 500])("rejects with the HttpError on status %s and shows no toast", async (status) => {
+    mockFetch.mockImplementation(async () => json({ message: "boom" }, status));
+
+    const failure = await VenueService.getForBeer(7).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).status).toBe(status);
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it("rejects with the original error on a network failure and shows no toast", async () => {
+    const networkError = new TypeError("Failed to fetch");
+    mockFetch.mockRejectedValue(networkError);
+
+    await expect(VenueService.getForBeer(7)).rejects.toBe(networkError);
+    expect(toast.danger).not.toHaveBeenCalled();
   });
 });

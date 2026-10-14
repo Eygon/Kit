@@ -7,6 +7,7 @@ import { DataSeeder } from "@/database/data-seeder";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
+import { Review } from "@/modules/beers/entities/review.entity";
 import { User } from "@/modules/users/entities/user.entity";
 import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
 import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
@@ -18,7 +19,7 @@ import { Venue } from "@/modules/venues/entities/venue.entity";
       inject: [APP_CONFIG],
       useFactory: (config: AppConfig) => buildDatabaseOptions(config),
     }),
-    TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer, Venue, VenueBeer, AvailabilityVote]),
+    TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer, Venue, VenueBeer, AvailabilityVote, Review]),
   ],
   providers: [DataSeeder],
 })

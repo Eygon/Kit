@@ -1,8 +1,13 @@
 import { MODULE_METADATA } from "@nestjs/common/constants";
 import { Test } from "@nestjs/testing";
+import { getRepositoryToken } from "@nestjs/typeorm";
 import { describe, expect, it } from "vitest";
 import { BeerStylesController } from "@/modules/beers/beer-styles.controller";
+import { BeerReviewsController } from "@/modules/beers/beer-reviews.controller";
 import { BeersController } from "@/modules/beers/beers.controller";
+import { Review } from "@/modules/beers/entities/review.entity";
+import { UsersModule } from "@/modules/users/users.module";
+import { UsersService } from "@/modules/users/users.service";
 import { BeersModule } from "@/modules/beers/beers.module";
 import { BeersRepository } from "@/modules/beers/beers.repository";
 import { BeersService } from "@/modules/beers/beers.service";
@@ -37,8 +42,30 @@ describe("BeersModule", () => {
   it("mounts the beer styles controller next to the beers controller", async () => {
     const moduleRef = await Test.createTestingModule({ imports: [inMemoryDatabase(), BeersModule] }).compile();
 
-    expect(Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, BeersModule)).toEqual([BeersController, BeerStylesController]);
+    expect(Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, BeersModule)).toEqual([
+      BeersController,
+      BeerStylesController,
+      BeerReviewsController,
+    ]);
     expect(moduleRef.get(BeerStylesController)).toBeInstanceOf(BeerStylesController);
+    expect(moduleRef.get(BeerReviewsController)).toBeInstanceOf(BeerReviewsController);
+
+    await moduleRef.close();
+  });
+
+  it("imports the users module so that the service reaches the review authors", async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [inMemoryDatabase(), BeersModule] }).compile();
+
+    expect(Reflect.getMetadata(MODULE_METADATA.IMPORTS, BeersModule)).toContain(UsersModule);
+    expect(moduleRef.get(UsersService, { strict: false })).toBeInstanceOf(UsersService);
+
+    await moduleRef.close();
+  });
+
+  it("registers the review entity with the beers module", async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [inMemoryDatabase(), BeersModule] }).compile();
+
+    expect(moduleRef.get(getRepositoryToken(Review), { strict: false })).toBeDefined();
 
     await moduleRef.close();
   });

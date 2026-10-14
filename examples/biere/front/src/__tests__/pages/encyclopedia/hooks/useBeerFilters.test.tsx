@@ -62,6 +62,7 @@ describe("useBeerFilters", () => {
       abvMin: 4.5,
       abvMax: 9,
       status: null,
+      minRating: null,
       sort: BeerSortEnum.ABV,
     });
   });

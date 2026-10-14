@@ -23,6 +23,14 @@ const mockHistory = vi.hoisted(() => ({ useBeerCheckinsQuery: vi.fn() }));
 
 vi.mock("@/pages/beerDetail/hooks/useBeerCheckinsQuery", () => mockHistory);
 
+const mockReviews = vi.hoisted(() => ({ useBeerReviewsQuery: vi.fn() }));
+
+vi.mock("@/pages/beerDetail/hooks/useBeerReviewsQuery", () => mockReviews);
+
+const mockVenues = vi.hoisted(() => ({ useBeerVenuesQuery: vi.fn() }));
+
+vi.mock("@/pages/beerDetail/hooks/useBeerVenuesQuery", () => mockVenues);
+
 const CHIMAY: Beer = {
   id: 1,
   name: "Chimay Rouge",
@@ -38,6 +46,13 @@ const CHIMAY: Beer = {
   drunk: false,
   checkinCount: 0,
   inWishlist: false,
+  bitternessLevel: 4,
+  colorLevel: 3,
+  styleColorRange: null,
+  averageRating: null,
+  reviewCount: 0,
+  ratingDistribution: [],
+  criteria: [],
 };
 
 const refetch = vi.fn();
@@ -87,6 +102,23 @@ describe("BeerDetailPage", () => {
     refetch.mockResolvedValue(undefined);
     stubQuery();
     mockWishlist.useWishlistToggle.mockReturnValue({ toggleWishlist: mockWishlist.toggleWishlist, isPending: false });
+    mockVenues.useBeerVenuesQuery.mockReturnValue({
+      venues: [],
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+    mockReviews.useBeerReviewsQuery.mockReturnValue({
+      mine: null,
+      reviews: [],
+      total: 0,
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
     mockHistory.useBeerCheckinsQuery.mockReturnValue({
       checkins: [],
       total: 0,
@@ -101,6 +133,27 @@ describe("BeerDetailPage", () => {
 
   afterEach(async () => {
     await i18n.changeLanguage("fr");
+  });
+
+  it("mounts the reviews section between the description and the history", () => {
+    stubQuery({
+      data: {
+        ...CHIMAY,
+        averageRating: 3.5,
+        reviewCount: 12,
+        ratingDistribution: [1, 2, 3, 4, 5].map((stars) => ({ stars, count: stars })),
+        criteria: [{ criterion: "sweetness", average: 2.7, count: 3 }],
+      },
+    });
+    renderDetail();
+
+    const description = screen.getByRole("heading", { name: "Description" });
+    const reviews = screen.getByRole("heading", { level: 2, name: "Avis" });
+    const history = screen.getByRole("heading", { name: "Mon historique" });
+    expect(screen.getByText("3,5")).toBeInTheDocument();
+    expect(screen.getByText("Douceur 2,7 / 5 · Sèche")).toBeInTheDocument();
+    expect(description.compareDocumentPosition(reviews) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(reviews.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("asks for the beer of the id in the url", () => {
@@ -206,6 +259,16 @@ describe("BeerDetailPage", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("does not show the reviews section for an unknown beer", () => {
+    stubQuery({ data: null });
+
+    renderDetail("/bieres/99");
+
+    expect(screen.getByRole("heading", { name: "Bière inconnue" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Avis" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Avis" })).not.toBeInTheDocument();
+  });
+
   it("tells that the beer is unknown, with a link to the encyclopedia, for a null answer", () => {
     stubQuery({ data: null });
 
@@ -260,6 +323,118 @@ describe("BeerDetailPage", () => {
     const brewery = screen.getByText(longName, { selector: "dd" });
     expect(brewery.className).toContain("break-words");
     expect(brewery.parentElement?.className).toContain("min-w-0");
+  });
+
+  describe("where to drink", () => {
+    it("mounts Où en boire at the end of the sheet for a known beer, asking for its venues", () => {
+      renderDetail();
+
+      expect(mockVenues.useBeerVenuesQuery).toHaveBeenCalledWith(CHIMAY.id);
+      const history = screen.getByRole("heading", { name: "Mon historique" });
+      const whereToDrink = screen.getByRole("heading", { name: "Où en boire" });
+      expect(history.compareDocumentPosition(whereToDrink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("lists three of the five venues of the beer with a link to the map on it", () => {
+      mockVenues.useBeerVenuesQuery.mockReturnValue({
+        venues: [1, 2, 3, 4, 5].map((venueId) => ({
+          venueId,
+          venueName: `Lieu ${venueId}`,
+          venueType: "bar",
+          city: "Paris",
+          address: "1 rue de la Bière",
+          latitude: 48.85,
+          longitude: 2.35,
+          status: "confirmed",
+          lastConfirmedAt: null,
+          recentVoterCount: 0,
+          distanceKm: null,
+        })),
+        isPending: false,
+        isError: false,
+        refetch: vi.fn(),
+      });
+
+      renderDetail();
+
+      ["Lieu 1", "Lieu 2", "Lieu 3"].forEach((name) => expect(screen.getByText(name)).toBeInTheDocument());
+      expect(screen.queryByText("Lieu 4")).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Voir sur la carte" })).toHaveAttribute("href", "/carte?beer=1");
+    });
+
+    it("keeps the whole sheet intact and shows an alert in the section when the venues fail", () => {
+      mockVenues.useBeerVenuesQuery.mockReturnValue({ venues: [], isPending: false, isError: true, refetch: vi.fn() });
+
+      renderDetail();
+
+      expect(screen.getByRole("heading", { level: 1, name: "Chimay Rouge" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Description" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Mon historique" })).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent("Impossible de charger les lieux.");
+    });
+
+    it("does not ask for venues for an unknown beer", () => {
+      stubQuery({ data: null });
+
+      renderDetail();
+
+      expect(mockVenues.useBeerVenuesQuery).not.toHaveBeenCalled();
+      expect(screen.queryByRole("heading", { name: "Où en boire" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("reviews list", () => {
+    const REVIEW = {
+      id: 9,
+      beerId: 1,
+      authorId: 3,
+      authorName: "Carol",
+      authorAvatarColor: "#10B981",
+      rating: 4,
+      text: "Très belle trappiste",
+      sweetness: null,
+      acidity: null,
+      body: null,
+      createdAt: "2026-10-10T12:00:00.000Z",
+      updatedAt: "2026-10-12T12:00:00.000Z",
+      isMine: false,
+    };
+
+    it("asks for the reviews of the displayed beer and lists them under the summary", () => {
+      mockReviews.useBeerReviewsQuery.mockReturnValue({
+        mine: { ...REVIEW, id: 8, authorName: "Moi", text: "Mon texte", isMine: true },
+        reviews: [REVIEW],
+        total: 1,
+        isPending: false,
+        isError: false,
+        refetch: vi.fn(),
+        fetchNextPage: vi.fn(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      });
+
+      renderDetail();
+
+      expect(mockReviews.useBeerReviewsQuery).toHaveBeenCalledWith(CHIMAY.id);
+      const section = screen.getByRole("region", { name: "Avis" });
+      expect(within(section).getByText("Carol")).toBeInTheDocument();
+      expect(within(section).getByText("Très belle trappiste")).toBeInTheDocument();
+      expect(within(section).getByText("Mon avis")).toBeInTheDocument();
+    });
+
+    it("shows the empty reviews state when nobody reviewed the beer", () => {
+      renderDetail();
+
+      expect(screen.getByRole("heading", { name: "Aucun avis pour l'instant" })).toBeInTheDocument();
+    });
+
+    it("asks for no reviews for an unknown beer", () => {
+      stubQuery({ data: null });
+
+      renderDetail();
+
+      expect(mockReviews.useBeerReviewsQuery).not.toHaveBeenCalled();
+    });
   });
 
   describe("checkin history", () => {
@@ -453,6 +628,75 @@ describe("BeerDetailPage", () => {
       renderDetail();
 
       expect(screen.queryByRole("button", { name: "Je l'ai bue" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("levels", () => {
+    it("shows the bitterness and the colour right after the facts", () => {
+      renderDetail();
+
+      const facts = screen.getByText("Brasserie").closest("dl") as HTMLElement;
+      const levels = screen.getByText("Amertume").closest("dl") as HTMLElement;
+      expect(levels).not.toBe(facts);
+      expect(facts.compareDocumentPosition(levels) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(facts.nextElementSibling).toBe(levels);
+      expect(screen.getByText("Marquée · 4 / 5")).toBeInTheDocument();
+      expect(within(levels).getByText("Ambrée")).toBeInTheDocument();
+    });
+
+    it("says Non renseignée for a beer without bitterness", () => {
+      stubQuery({ data: { ...CHIMAY, bitternessLevel: null } });
+      renderDetail();
+
+      const levels = screen.getByText("Amertume").closest("dl") as HTMLElement;
+      expect(within(levels).getByText("Non renseignée")).toBeInTheDocument();
+      expect(within(levels).queryByText(/ \/ 5/)).not.toBeInTheDocument();
+    });
+
+    it("shows two swatches and the typical range of the style when the beer has no colour", () => {
+      stubQuery({ data: { ...CHIMAY, colorLevel: null, styleColorRange: { min: 3, max: 4 } } });
+      renderDetail();
+
+      const levels = screen.getByText("Couleur").closest("dl") as HTMLElement;
+      expect(levels.querySelectorAll('[aria-hidden="true"]')).toHaveLength(2);
+      expect(within(levels).getByText("Ambrée à brune · typique du style")).toBeInTheDocument();
+    });
+
+    it("shows one swatch and Pâle · typique du style for a range of one level", () => {
+      stubQuery({ data: { ...CHIMAY, colorLevel: null, styleColorRange: { min: 1, max: 1 } } });
+      renderDetail();
+
+      const levels = screen.getByText("Couleur").closest("dl") as HTMLElement;
+      expect(levels.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1);
+      expect(within(levels).getByText("Pâle · typique du style")).toBeInTheDocument();
+    });
+
+    it("says Non renseignée twice when neither level nor range is known", () => {
+      stubQuery({ data: { ...CHIMAY, bitternessLevel: null, colorLevel: null, styleColorRange: null } });
+      renderDetail();
+
+      const levels = screen.getByText("Amertume").closest("dl") as HTMLElement;
+      expect(within(levels).getAllByText("Non renseignée")).toHaveLength(2);
+    });
+
+    it("keeps the words in English", async () => {
+      await i18n.changeLanguage("en");
+      stubQuery({ data: { ...CHIMAY, colorLevel: null, styleColorRange: { min: 3, max: 4 } } });
+      renderDetail();
+
+      expect(screen.getByText("Pronounced · 4 / 5")).toBeInTheDocument();
+      expect(screen.getByText("Amber to brown · typical of the style")).toBeInTheDocument();
+    });
+
+    it("does not show the levels while the beer is loading or unknown", () => {
+      stubQuery({ data: undefined, isPending: true });
+      const { unmount } = renderDetail();
+      expect(screen.queryByText("Amertume")).not.toBeInTheDocument();
+      unmount();
+
+      stubQuery({ data: null, isPending: false });
+      renderDetail();
+      expect(screen.queryByText("Amertume")).not.toBeInTheDocument();
     });
   });
 });

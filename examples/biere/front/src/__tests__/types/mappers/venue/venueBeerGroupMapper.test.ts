@@ -13,6 +13,9 @@ const beer = (beerId: number, family: BeerFamilyEnum | null): VenueBeer => ({
   lastConfirmedAt: null,
   recentVoterCount: 0,
   nextVoteAt: null,
+  drunk: false,
+  checkinCount: 0,
+  lastCheckinAt: null,
 });
 
 describe("venueBeersToFamilyGroups", () => {

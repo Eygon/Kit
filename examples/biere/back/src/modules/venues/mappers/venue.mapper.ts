@@ -1,4 +1,5 @@
 import type { CreateVenueDto } from "@/modules/venues/dtos/create-venue.dto";
+import { normalizeSearchText } from "@/common/text/normalize-search-text";
 import type { VenueDto } from "@/modules/venues/dtos/venue.dto";
 import type { VenueRecordDto } from "@/modules/venues/dtos/venue-record.dto";
 import type { Venue } from "@/modules/venues/entities/venue.entity";
@@ -34,6 +35,11 @@ export const toVenueDto = (
   status,
 });
 
+export const toVenueSearchKeys = (name: string, city: string | null): Pick<Venue, "searchName" | "searchCity"> => ({
+  searchName: normalizeSearchText(name),
+  searchCity: normalizeSearchText(city ?? ""),
+});
+
 export const toNewVenue = (dto: CreateVenueDto): Omit<Venue, "id"> => {
   const name = dto.name.trim();
   return {
@@ -45,5 +51,6 @@ export const toNewVenue = (dto: CreateVenueDto): Omit<Venue, "id"> => {
     longitude: dto.longitude,
     description: dto.description ?? null,
     nameKey: name.toLocaleLowerCase(NAME_KEY_LOCALE),
+    ...toVenueSearchKeys(name, dto.city ?? null),
   };
 };

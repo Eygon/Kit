@@ -5,6 +5,7 @@ import { createCheckin } from "@/utils/queryFunctions/checkinQueryFunctions";
 import { beerKeys } from "@/utils/queryKeys/beerQueryKeys";
 import { checkinKeys } from "@/utils/queryKeys/checkinQueryKeys";
 import { dexKeys } from "@/utils/queryKeys/dexQueryKeys";
+import { venueKeys } from "@/utils/queryKeys/venueQueryKeys";
 
 export const useCreateCheckinMutation = () => {
   const queryClient = useQueryClient();
@@ -13,6 +14,7 @@ export const useCreateCheckinMutation = () => {
     void queryClient.invalidateQueries({ queryKey: beerKeys.all() });
     void queryClient.invalidateQueries({ queryKey: dexKeys.all() });
     void queryClient.invalidateQueries({ queryKey: checkinKeys.all() });
+    void queryClient.invalidateQueries({ queryKey: venueKeys.all() });
   };
 
   const { mutateAsync, isPending } = useMutation({

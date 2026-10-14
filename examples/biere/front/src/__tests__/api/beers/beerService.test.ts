@@ -102,7 +102,7 @@ describe("BeerService.getPage", () => {
 
     expect(page.total).toBe(45);
     expect(page.items).toHaveLength(2);
-    expect(page.items[0]).toEqual({ ...beerDto, aromas: ["fruity"], formats: ["bottle"] });
+    expect(page.items[0]).toEqual({ ...beerDto, aromas: ["fruity"], formats: ["bottle"], bitternessLevel: null, colorLevel: null, styleColorRange: null, averageRating: null, reviewCount: 0, ratingDistribution: [], criteria: [] });
     expect(page.items[1].family).toBeNull();
     expect(page.facets.families).toEqual([{ value: "trappist", count: 2 }]);
     expect(page.facets.countries).toEqual([{ value: "BE", count: 3 }]);
@@ -154,7 +154,7 @@ describe("BeerService.getById", () => {
     expect(url).toBe(BEER_BY_ID(7));
     expect(url).toBe(`${BEERS()}/7`);
     expect(init.method).toBe("GET");
-    expect(beer).toEqual({ ...beerDto, aromas: ["fruity"], formats: ["bottle"] });
+    expect(beer).toEqual({ ...beerDto, aromas: ["fruity"], formats: ["bottle"], bitternessLevel: null, colorLevel: null, styleColorRange: null, averageRating: null, reviewCount: 0, ratingDistribution: [], criteria: [] });
   });
 
   it("returns null on a 404 and shows no toast", async () => {

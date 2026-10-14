@@ -10,7 +10,7 @@ import { BeerFiltersDrawer } from "@/pages/encyclopedia/components/widgets/beerF
 import { FamilyChips } from "@/pages/encyclopedia/components/elements/familyChips/familyChips";
 import { useBeerCatalogQuery } from "@/pages/encyclopedia/hooks/useBeerCatalogQuery";
 import { useBeerFilters } from "@/pages/encyclopedia/hooks/useBeerFilters";
-import { useDexQuery } from "@/pages/encyclopedia/hooks/useDexQuery";
+import { useDexQuery } from "@/hooks/dex/useDexQuery";
 import { MascotMoodEnum } from "@/types/enums/mascot/mascotMoodEnum";
 
 const SKELETON_CARD_COUNT = 8;

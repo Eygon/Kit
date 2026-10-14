@@ -1,15 +1,19 @@
 import { HttpStatus } from "@nestjs/common";
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
+import { getRepositoryToken } from "@nestjs/typeorm";
+import type { Repository } from "typeorm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { UNIDENTIFIED_USER_MESSAGE } from "@/common/exceptions/exception-messages.constants";
 import { createTestApp } from "@/__tests__/support/test-app";
 import { USER_ID_HEADER_NAME } from "@/__tests__/support/user-header";
+import { Venue } from "@/modules/venues/entities/venue.entity";
 import { VENUE_ADDRESS_MAX_LENGTH, VENUE_NAME_MAX_LENGTH } from "@/modules/venues/venues.constants";
 
 const VENUES_PATH = "/api/v1/venues";
 const BEERS_PATH = "/api/v1/beers";
 const ALICE_ID = "1";
+const CAROL_ID = "3";
 const UNKNOWN_ID = 999_999;
 const SEEDED_VENUE_COUNT = 36;
 const BEER_WITHOUT_LINK = "Hoegaarden 0,0";
@@ -98,6 +102,26 @@ describe("venue writes API", () => {
         .set(USER_ID_HEADER_NAME, ALICE_ID);
       expect(one.status).toBe(HttpStatus.OK);
       expect(one.body).toEqual(response.body);
+    });
+
+    it("stores the folded search keys of the proposed name and city", async () => {
+      const response = await createVenue({ ...NEW_VENUE, name: "Café  Ébène", city: "Liège" });
+
+      expect(response.status).toBe(HttpStatus.CREATED);
+      const stored = await app
+        .get<Repository<Venue>>(getRepositoryToken(Venue))
+        .findOneByOrFail({ id: (response.body as VenueBody).id });
+      expect(stored).toMatchObject({ searchName: "cafe ebene", searchCity: "liege" });
+    });
+
+    it("stores an empty city key and a filled name key for a venue proposed without a city", async () => {
+      const response = await createVenue({ ...NEW_VENUE, name: "Sans Ville" });
+
+      expect(response.status).toBe(HttpStatus.CREATED);
+      const stored = await app
+        .get<Repository<Venue>>(getRepositoryToken(Venue))
+        .findOneByOrFail({ id: (response.body as VenueBody).id });
+      expect(stored).toMatchObject({ searchName: "sans ville", searchCity: "" });
     });
 
     it("answers an absent city and description with empty strings", async () => {
@@ -196,6 +220,9 @@ describe("venue writes API", () => {
         lastConfirmedAt: null,
         recentVoterCount: 0,
         nextVoteAt: null,
+        drunk: false,
+        checkinCount: 0,
+        lastCheckinAt: null,
       });
       const after = await request(app.getHttpServer())
         .get(`${VENUES_PATH}/${venueId}/beers`)
@@ -296,6 +323,39 @@ describe("venue writes API", () => {
 
       expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
       expect(response.body).toEqual({ message: UNIDENTIFIED_USER_MESSAGE });
+    });
+  });
+
+  describe("POST /api/v1/venues/:id/beers drunk state", () => {
+    it("returns the reported beer as drunk with the count and last check-in of the reporter", async () => {
+      const orval = await request(app.getHttpServer())
+        .get(`${BEERS_PATH}?q=Orval`)
+        .set(USER_ID_HEADER_NAME, ALICE_ID);
+      const orvalId = (orval.body as { items: { id: number; name: string }[] }).items.find((item) => item.name === "Orval")
+        ?.id as number;
+      expect(orvalId).toBeDefined();
+      for (const drankAt of ["2026-10-10T18:00:00.000Z", "2026-10-02T18:00:00.000Z"]) {
+        const checkin = await request(app.getHttpServer())
+          .post("/api/v1/checkins")
+          .set(USER_ID_HEADER_NAME, CAROL_ID)
+          .field("beerId", String(orvalId))
+          .field("drankAt", drankAt)
+          .field("place", "Le Bistrot")
+          .field("format", "bottle");
+        expect(checkin.status).toBe(HttpStatus.CREATED);
+      }
+      const venueId = await venueIdOf("Chez Mousse");
+
+      const response = await reportBeer(venueId, { beerId: orvalId }, CAROL_ID);
+
+      expect(response.status).toBe(HttpStatus.CREATED);
+      expect(response.body).toMatchObject({
+        beerId: orvalId,
+        status: "unknown",
+        drunk: true,
+        checkinCount: 2,
+        lastCheckinAt: "2026-10-10T18:00:00.000Z",
+      });
     });
   });
 });

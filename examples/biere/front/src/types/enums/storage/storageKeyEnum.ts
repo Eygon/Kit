@@ -1,3 +1,4 @@
 export enum StorageKeyEnum {
   CURRENT_USER_ID = "mousse.currentUserId",
+  LANGUAGE = "mousse.language",
 }

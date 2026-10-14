@@ -123,6 +123,18 @@ export const MapFiltersDrawer = ({ appliedFilters, hasPosition, onApply }: MapFi
                   <Label className="min-w-0 break-words">{t("pages.map.filters.confirmedOnly")}</Label>
                 </Switch.Content>
               </Switch>
+              <Switch
+                isSelected={draft.undiscovered}
+                onChange={(undiscovered) => setDraft((previous) => ({ ...previous, undiscovered }))}
+                className="w-full"
+              >
+                <Switch.Content className="min-h-11 w-full flex-row gap-3">
+                  <Switch.Control>
+                    <Switch.Thumb />
+                  </Switch.Control>
+                  <Label className="min-w-0 break-words">{t("pages.map.filters.undiscovered")}</Label>
+                </Switch.Content>
+              </Switch>
               <Select
                 fullWidth
                 isDisabled={!hasPosition}

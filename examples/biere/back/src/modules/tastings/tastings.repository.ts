@@ -78,6 +78,11 @@ export class TastingsRepository {
     return { items: entities.map(toCheckinRecordDto), total };
   }
 
+  async findCheckinsByUser(userId: number): Promise<CheckinRecordDto[]> {
+    const entities = await this.checkins.find({ where: { userId }, order: { drankAt: "ASC", id: "ASC" } });
+    return entities.map(toCheckinRecordDto);
+  }
+
   deleteCheckinWithPhoto(id: number, photoId: string | null): Promise<void> {
     return this.checkins.manager.transaction(async (manager) => {
       await manager.delete(Checkin, { id });

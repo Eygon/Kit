@@ -61,6 +61,12 @@ describe("CreateCheckinDto", () => {
     expect(await messagesFor({ ...VALID_FORM, comment: `${"c".repeat(500)}\r\n` })).not.toEqual([]);
   });
 
+  it("rejects a rating off the half-point step with the divisibility message and accepts the half points", async () => {
+    expect(await messagesFor({ ...VALID_FORM, rating: "4.2" })).toEqual(["rating must be divisible by 0.5"]);
+    expect(await messagesFor({ ...VALID_FORM, rating: "0.5" })).toEqual([]);
+    expect(await messagesFor({ ...VALID_FORM, rating: "5" })).toEqual([]);
+  });
+
   it("keeps aromas sent as repeated parts and rejects a duplicate among them", async () => {
     const dto = plainToInstance(CreateCheckinDto, { ...VALID_FORM, aromas: ["fruity", "hoppy"] });
 

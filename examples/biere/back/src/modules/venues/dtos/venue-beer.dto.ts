@@ -11,4 +11,7 @@ export interface VenueBeerDto {
   readonly lastConfirmedAt: string | null;
   readonly recentVoterCount: number;
   readonly nextVoteAt: string | null;
+  readonly drunk: boolean;
+  readonly checkinCount: number;
+  readonly lastCheckinAt: string | null;
 }

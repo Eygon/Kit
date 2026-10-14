@@ -11,7 +11,15 @@ import {
   MaxLength,
   Min,
 } from "class-validator";
-import { BEER_ABV_MAX_PERCENT, BEER_PAGE_SIZE_MAX, BEER_SEARCH_MAX_LENGTH } from "@/modules/beers/beers.constants";
+import { IsMultipleOf } from "@/common/validation/is-multiple-of";
+import {
+  BEER_ABV_MAX_PERCENT,
+  BEER_PAGE_SIZE_MAX,
+  BEER_SEARCH_MAX_LENGTH,
+  REVIEW_RATING_MAX,
+  REVIEW_RATING_MIN,
+  REVIEW_RATING_STEP,
+} from "@/modules/beers/beers.constants";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
 import { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
@@ -85,4 +93,12 @@ export class BeersQueryDto {
   @IsOptional()
   @IsEnum(BeerStatusEnum)
   readonly status?: BeerStatusEnum;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(REVIEW_RATING_MIN)
+  @Max(REVIEW_RATING_MAX)
+  @IsMultipleOf(REVIEW_RATING_STEP)
+  readonly minRating?: number;
 }

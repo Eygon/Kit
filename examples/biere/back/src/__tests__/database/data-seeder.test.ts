@@ -4,9 +4,10 @@ import type { TestingModule } from "@nestjs/testing";
 import type { Repository } from "typeorm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DataSeeder } from "@/database/data-seeder";
-import { ALICE_USER_ID, SEED_VOTE_BATCH_SIZE } from "@/database/seed.constants";
+import { ALICE_USER_ID, BOB_USER_ID, CAROL_USER_ID, SEED_VOTE_BATCH_SIZE } from "@/database/seed.constants";
 import beersSeed from "@/database/seed/data/beers.json";
 import breweriesSeed from "@/database/seed/data/breweries.json";
+import reviewsSeed from "@/database/seed/data/reviews.json";
 import venueBeersSeed from "@/database/seed/data/venue-beers.json";
 import venuesSeed from "@/database/seed/data/venues.json";
 import stylesSeed from "@/database/seed/data/styles.json";
@@ -14,6 +15,8 @@ import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
+import { Review } from "@/modules/beers/entities/review.entity";
+import { Checkin } from "@/modules/tastings/entities/checkin.entity";
 import { User } from "@/modules/users/entities/user.entity";
 import { AvailabilityVote } from "@/modules/venues/entities/availability-vote.entity";
 import { VenueBeer } from "@/modules/venues/entities/venue-beer.entity";
@@ -27,6 +30,7 @@ const SEEDED_BEER_COUNT = 120;
 const SEEDED_VENUE_COUNT = 36;
 const SEEDED_LINK_COUNT = 325;
 const SEEDED_VOTE_COUNT = 2266;
+const SEEDED_REVIEW_COUNT = reviewsSeed.length;
 const LOAD_TIME = new Date("2026-03-15T12:00:00.000Z");
 const DAY_MS = 86_400_000;
 const WINDOW_DAYS = 30;
@@ -69,10 +73,12 @@ describe("DataSeeder", () => {
   let venues: Repository<Venue>;
   let venueBeers: Repository<VenueBeer>;
   let votes: Repository<AvailabilityVote>;
+  let reviews: Repository<Review>;
+  let checkins: Repository<Checkin>;
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer, Venue, VenueBeer, AvailabilityVote])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer, Venue, VenueBeer, AvailabilityVote, Review, Checkin])],
       providers: [DataSeeder],
     }).compile();
     users = moduleRef.get<Repository<User>>(getRepositoryToken(User));
@@ -82,6 +88,8 @@ describe("DataSeeder", () => {
     venues = moduleRef.get<Repository<Venue>>(getRepositoryToken(Venue));
     venueBeers = moduleRef.get<Repository<VenueBeer>>(getRepositoryToken(VenueBeer));
     votes = moduleRef.get<Repository<AvailabilityVote>>(getRepositoryToken(AvailabilityVote));
+    reviews = moduleRef.get<Repository<Review>>(getRepositoryToken(Review));
+    checkins = moduleRef.get<Repository<Checkin>>(getRepositoryToken(Checkin));
   });
 
   afterEach(async () => {
@@ -375,6 +383,8 @@ describe("DataSeeder", () => {
     await venues.insert({
       name: "Le Seul",
       nameKey: "le seul",
+      searchName: "le seul",
+      searchCity: "",
       type: "bar" as Venue["type"],
       city: null,
       address: "1 rue X",
@@ -389,6 +399,74 @@ describe("DataSeeder", () => {
     await moduleRef.get(DataSeeder).seed();
 
     expect(await venues.count()).toBe(1);
+  });
+
+  it("seeds the search keys of every venue on an empty database", async () => {
+    await moduleRef.get(DataSeeder).seed();
+
+    const stored = await venues.find();
+    const academy = stored.find((venue) => venue.name === "Académie de la Bière");
+    expect(academy).toMatchObject({ searchName: "academie de la biere", searchCity: "paris" });
+    expect(stored.filter((venue) => venue.searchName === "")).toHaveLength(0);
+  });
+
+  describe("search keys catch-up", () => {
+    const LEGACY_VENUE_COUNT = 2;
+    const UNTOUCHED_SEARCH_NAME = "custom key";
+
+    it("fills the keys of venues with an empty name key and changes nothing else, even on a second start", async () => {
+      const seeder = moduleRef.get(DataSeeder);
+      await seeder.seed();
+      const before = await venues.find({ order: { id: "ASC" } });
+      const legacyIds = before.slice(0, LEGACY_VENUE_COUNT).map((venue) => venue.id);
+      const untouched = before[LEGACY_VENUE_COUNT];
+      await venues.update({ id: untouched.id }, { searchName: UNTOUCHED_SEARCH_NAME, searchCity: "custom city" });
+      await venues.update({ id: legacyIds[0] }, { searchName: "", searchCity: "" });
+      await venues.update({ id: legacyIds[1] }, { searchName: "", searchCity: "" });
+      const linksBefore = await venueBeers.find({ order: { id: "ASC" } });
+      const votesBefore = await votes.count();
+      const venuesBefore = await venues.find({ order: { id: "ASC" } });
+      const usersBefore = await users.find({ order: { id: "ASC" } });
+      const stylesBefore = await styles.find({ order: { id: "ASC" } });
+      const breweriesBefore = await breweries.find({ order: { id: "ASC" } });
+      const beersBefore = await beers.find({ order: { id: "ASC" } });
+
+      await seeder.seed();
+
+      expect(await users.find({ order: { id: "ASC" } })).toEqual(usersBefore);
+      expect(await styles.find({ order: { id: "ASC" } })).toEqual(stylesBefore);
+      expect(await breweries.find({ order: { id: "ASC" } })).toEqual(breweriesBefore);
+      expect(await beers.find({ order: { id: "ASC" } })).toEqual(beersBefore);
+      const after = await venues.find({ order: { id: "ASC" } });
+      expect(after).toHaveLength(before.length);
+      expect(after.filter((venue) => legacyIds.includes(venue.id))).toEqual(
+        before.filter((venue) => legacyIds.includes(venue.id)),
+      );
+      expect(after.filter((venue) => !legacyIds.includes(venue.id))).toEqual(
+        venuesBefore.filter((venue) => !legacyIds.includes(venue.id)),
+      );
+      expect(after.find((venue) => venue.id === untouched.id)?.searchName).toBe(UNTOUCHED_SEARCH_NAME);
+      expect(await venueBeers.find({ order: { id: "ASC" } })).toEqual(linksBefore);
+      expect(await votes.count()).toBe(votesBefore);
+
+      await seeder.seed();
+
+      expect(await venues.find({ order: { id: "ASC" } })).toEqual(after);
+    });
+
+    it("gives an empty city key to a legacy venue without a city", async () => {
+      const seeder = moduleRef.get(DataSeeder);
+      await seeder.seed();
+      const [first] = await venues.find({ order: { id: "ASC" } });
+      await venues.update({ id: first.id }, { city: null, name: "Café  Ébène", searchName: "", searchCity: "" });
+
+      await seeder.seed();
+
+      expect(await venues.findOneByOrFail({ id: first.id })).toMatchObject({
+        searchName: "cafe ebene",
+        searchCity: "",
+      });
+    });
   });
 
   it("loads the 325 links of the file, one per venue and beer pair", async () => {
@@ -516,6 +594,8 @@ describe("DataSeeder", () => {
     await venues.insert({
       name: "Le Seul",
       nameKey: "le seul",
+      searchName: "le seul",
+      searchCity: "",
       type: "bar" as Venue["type"],
       city: null,
       address: "1 rue X",
@@ -531,5 +611,97 @@ describe("DataSeeder", () => {
 
     expect(await venueBeers.count()).toBe(0);
     expect(await votes.count()).toBe(0);
+  });
+  it("loads the demo reviews of Bob and Carol into an empty database", async () => {
+    await moduleRef.get(DataSeeder).onApplicationBootstrap();
+
+    const stored = await reviews.find({ order: { id: "ASC" } });
+    const beerIds = new Map((await beers.find()).map((beer) => [beer.name.toLowerCase(), beer.id]));
+
+    expect(stored).toHaveLength(SEEDED_REVIEW_COUNT);
+    stored.forEach((review, index) => {
+      const { userName, beerName, rating, text, sweetness, acidity, body } = reviewsSeed[index];
+      expect(review).toMatchObject({
+        userId: userName === "Bob" ? BOB_USER_ID : CAROL_USER_ID,
+        beerId: beerIds.get(beerName.toLowerCase()),
+        rating,
+        text,
+        sweetness,
+        acidity,
+        body,
+      });
+    });
+  });
+
+  it("rates at least 6 beers by both Bob and Carol, including the 5 beers with an IBU", async () => {
+    await moduleRef.get(DataSeeder).seed();
+
+    const stored = await reviews.find();
+    const beerIdsOf = (userId: number): number[] => stored.filter((review) => review.userId === userId).map((review) => review.beerId);
+    const ibuBeerIds = (await beers.find()).filter((beer) => beer.ibu !== null).map((beer) => beer.id);
+    const ratedByBoth = beerIdsOf(BOB_USER_ID).filter((beerId) => beerIdsOf(CAROL_USER_ID).includes(beerId));
+
+    expect(ibuBeerIds).toHaveLength(5);
+    expect(ratedByBoth.length).toBeGreaterThanOrEqual(6);
+    expect(ibuBeerIds.every((beerId) => ratedByBoth.includes(beerId))).toBe(true);
+  });
+
+  it("dates every review from 1 to 60 days before the load time", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(LOAD_TIME);
+
+    try {
+      await moduleRef.get(DataSeeder).seed();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const stored = await reviews.find();
+    const ages = stored.map((review) => ageInDays(new Date(review.createdAt)));
+
+    expect(stored).toHaveLength(SEEDED_REVIEW_COUNT);
+    expect(Math.min(...ages)).toBeCloseTo(Math.min(...reviewsSeed.map((row) => row.daysAgo)), 5);
+    expect(Math.max(...ages)).toBeCloseTo(Math.max(...reviewsSeed.map((row) => row.daysAgo)), 5);
+    expect(stored.every((review) => review.updatedAt.getTime() === review.createdAt.getTime())).toBe(true);
+    expect(ages.every((age) => age >= 1 && age <= 60)).toBe(true);
+  });
+
+  it("adds and modifies no review on a second seed", async () => {
+    const seeder = moduleRef.get(DataSeeder);
+
+    await seeder.seed();
+    const before = await reviews.find({ order: { id: "ASC" } });
+    await seeder.seed();
+
+    expect(await reviews.count()).toBe(SEEDED_REVIEW_COUNT);
+    expect(await reviews.find({ order: { id: "ASC" } })).toEqual(before);
+  });
+
+  it("leaves an already populated reviews table untouched", async () => {
+    await moduleRef.get(DataSeeder).seed();
+    await reviews.clear();
+    await reviews.insert({
+      userId: ALICE_USER_ID,
+      beerId: 1,
+      rating: 3,
+      text: "Déjà là.",
+      sweetness: null,
+      acidity: null,
+      body: null,
+      createdAt: LOAD_TIME,
+      updatedAt: LOAD_TIME,
+    });
+    const before = await reviews.find();
+
+    await moduleRef.get(DataSeeder).seed();
+
+    expect(await reviews.find()).toEqual(before);
+  });
+
+  it("creates no check-in for the demo reviews of Bob and Carol", async () => {
+    await moduleRef.get(DataSeeder).onApplicationBootstrap();
+
+    expect(await reviews.count()).toBe(SEEDED_REVIEW_COUNT);
+    expect(await checkins.count()).toBe(0);
   });
 });

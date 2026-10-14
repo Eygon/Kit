@@ -25,6 +25,8 @@ describe("buildVenueRows", () => {
         longitude: 2.3396,
         description: "Un bar.",
         nameKey: "académie de la bière",
+        searchName: "academie de la biere",
+        searchCity: "paris",
       },
     ]);
   });
@@ -36,6 +38,13 @@ describe("buildVenueRows", () => {
     expect(new Set(rows.map((row: { type: string }) => row.type))).toEqual(new Set(["bar", "shop", "brewery"]));
     expect(new Set(rows.map((row: { nameKey: string }) => row.nameKey)).size).toBe(36);
     expect(rows.map((row: { nameKey: string }) => row.nameKey)).toContain("académie de la bière");
+  });
+
+  it("gives the 36 rows of the real file a non empty name search key", () => {
+    const rows = buildVenueRows(venuesSeed);
+
+    expect(rows.every((row: { searchName: string }) => row.searchName !== "")).toBe(true);
+    expect(rows.map((row: { searchName: string }) => row.searchName)).toContain("academie de la biere");
   });
 
   it("fails with a message naming the venue and its unknown type", () => {

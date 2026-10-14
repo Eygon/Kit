@@ -48,5 +48,7 @@ export const httpClient = {
     request<T>(url, { method: "POST", body: formData, ...options }),
   patch: <T>(url: string, body: unknown, options: HttpRequestOptions = {}) =>
     request<T>(url, { method: "PATCH", body, ...options }),
+  put: <T>(url: string, body: unknown, options: HttpRequestOptions = {}) =>
+    request<T>(url, { method: "PUT", body, ...options }),
   delete: (url: string, options: HttpRequestOptions = {}) => request<null>(url, { method: "DELETE", ...options }),
 };

@@ -104,13 +104,13 @@ describe("BeerFormatEnum", () => {
 
 describe("BeerSortEnum", () => {
   it("carries the contract values and defaults to the name sort", () => {
-    expect(Object.values(BeerSortEnum)).toEqual(["name", "abv", "brewery"]);
+    expect(Object.values(BeerSortEnum)).toEqual(["name", "abv", "brewery", "rating"]);
     expect(DEFAULT_BEER_SORT).toBe(BeerSortEnum.NAME);
   });
 
   it("guards the values and maps each to a translated label key", () => {
     Object.values(BeerSortEnum).forEach((value) => expect(isBeerSort(value)).toBe(true));
-    ["rating", "Name", "", null].forEach((value) => expect(isBeerSort(value)).toBe(false));
+    ["price", "Name", "", null].forEach((value) => expect(isBeerSort(value)).toBe(false));
     const keys = Object.values(BeerSortEnum).map((value) => BEER_SORT_LABEL_KEYS[value]);
     expect(keys).toEqual(Object.values(BeerSortEnum).map((value) => `beer.sorts.${value}`));
     expectTranslated(keys);

@@ -1,17 +1,23 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { BEER_PAGE_SIZE_DEFAULT } from "@/modules/beers/beers.constants";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BEER_PAGE_SIZE_DEFAULT, REVIEW_PAGE_SIZE } from "@/modules/beers/beers.constants";
 import { BeersRepository } from "@/modules/beers/beers.repository";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
+import type { ReviewDto } from "@/modules/beers/dtos/review.dto";
+import type { ReviewPageDto } from "@/modules/beers/dtos/review-page.dto";
+import type { ReviewsQueryDto } from "@/modules/beers/dtos/reviews-query.dto";
+import type { UpsertReviewDto } from "@/modules/beers/dtos/upsert-review.dto";
 import type { CatalogTotalsDto } from "@/modules/beers/dtos/catalog-totals.dto";
 import type { BeerFilters } from "@/modules/beers/dtos/beer-filters.dto";
 import type { BeerPageDto } from "@/modules/beers/dtos/beer-page.dto";
 import type { BeerStyleGroupDto } from "@/modules/beers/dtos/beer-style-group.dto";
 import type { BeersQueryDto } from "@/modules/beers/dtos/beers-query.dto";
-import type { CatalogBeerDto } from "@/modules/beers/dtos/catalog-beer.dto";
+import type { BeerDetailDto } from "@/modules/beers/dtos/beer-detail.dto";
 import { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
 import { BeerStatusEnum } from "@/modules/beers/enums/beer-status.enum";
-import { toCatalogBeerDto } from "@/modules/beers/mappers/beer.mapper";
+import { toBeerDetailDto, toCatalogBeerDto } from "@/modules/beers/mappers/beer.mapper";
+import { toNewReview, toReviewDto, toReviewPageDto } from "@/modules/beers/mappers/review.mapper";
 import { TastingsService } from "@/modules/tastings/tastings.service";
+import { UsersService } from "@/modules/users/users.service";
 
 const FIRST_PAGE = 1;
 
@@ -22,6 +28,7 @@ const toFilters = (query: BeersQueryDto): BeerFilters => ({
   formats: query.format,
   abvMin: query.abvMin,
   abvMax: query.abvMax,
+  minRating: query.minRating,
 });
 
 @Injectable()
@@ -29,6 +36,7 @@ export class BeersService {
   constructor(
     private readonly beersRepository: BeersRepository,
     private readonly tastingsService: TastingsService,
+    private readonly usersService: UsersService,
   ) {}
 
   async getBeers(userId: number, query: BeersQueryDto): Promise<BeerPageDto> {
@@ -44,19 +52,55 @@ export class BeersService {
       this.beersRepository.findPage(search, filters, query.sort ?? BeerSortEnum.NAME, page, size),
       this.beersRepository.findFacets(search, filters),
     ]);
-    const states = await this.tastingsService.getBeerStates(
-      userId,
-      slice.items.map((beer) => beer.id),
-    );
+    const beerIds = slice.items.map((beer) => beer.id);
+    const [states, summaries] = await Promise.all([
+      this.tastingsService.getBeerStates(userId, beerIds),
+      this.beersRepository.findRatingSummaries(beerIds),
+    ]);
     const stateByBeerId = new Map(states.map((state) => [state.beerId, state]));
-    const items = slice.items.map((beer) => toCatalogBeerDto(beer, stateByBeerId.get(beer.id)));
+    const summaryByBeerId = new Map(summaries.map((summary) => [summary.beerId, summary]));
+    const items = slice.items.map((beer) => toCatalogBeerDto(beer, stateByBeerId.get(beer.id), summaryByBeerId.get(beer.id)));
     return { items, total: slice.total, page, size, facets };
   }
 
-  async getBeerForUser(userId: number, id: number): Promise<CatalogBeerDto> {
+  async getBeerForUser(userId: number, id: number): Promise<BeerDetailDto> {
     const beer = await this.getBeer(id);
-    const [state] = await this.tastingsService.getBeerStates(userId, [id]);
-    return toCatalogBeerDto(beer, state);
+    const [[state], [summary], stats] = await Promise.all([
+      this.tastingsService.getBeerStates(userId, [id]),
+      this.beersRepository.findRatingSummaries([id]),
+      this.beersRepository.findReviewStats(id),
+    ]);
+    return toBeerDetailDto(toCatalogBeerDto(beer, state, summary), stats);
+  }
+
+  async getReviewPage(userId: number, beerId: number, query: ReviewsQueryDto): Promise<ReviewPageDto> {
+    await this.getBeer(beerId);
+    const page = query.page ?? FIRST_PAGE;
+    const [mine, slice, users] = await Promise.all([
+      this.beersRepository.findReview(userId, beerId),
+      this.beersRepository.findReviewPage(beerId, userId, page, REVIEW_PAGE_SIZE),
+      this.usersService.getUsers(),
+    ]);
+    const authorsById = new Map(users.map((user) => [user.id, user]));
+    return toReviewPageDto(mine, slice, authorsById, userId, page, REVIEW_PAGE_SIZE);
+  }
+
+  async saveMyReview(userId: number, beerId: number, dto: UpsertReviewDto): Promise<ReviewDto> {
+    await this.getBeer(beerId);
+    const existing = await this.beersRepository.findReview(userId, beerId);
+    if (existing === null && (await this.tastingsService.isFirstCheckin(userId, beerId))) {
+      throw new ForbiddenException("You must check in this beer before reviewing it.");
+    }
+    const record = await this.beersRepository.upsertReview(toNewReview(dto, userId, beerId, new Date()));
+    const author = await this.usersService.getUser(userId);
+    return toReviewDto(record, author, userId);
+  }
+
+  async deleteMyReview(userId: number, beerId: number): Promise<void> {
+    await this.getBeer(beerId);
+    if (!(await this.beersRepository.deleteReview(userId, beerId))) {
+      throw new NotFoundException(`You have not reviewed beer ${beerId}.`);
+    }
   }
 
   async getBeer(id: number): Promise<BeerDto> {

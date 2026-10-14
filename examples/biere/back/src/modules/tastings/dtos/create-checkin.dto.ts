@@ -13,8 +13,8 @@ import {
   Max,
   MaxLength,
   Min,
-  ValidateBy,
 } from "class-validator";
+import { IsMultipleOf } from "@/common/validation/is-multiple-of";
 import { normalizeLineEndings } from "@/common/text/normalize-line-endings";
 import { BeerAromaEnum } from "@/modules/beers/enums/beer-aroma.enum";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
@@ -28,16 +28,6 @@ import {
   CHECKIN_RATING_MIN,
   CHECKIN_RATING_STEP,
 } from "@/modules/tastings/tastings.constants";
-
-const IsMultipleOf = (step: number) =>
-  ValidateBy({
-    name: "isMultipleOf",
-    constraints: [step],
-    validator: {
-      validate: (value: unknown): boolean => typeof value === "number" && value % step === 0,
-      defaultMessage: (args) => `${args?.property} must be divisible by ${step}`,
-    },
-  });
 
 const AROMA_SEPARATOR = ",";
 

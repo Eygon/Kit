@@ -4,7 +4,11 @@
   },
   "common": {
     "retry": "Retry",
-    "close": "Close"
+    "close": "Close",
+    "photo": {
+      "open": "Enlarge the photo",
+      "alt": "Tasting photo"
+    }
   },
   "nav": {
     "label": "Main navigation",
@@ -22,6 +26,12 @@
     }
   },
   "beer": {
+    "rating": {
+      "summary": "{{rating}} ({{count}})",
+      "label_one": "Average rating {{rating}} out of 5, {{count}} review",
+      "label_other": "Average rating {{rating}} out of 5, {{count}} reviews",
+      "none": "No reviews"
+    },
     "families": {
       "lager": "Lager",
       "pilsner": "Pilsner",
@@ -41,6 +51,38 @@
       "sourLambic": "Sour / Lambic",
       "fruit": "Fruit beer",
       "nonAlcoholic": "Non-alcoholic"
+    },
+    "bitterness": {
+      "levels": {
+        "1": "Very light",
+        "2": "Light",
+        "3": "Moderate",
+        "4": "Pronounced",
+        "5": "Intense"
+      }
+    },
+    "color": {
+      "levels": {
+        "1": "Pale",
+        "2": "Golden",
+        "3": "Amber",
+        "4": "Brown",
+        "5": "Black"
+      }
+    },
+    "criteria": {
+      "sweetness": {
+        "name": "Sweetness",
+        "levels": { "1": "Very dry", "2": "Dry", "3": "Balanced", "4": "Sweet", "5": "Very sweet" }
+      },
+      "acidity": {
+        "name": "Acidity",
+        "levels": { "1": "None", "2": "Slight", "3": "Medium", "4": "Sharp", "5": "Very sharp" }
+      },
+      "body": {
+        "name": "Body",
+        "levels": { "1": "Very light", "2": "Light", "3": "Medium", "4": "Round", "5": "Very full" }
+      }
     },
     "aromas": {
       "fruity": "Fruity",
@@ -70,7 +112,8 @@
     "sorts": {
       "name": "Name",
       "abv": "Strength",
-      "brewery": "Brewery"
+      "brewery": "Brewery",
+      "rating": "Top rated"
     },
     "statuses": {
       "drunk": "Tasted",
@@ -138,6 +181,9 @@
         "abvRange": "{{min}} to {{max}}%",
         "status": "Status",
         "allStatuses": "All",
+        "minRating": "Minimum rating",
+        "minRatingAll": "All",
+        "minRatingOption": "{{rating}}+",
         "family": "Family",
         "styles": "Styles",
         "stylesError": "Could not load the styles.",
@@ -164,6 +210,66 @@
       "unknownDescription": "This beer is not in the encyclopedia.",
       "backToEncyclopedia": "Back to the encyclopedia",
       "errorTitle": "Could not load this beer.",
+      "levels": {
+        "bitterness": "Bitterness",
+        "color": "Colour",
+        "notAvailable": "Not available",
+        "score": "{{level}} / 5",
+        "bitternessValue": "{{label}} · {{score}}",
+        "styleRange": "{{min}} to {{max}} · typical of the style",
+        "styleSingle": "{{label}} · typical of the style"
+      },
+      "reviews": {
+        "title": "Reviews",
+        "noRating": "No rating yet",
+        "ratingLabel": "{{rating}} out of 5",
+        "count_one": "{{count}} review",
+        "count_other": "{{count}} reviews",
+        "histogram": {
+          "label": "Rating breakdown",
+          "stars_one": "{{count}} star",
+          "stars_other": "{{count}} stars",
+          "bar": "{{stars}}: {{reviews}}"
+        },
+        "criteria": {
+          "label": "Community averages",
+          "value": "{{name}} {{average}} / 5 · {{level}}",
+          "hidden_one": "{{name}}: {{count}} more review to show this criterion",
+          "hidden_other": "{{name}}: {{count}} more reviews to show this criterion"
+        },
+        "list": {
+          "mine": "My review",
+          "errorTitle": "Couldn't load the reviews.",
+          "emptyTitle": "No reviews yet",
+          "emptyDescription": "Be the first to review it.",
+          "loadMore": "Show more",
+          "criterion": "{{name}}: {{level}}"
+        },
+        "form": {
+          "rating": "Rating",
+          "ratingValue": "{{rating}} out of 5",
+          "noRating": "No rating",
+          "ratingRequired": "Please choose a rating",
+          "notRated": "Not rated",
+          "text": "Your review",
+          "textCount": "{{count}} / 500",
+          "submit": "Publish my review"
+        },
+        "sheet": {
+          "open": "Write a review",
+          "edit": "Edit my review",
+          "title": "Your review of {{name}}",
+          "saved": "Review saved"
+        },
+        "delete": {
+          "action": "Delete my review",
+          "confirmTitle": "Delete your review?",
+          "cancel": "Cancel",
+          "confirm": "Delete",
+          "done": "Review deleted"
+        },
+        "checkinRequired": "Check in this beer first."
+      },
       "wishlist": {
         "toggle": "To taste",
         "added": "Added to your wishlist.",
@@ -176,6 +282,13 @@
         "loadMore": "Show more",
         "rating": "★ {{rating}}",
         "ratingLabel": "Rating: {{rating}} out of 5"
+      },
+      "whereToDrink": {
+        "title": "Where to drink it",
+        "emptyTitle": "No known place yet",
+        "emptyDescription": "No place is known to serve this beer yet: the map will show you where to look.",
+        "errorTitle": "Unable to load the places.",
+        "seeOnMap": "See on the map"
       },
       "checkin": {
         "open": "I drank it",
@@ -194,6 +307,14 @@
         "price": "Price",
         "comment": "Comment",
         "commentCount": "{{count}} / 500",
+        "photo": {
+          "take": "Take a photo",
+          "pick": "Choose from gallery",
+          "remove": "Remove the photo",
+          "preview": "Photo preview",
+          "tooLarge": "The photo is larger than 5 MB.",
+          "badType": "Choose a JPEG, PNG or WebP image."
+        },
         "submit": "Save",
         "saved": "Tasting saved.",
         "capturedTitle": "New beer captured!",
@@ -218,17 +339,44 @@
         "emptyTitle": "No place here",
         "emptyDescription": "Move the map or remove some filters."
       },
+      "search": {
+        "trigger": "Search a place",
+        "title": "Search a place",
+        "label": "Place or city name",
+        "clear": "Clear search",
+        "hint": "Type the name of a place or a city",
+        "errorTitle": "Could not search places.",
+        "emptyTitle": "No place found",
+        "emptyDescription": "Try another name or city.",
+        "emptyWithFilters": "No place matches with the active filters. Try removing some."
+      },
       "venue": {
         "address": "Address",
         "city": "City",
         "close": "Close"
       },
       "venueBeers": {
+        "discovery": {
+          "count_one": "{{count}} beer to discover here",
+          "count_other": "{{count}} beers to discover here",
+          "allTasted": "You have tasted every beer here",
+          "undrunkOnly": "Beers I have not tasted yet",
+          "emptyTitle": "Nothing new here",
+          "emptyDescription": "Turn the filter off to see every beer of this place."
+        },
         "title": "Beers",
         "otherFamily": "Others",
         "errorTitle": "Could not load the beers.",
         "emptyTitle": "No beer reported here",
-        "emptyDescription": "Be the first to report one."
+        "emptyDescription": "Be the first to report one.",
+        "stamp": {
+          "drunk": "Already tasted",
+          "undiscovered": "To discover",
+          "count_one": "Tasted {{count}} time",
+          "count_other": "Tasted {{count}} times",
+          "countWithDate_one": "Tasted {{count}} time · last on {{date}}",
+          "countWithDate_other": "Tasted {{count}} times · last on {{date}}"
+        }
       },
       "vote": {
         "still": "Still there",
@@ -238,6 +386,40 @@
         "cooldown": "You can vote again in {{count}} h",
         "saved": "Vote saved",
         "alreadyVoted": "You already voted for this beer here in the last 24 hours."
+      },
+      "report": {
+        "action": "Report a beer here",
+        "title": "Report a beer",
+        "searchLabel": "Search for a beer",
+        "clearLabel": "Clear the search",
+        "hint": "Type at least 2 characters.",
+        "noResultTitle": "No beer found",
+        "noResultDescription": "Try another name.",
+        "errorTitle": "Could not search the beers.",
+        "saved": "Beer reported",
+        "alreadyListed": "This beer is already reported here",
+        "close": "Close"
+      },
+      "propose": {
+        "action": "Propose a venue",
+        "pickHint": "Tap the map to choose where the venue is.",
+        "pickedHint": "Drag the marker to adjust the point, then confirm.",
+        "confirmPoint": "Confirm the point",
+        "cancel": "Cancel",
+        "pointMarker": "Chosen point for the new venue",
+        "title": "Propose a venue",
+        "point": "Chosen point: {{latitude}}, {{longitude}}",
+        "name": "Venue name",
+        "type": "Venue type",
+        "address": "Address",
+        "city": "City",
+        "description": "Description",
+        "nameRequired": "The name is required",
+        "addressRequired": "The address is required",
+        "nameTaken": "This venue already exists",
+        "submit": "Propose",
+        "close": "Close",
+        "saved": "Venue proposed"
       },
       "beerFilter": {
         "label": "Where to drink: {{name}}",
@@ -250,6 +432,7 @@
         "family": "Beer family",
         "anyFamily": "All",
         "confirmedOnly": "Confirmed availability only",
+        "undiscovered": "Places with beers to discover",
         "radius": "Radius",
         "radiusOption": "{{count}} km",
         "radiusNeedsPosition": "Use Near me to pick a radius.",
@@ -264,13 +447,20 @@
       "title": "Journal",
       "subtitle": "Your tastings, glass after glass.",
       "emptyTitle": "No tastings yet",
-      "emptyDescription": "Your tasting notes will show up here."
+      "emptyDescription": "Your tasting notes will show up here.",
+      "errorTitle": "Could not load the journal.",
+      "loadMore": "Show more",
+      "delete": {
+        "action": "Delete",
+        "confirmTitle": "Delete this tasting?",
+        "confirm": "Delete",
+        "cancel": "Cancel",
+        "done": "Tasting deleted."
+      }
     },
     "profile": {
       "title": "Profile",
       "subtitle": "Your account and preferences.",
-      "emptyTitle": "No preferences yet",
-      "emptyDescription": "Your settings will show up here.",
       "demoUser": {
         "title": "Demo user",
         "description": "Requests are sent on behalf of this user.",
@@ -280,6 +470,110 @@
           "bob": "Bob (user 2)",
           "carol": "Carol (user 3)"
         }
+      },
+      "language": {
+        "title": "Language",
+        "description": "Choose the app language.",
+        "label": "App language",
+        "options": {
+          "fr": "Français",
+          "en": "English"
+        }
+      },
+      "progress": {
+        "title": "Progress",
+        "summary": "{{discovered}} / {{total}} discovered",
+        "family": "{{family}} {{discovered}} / {{total}}",
+        "ringLabel": "{{family}}: {{discovered}} of {{total}}",
+        "errorTitle": "Progress unavailable."
+      },
+      "share": {
+        "action": "Share",
+        "text_one": "I discovered {{count}} beer on Mousse ({{percent}}%)",
+        "text_other": "I discovered {{count}} beers on Mousse ({{percent}}%)",
+        "copied": "Copied to the clipboard.",
+        "failed": "Could not share."
+      },
+      "badges": {
+        "title": "Badges",
+        "unlockedOn": "Unlocked on {{date}}",
+        "progress": "{{current}} / {{target}}",
+        "comingSoon": "Coming soon",
+        "specialistGroup": "Specialist {{unlocked}} / {{total}}",
+        "errorTitle": "Badges unavailable.",
+        "emptyTitle": "No badge",
+        "emptyDescription": "Badges will show up here.",
+        "kinds": {
+          "firstSip": {
+            "name": "First sip",
+            "criterion": "Discover a first beer"
+          },
+          "explorer": {
+            "name": "Explorer",
+            "criterion": "Discover {{count}} beers"
+          },
+          "collector": {
+            "name": "Collector",
+            "criterion": "Discover {{count}} beers"
+          },
+          "completionist": {
+            "name": "Completionist",
+            "criterion": "Discover all {{count}} beers in the catalogue"
+          },
+          "globetrotter": {
+            "name": "Globetrotter",
+            "criterion": "Taste beers from {{count}} countries"
+          },
+          "specialist": {
+            "name": "Specialist",
+            "criterion": "Discover every beer of a family"
+          },
+          "photographer": {
+            "name": "Photographer",
+            "criterion": "{{count}} tastings with a photo"
+          },
+          "regular": {
+            "name": "Regular",
+            "criterion": "Taste on {{count}} days in a row"
+          },
+          "sentinel": {
+            "name": "Sentinel",
+            "criterion": "Vote {{count}} times on the map"
+          },
+          "cartographer": {
+            "name": "Cartographer",
+            "criterion": "Suggest a place or report a beer"
+          }
+        }
+      },
+      "stats": {
+        "title": "Statistics",
+        "checkins": "Tastings",
+        "discovered": "Beers discovered",
+        "averageAbv": "Average strength",
+        "averageRating": "Average rating",
+        "ratingValue": "{{rating}} / 5",
+        "favoriteFamily": "Favourite family",
+        "currentStreak": "Current streak",
+        "bestStreak": "Best streak",
+        "days_one": "{{count}} day",
+        "days_other": "{{count}} days",
+        "countries": "Countries tasted",
+        "countryCount": "{{country}} · {{count}}",
+        "none": "—",
+        "monthsTitle": "Last 12 months",
+        "monthBar_one": "{{month}}: {{count}} tasting",
+        "monthBar_other": "{{month}}: {{count}} tastings",
+        "errorTitle": "Statistics unavailable."
+      },
+      "wishlist": {
+        "title": "To taste",
+        "remove": "Remove",
+        "removeLabel": "Remove {{name}} from the wishlist",
+        "removed": "Removed from your wishlist.",
+        "emptyTitle": "No wishlist yet",
+        "emptyDescription": "Add beers “To taste” from the encyclopedia.",
+        "errorTitle": "Wishlist unavailable."
       }
     }
   },

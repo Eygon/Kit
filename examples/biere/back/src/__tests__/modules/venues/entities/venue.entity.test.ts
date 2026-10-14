@@ -31,8 +31,22 @@ describe("Venue entity", () => {
       ["longitude", "real", undefined, undefined, undefined],
       ["description", "varchar", 300, undefined, true],
       ["nameKey", "varchar", 80, true, undefined],
+      ["searchName", "varchar", 80, undefined, undefined],
+      ["searchCity", "varchar", 60, undefined, undefined],
     ]);
     expect(getMetadataArgsStorage().generations.find((entry) => entry.target === Venue)?.propertyName).toBe("id");
+  });
+
+  it("defaults both search keys to an empty string", () => {
+    const defaults = getMetadataArgsStorage()
+      .filterColumns(Venue)
+      .filter((column) => column.propertyName === "searchName" || column.propertyName === "searchCity")
+      .map((column) => [column.propertyName, column.options.default]);
+
+    expect(defaults).toEqual([
+      ["searchName", ""],
+      ["searchCity", ""],
+    ]);
   });
 
   it("stores the type as the venue type enum", () => {

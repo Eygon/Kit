@@ -8,10 +8,10 @@ import { createdCheckinDtoToModel } from "@/types/mappers/checkin/createdCheckin
 import type { CheckinPage } from "@/types/models/checkin/checkinPage";
 import type { CreatedCheckin } from "@/types/models/checkin/createdCheckin";
 import type { NewCheckin } from "@/types/models/checkin/newCheckin";
-import { CHECKINS } from "@/utils/apiURL/apiURL";
+import { CHECKIN_BY_ID, CHECKINS } from "@/utils/apiURL/apiURL";
 import { DisplayError } from "@/utils/displayError/displayError";
 
-const CHECKIN_CREATE_TIMEOUT_MS = 30_000;
+const CHECKIN_CREATE_TIMEOUT_MS = 90_000;
 
 export default class CheckinService {
   static async getPage(beerId: number | null, page: number): Promise<CheckinPage> {
@@ -23,6 +23,7 @@ export default class CheckinService {
   static async create(newCheckin: NewCheckin): Promise<CreatedCheckin> {
     try {
       const formData = new FormData();
+      if (newCheckin.photo) formData.append("file", newCheckin.photo);
       formData.append("beerId", String(newCheckin.beerId));
       formData.append("drankAt", newCheckin.drankAt);
       formData.append("place", newCheckin.place);
@@ -36,6 +37,15 @@ export default class CheckinService {
       });
       if (response.data === null) throw new HttpError(response.status, "Empty created checkin");
       return createdCheckinDtoToModel(response.data);
+    } catch (error) {
+      DisplayError(error);
+      throw error;
+    }
+  }
+
+  static async remove(checkinId: number): Promise<void> {
+    try {
+      await httpClient.delete(CHECKIN_BY_ID(checkinId));
     } catch (error) {
       DisplayError(error);
       throw error;

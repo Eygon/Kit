@@ -2,7 +2,10 @@ import { Alert, Button, Skeleton } from "@heroui/react";
 import { useTranslation } from "react-i18next";
 import { AvailabilityBadge } from "@/components/elements/availabilityBadge/availabilityBadge";
 import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStatePanel";
+import { VenueDiscoverySummary } from "@/pages/map/components/elements/venueDiscoverySummary/venueDiscoverySummary";
+import { VenueBeerStamp } from "@/pages/map/components/elements/venueBeerStamp/venueBeerStamp";
 import { VoteButtons } from "@/pages/map/components/elements/voteButtons/voteButtons";
+import { useUndrunkOnlyFilter } from "@/pages/map/hooks/useUndrunkOnlyFilter";
 import { useVenueBeersQuery } from "@/pages/map/hooks/useVenueBeersQuery";
 import type { VenueBeerListProps } from "@/pages/map/types/venueBeerList";
 import { BEER_FAMILY_LABEL_KEYS } from "@/types/enums/beer/beerFamilyEnum";
@@ -31,6 +34,7 @@ const VenueBeerListSkeleton = () => (
 export const VenueBeerList = ({ venueId }: VenueBeerListProps) => {
   const { t } = useTranslation();
   const { beers, isPending, isError, refetch } = useVenueBeersQuery(venueId);
+  const { isUndrunkOnly, setUndrunkOnly } = useUndrunkOnlyFilter();
   const now = new Date();
 
   if (isPending) return <VenueBeerListSkeleton />;
@@ -55,9 +59,24 @@ export const VenueBeerList = ({ venueId }: VenueBeerListProps) => {
       />
     );
 
+  const undrunkBeers = beers.filter((beer) => !beer.drunk);
+  const shownBeers = isUndrunkOnly ? undrunkBeers : beers;
+
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      {venueBeersToFamilyGroups(beers).map((group, index) => (
+      <VenueDiscoverySummary
+        undiscoveredCount={undrunkBeers.length}
+        isUndrunkOnly={isUndrunkOnly}
+        onUndrunkOnlyChange={setUndrunkOnly}
+      />
+      {shownBeers.length === 0 && (
+        <EmptyStatePanel
+          mood={MascotMoodEnum.CAPTURED}
+          title={t("pages.map.venueBeers.discovery.emptyTitle")}
+          description={t("pages.map.venueBeers.discovery.emptyDescription")}
+        />
+      )}
+      {venueBeersToFamilyGroups(shownBeers).map((group, index) => (
         <section key={`${group.family ?? "other"}-${index}`} className="flex min-w-0 flex-col gap-2">
           <h3 className="font-bold text-foreground">
             {group.family === null ? t("pages.map.venueBeers.otherFamily") : t(BEER_FAMILY_LABEL_KEYS[group.family])}
@@ -72,6 +91,11 @@ export const VenueBeerList = ({ venueId }: VenueBeerListProps) => {
                 >
                   <span className="min-w-0 font-bold break-words text-foreground">{beer.beerName}</span>
                   <span className="min-w-0 text-sm break-words text-muted">{beer.breweryName}</span>
+                  <VenueBeerStamp
+                    drunk={beer.drunk}
+                    checkinCount={beer.checkinCount}
+                    lastCheckinAt={beer.lastCheckinAt}
+                  />
                   <AvailabilityBadge status={beer.status} />
                   <span className="min-w-0 text-sm break-words text-muted">{t(detail.key, detail.values)}</span>
                   <VoteButtons venueId={venueId} venueBeer={beer} />

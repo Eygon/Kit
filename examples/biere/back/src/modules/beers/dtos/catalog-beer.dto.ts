@@ -1,6 +1,7 @@
 import type { BeerAromaEnum } from "@/modules/beers/enums/beer-aroma.enum";
 import type { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import type { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
+import type { LevelRangeDto } from "@/modules/beers/dtos/level-range.dto";
 
 export interface CatalogBeerDto {
   readonly id: number;
@@ -14,7 +15,12 @@ export interface CatalogBeerDto {
   readonly aromas: readonly BeerAromaEnum[];
   readonly formats: readonly BeerFormatEnum[];
   readonly description: string;
+  readonly bitternessLevel: number | null;
+  readonly colorLevel: number | null;
+  readonly styleColorRange: LevelRangeDto | null;
   readonly drunk: boolean;
   readonly checkinCount: number;
   readonly inWishlist: boolean;
+  readonly averageRating: number | null;
+  readonly reviewCount: number;
 }

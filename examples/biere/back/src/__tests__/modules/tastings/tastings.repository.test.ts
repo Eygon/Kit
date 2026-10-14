@@ -278,6 +278,28 @@ describe("TastingsRepository", () => {
     });
   });
 
+  describe("findCheckinsByUser", () => {
+    const at = (drankAt: string): Partial<Omit<Checkin, "id" | "createdAt">> => ({ drankAt: new Date(drankAt) });
+
+    it("lists only the check-ins of the user, oldest first, then lowest id first on the same date", async () => {
+      await repository.createCheckin(newCheckin(BOB, BEER, at("2026-03-01T08:00:00.000Z")));
+      const latest = await repository.createCheckin(newCheckin(ALICE, BEER, at("2026-03-20T08:00:00.000Z")));
+      const tiedFirst = await repository.createCheckin(newCheckin(ALICE, OTHER_BEER, at("2026-03-10T08:00:00.000Z")));
+      const tiedSecond = await repository.createCheckin(newCheckin(ALICE, BEER, at("2026-03-10T08:00:00.000Z")));
+      const earliest = await repository.createCheckin(newCheckin(ALICE, BEER, at("2026-03-05T08:00:00.000Z")));
+
+      const records = await repository.findCheckinsByUser(ALICE);
+
+      expect(records).toStrictEqual([earliest, tiedFirst, tiedSecond, latest]);
+    });
+
+    it("returns an empty array for a user who has no check-in, even when another user has some", async () => {
+      await repository.createCheckin(newCheckin(BOB, BEER));
+
+      expect(await repository.findCheckinsByUser(ALICE)).toStrictEqual([]);
+    });
+  });
+
   describe("findDiscoveries", () => {
     const at = (drankAt: string): Partial<Omit<Checkin, "id" | "createdAt">> => ({ drankAt: new Date(drankAt) });
 

@@ -105,3 +105,53 @@ describe("WishlistService.remove", () => {
     expect(toast.danger).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("WishlistService.getAll", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    vi.mocked(toast.danger).mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("gets the wishlist url and returns every item as a model", async () => {
+    const other = { beerId: 9, beerName: "Orval", addedAt: "2026-10-11T08:00:00.000Z" };
+    mockFetch.mockImplementation(async () => json([itemDto, other]));
+
+    const items = await WishlistService.getAll();
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(ME_WISHLIST());
+    expect(init.method).toBe("GET");
+    expect(items).toEqual([itemDto, other]);
+  });
+
+  it("maps each item to the model fields only and drops what the model does not carry", async () => {
+    mockFetch.mockImplementation(async () => json([{ ...itemDto, internalNote: "server only" }]));
+
+    const items = await WishlistService.getAll();
+
+    expect(items).toStrictEqual([itemDto]);
+  });
+
+  it("returns an empty list when the server answers without a body", async () => {
+    mockFetch.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await expect(WishlistService.getAll()).resolves.toEqual([]);
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+
+  it("rejects with the HttpError on a 500 without any toast", async () => {
+    mockFetch.mockImplementation(async () => json({ message: "Down" }, 500));
+
+    const error: unknown = await WishlistService.getAll().catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(HttpError);
+    expect((error as HttpError).status).toBe(500);
+    expect(toast.danger).not.toHaveBeenCalled();
+  });
+});

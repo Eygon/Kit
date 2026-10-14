@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CreateVenueDto } from "@/modules/venues/dtos/create-venue.dto";
 import { AvailabilityStatusEnum } from "@/modules/venues/enums/availability-status.enum";
 import { VenueTypeEnum } from "@/modules/venues/enums/venue-type.enum";
-import { toNewVenue, toVenueDto, toVenueRecordDto } from "@/modules/venues/mappers/venue.mapper";
+import { toNewVenue, toVenueDto, toVenueRecordDto, toVenueSearchKeys } from "@/modules/venues/mappers/venue.mapper";
 
 const FULL_ENTITY = {
   id: 7,
@@ -14,6 +14,8 @@ const FULL_ENTITY = {
   longitude: 2.3806,
   description: "Un bar a bieres.",
   nameKey: "la fine mousse",
+  searchName: "la fine mousse",
+  searchCity: "paris",
 };
 
 describe("toVenueRecordDto", () => {
@@ -67,6 +69,16 @@ describe("toVenueDto", () => {
   });
 });
 
+describe("toVenueSearchKeys", () => {
+  it("folds accents, case and whitespace runs of the name and the city", () => {
+    expect(toVenueSearchKeys("Café  Ébène", "Liège")).toEqual({ searchName: "cafe ebene", searchCity: "liege" });
+  });
+
+  it("gives an empty city key when the city is absent", () => {
+    expect(toVenueSearchKeys("Café  Ébène", null)).toEqual({ searchName: "cafe ebene", searchCity: "" });
+  });
+});
+
 describe("toNewVenue", () => {
   const DTO: CreateVenueDto = {
     name: "Chez Mousse",
@@ -88,6 +100,8 @@ describe("toNewVenue", () => {
       longitude: 3.06,
       description: "Une cave.",
       nameKey: "chez mousse",
+      searchName: "chez mousse",
+      searchCity: "lille",
     });
   });
 
@@ -101,6 +115,26 @@ describe("toNewVenue", () => {
 
   it("folds the case of non ASCII letters in the key", () => {
     expect(toNewVenue({ ...DTO, name: "ÉCOLE" }).nameKey).toBe("école");
+  });
+
+  it("derives the search keys from the trimmed name and the city", () => {
+    const venue = toNewVenue({ ...DTO, name: "  Café  Ébène ", city: "Liège" });
+
+    expect(venue.searchName).toBe("cafe ebene");
+    expect(venue.searchCity).toBe("liege");
+  });
+
+  it("gives an empty city search key and a filled name key when the city is absent", () => {
+    const venue = toNewVenue({
+      name: DTO.name,
+      type: DTO.type,
+      address: DTO.address,
+      latitude: DTO.latitude,
+      longitude: DTO.longitude,
+    });
+
+    expect(venue.searchCity).toBe("");
+    expect(venue.searchName).toBe("chez mousse");
   });
 
   it("turns an absent city and an absent description into null", () => {

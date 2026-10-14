@@ -33,6 +33,13 @@ describe("beerDtoToModel", () => {
       drunk: true,
       checkinCount: 3,
       inWishlist: true,
+      bitternessLevel: null,
+      colorLevel: null,
+      styleColorRange: null,
+      averageRating: null,
+      reviewCount: 0,
+      ratingDistribution: [],
+      criteria: [],
     });
   });
 
@@ -76,5 +83,124 @@ describe("beerDtoToModel", () => {
 
     expect(model.aromas).toEqual([]);
     expect(model.formats).toEqual([]);
+  });
+
+  it("defaults the three level fields to null when the dto omits them", () => {
+    const model = beerDtoToModel(dto);
+
+    expect(model.bitternessLevel).toBeNull();
+    expect(model.colorLevel).toBeNull();
+    expect(model.styleColorRange).toBeNull();
+  });
+
+  it("maps the levels and the style colour range of a beer", () => {
+    const model = beerDtoToModel({ ...dto, bitternessLevel: 4, colorLevel: 3, styleColorRange: { min: 3, max: 4 } });
+
+    expect(model).toEqual({
+      ...beerDtoToModel(dto),
+      bitternessLevel: 4,
+      colorLevel: 3,
+      styleColorRange: { min: 3, max: 4 },
+    });
+  });
+
+  it("keeps explicit nulls from the api as null", () => {
+    const model = beerDtoToModel({ ...dto, bitternessLevel: null, colorLevel: null, styleColorRange: null });
+
+    expect(model.bitternessLevel).toBeNull();
+    expect(model.colorLevel).toBeNull();
+    expect(model.styleColorRange).toBeNull();
+  });
+
+  it("keeps the lowest level 1 and a range of one level", () => {
+    const model = beerDtoToModel({ ...dto, bitternessLevel: 1, colorLevel: 1, styleColorRange: { min: 1, max: 1 } });
+
+    expect(model.bitternessLevel).toBe(1);
+    expect(model.colorLevel).toBe(1);
+    expect(model.styleColorRange).toEqual({ min: 1, max: 1 });
+  });
+
+  it("defaults the rating to null and the review count to 0 when the dto omits them", () => {
+    const model = beerDtoToModel(dto);
+
+    expect(model.averageRating).toBeNull();
+    expect(model.reviewCount).toBe(0);
+  });
+
+  it("maps the average rating and the review count of a beer", () => {
+    const model = beerDtoToModel({ ...dto, averageRating: 4.2, reviewCount: 18 });
+
+    expect(model).toEqual({ ...beerDtoToModel(dto), averageRating: 4.2, reviewCount: 18 });
+  });
+
+  it("keeps an explicit null average from the api as null", () => {
+    const model = beerDtoToModel({ ...dto, averageRating: null, reviewCount: 0 });
+
+    expect(model.averageRating).toBeNull();
+    expect(model.reviewCount).toBe(0);
+  });
+
+  it("defaults the distribution and the criteria to empty lists when the dto omits them", () => {
+    const model = beerDtoToModel(dto);
+
+    expect(model.ratingDistribution).toEqual([]);
+    expect(model.criteria).toEqual([]);
+  });
+
+  it("maps the rating distribution and the criteria of a beer detail", () => {
+    const model = beerDtoToModel({
+      ...dto,
+      ratingDistribution: [
+        { stars: 1, count: 1 },
+        { stars: 2, count: 0 },
+        { stars: 3, count: 2 },
+        { stars: 4, count: 7 },
+        { stars: 5, count: 2 },
+      ],
+      criteria: [
+        { criterion: "sweetness", average: 2.7, count: 3 },
+        { criterion: "acidity", average: null, count: 1 },
+        { criterion: "body", average: null, count: 0 },
+      ],
+    });
+
+    expect(model).toEqual({
+      ...beerDtoToModel(dto),
+      ratingDistribution: [
+        { stars: 1, count: 1 },
+        { stars: 2, count: 0 },
+        { stars: 3, count: 2 },
+        { stars: 4, count: 7 },
+        { stars: 5, count: 2 },
+      ],
+      criteria: [
+        { criterion: "sweetness", average: 2.7, count: 3 },
+        { criterion: "acidity", average: null, count: 1 },
+        { criterion: "body", average: null, count: 0 },
+      ],
+    });
+  });
+
+  it("drops an unknown criterion and keeps the order of the known ones", () => {
+    const model = beerDtoToModel({
+      ...dto,
+      criteria: [
+        { criterion: "body", average: 4, count: 3 },
+        { criterion: "bitterness", average: 2, count: 9 },
+        { criterion: "sweetness", average: null, count: 2 },
+      ],
+    });
+
+    expect(model.criteria).toEqual([
+      { criterion: "body", average: 4, count: 3 },
+      { criterion: "sweetness", average: null, count: 2 },
+    ]);
+  });
+
+  it("keeps empty distribution and criteria lists empty", () => {
+    const model = beerDtoToModel({ ...dto, ratingDistribution: [], criteria: [] });
+
+    expect(model.ratingDistribution).toEqual([]);
+    expect(model.criteria).toEqual([]);
   });
 });

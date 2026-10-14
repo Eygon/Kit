@@ -12,8 +12,10 @@ describe("EMPTY_VENUE_QUERY", () => {
       family: null,
       beerId: null,
       confirmedOnly: false,
+      undiscovered: false,
       position: null,
       radiusKm: null,
+      q: "",
     });
   });
 });
@@ -32,12 +34,14 @@ describe("venueQueryToSearchParams", () => {
       family: BeerFamilyEnum.IPA,
       beerId: 7,
       confirmedOnly: true,
+      undiscovered: true,
       position: { latitude: 48.85, longitude: 2.35 },
       radiusKm: 5,
+      q: "acad",
     };
 
     expect(venueQueryToSearchParams(query).toString()).toBe(
-      "north=48.9&south=48.8&east=2.4&west=2.2&type=bar&type=shop&beer=7&family=ipa&confirmedOnly=true&latitude=48.85&longitude=2.35&radiusKm=5",
+      "north=48.9&south=48.8&east=2.4&west=2.2&type=bar&type=shop&beer=7&family=ipa&confirmedOnly=true&undiscovered=true&latitude=48.85&longitude=2.35&radiusKm=5&q=acad",
     );
   });
 
@@ -58,5 +62,23 @@ describe("venueQueryToSearchParams", () => {
 
     expect(params.toString()).toBe("type=brewery");
     expect(params.has("confirmedOnly")).toBe(false);
+  });
+
+  it("US9 sends undiscovered=true only when it is on", async () => {
+    expect(venueQueryToSearchParams({ ...EMPTY_VENUE_QUERY, undiscovered: true }).toString()).toBe("undiscovered=true");
+    expect(venueQueryToSearchParams({ ...EMPTY_VENUE_QUERY, undiscovered: false }).has("undiscovered")).toBe(false);
+  });
+
+  it("sends the trimmed search text as q", async () => {
+    const params = venueQueryToSearchParams({ ...EMPTY_VENUE_QUERY, q: "  acad  " });
+
+    expect(params.toString()).toBe("q=acad");
+  });
+
+  it.each(["", "   "])("omits q when the text is blank (%j)", async (q) => {
+    const params = venueQueryToSearchParams({ ...EMPTY_VENUE_QUERY, q });
+
+    expect(params.has("q")).toBe(false);
+    expect(params.toString()).toBe("");
   });
 });

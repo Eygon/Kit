@@ -14,7 +14,7 @@ import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 
 const onApply = vi.fn();
 
-const EMPTY: MapFilters = { types: [], family: null, beerId: null, confirmedOnly: false, radiusKm: null };
+const EMPTY: MapFilters = { types: [], family: null, beerId: null, confirmedOnly: false, undiscovered: false, radiusKm: null };
 
 const renderDrawer = (appliedFilters: MapFilters = EMPTY, hasPosition = false) => {
   return renderWithProviders(<MapFiltersDrawer appliedFilters={appliedFilters} hasPosition={hasPosition} onApply={onApply} />);
@@ -65,6 +65,42 @@ describe("MapFiltersDrawer", () => {
     expect(row?.querySelector('[data-slot="switch-control"]')).not.toBeNull();
   });
 
+  it("US9 shows the undiscovered switch under the confirmed-only one, off, in a 44px clickable row", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = await openDrawer(user);
+
+    const confirmed = within(dialog).getByRole("switch", { name: "Disponibilité confirmée seulement" });
+    const undiscovered = within(dialog).getByRole("switch", { name: "Lieux avec des bières à découvrir" });
+    expect(undiscovered).not.toBeChecked();
+    expect(confirmed.compareDocumentPosition(undiscovered) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(dialog).getByText("Lieux avec des bières à découvrir").closest(".min-h-11")).not.toBeNull();
+  });
+
+  it("US9 AC1 applies only the undiscovered choice", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = await openDrawer(user);
+    await user.click(within(dialog).getByRole("switch", { name: "Lieux avec des bières à découvrir" }));
+    await user.click(within(dialog).getByRole("button", { name: "Appliquer" }));
+    expect(onApply).toHaveBeenCalledWith({ ...EMPTY, undiscovered: true });
+
+  });
+
+  it("US9 AC3 opens with the undiscovered switch on when the applied filters carry it", async () => {
+    const user = userEvent.setup();
+    renderDrawer({ ...EMPTY, undiscovered: true });
+    const dialog = await openDrawer(user);
+
+    expect(within(dialog).getByRole("switch", { name: "Lieux avec des bières à découvrir" })).toBeChecked();
+  });
+
+  it("US9 AC1 counts the undiscovered filter on the Filtres button", () => {
+    renderDrawer({ ...EMPTY, undiscovered: true });
+
+    expect(screen.getByText("1 filtre actif")).toBeInTheDocument();
+  });
+
   it("AC1 applies the type, family and confirmed choices the user made", async () => {
     const user = userEvent.setup();
     renderDrawer();
@@ -74,6 +110,7 @@ describe("MapFiltersDrawer", () => {
     await user.click(within(dialog).getByRole("button", { name: /Famille de bière/ }));
     await user.click(screen.getByRole("option", { name: "Stout" }));
     await user.click(within(dialog).getByRole("switch", { name: "Disponibilité confirmée seulement" }));
+    await user.click(within(dialog).getByRole("switch", { name: "Lieux avec des bières à découvrir" }));
     await user.click(within(dialog).getByRole("button", { name: "Appliquer" }));
 
     expect(onApply).toHaveBeenCalledTimes(1);
@@ -82,6 +119,7 @@ describe("MapFiltersDrawer", () => {
       family: BeerFamilyEnum.STOUT,
       beerId: null,
       confirmedOnly: true,
+      undiscovered: true,
       radiusKm: null,
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -169,7 +207,7 @@ describe("MapFiltersDrawer", () => {
   it("AC3 clears every choice with Réinitialiser, including the beer, and applies the empty filters", async () => {
     const user = userEvent.setup();
     renderDrawer(
-      { types: [VenueTypeEnum.BAR], family: BeerFamilyEnum.STOUT, beerId: 7, confirmedOnly: true, radiusKm: 2 },
+      { types: [VenueTypeEnum.BAR], family: BeerFamilyEnum.STOUT, beerId: 7, confirmedOnly: true, undiscovered: true, radiusKm: 2 },
       true,
     );
     const dialog = await openDrawer(user);
@@ -179,6 +217,7 @@ describe("MapFiltersDrawer", () => {
     expect(within(dialog).getByRole("checkbox", { name: "Bar" })).not.toBeChecked();
     expect(within(dialog).getByRole("button", { name: /Famille de bière/ })).toHaveTextContent("Toutes");
     expect(within(dialog).getByRole("switch", { name: "Disponibilité confirmée seulement" })).not.toBeChecked();
+    expect(within(dialog).getByRole("switch", { name: "Lieux avec des bières à découvrir" })).not.toBeChecked();
     expect(onApply).not.toHaveBeenCalled();
     await user.click(within(dialog).getByRole("button", { name: "Appliquer" }));
     expect(onApply).toHaveBeenCalledWith(EMPTY_MAP_FILTERS);

@@ -16,6 +16,12 @@ import { AVAILABILITY_WINDOW_DAYS, DAY_MS } from "@/modules/venues/venues.consta
 
 const VENUES_PATH = "/api/v1/venues";
 const ALICE_ID = "1";
+const BOB_ID = "2";
+const SUPERCOIN = "Le Supercoin";
+const ORVAL = "Orval";
+const CHECKINS_PATH = "/api/v1/checkins";
+const FIRST_DRUNK_AT = "2026-10-02T18:00:00.000Z";
+const LAST_DRUNK_AT = "2026-10-10T18:00:00.000Z";
 const UNKNOWN_VENUE_ID = 999_999;
 const FINE_MOUSSE = "La Fine Mousse";
 const VENUE_WITHOUT_LINK = "Le Triangle";
@@ -31,6 +37,9 @@ interface VenueBeerBody {
   readonly lastConfirmedAt: string | null;
   readonly recentVoterCount: number;
   readonly nextVoteAt: string | null;
+  readonly drunk: boolean;
+  readonly checkinCount: number;
+  readonly lastCheckinAt: string | null;
 }
 
 const FAMILY_ORDER = Object.values(BeerFamilyEnum);
@@ -91,6 +100,9 @@ describe("venue beers API", () => {
           lastConfirmedAt: (link?.positiveVotes ?? 0) > 0 ? expect.any(String) : null,
           recentVoterCount: expect.any(Number),
           nextVoteAt: null,
+          drunk: false,
+          checkinCount: 0,
+          lastCheckinAt: null,
         });
         expect(FAMILY_ORDER).toContain(body.family);
       });
@@ -152,6 +164,76 @@ describe("venue beers API", () => {
 
       expect(response.status).toBe(HttpStatus.OK);
       expect(response.body).toEqual([]);
+    });
+  });
+
+  describe("GET /api/v1/venues/:id/beers drunk state", () => {
+    let supercoinId: number;
+
+    const getAs = (userId: string, path: string) => request(app.getHttpServer()).get(path).set(USER_ID_HEADER_NAME, userId);
+
+    const beersAs = async (userId: string): Promise<VenueBeerBody[]> => {
+      const response = await getAs(userId, beersPath(supercoinId));
+      expect(response.status).toBe(HttpStatus.OK);
+      return response.body as VenueBeerBody[];
+    };
+
+    const orvalOf = (bodies: VenueBeerBody[]): VenueBeerBody => {
+      const found = bodies.find((body) => body.beerName === ORVAL);
+      expect(found).toBeDefined();
+      return found as VenueBeerBody;
+    };
+
+    const drinkOrval = async (userId: string, orvalId: number, drankAt: string): Promise<number> => {
+      const response = await request(app.getHttpServer())
+        .post(CHECKINS_PATH)
+        .set(USER_ID_HEADER_NAME, userId)
+        .field("beerId", String(orvalId))
+        .field("drankAt", drankAt)
+        .field("place", "Le Bistrot")
+        .field("format", "bottle");
+      expect(response.status).toBe(HttpStatus.CREATED);
+      return (response.body as { checkin: { id: number } }).checkin.id;
+    };
+
+    const deleteCheckin = async (userId: string, checkinId: number): Promise<void> => {
+      const response = await request(app.getHttpServer())
+        .delete(`${CHECKINS_PATH}/${checkinId}`)
+        .set(USER_ID_HEADER_NAME, userId);
+      expect(response.status).toBe(HttpStatus.NO_CONTENT);
+    };
+
+    beforeAll(async () => {
+      supercoinId = await findVenueId(SUPERCOIN);
+    });
+
+    it("marks every beer not drunk for a user who has tasted nothing", async () => {
+      const bodies = await beersAs(ALICE_ID);
+
+      expect(bodies.length).toBeGreaterThan(1);
+      bodies.forEach((body) => {
+        expect([body.drunk, body.checkinCount, body.lastCheckinAt]).toEqual([false, 0, null]);
+      });
+    });
+
+    it("gives Alice her count and most recent check-in of Orval, a user without check-in the untouched state, and removes the beer state once every check-in is deleted", async () => {
+      const orvalId = orvalOf(await beersAs(ALICE_ID)).beerId;
+      const latestId = await drinkOrval(ALICE_ID, orvalId, LAST_DRUNK_AT);
+      const earliestId = await drinkOrval(ALICE_ID, orvalId, FIRST_DRUNK_AT);
+
+      const alice = await beersAs(ALICE_ID);
+      const bob = await beersAs(BOB_ID);
+
+      expect(orvalOf(alice)).toEqual({ ...orvalOf(bob), drunk: true, checkinCount: 2, lastCheckinAt: LAST_DRUNK_AT });
+      expect(orvalOf(bob)).toMatchObject({ drunk: false, checkinCount: 0, lastCheckinAt: null });
+      expect(alice.filter((body) => body.beerName !== ORVAL).every((body) => !body.drunk && body.checkinCount === 0)).toBe(true);
+      expect(bob.every((body) => !body.drunk && body.checkinCount === 0 && body.lastCheckinAt === null)).toBe(true);
+
+      await deleteCheckin(ALICE_ID, latestId);
+      expect(orvalOf(await beersAs(ALICE_ID))).toMatchObject({ drunk: true, checkinCount: 1, lastCheckinAt: FIRST_DRUNK_AT });
+
+      await deleteCheckin(ALICE_ID, earliestId);
+      expect(orvalOf(await beersAs(ALICE_ID))).toMatchObject({ drunk: false, checkinCount: 0, lastCheckinAt: null });
     });
   });
 

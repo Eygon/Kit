@@ -7,7 +7,11 @@ import { StyleFilterSection } from "@/pages/encyclopedia/components/elements/sty
 import { useBeerPreviewQuery } from "@/pages/encyclopedia/hooks/useBeerPreviewQuery";
 import type { BeerFiltersDrawerProps } from "@/pages/encyclopedia/types/beerFiltersDrawer";
 import { countDrawerFilters } from "@/pages/encyclopedia/utils/countDrawerFilters";
-import { FILTER_CHIPS_ROW_CLASSES, FILTER_CHIP_CLASSES } from "@/pages/encyclopedia/utils/encyclopediaConstants";
+import {
+  BEER_MIN_RATING_OPTIONS,
+  FILTER_CHIPS_ROW_CLASSES,
+  FILTER_CHIP_CLASSES,
+} from "@/pages/encyclopedia/utils/encyclopediaConstants";
 import type { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
 import { BEER_FORMAT_LABEL_KEYS, isBeerFormat } from "@/types/enums/beer/beerFormatEnum";
 import { BEER_SORT_LABEL_KEYS, BeerSortEnum, isBeerSort } from "@/types/enums/beer/beerSortEnum";
@@ -20,6 +24,7 @@ const MIN_ABV = 0;
 const MAX_ABV = 14;
 const ABV_STEP = 0.5;
 const ALL_STATUSES_VALUE = "all";
+const ALL_RATINGS_VALUE = "all";
 
 const withCheckedValues = <TValue extends string>(facets: FacetCount<TValue>[], checked: TValue[]): FacetCount<TValue>[] => [
   ...facets,
@@ -60,6 +65,11 @@ export const BeerFiltersDrawer = ({ appliedQuery, onApply }: BeerFiltersDrawerPr
   const handleStatusChange = (value: string) => {
     if (value === ALL_STATUSES_VALUE) setDraft((previous) => ({ ...previous, status: null }));
     else if (isBeerStatus(value)) setDraft((previous) => ({ ...previous, status: value }));
+  };
+
+  const handleMinRatingChange = (value: string) => {
+    const minRating = BEER_MIN_RATING_OPTIONS.find((option) => option.toString() === value) ?? null;
+    setDraft((previous) => ({ ...previous, minRating }));
   };
 
   const handleSortChange = (key: Key | null) => {
@@ -125,6 +135,29 @@ export const BeerFiltersDrawer = ({ appliedQuery, onApply }: BeerFiltersDrawerPr
                     <Radio key={status} value={status} className="mt-0 max-w-full min-w-0">
                       <Radio.Content className={FILTER_CHIP_CLASSES}>
                         <Label className="cursor-[inherit] text-inherit">{t(BEER_STATUS_LABEL_KEYS[status])}</Label>
+                      </Radio.Content>
+                    </Radio>
+                  ))}
+                </div>
+              </RadioGroup>
+              <RadioGroup
+                value={draft.minRating?.toString() ?? ALL_RATINGS_VALUE}
+                onChange={handleMinRatingChange}
+                className="gap-1"
+              >
+                <Label className="font-bold">{t("pages.encyclopedia.filters.minRating")}</Label>
+                <div className={FILTER_CHIPS_ROW_CLASSES}>
+                  <Radio value={ALL_RATINGS_VALUE} className="mt-0 max-w-full min-w-0">
+                    <Radio.Content className={FILTER_CHIP_CLASSES}>
+                      <Label className="cursor-[inherit] text-inherit">{t("pages.encyclopedia.filters.minRatingAll")}</Label>
+                    </Radio.Content>
+                  </Radio>
+                  {BEER_MIN_RATING_OPTIONS.map((option) => (
+                    <Radio key={option} value={option.toString()} className="mt-0 max-w-full min-w-0">
+                      <Radio.Content className={FILTER_CHIP_CLASSES}>
+                        <Label className="cursor-[inherit] text-inherit">
+                          {t("pages.encyclopedia.filters.minRatingOption", { rating: numberFormat.format(option) })}
+                        </Label>
                       </Radio.Content>
                     </Radio>
                   ))}

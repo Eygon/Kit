@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BeersRepository } from "@/modules/beers/beers.repository";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
+import { Review } from "@/modules/beers/entities/review.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
 import { BeerAromaEnum } from "@/modules/beers/enums/beer-aroma.enum";
 import type { BeerFilters } from "@/modules/beers/dtos/beer-filters.dto";
@@ -48,7 +49,7 @@ describe("BeersRepository", () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
       providers: [BeersRepository],
     }).compile();
     repository = moduleRef.get(BeersRepository);
@@ -169,6 +170,9 @@ describe("BeersRepository", () => {
         aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.SOUR],
         formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.CAN],
         description: "Description 1",
+        bitternessLevel: null,
+        colorLevel: null,
+        styleColorRange: { min: 1, max: 1 },
       },
     ]);
   });
@@ -186,6 +190,9 @@ describe("BeersRepository", () => {
       aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.SOUR],
       formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.CAN],
       description: "Description 3",
+      bitternessLevel: null,
+      colorLevel: null,
+      styleColorRange: { min: 1, max: 1 },
     });
   });
 
@@ -231,6 +238,9 @@ describe("BeersRepository", () => {
         aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.SOUR],
         formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.CAN],
         description: "Description 3",
+        bitternessLevel: null,
+        colorLevel: null,
+        styleColorRange: { min: 1, max: 1 },
       });
     });
 
@@ -265,7 +275,7 @@ describe("BeersRepository filters and facets", () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
       providers: [BeersRepository],
     }).compile();
     repository = moduleRef.get(BeersRepository);
@@ -491,6 +501,90 @@ describe("BeersRepository filters and facets", () => {
     });
   });
 
+  describe("rating sort and minimum rating", () => {
+    const MOMENT = new Date("2026-03-01T10:00:00.000Z");
+    const FIRST_REVIEWER_ID = 100;
+
+    const rate = async (beerId: number, ratings: readonly number[]): Promise<void> => {
+      await moduleRef.get<Repository<Review>>(getRepositoryToken(Review)).insert(
+        ratings.map((rating, index) => ({
+          userId: FIRST_REVIEWER_ID + index,
+          beerId,
+          rating,
+          text: "",
+          sweetness: null,
+          acidity: null,
+          body: null,
+          createdAt: MOMENT,
+          updatedAt: MOMENT,
+        })),
+      );
+    };
+
+    const sortedIds = async (filters: BeerFilters = NO_FILTERS): Promise<number[]> =>
+      idsOf(await repository.findPage("", filters, BeerSortEnum.RATING, 1, 50));
+
+    it("sorts the rated beers first by average, then by review count, then the unrated by name", async () => {
+      await rate(16, [4, 5]);
+      await rate(15, [4.5]);
+      await rate(12, [3]);
+
+      expect(await sortedIds()).toEqual([16, 15, 12, 10, 11, 13, 14]);
+    });
+
+    it("keeps only the beers at or above the minimum rating, in the page, the total and the facets", async () => {
+      await rate(10, [3.5, 4, 4, 4, 4]);
+      await rate(11, [4]);
+      await rate(12, [4.5]);
+
+      const page = await repository.findPage("", { minRating: 4 }, BeerSortEnum.NAME, 1, 50);
+      const facets = await repository.findFacets("", { minRating: 4 });
+
+      expect(idsOf(page)).toEqual([11, 12]);
+      expect(page.total).toBe(2);
+      expect(facets.countries).toEqual([
+        { value: "BE", count: 1 },
+        { value: "DE", count: 1 },
+      ]);
+      expect(facets.families).toEqual([
+        { value: "stout", count: 1 },
+        { value: "trappist", count: 1 },
+      ]);
+      expect(facets.formats).toEqual([
+        { value: "bottle", count: 1 },
+        { value: "can", count: 1 },
+        { value: "draft", count: 1 },
+      ]);
+    });
+
+    it("applies the minimum rating together with another filter", async () => {
+      await rate(10, [4]);
+      await rate(11, [4.5]);
+      await rate(12, [5]);
+
+      expect(await findIds({ minRating: 4, beerIds: [10, 12, 13] })).toEqual([10, 12]);
+      expect(await findIds({ minRating: 4.5, beerIds: [10, 12, 13] })).toEqual([12]);
+      expect(await findIds({ minRating: 4, family: BeerFamilyEnum.TRAPPIST })).toEqual([10, 11]);
+    });
+
+    it("filters and sorts on the average rounded to one decimal", async () => {
+      await rate(10, [...Array.from({ length: 19 }, () => 4), 3.5]);
+      await rate(11, [4]);
+
+      expect(await findIds({ minRating: 4 })).toEqual([10, 11]);
+      expect((await sortedIds()).slice(0, 2)).toEqual([10, 11]);
+    });
+
+    it("sorts alphabetically by rating when no beer has a review", async () => {
+      expect(await sortedIds()).toEqual([10, 11, 12, 13, 14, 15, 16]);
+    });
+
+    it("answers nothing for a minimum rating no beer reaches", async () => {
+      await rate(10, [4]);
+
+      expect(await findIds({ minRating: 5 })).toEqual([]);
+    });
+  });
 });
 
 describe("BeersRepository style groups", () => {
@@ -499,7 +593,7 @@ describe("BeersRepository style groups", () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
       providers: [BeersRepository],
     }).compile();
     repository = moduleRef.get(BeersRepository);
@@ -539,5 +633,270 @@ describe("BeersRepository style groups", () => {
     expect(groups.find((group) => group.family === BeerFamilyEnum.BLONDE)?.styles).toEqual([
       { id: 4, name: "Only blonde", description: "B" },
     ]);
+  });
+});
+
+describe("BeersRepository reviews", () => {
+  let moduleRef: TestingModule;
+  let repository: BeersRepository;
+
+  beforeEach(async () => {
+    moduleRef = await Test.createTestingModule({
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
+      providers: [BeersRepository],
+    }).compile();
+    repository = moduleRef.get(BeersRepository);
+  });
+
+  afterEach(async () => {
+    await moduleRef.close();
+  });
+
+  const ALICE = 1;
+  const BOB = 2;
+  const ORVAL = 4;
+  const FIRST_MOMENT = new Date("2026-03-01T10:00:00.000Z");
+  const SECOND_MOMENT = new Date("2026-03-05T12:30:00.000Z");
+  const row = (overrides: Partial<Omit<Review, "id">> = {}): Omit<Review, "id"> => ({
+    userId: ALICE,
+    beerId: ORVAL,
+    rating: 4.5,
+    text: "Superbe amertume",
+    sweetness: 2,
+    acidity: null,
+    body: null,
+    createdAt: FIRST_MOMENT,
+    updatedAt: FIRST_MOMENT,
+    ...overrides,
+  });
+  const reviews = () => moduleRef.get<Repository<Review>>(getRepositoryToken(Review));
+
+  it("finds nothing for a pair without review, even when other pairs have one", async () => {
+    await reviews().insert([row({ userId: BOB }), row({ beerId: 5 })]);
+
+    expect(await repository.findReview(ALICE, ORVAL)).toBeNull();
+  });
+
+  it("finds the review of the pair as a record with ISO dates", async () => {
+    await reviews().insert([row({ userId: BOB, rating: 2, text: "Bob" }), row({ beerId: 5, rating: 1, text: "Autre" }), row()]);
+
+    expect(await repository.findReview(ALICE, ORVAL)).toEqual({
+      id: 3,
+      userId: ALICE,
+      beerId: ORVAL,
+      rating: 4.5,
+      text: "Superbe amertume",
+      sweetness: 2,
+      acidity: null,
+      body: null,
+      createdAt: FIRST_MOMENT.toISOString(),
+      updatedAt: FIRST_MOMENT.toISOString(),
+    });
+  });
+
+  it("inserts a new review and returns it", async () => {
+    const record = await repository.upsertReview(row());
+
+    expect(record).toEqual({
+      id: 1,
+      userId: ALICE,
+      beerId: ORVAL,
+      rating: 4.5,
+      text: "Superbe amertume",
+      sweetness: 2,
+      acidity: null,
+      body: null,
+      createdAt: FIRST_MOMENT.toISOString(),
+      updatedAt: FIRST_MOMENT.toISOString(),
+    });
+    expect(await reviews().count()).toBe(1);
+  });
+
+  it("replaces the review of the pair: same id, creation date kept, new content, a single row", async () => {
+    await reviews().insert(row({ userId: BOB, rating: 1, text: "Bob" }));
+    const created = await repository.upsertReview(row());
+
+    const replaced = await repository.upsertReview(
+      row({ rating: 3, text: "", sweetness: null, acidity: 4, body: 5, createdAt: SECOND_MOMENT, updatedAt: SECOND_MOMENT }),
+    );
+
+    expect(replaced).toEqual({
+      id: created.id,
+      userId: ALICE,
+      beerId: ORVAL,
+      rating: 3,
+      text: "",
+      sweetness: null,
+      acidity: 4,
+      body: 5,
+      createdAt: FIRST_MOMENT.toISOString(),
+      updatedAt: SECOND_MOMENT.toISOString(),
+    });
+    expect(await reviews().count({ where: { userId: ALICE, beerId: ORVAL } })).toBe(1);
+    expect(await reviews().count()).toBe(2);
+    expect((await repository.findReview(BOB, ORVAL))?.text).toBe("Bob");
+  });
+
+  it("deletes the review of the pair, answers true and leaves the reviews of other pairs", async () => {
+    await reviews().insert([row({ userId: BOB, rating: 2, text: "Bob" }), row({ beerId: 5, rating: 1, text: "Autre" }), row()]);
+
+    expect(await repository.deleteReview(ALICE, ORVAL)).toBe(true);
+
+    expect(await repository.findReview(ALICE, ORVAL)).toBeNull();
+    expect((await repository.findReview(BOB, ORVAL))?.text).toBe("Bob");
+    expect((await repository.findReview(ALICE, 5))?.text).toBe("Autre");
+    expect(await reviews().count()).toBe(2);
+  });
+
+  it("answers false and deletes nothing for a pair without review", async () => {
+    await reviews().insert([row({ userId: BOB }), row({ beerId: 5 })]);
+
+    expect(await repository.deleteReview(ALICE, ORVAL)).toBe(false);
+    expect(await reviews().count()).toBe(2);
+  });
+
+  it("keeps one row, the last written, for two simultaneous upserts of the same pair", async () => {
+    const first = repository.upsertReview(row({ rating: 2 }));
+    const last = repository.upsertReview(row({ rating: 5 }));
+    await Promise.all([first, last]);
+
+    expect(await reviews().count()).toBe(1);
+    expect((await repository.findReview(ALICE, ORVAL))?.rating).toBe(5);
+  });
+
+  describe("findRatingSummaries", () => {
+    it("groups the reviews by beer with the average to the tenth, half rounded up, and the count", async () => {
+      await reviews().insert([
+        row({ userId: ALICE, beerId: ORVAL, rating: 4 }),
+        row({ userId: BOB, beerId: ORVAL, rating: 4.5 }),
+        row({ userId: ALICE, beerId: 5, rating: 2 }),
+        row({ userId: ALICE, beerId: 6, rating: 5 }),
+      ]);
+
+      expect(await repository.findRatingSummaries([5, ORVAL])).toEqual([
+        { beerId: ORVAL, averageRating: 4.3, reviewCount: 2 },
+        { beerId: 5, averageRating: 2, reviewCount: 1 },
+      ]);
+    });
+
+    it("answers no summary for a beer without review and for an empty list of ids", async () => {
+      await reviews().insert(row({ beerId: 6 }));
+
+      expect(await repository.findRatingSummaries([ORVAL])).toEqual([]);
+      expect(await repository.findRatingSummaries([])).toEqual([]);
+    });
+  });
+
+  describe("findReviewStats", () => {
+    it("counts the ratings in the bar of their integer part, completed to five bars", async () => {
+      await reviews().insert([
+        row({ userId: 1, rating: 1 }),
+        row({ userId: 2, rating: 1.5 }),
+        row({ userId: 3, rating: 3.5 }),
+        row({ userId: 4, rating: 4.5 }),
+        row({ userId: 5, rating: 5 }),
+        row({ userId: 6, beerId: 5, rating: 2 }),
+      ]);
+
+      const stats = await repository.findReviewStats(ORVAL);
+
+      expect(stats.ratingDistribution).toEqual([
+        { stars: 1, count: 2 },
+        { stars: 2, count: 0 },
+        { stars: 3, count: 1 },
+        { stars: 4, count: 1 },
+        { stars: 5, count: 1 },
+      ]);
+    });
+
+    it("averages each criterion to the tenth over the reviews that filled it, with its count", async () => {
+      await reviews().insert([
+        row({ userId: 1, sweetness: 2, acidity: 5, body: null }),
+        row({ userId: 2, sweetness: 3, acidity: null, body: null }),
+        row({ userId: 3, sweetness: 3, acidity: null, body: 1 }),
+        row({ userId: 4, beerId: 5, sweetness: 5, acidity: 5, body: 5 }),
+      ]);
+
+      const stats = await repository.findReviewStats(ORVAL);
+
+      expect(stats.criteria).toEqual([
+        { criterion: "sweetness", average: 2.7, count: 3 },
+        { criterion: "acidity", average: 5, count: 1 },
+        { criterion: "body", average: 1, count: 1 },
+      ]);
+    });
+
+    it("answers five empty bars and three empty criteria for a beer without review", async () => {
+      await reviews().insert(row({ beerId: 5 }));
+
+      expect(await repository.findReviewStats(ORVAL)).toEqual({
+        ratingDistribution: [1, 2, 3, 4, 5].map((stars) => ({ stars, count: 0 })),
+        criteria: ["sweetness", "acidity", "body"].map((criterion) => ({ criterion, average: null, count: 0 })),
+      });
+    });
+  });
+
+  describe("findReviewPage", () => {
+    const THIRD_MOMENT = new Date("2026-03-09T09:00:00.000Z");
+    const FOURTH_MOMENT = new Date("2026-03-12T09:00:00.000Z");
+    const CAROL = 3;
+    const DAVE = 4;
+
+    const seedPage = async (): Promise<void> => {
+      await reviews().insert([
+        row({ userId: BOB, text: "Bob", updatedAt: SECOND_MOMENT }),
+        row({ userId: CAROL, text: "Carol", updatedAt: SECOND_MOMENT }),
+        row({ userId: ALICE, text: "Alice", updatedAt: FOURTH_MOMENT }),
+        row({ userId: BOB, beerId: 5, text: "Autre bière", updatedAt: FOURTH_MOMENT }),
+        row({ userId: DAVE, text: "Dave", updatedAt: FIRST_MOMENT }),
+        row({ userId: 5, text: "Erin", updatedAt: THIRD_MOMENT }),
+      ]);
+    };
+
+    const textsOf = (slice: { items: readonly { text: string }[] }): string[] => slice.items.map((item) => item.text);
+
+    it("lists the reviews of the beer written by the other users, newest modification first and highest id on a tie", async () => {
+      await seedPage();
+
+      const slice = await repository.findReviewPage(ORVAL, ALICE, 1, 10);
+
+      expect(textsOf(slice)).toEqual(["Erin", "Carol", "Bob", "Dave"]);
+      expect(slice.total).toBe(4);
+      expect(slice.items[1]).toEqual({
+        id: 2,
+        userId: CAROL,
+        beerId: ORVAL,
+        rating: 4.5,
+        text: "Carol",
+        sweetness: 2,
+        acidity: null,
+        body: null,
+        createdAt: FIRST_MOMENT.toISOString(),
+        updatedAt: SECOND_MOMENT.toISOString(),
+      });
+    });
+
+    it("skips the pages before the requested one, takes a page of the given size and keeps the total of all pages", async () => {
+      await seedPage();
+
+      const second = await repository.findReviewPage(ORVAL, ALICE, 2, 3);
+      const beyond = await repository.findReviewPage(ORVAL, ALICE, 3, 3);
+
+      expect(textsOf(second)).toEqual(["Dave"]);
+      expect(second.total).toBe(4);
+      expect(beyond).toEqual({ items: [], total: 4 });
+    });
+
+    it("answers an empty slice for a beer nobody reviewed or only the excluded user reviewed", async () => {
+      await seedPage();
+
+      expect(await repository.findReviewPage(99, ALICE, 1, 10)).toEqual({ items: [], total: 0 });
+      expect(await repository.findReviewPage(ORVAL, DAVE, 1, 10)).toMatchObject({ total: 4 });
+      await reviews().delete({ beerId: ORVAL, userId: BOB });
+      await reviews().delete({ beerId: ORVAL, userId: CAROL });
+      await reviews().delete({ beerId: ORVAL, userId: DAVE });
+      await reviews().delete({ beerId: ORVAL, userId: 5 });
+      expect(await repository.findReviewPage(ORVAL, ALICE, 1, 10)).toEqual({ items: [], total: 0 });
+    });
   });
 });

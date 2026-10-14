@@ -1,3 +1,4 @@
+import { BEER_MIN_RATING_OPTIONS } from "@/pages/encyclopedia/utils/encyclopediaConstants";
 import { isBeerFamily } from "@/types/enums/beer/beerFamilyEnum";
 import { isBeerFormat } from "@/types/enums/beer/beerFormatEnum";
 import type { BeerFormatEnum } from "@/types/enums/beer/beerFormatEnum";
@@ -14,6 +15,7 @@ export const EMPTY_BEER_QUERY: BeerQuery = {
   abvMin: null,
   abvMax: null,
   status: null,
+  minRating: null,
   sort: DEFAULT_BEER_SORT,
 };
 
@@ -28,6 +30,7 @@ export const beerQueryToSearchParams = (query: BeerQuery, page?: number, size?: 
   if (query.abvMin !== null) params.append("abvMin", query.abvMin.toString());
   if (query.abvMax !== null) params.append("abvMax", query.abvMax.toString());
   if (query.status !== null) params.append("status", query.status);
+  if (query.minRating !== null) params.append("minRating", query.minRating.toString());
   if (query.sort !== DEFAULT_BEER_SORT) params.append("sort", query.sort);
   if (page !== undefined) params.append("page", page.toString());
   if (size !== undefined) params.append("size", size.toString());
@@ -46,6 +49,9 @@ const parseDegree = (value: string | null): number | null => {
   const degree = Number(value);
   return degree <= MAX_ABV ? degree : null;
 };
+
+const parseMinRating = (value: string | null): number | null =>
+  BEER_MIN_RATING_OPTIONS.find((option) => option.toString() === value) ?? null;
 
 const parseFormats = (values: string[]): BeerFormatEnum[] => values.filter(isBeerFormat);
 
@@ -66,6 +72,7 @@ export const searchParamsToBeerQuery = (params: URLSearchParams): BeerQuery => {
     abvMin: hasInvertedRange ? null : abvMin,
     abvMax: hasInvertedRange ? null : abvMax,
     status: isBeerStatus(status) ? status : null,
+    minRating: parseMinRating(params.get("minRating")),
     sort: isBeerSort(sort) ? sort : DEFAULT_BEER_SORT,
   };
 };
@@ -78,4 +85,5 @@ export const isEmptyBeerQuery = (query: BeerQuery): boolean =>
   query.formats.length === 0 &&
   query.abvMin === null &&
   query.abvMax === null &&
-  query.status === null;
+  query.status === null &&
+  query.minRating === null;

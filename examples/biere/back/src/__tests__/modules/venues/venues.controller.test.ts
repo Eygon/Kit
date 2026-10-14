@@ -54,6 +54,9 @@ const VENUE_BEER: VenueBeerDto = {
   lastConfirmedAt: "2026-03-10T18:30:00.000Z",
   recentVoterCount: 3,
   nextVoteAt: null,
+  drunk: true,
+  checkinCount: 2,
+  lastCheckinAt: "2026-10-10T18:00:00.000Z",
 };
 
 describe("VenuesController", () => {
@@ -71,10 +74,10 @@ describe("VenuesController", () => {
 
   it("lists the venues of the query returned by the service", async () => {
     service.getVenues.mockResolvedValue([VENUE]);
-    const query: VenuesQueryDto = { type: [VenueTypeEnum.BAR] };
+    const query: VenuesQueryDto = { type: [VenueTypeEnum.BAR], undiscovered: true };
 
-    expect(await controller.getAll(query)).toEqual([VENUE]);
-    expect(service.getVenues).toHaveBeenCalledWith(query);
+    expect(await controller.getAll(5, query)).toEqual([VENUE]);
+    expect(service.getVenues).toHaveBeenCalledWith(5, query);
   });
 
   it("returns one venue by id", async () => {
@@ -177,8 +180,8 @@ describe("VenuesController", () => {
     service.reportBeer.mockResolvedValue(VENUE_BEER);
     const dto: ReportVenueBeerDto = { beerId: 3 };
 
-    expect(await controller.reportBeer(7, dto)).toBe(VENUE_BEER);
-    expect(service.reportBeer).toHaveBeenCalledWith(7, dto);
+    expect(await controller.reportBeer(5, 7, dto)).toBe(VENUE_BEER);
+    expect(service.reportBeer).toHaveBeenCalledWith(5, 7, dto);
   });
 
   it("serves the beer report on a POST :id/beers with a 201", () => {
@@ -189,14 +192,12 @@ describe("VenuesController", () => {
     expect(Reflect.getMetadata(HTTP_CODE_METADATA, handler)).toBe(HttpStatus.CREATED);
   });
 
-  it("binds the id through a pipe and the body on the beer report action", () => {
-    const args: Record<string, { pipes: unknown[] }> = Reflect.getMetadata(
-      ROUTE_ARGS_METADATA,
-      VenuesController,
-      "reportBeer",
-    );
+  it("binds the current user first, the id through a ParseIntPipe second and the body third on the beer report action", () => {
+    const bindings = bindingsOf("reportBeer");
 
-    expect(Object.values(args)).toHaveLength(2);
-    expect(Object.values(args).filter((arg) => arg.pipes.length === 1)).toHaveLength(1);
+    expect(Object.values(bindings)).toHaveLength(3);
+    expect(currentUserBindingOf("reportBeer")?.index).toBe(0);
+    expect(bindings[`${RouteParamtypes.PARAM}:1`]).toMatchObject({ index: 1, data: "id", pipes: [ParseIntPipe] });
+    expect(bindings[`${RouteParamtypes.BODY}:2`]).toMatchObject({ index: 2 });
   });
 });
