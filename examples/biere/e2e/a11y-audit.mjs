@@ -1,0 +1,38 @@
+// Audit d'accessibilite Mousse (axe-core) : tous les ecrans et feuilles principaux, fr puis en, 390x844.
+// Usage : node a11y-audit.mjs [fr|en] ; axe-core installe dans /tmp/axe.
+import { chromium } from "/opt/node22/lib/node_modules/playwright/index.mjs";
+import { a11y } from "/home/user/Kit/skills/_shared/e2e-oracles.mjs";
+const LANG = process.argv[2] || "fr"; const AXE = "/tmp/axe/node_modules/axe-core/axe.min.js"; const URL0 = "http://localhost:5173"; const API = "http://localhost:5090/api/v1";
+const H = (u) => ({ "X-User-Id": String(u) }); const post = (p, body, u = 1) => fetch(API + p, { method: "POST", headers: { ...H(u), "Content-Type": "application/json" }, body: JSON.stringify(body) });
+const ck = (beerId) => { const f = new FormData(); for (const [k, v] of Object.entries({ beerId, drankAt: new Date(Date.now() - 3600e3).toISOString(), place: "Chez moi", format: "bottle", rating: 4 })) f.append(k, String(v)); return fetch(API + "/checkins", { method: "POST", headers: H(1), body: f }); };
+const beers = (await (await fetch(API + "/beers", { headers: H(1) })).json()).items;
+for (const x of beers.slice(0, 5)) await ck(x.id); await post("/me/wishlist", { beerId: beers[6].id }); const col = await (await post("/me/collections", { name: "Trappistes" })).json(); await post(`/me/collections/${col.id}/beers`, { beerId: beers[0].id });
+await fetch(`${API}/beers/${beers[0].id}/reviews/me`, { method: "PUT", headers: { ...H(1), "Content-Type": "application/json" }, body: JSON.stringify({ rating: 4.5, text: "Bien", sweetness: 2 }) });
+const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, locale: LANG === "en" ? "en-US" : "fr-FR", hasTouch: true, isMobile: true, geolocation: { latitude: 48.8566, longitude: 2.3522 }, permissions: ["geolocation"] });
+await ctx.addInitScript((u) => { localStorage.setItem("mousse.currentUserId", String(u)); }, 1); const p = await ctx.newPage();
+const all = []; const seen = new Map();
+const audit = async (name) => { const v = await a11y(p, { axePath: AXE, expected: [] }); for (const x of v) { const key = x.id + "|" + x.sample[0]?.target; if (!seen.has(key)) seen.set(key, { ...x, screens: [name] }); else seen.get(key).screens.push(name); } console.log(`${v.length ? "VIOLATIONS" : "ok        "} ${name} ${v.map((x) => `${x.id}(${x.impact},${x.nodes})`).join(" ")}`); };
+const go = async (path, wait = 1200) => { await p.goto(URL0 + path); await p.waitForLoadState("networkidle"); await p.waitForTimeout(wait); };
+const click = async (loc) => { await loc.first().click(); await p.waitForTimeout(900); };
+await go("/"); await audit("accueil");
+await go("/bieres"); await audit("bieres");
+await click(p.getByRole("button", { name: /Filtres|Filters/ })); await audit("bieres-filtres"); await p.keyboard.press("Escape"); await p.waitForTimeout(500);
+await go(`/bieres/${beers[0].id}`); await audit("fiche-biere");
+await click(p.getByRole("button", { name: /Modifier mon avis|Edit my review/ })); await audit("fiche-avis-formulaire"); await p.keyboard.press("Escape"); await p.waitForTimeout(500);
+await click(p.getByRole("button", { name: /Ajouter à une collection|Add to a collection/ })); await audit("fiche-ajout-collection"); await p.keyboard.press("Escape"); await p.waitForTimeout(500);
+await click(p.getByRole("button", { name: /Je l'ai bue|I drank it/ })); await audit("fiche-checkin"); await p.keyboard.press("Escape"); await p.waitForTimeout(500);
+await go("/carte", 2000); await audit("carte");
+await click(p.getByRole("button", { name: /^Lieux|^Venues/ })); await audit("carte-liste"); await p.keyboard.press("Escape"); await p.waitForTimeout(500);
+await click(p.getByRole("button", { name: /^Filtres|^Filters/ })); await audit("carte-filtres"); await p.keyboard.press("Escape"); await p.waitForTimeout(500);
+await click(p.getByRole("button", { name: /Rechercher un lieu|Search for a venue/ })); await audit("carte-recherche"); await p.keyboard.press("Escape"); await p.waitForTimeout(500);
+await go("/journal"); await audit("journal");
+await go("/profil"); await audit("profil");
+await click(p.getByRole("button", { name: /^Modifier$|^Edit$/ })); await audit("profil-edition"); await p.keyboard.press("Escape"); await p.waitForTimeout(500);
+await go("/profils"); await audit("profils");
+await go("/profils/2"); await audit("profil-autrui");
+await go("/profils/1/wishlist"); await audit("a-gouter");
+await go(`/profils/1/collections/${col.id}`); await audit("collection");
+await b.close();
+console.log("\n=== Violations uniques ===");
+for (const v of [...seen.values()].sort((a, b) => (b.impact === "critical") - (a.impact === "critical") || (b.impact === "serious") - (a.impact === "serious"))) console.log(`[${v.impact}] ${v.id} — ${v.help} ; ${v.nodes} noeud(s) ; ecrans : ${v.screens.join(",")}\n   ex: ${v.sample[0]?.target} :: ${v.sample[0]?.html}\n   pourquoi: ${v.sample[0]?.why}`);
+console.log(`\n${seen.size} violation(s) unique(s)`);

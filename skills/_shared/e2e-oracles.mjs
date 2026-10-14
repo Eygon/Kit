@@ -219,3 +219,21 @@ export async function covered(page, { within = "body", limit = 20, expected = []
   }, { within });
   return found.filter((f) => !expected.some((rx) => rx.test(f.text))).slice(0, limit);
 }
+
+// a11y(page, { axePath, within, minImpact }) : audit d accessibilite automatique (axe-core) de l ecran COURANT, apres ouverture de
+// l etat a tester (feuille, tiroir, erreur). Rend [{ id, impact, nodes, help, sample }] triees par gravite ; vide = rien a signaler.
+// axe-core n est pas une dependance du kit : `npm install axe-core` dans un dossier temporaire et passe le chemin de
+// `node_modules/axe-core/axe.min.js` en `axePath`. Ne remplace pas la lecture du rendu : axe voit les contrastes, les noms
+// accessibles manquants, les titres sautes, les cibles ARIA invalides, pas la mise en page.
+// Banc : lance-le sur chaque ecran ET chaque feuille ouverte, en fr et en en (les libelles traduits changent les noms accessibles).
+export async function a11y(page, { axePath, within = "body", minImpact = "moderate", expected = [] } = {}) {
+  if (!axePath) throw new Error("a11y : axePath (chemin de axe.min.js) est obligatoire");
+  const ORDER = ["minor", "moderate", "serious", "critical"];
+  await page.addScriptTag({ path: axePath }).catch(() => {});
+  const res = await page.evaluate(async ({ within }) => {
+    // eslint-disable-next-line no-undef
+    const r = await axe.run(document.querySelector(within) || document.body, { resultTypes: ["violations"] });
+    return r.violations.map((v) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.length, sample: v.nodes.slice(0, 3).map((n) => ({ target: n.target.join(" "), html: n.html.slice(0, 140), why: (n.any[0] || n.all[0] || n.none[0] || {}).message || "" })) }));
+  }, { within });
+  return res.filter((v) => ORDER.indexOf(v.impact) >= ORDER.indexOf(minImpact) && !expected.includes(v.id)).sort((a, b) => ORDER.indexOf(b.impact) - ORDER.indexOf(a.impact));
+}

@@ -56,3 +56,11 @@
 ## Non-régression complète (14 octobre, après fusion F1-F7)
 - Les quatre suites navigateur précédentes sur le dev à jour : F1 36/37 → l'unique échec était l'assertion de la limite « anglais » (maintenant levée par F4, assertion corrigée), F2 37/37, F3 29/29, G (carte+point) 35/35. Aucune régression de F4/F6/F7 sur F1-F3.
 - Polish 1 (mois en initiale, Journal, un seul bandeau de carte) : 3 contrôles 360 px sans débordement.
+
+## F5 Profil social + collections (14 octobre, nuit)
+- Prep Opus : 31 US (back 13, front 18), 4 questions de clarify tranchées au nom de Thomas (seed de démo derrière `SEED_DEMO_ACTIVITY`, fil calculé à la volée, Accueil sur « / » + Encyclopédie sur « /bieres » + 5 onglets, portée en 2 runs). Run 1 : profil, suivi, fil (back US1-8, front US9-19) — 19 US PASS sans escalade. Run 2 : collections (« mes Pokédex ») — back US20-24, front US25-31 : 3 escalades (enum du contrat sans chemin de tâche ; hook sans `isEnabled` + titre de section pour le profil d'autrui ; onglet actif sur les pages de collection) + 1 (feuille de renommage à réutiliser) → toutes tranchées, fix workers, relance en compact.
+- Kit : sk-prep SKILL.md (enums du contrat, `isEnabled` des hooks, prop de titre réutilisé) ; oracle `a11y` (axe-core) ajouté à `e2e-oracles.mjs` + doc.
+- Review-lens : back 7+7 pistes dont 1 **défaut de contrat** (nom de « À goûter » rendu côté API au lieu de `""`) ; front 13+6 pistes (aucun défaut de prod bloquant ; 2 notés).
+- Passage réel : F5 profil social 67/68 (1 erreur de mon script), collections 61/62 (1 erreur de mon script, corrigée) : API 409 casse + accents (« Été »/« été »), limite de 20, 403 non-abonné, 404 avant 403, retrait 204/404 ; UI : création, renommage par feuille, suppression avec confirmation, A goûter non modifiable, collections d'un profil suivi seulement. Deux défauts vus au navigateur seulement : cases à cocher empilées dans la feuille « Ajouter à une collection », bouton « Retirer » flottant sous la carte → polish 2.
+- Audit axe-core (fr/en, 19 écrans) : 3 violations réelles (contraste du gris secondaire 3,57:1, liens du fil sans soulignement, ordre des titres sur /bieres) → polish 3. Reste le lien Leaflet de l'attribution (bibliothèque).
+- Chiffres : front 235 fichiers / 2524 tests, back 165 fichiers / 1993 tests.

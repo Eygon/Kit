@@ -66,3 +66,5 @@ Comptes avec mots de passe, modération, paiement, réseau social complet (amis,
 - Profil : libellés de mois tronqués dans l'histogramme (« dé… », « jan… »).
 - Histogramme des notes : une note 4,5 est comptée dans « 4 étoiles » (arrondi bas) — décision à confirmer.
 - Carte : trois bandeaux empilés en haut, repères qui se superposent à Paris (pas de regroupement).
+- Collections : le bouton « Nouvelle collection » est rendu après la section (`profile.tsx`) alors que la spec dit « dans la section » ; un 409 à la limite de 20 collections affiche « Ce nom est déjà pris » (HttpError sans corps) au lieu de « 20 collections au plus » (cas rare : cache périmé).
+- Avis : l'histogramme range une note 4,5 dans « 4 étoiles ».

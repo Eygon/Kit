@@ -216,3 +216,7 @@ passage par feature : les defauts entre features n apparaissent qu ensemble.
   ne les reecris pas.
 - Les FAIL deviennent des `/sk-xs` (1 comportement, 1 depot) ou un
   `/sk-impl` de correction ; le passage suivant rejoue tout le cahier.
+
+## Oracle d accessibilite (`a11y`, e2e-oracles.mjs)
+
+`a11y(page, { axePath })` lance axe-core sur l ecran ouvert et rend les violations (impact >= moderate par defaut) avec 3 noeuds d exemple et la raison. Appelle-le sur chaque ecran et chaque feuille/tiroir ouverts, en fr et en en. axe-core s installe a part (`npm install axe-core` dans un dossier temporaire) : le kit ne l embarque pas. Il trouve les contrastes insuffisants, les boutons sans nom, les champs sans etiquette, les ids dupliques, les titres sautes ; il ne voit pas la mise en page (utilise `overflowing`, `covered`, `unreachable`). Banc Mousse (14 octobre) : premier passage sur 12 ecrans.
