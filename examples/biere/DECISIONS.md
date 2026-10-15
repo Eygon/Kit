@@ -41,6 +41,13 @@ Si tu ne dis rien, tout reste tel quel.
 | 35 | **Recherche tolérante aux fautes** seulement quand il n'y a aucun résultat exact : 1 faute pour les mots de 4 à 7 lettres, 2 à partir de 8, mots de moins de 4 lettres ignorés ; le résultat est signalé (« Aucun résultat exact : voici des bières / lieux proches ») ; avec un filtre pays ou famille actif, les compteurs de facettes du repli montrent moins de valeurs que la recherche exacte (limite connue) | Aide sans noyer les vraies recherches vides |
 | 36 | **Page « Page introuvable »** au lieu de la redirection silencieuse vers l'Accueil | Une adresse mal saisie doit se voir |
 
+| 37 | **Fiche technique d'une bière (F14)** : 8 caractéristiques (degré 0–20, amertume IBU 0–120, couleur EBC 2–80, douceur / acidité / corps de 1 à 5, arômes 1 à 5, formats 1 à 3) **renseignées par celui qui ajoute la bière** ; « Non renseignée » sinon. Les jugements d'utilisateurs (douceur, acidité, corps dans l'avis) sont **retirés** : l'avis garde la note et le texte | Ta demande : ce n'est pas à l'utilisateur de juger l'amertume |
+| 38 | **Rectification par vote** : tout le monde sauf l'auteur d'une bière communautaire peut proposer une nouvelle valeur (une seule proposition ouverte par bière et par caractéristique, 10 propositions par jour) ; chaque utilisateur vote « d'accord » / « pas d'accord » une fois, modifiable ; l'auteur de la bière peut voter ; **le proposeur ne vote pas** (son « pour » est implicite) | Évite le double « pour » du proposeur |
+| 39 | **Un vote dure 7 jours** ; à l'échéance la valeur est **validée si les « d'accord » dépassent les « pas d'accord » avec au moins 2 « d'accord »** (le proposeur compte), sinon refusée (égalité ou quorum manqué = refusée). Résolution **à la lecture** (pas de tâche planifiée), sans effet sur le catalogue | Simple, testable ; 2 « d'accord » parce que la démo n'a que 3 utilisateurs |
+| 40 | **Onglet « Votes »** (6e onglet, libellés entiers à 360 px) : propositions ouvertes triées par échéance, pastille = celles que tu n'as pas votées et qui ne sont pas les tiennes, section « Récemment tranchées » (10 dernières) ; la fiche d'une bière montre aussi ses propositions | Ta demande d'un onglet pour voir les bières en attente de vote |
+| 41 | **Les « arômes ressentis » de « Je l'ai bue » restent une note personnelle du Journal** (jamais agrégés sur la fiche) | Interprétation de ta phrase : à confirmer, c'est le point le plus ouvert |
+| 42 | **Démo** : 4 propositions ouvertes (une clôt dans moins d'un jour), 1 validée, 1 refusée, pour que l'onglet ne soit jamais vide | Démonstration |
+
 ## Choix techniques
 
 | # | Décision | Pourquoi |
