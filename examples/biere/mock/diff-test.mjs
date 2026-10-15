@@ -1,9 +1,14 @@
 // Test différentiel : mock-api.js (dans un faux window) contre le vrai back NestJS de Mousse.
 // Usage : /opt/node22/bin/node diff-test.mjs
-//   BACK_DIR (défaut /home/user/biere/back), BACK_PORT (défaut 5095), BACK_URL (si fourni, pas de lancement du back ;
-//   il doit être fraîchement démarré avec DATABASE_PATH=:memory: SEED_DEMO_ACTIVITY=true).
+//   BACK_DIR (défaut /home/user/biere/back), BACK_PORT (défaut 5095), BACK_DB (fichier SQLite du back, défaut
+//   <tmp>/mousse-diff-<port>.sqlite, effacé au départ), BACK_URL (si fourni, pas de lancement du back ; il doit être
+//   fraîchement démarré avec DATABASE_PATH=$BACK_DB SEED_DEMO_ACTIVITY=true sur un fichier neuf), DIFF_LOG (fichier où
+//   écrire chaque requête avec le statut et le début du corps du back).
+// F14 : la résolution des propositions est testée en vieillissant createdAt/closesAt dans le fichier SQLite du back
+// (node:sqlite) et, à l'identique, dans l'état du mock (window.__mockSetCorrectionDates, option testHooks).
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { appendFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
@@ -15,14 +20,20 @@ const PORT = Number(process.env.BACK_PORT ?? 5095);
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
 const MOCK_BASE = "https://mousse.mock/api/v1";
+const BACK_DB = process.env.BACK_DB ?? join(tmpdir(), `mousse-diff-${PORT}.sqlite`);
 
 // ------------------------------------------------------------------ back
 let backProcess = null;
 const startBack = async () => {
   if (process.env.BACK_URL) return process.env.BACK_URL;
-  backProcess = spawn(process.execPath, ["dist/main.js"], {
+  ["", "-journal", "-wal", "-shm"].forEach((suffix) => rmSync(`${BACK_DB}${suffix}`, { force: true }));
+  // Lancé par un petit fichier intermédiaire : la ligne de commande ne contient pas « dist/main.js », qu'un autre script
+  // de la machine arrête sans discernement.
+  const wrapper = join(tmpdir(), `run-back-${PORT}.cjs`);
+  writeFileSync(wrapper, `require(${JSON.stringify(join(BACK_DIR, "dist/main.js"))});\n`);
+  backProcess = spawn(process.execPath, [wrapper], {
     cwd: BACK_DIR,
-    env: { ...process.env, PORT: String(PORT), DATABASE_PATH: ":memory:", SEED_DEMO_ACTIVITY: "true" },
+    env: { ...process.env, PORT: String(PORT), DATABASE_PATH: BACK_DB, SEED_DEMO_ACTIVITY: "true" },
     stdio: ["ignore", "ignore", "inherit"],
   });
   const url = `http://localhost:${PORT}/api/v1`;
@@ -100,6 +111,7 @@ const normalize = (value) => {
 
 let compared = 0;
 const statuses = new Map();
+const f14Statuses = new Map();
 const differences = [];
 const summarize = (value) => {
   const text = JSON.stringify(value);
@@ -140,6 +152,11 @@ const makeComparer = (backUrl, mockFetch, label) => async (pending) => {
   }
   compared += 1;
   statuses.set(real.status, (statuses.get(real.status) ?? 0) + 1);
+  if (String(request.name).startsWith("F14")) f14Statuses.set(real.status, (f14Statuses.get(real.status) ?? 0) + 1);
+  if (process.env.DIFF_LOG) {
+    appendFileSync(process.env.DIFF_LOG, `[${request.name ?? label}] ${request.method ?? "GET"} ${request.path} (user ${request.user}) ` +
+      `${JSON.stringify(request.json ?? null)} -> ${real.status} ${summarize(real.body)}\n`);
+  }
   const a = { status: real.status, body: normalize(real.body) };
   const b = { status: fake.status, body: normalize(fake.body) };
   if (!isDeepStrictEqual(a, b)) {
@@ -397,11 +414,12 @@ const scenarios = (now) => {
   // avis
   const review = (user, beer, body) => step("avis", { method: "PUT", path: `/beers/${beer}/reviews/me`, user, json: body });
   review(1, B.westmalle, { rating: 4, text: "Jamais bue" });
-  review(1, B.orval, { rating: 4.5, text: "  Superbe\r\namertume  ", sweetness: 2, acidity: 3, body: 4 });
-  review(1, B.orval, { rating: 3.5, text: "Revue à la baisse", sweetness: null, acidity: 1, body: null });
+  // F14 : les critères ne font plus partie de l'avis ; ces scénarios d'origine les ont perdus (voir les refus F14 plus bas).
+  review(1, B.orval, { rating: 4.5, text: "  Superbe\r\namertume  " });
+  review(1, B.orval, { rating: 3.5, text: "Revue à la baisse" });
   review(1, B.duvel, { rating: 5 });
-  review(1, B.pils, { rating: 3, text: "", sweetness: 5, acidity: 5, body: 5 });
-  review(2, B.pils, { rating: 2.5, text: "J'ai changé d'avis", sweetness: 1, acidity: 1, body: 1 });
+  review(1, B.pils, { rating: 3, text: "" });
+  review(2, B.pils, { rating: 2.5, text: "J'ai changé d'avis" });
   review(1, B.orval, { rating: 4.3 });
   review(1, B.orval, { rating: 0.5, text: "x".repeat(501), sweetness: 6, acidity: 1.5, body: "3" });
   review(1, B.orval, { text: "sans note", extra: 1 });
@@ -707,6 +725,264 @@ const scenariosF11to13 = (now) => {
   return steps;
 };
 
+// ------------------------------------------------------------------ F14 : lectures sur l'état initial
+const readGetsF14 = () => {
+  const list = [];
+  const get = (path, user = 1) => list.push({ name: "F14", path, user });
+  const seededBeers = ["Chimay Bleue", "Orval", "Duvel", "La Chouffe", "Westmalle Tripel", "Leffe Blonde", "Punk IPA",
+    "Pilsner Urquell", "Torpedo Extra IPA"].map(beerId);
+  [1, 2, 3, undefined, "abc", 4].forEach((u) => get("/corrections", u));
+  [1, 2, 3].forEach((u) => seededBeers.forEach((id) => get(`/beers/${id}/corrections`, u)));
+  seededBeers.forEach((id, i) => get(`/beers/${id}`, [1, 2, 3][i % 3]));
+  ["/beers/9999/corrections", "/beers/abc/corrections", "/beers/0/corrections", "/beers/1.5/corrections", "/beers/1/corrections/",
+    "/corrections?foo=1", "/corrections/", "/CORRECTIONS", "/corrections/1", "/beers/1/corrections?page=2"]
+    .forEach((p) => get(p, 2));
+  get("/beers/1/corrections", undefined);
+  ["?q=westmalle", "?q=chouffe", "?q=pilsner", "?sort=abv&size=10", "?format=can&size=50", "?family=trappist"]
+    .forEach((q, i) => get(`/beers${q}`, [1, 2, 3][i % 3]));
+  list.push({ name: "F14", method: "DELETE", path: "/beers/1/corrections", user: 1 });
+  list.push({ name: "F14", method: "POST", path: "/corrections/1/vote", user: 1, json: { sense: "agree" } });
+  list.push({ name: "F14", method: "PUT", path: "/corrections", user: 1, json: {} });
+  return list;
+};
+
+// ------------------------------------------------------------------ F14 : scénarios d'écriture (après F11-F13)
+const scenariosF14 = (now) => {
+  const B = Object.fromEntries(Object.entries({ chimayBleue: "Chimay Bleue", chimayRouge: "Chimay Rouge", chouffe: "La Chouffe",
+    leffe: "Leffe Blonde", westmalle: "Westmalle Tripel", duvel: "Duvel", orval: "Orval", punk: "Punk IPA", pils: "Pilsner Urquell",
+    guinness: "Guinness Draught", saison: "Saison Dupont", taras: "Taras Boulba", torpedo: "Torpedo Extra IPA",
+    delirium: "Delirium Tremens", jupiler: "Jupiler", stella: "Stella Artois", sierra: "Sierra Nevada Pale Ale" })
+    .map(([key, name]) => [key, beerId(name)]));
+  const steps = [];
+  const step = (name, request) => steps.push({ name, ...request });
+  const ref = (key) => (ctx) => ctx[key];
+  const idOf = (beer) => (typeof beer === "function" ? beer : () => beer);
+  const reads = (name, users, paths) => users.forEach((user) => paths.forEach((path) => step(name, { path, user })));
+  const sheetBody = (label, extra) => ({ name: `Fiche ${label}`, breweryName: "Brasserie de la Fiche", country: "FR", styleId: 1, abv: 5,
+    ...extra });
+  const createBeer = (user, label, extra, capture, name = "F14 fiche") =>
+    step(name, { method: "POST", path: "/beers", user, json: sheetBody(label, extra), capture });
+  const propose = (user, beer, json, capture, name = "F14 proposer") =>
+    step(name, { method: "POST", path: (ctx) => `/beers/${idOf(beer)(ctx)}/corrections`, user, json, capture });
+  const vote = (user, id, json, name = "F14 voter") =>
+    step(name, { method: "PUT", path: (ctx) => `/corrections/${idOf(id)(ctx)}/vote`, user, json });
+  const agree = (user, id) => vote(user, id, { sense: "agree" });
+  const disagree = (user, id) => vote(user, id, { sense: "disagree" });
+  let aged = 0;
+  // Échéance passée, distincte pour chaque proposition vieillie, antérieure au début du test (comparée telle quelle).
+  const age = (id) => {
+    aged += 1;
+    steps.push({ name: "F14 vieillir", age: idOf(id), closesAt: now - 2 * HOUR - aged * 60_000 });
+  };
+  const board = (name) => reads(name, [1, 2, 3], ["/corrections"]);
+
+  // fiche technique à la création d'une bière
+  createBeer(1, "pleine", { ibu: 35, ebc: 20, sweetness: 2, acidity: 1, body: 4, aromas: ["fruity", "hoppy"], formats: ["can"] }, "t1");
+  createBeer(1, "basse", { ibu: 0, ebc: 2, sweetness: 1, acidity: 1, body: 1 }, "t2");
+  createBeer(1, "haute", { ibu: 120, ebc: 80, sweetness: 5, acidity: 5, body: 5, aromas: ["fruity", "hoppy", "malty", "spicy", "honey"],
+    formats: ["draft", "bottle", "can"] }, "t3");
+  createBeer(2, "nulle", { ibu: null, ebc: null, sweetness: null, acidity: null, body: null, aromas: null, formats: null, description: null }, "t4");
+  createBeer(2, "vide", { aromas: [], formats: [], ebc: 61 }, "t5");
+  [{ ibu: 121 }, { ibu: -1 }, { ebc: 1 }, { ebc: 81 }, { sweetness: 6 }, { acidity: 0 }, { body: 6 }, { ibu: 35.5 },
+    { aromas: ["fruity", "hoppy", "malty", "spicy", "honey", "caramel"] }, { aromas: ["fruity", "fruity"] }, { aromas: ["unknown"] },
+    { formats: ["bottle", "can", "draft", "bottle"] }, { formats: ["keg"] }, { formats: ["can", "can"] }, { ibu: "35" }, { ebc: 2.5 },
+    { aromas: "fruity" }, { aromas: [1] }, { sweetness: true }, { formats: {} }, { body: [3] },
+    { ibu: 121, ebc: 1, sweetness: 0, acidity: 6, body: 0.5, aromas: ["x", "x"], formats: ["keg", "keg", "keg", "keg"] },
+    { criteria: [] }, { ibu: 200, styleId: 999 }]
+    .forEach((extra, i) => createBeer(2, `refus ${i}`, extra, undefined, "F14 fiche refus"));
+  createBeer(2, "style", { ibu: 35, styleId: 999 }, undefined, "F14 fiche refus");
+  createBeer(3, "quota", { ibu: 35, aromas: ["fruity"] }, undefined, "F14 fiche refus");
+  createBeer(3, "quota bis", { ibu: 350 }, undefined, "F14 fiche refus");
+  ["t1", "t2", "t3", "t4", "t5"].forEach((key) => [1, 2].forEach((user) => step("F14 fiche lue", { path: (ctx) => `/beers/${ctx[key]}`, user })));
+  reads("F14 fiche lue", [1, 3], ["/beers?q=fiche", "/beers?q=fiche&format=can", "/beers?q=fiche&sort=abv", "/beers?q=fiche&format=draft",
+    "/beers?q=fiche&family=lager&size=2&page=2"]);
+
+  // avis sans critères
+  const review = (user, beer, json, name = "F14 avis") => step(name, { method: "PUT", path: `/beers/${beer}/reviews/me`, user, json });
+  review(1, B.saison, { rating: 4, text: "Sans critère" });
+  review(1, B.saison, { rating: 4, sweetness: 2 });
+  review(1, B.saison, { rating: 4, acidity: null });
+  review(1, B.saison, { rating: 4, body: 2.5 });
+  review(1, B.saison, { rating: 3, text: "Avec critères", sweetness: 1, acidity: 2, body: 3 });
+  review(1, B.saison, { sweetness: 1 });
+  review(2, B.saison, { rating: 5, body: 4 });
+  review(1, 9999, { rating: 4, body: 1 });
+  review(1, B.saison, { rating: 4.5, text: "Remplacé" });
+  reads("F14 avis lus", [1, 2, 3], [`/beers/${B.saison}/reviews`, `/beers/${B.saison}`, "/me/feed"]);
+
+  // propositions : identité, forme, valeur, ordre des contrôles
+  step("F14 proposer", { method: "POST", path: `/beers/${B.punk}/corrections`, user: undefined, json: { characteristic: "ibu", value: 45 } });
+  step("F14 proposer", { method: "POST", path: `/beers/${B.punk}/corrections`, user: undefined, json: { characteristic: "nope" } });
+  step("F14 proposer", { method: "POST", path: "/beers/abc/corrections", user: 1, json: { characteristic: "ibu", value: 45 } });
+  step("F14 proposer", { method: "POST", path: "/beers/0/corrections", user: 1, json: { characteristic: "ibu", value: 45 } });
+  step("F14 proposer", { method: "POST", path: `/beers/${B.punk}/corrections`, user: 1 });
+  [{}, { characteristic: "color", value: 3 }, { characteristic: "ibu" }, { characteristic: "ibu", value: null }, { value: 30 },
+    { characteristic: "IBU", value: 30 }, { characteristic: "ibu", value: 30, reason: 5 }, { characteristic: "ibu", value: 30, reason: "r".repeat(201) },
+    { characteristic: "ibu", value: 30, extra: 1 }, { characteristic: ["ibu"], value: 30 }, { characteristic: null, value: 30 },
+    { characteristic: "ibu", value: 30, reason: "r".repeat(201), beerId: 1, extra: true }]
+    .forEach((json) => propose(1, B.punk, json, undefined, "F14 proposer forme"));
+  [["ibu", "30"], ["ibu", 30.5], ["ibu", 121], ["ibu", -1], ["ibu", true], ["ibu", [30]], ["ibu", {}], ["ebc", 1], ["ebc", 81], ["ebc", 20.5],
+    ["sweetness", 0], ["sweetness", 6], ["sweetness", 2.5], ["acidity", 0], ["body", 6], ["abv", 20.1], ["abv", 5.55], ["abv", -0.1], ["abv", "5"],
+    ["abv", 21], ["aromas", []], ["aromas", ["fruity", "hoppy", "malty", "spicy", "honey", "caramel"]], ["aromas", ["fruity", "fruity"]],
+    ["aromas", ["unknown"]], ["aromas", "fruity"], ["aromas", [1]], ["aromas", ["fruity", null]], ["formats", []], ["formats", ["keg"]],
+    ["formats", ["bottle", "can", "draft", "bottle"]], ["formats", ["can", "can"]], ["formats", "can"], ["ibu", false], ["abv", [5]]]
+    .forEach(([characteristic, value]) => propose(1, B.punk, { characteristic, value }, undefined, "F14 proposer valeur"));
+  propose(1, 9999, { characteristic: "ibu", value: 999 }, undefined, "F14 proposer ordre");
+  propose(1, 9999, { characteristic: "ibu", value: 30 }, undefined, "F14 proposer ordre");
+  propose(1, ref("c1"), { characteristic: "ibu", value: 30 }, undefined, "F14 proposer ordre");
+  propose(1, ref("c1"), { characteristic: "abv", value: 5.5 }, undefined, "F14 proposer ordre");
+  propose(1, ref("t1"), { characteristic: "ibu", value: 35 }, undefined, "F14 proposer ordre");
+  propose(2, ref("c4"), { characteristic: "ibu", value: 30 }, undefined, "F14 proposer ordre");
+  propose(1, ref("c1"), { characteristic: "ibu", value: 999 }, undefined, "F14 proposer ordre");
+  [[B.orval, "abv", 6.2], [B.pils, "ibu", 40], [B.punk, "aromas", ["fruity", "herbal", "citrus", "hoppy"]],
+    [B.punk, "formats", ["draft", "can", "bottle"]], [B.westmalle, "body", 4], [B.leffe, "abv", 6.6], [B.chouffe, "formats", ["draft", "bottle"]]]
+    .forEach(([beer, characteristic, value]) => propose(1, beer, { characteristic, value }, undefined, "F14 proposer identique"));
+  propose(2, ref("t1"), { characteristic: "ibu", value: 35 }, undefined, "F14 proposer identique");
+  propose(2, ref("t1"), { characteristic: "aromas", value: ["hoppy", "fruity"] }, undefined, "F14 proposer identique");
+  // propositions acceptées
+  propose(1, B.punk, { characteristic: "ibu", value: 45, reason: "  Selon la brasserie\r\n45 IBU  " }, "p1");
+  propose(1, B.punk, { characteristic: "ebc", value: 18, reason: `  ${"r".repeat(200)}  ` }, "p2");
+  propose(2, B.punk, { characteristic: "aromas", value: ["hoppy", "citrus"], reason: "<b>Moins</b> & \"plus\" <script>x</script>" }, "p3");
+  propose(2, B.pils, { characteristic: "formats", value: ["can"] }, "p4");
+  propose(3, ref("c1"), { characteristic: "ibu", value: 30, reason: null }, "p5");
+  propose(1, B.westmalle, { characteristic: "abv", value: 9.4 }, "p6");
+  propose(1, B.duvel, { characteristic: "ibu", value: 0 }, "p7");
+  propose(2, B.guinness, { characteristic: "sweetness", value: 5 }, "p8");
+  propose(3, B.saison, { characteristic: "acidity", value: 1 }, "p9");
+  propose(2, ref("t1"), { characteristic: "body", value: 5 }, "p10");
+  // 409 : une seule ouverte par bière et caractéristique ; une autre caractéristique de la même bière reste possible
+  propose(3, B.punk, { characteristic: "ibu", value: 50 }, undefined, "F14 proposer conflit");
+  propose(3, B.punk, { characteristic: "ibu", value: 45 }, undefined, "F14 proposer conflit");
+  propose(1, B.chimayBleue, { characteristic: "ibu", value: 40 }, undefined, "F14 proposer conflit");
+  propose(2, B.duvel, { characteristic: "sweetness", value: 3 }, undefined, "F14 proposer conflit");
+  propose(3, B.punk, { characteristic: "formats", value: ["can", "bottle"] }, "p11");
+  reads("F14 propositions lues", [1, 2, 3], [`/beers/${B.punk}/corrections`, "/corrections", `/beers/${B.punk}`, `/beers/${B.pils}/corrections`]);
+  [1, 2].forEach((user) => step("F14 propositions lues", { path: (ctx) => `/beers/${ctx.c1}/corrections`, user }));
+  // quota : Carol a 3 propositions dans les 24 h, 7 de plus l'amènent à 10
+  [[B.delirium, "ibu", 20], [B.jupiler, "ibu", 15], [B.stella, "ebc", 6], [B.sierra, "ebc", 12], [B.taras, "sweetness", 2],
+    [B.torpedo, "acidity", 2], [B.chimayRouge, "body", 3]]
+    .forEach(([beer, characteristic, value], i) => propose(3, beer, { characteristic, value }, `k${i + 1}`, "F14 quota"));
+  propose(3, B.leffe, { characteristic: "ibu", value: 1000 }, undefined, "F14 quota");
+  propose(3, 9999, { characteristic: "ibu", value: 20 }, undefined, "F14 quota");
+  propose(3, ref("q1"), { characteristic: "ibu", value: 20 }, undefined, "F14 quota");
+  propose(3, B.pils, { characteristic: "ibu", value: 40 }, undefined, "F14 quota");
+  propose(3, B.leffe, { characteristic: "ibu", value: 20 }, undefined, "F14 quota");
+  propose(3, B.punk, { characteristic: "ibu", value: 50 }, undefined, "F14 quota");
+  propose(2, B.leffe, { characteristic: "ibu", value: 20 }, "p12", "F14 quota");
+  reads("F14 quota", [3], ["/corrections", `/beers/${B.leffe}/corrections`]);
+
+  // votes : création, changement, refus, ordre des contrôles
+  agree(1, 1);
+  disagree(1, 1);
+  agree(1, 1);
+  agree(2, 1);
+  disagree(2, 1);
+  disagree(3, 1);
+  vote(1, 9999, { sense: "agree" });
+  vote(1, 0, { sense: "agree" });
+  step("F14 voter", { method: "PUT", path: "/corrections/abc/vote", user: 1, json: { sense: "agree" } });
+  [{ sense: "maybe" }, {}, { sense: "AGREE" }, { sense: null }, { sense: "agree", extra: 1 }, { sense: ["agree"] }]
+    .forEach((json) => vote(1, 1, json, "F14 voter refus"));
+  vote(2, 1, { sense: "maybe" }, "F14 voter refus");
+  vote(1, 9999, {}, "F14 voter refus");
+  step("F14 voter refus", { method: "PUT", path: "/corrections/1/vote", user: 1 });
+  step("F14 voter refus", { method: "PUT", path: "/corrections/1/vote", user: undefined, json: { sense: "maybe" } });
+  step("F14 voter refus", { method: "PUT", path: "/corrections/9999/vote", user: "abc", json: { sense: "agree" } });
+  agree(2, ref("p1"));
+  disagree(3, ref("p1"));
+  agree(1, ref("p3"));
+  disagree(1, ref("p4"));
+  agree(1, ref("p5"));
+  agree(2, ref("p5"));
+  agree(2, ref("p6"));
+  agree(3, ref("p6"));
+  disagree(2, ref("p7"));
+  disagree(3, ref("p7"));
+  agree(3, ref("p8"));
+  agree(2, ref("p9"));
+  disagree(2, ref("p9"));
+  agree(1, ref("p10"));
+  agree(1, ref("p11"));
+  agree(2, ref("p11"));
+  agree(3, 3);
+  agree(1, 4);
+  disagree(1, 4);
+  agree(1, 4);
+  vote(1, 5, { sense: "agree" });
+  vote(3, 6, { sense: "agree" });
+  board("F14 votes lus");
+  reads("F14 votes lus", [1, 2, 3], [`/beers/${B.punk}/corrections`, `/beers/${B.chimayBleue}/corrections`, `/beers/${B.chouffe}/corrections`]);
+
+  // échéance A : 2 pour (dont le proposeur) contre 1 -> validée ; le catalogue ne tranche pas, la fiche si
+  age(ref("p1"));
+  reads("F14 échéance A", [1], [`/beers?q=punk`, "/beers?q=punk&sort=abv", `/beers?status=drunk&q=punk`]);
+  step("F14 échéance A", { path: `/beers/${B.punk}`, user: 2 });
+  reads("F14 échéance A", [1, 3], [`/beers?q=punk`, `/beers/${B.punk}`, `/beers/${B.punk}/corrections`]);
+  board("F14 échéance A");
+  vote(3, ref("p1"), { sense: "agree" }, "F14 échéance A");
+  vote(1, ref("p1"), { sense: "agree" }, "F14 échéance A");
+  vote(1, ref("p1"), { sense: "maybe" }, "F14 échéance A");
+  propose(2, B.punk, { characteristic: "ibu", value: 50 }, "p13", "F14 échéance A");
+  propose(2, B.punk, { characteristic: "ibu", value: 45 }, undefined, "F14 échéance A");
+  reads("F14 échéance A", [2], [`/beers/${B.punk}`, `/beers/${B.punk}`]);
+
+  // échéance B : proposeur seul, quorum de 2 contre 0, 1 contre 1, liste validée (seed La Chouffe) ; tranchées ensemble
+  [ref("p2"), ref("p3"), ref("p4"), 4].forEach(age);
+  step("F14 échéance B", { path: `/beers/${B.punk}/corrections`, user: 2 });
+  board("F14 échéance B");
+  reads("F14 échéance B", [1, 2], [`/beers/${B.chouffe}`, `/beers/${B.pils}`, `/beers/${B.punk}`, "/beers?format=can&q=chouffe",
+    "/beers?format=can&size=50", `/beers/${B.chouffe}/corrections`]);
+
+  // échéance C : bière communautaire (vote de son auteur), degré, refus à 1 contre 2, seeds ; tranchées par POST /beers
+  [ref("p5"), ref("p6"), ref("p7"), 2, 3].forEach(age);
+  reads("F14 échéance C", [1], ["/beers?sort=abv&size=10", `/beers?q=westmalle`]);
+  createBeer(2, "après échéance", { ibu: 10 }, "t6", "F14 échéance C");
+  reads("F14 échéance C", [1, 2, 3], ["/beers?sort=abv&size=10", "/beers?abvMin=9.4&abvMax=9.4", "/me/stats", `/beers/${B.westmalle}`,
+    `/beers/${B.duvel}`, `/beers/${B.orval}`]);
+  [1, 3].forEach((user) => step("F14 échéance C", { path: (ctx) => `/beers/${ctx.c1}`, user }));
+  board("F14 échéance C");
+
+  // échéance D : plus de 10 tranchées ; un vote sur une proposition échue la tranche d'abord puis répond 409
+  [ref("p8"), ref("p9"), ref("p10"), ref("p11"), 1].forEach(age);
+  vote(1, ref("p8"), { sense: "agree" }, "F14 échéance D");
+  vote(2, ref("p8"), { sense: "agree" }, "F14 échéance D");
+  board("F14 échéance D");
+  reads("F14 échéance D", [1, 2], [`/beers/${B.guinness}`, `/beers/${B.saison}`, `/beers/${B.chimayBleue}`, `/beers/${B.punk}`,
+    `/beers/${B.punk}/corrections`, "/beers?q=chimay", "/beers?format=can&q=punk"]);
+  [1, 2].forEach((user) => step("F14 échéance D", { path: (ctx) => `/beers/${ctx.t1}`, user }));
+
+  // échéance E : une fiche inconnue (404) tranche aussi ; Carol retrouve de la place dans son quota
+  age(ref("p12"));
+  step("F14 échéance E", { path: "/beers/9999", user: 1 });
+  board("F14 échéance E");
+  propose(3, B.leffe, { characteristic: "ibu", value: 25 }, "p14", "F14 échéance E");
+  propose(3, B.jupiler, { characteristic: "ebc", value: 8 }, "p15", "F14 échéance E");
+  propose(3, B.stella, { characteristic: "ibu", value: 12 }, "p16", "F14 échéance E");
+  propose(3, B.sierra, { characteristic: "ibu", value: 39 }, undefined, "F14 échéance E");
+
+  // échéance F : une nouvelle proposition tranche d'abord les échues
+  age(ref("p13"));
+  propose(1, B.taras, { characteristic: "ibu", value: 22 }, "p17", "F14 échéance F");
+  agree(1, ref("p14"));
+  agree(2, ref("p14"));
+  board("F14 échéance F");
+  reads("F14 échéance F", [1, 2, 3], [`/beers/${B.punk}`, "/beers?q=punk", "/beers?sort=abv&size=5", "/me/stats", "/beers?status=drunk",
+    `/beers/${B.leffe}/corrections`]);
+  // createdByName et proposedByName suivent le nom courant
+  step("F14 auteur", { method: "PUT", path: "/me/profile", user: 3, json: { displayName: "Caroline", avatar: "glass" } });
+  board("F14 auteur");
+  // fin : la proposition de Leffe (2 pour) échoit et n'est tranchée que par une lecture (persistance après rechargement)
+  age(ref("p14"));
+  step("F14 fin", { path: `/beers/${B.leffe}`, user: 1 });
+  return steps;
+};
+
+const rereadsF14 = () => {
+  const B = { punk: beerId("Punk IPA"), chouffe: beerId("La Chouffe"), westmalle: beerId("Westmalle Tripel"), leffe: beerId("Leffe Blonde") };
+  return [1, 2, 3].flatMap((user) => ["/corrections", `/beers/${B.punk}`, `/beers/${B.chouffe}`, `/beers/${B.westmalle}`,
+    `/beers/${B.leffe}`, `/beers/${B.punk}/corrections`, "/beers?sort=abv&size=5"].map((path) => ({ name: "F14", path, user })));
+};
+
 // ------------------------------------------------------------------ exécution
 const main = async () => {
   const backUrl = await startBack();
@@ -726,47 +1002,87 @@ const main = async () => {
     const venueBeers = await (await fetch(`${backUrl}/venues/${venueId(voteRow.venueName)}/beers`, headers(1))).json();
     const linkDto = venueBeers.find((b) => b.beerId === beerId(voteRow.beerName));
     const votesNow = Date.parse(linkDto.lastConfirmedAt) + Math.round(voteRow.lastConfirmedDaysAgo * DAY);
-    const seedNow = { reviews: reviewsNow, checkins: checkinsNow, votes: votesNow };
+    // F14 : correction-seed.ts place l'échéance d'une proposition ouverte à now + closesInHours.
+    const correctionRow = seed.demoCorrections.find((r) => r.status === "open");
+    const boardAtStart = await (await fetch(`${backUrl}/corrections`, headers(1))).json();
+    const seededOpen = boardAtStart.open.find((c) => c.beerId === beerId(correctionRow.beerName));
+    const correctionsNow = Date.parse(seededOpen.closesAt) - correctionRow.closesInHours * HOUR;
+    const seedNow = { reviews: reviewsNow, checkins: checkinsNow, votes: votesNow, corrections: correctionsNow };
     testStart = Date.now();
 
     const store = new Map();
-    const mock = loadMock(store, { latency: [0, 0], seedNow });
+    const mock = loadMock(store, { latency: [0, 0], seedNow, testHooks: true });
     const compare = makeComparer(backUrl, mock.fetch, "lecture");
     const gets = readGets();
     for (const request of gets) await compare(request);
     const legacyReadCount = compared;
     for (const request of readGetsF11to13()) await compare(request);
+    const readCountBeforeF14 = compared;
+    for (const request of readGetsF14()) await compare(request);
     const readCount = compared;
 
     const writeCompare = makeComparer(backUrl, mock.fetch, "scénario");
     for (const request of scenarios(testStart)) await writeCompare(request);
     const legacyWriteCount = compared - readCount;
     for (const request of scenariosF11to13(testStart)) await writeCompare(request);
+    const writeCountBeforeF14 = compared - readCount;
+    // Vieillir une proposition : même UPDATE dans le fichier SQLite du back et dans l'état du mock.
+    const { DatabaseSync } = await import("node:sqlite");
+    const db = new DatabaseSync(BACK_DB);
+    const toSqliteDate = (ms) => new Date(ms).toISOString().replace("T", " ").replace("Z", "");
+    let agedCount = 0;
+    for (const request of scenariosF14(testStart)) {
+      if (request.age === undefined) {
+        await writeCompare(request);
+        continue;
+      }
+      const id = request.age(captured);
+      const createdAt = request.closesAt - 7 * DAY;
+      const result = db.prepare("UPDATE beer_corrections SET createdAt = ?, closesAt = ? WHERE id = ?")
+        .run(toSqliteDate(createdAt), toSqliteDate(request.closesAt), id);
+      if (result.changes !== 1) throw new Error(`Proposition ${id} absente du back.`);
+      mock.__mockSetCorrectionDates(id, createdAt, request.closesAt);
+      agedCount += 1;
+    }
+    db.close();
     const writeCount = compared - readCount;
     const expectedCaptures = ["a1", "a2", "a3", "a4", "a5", "b1", "c1", "c2", "c3", "c4", "c5", "col",
-      ...Array.from({ length: 10 }, (_, i) => `q${i + 1}`)];
+      ...Array.from({ length: 10 }, (_, i) => `q${i + 1}`), "t1", "t2", "t3", "t4", "t5", "t6",
+      ...Array.from({ length: 17 }, (_, i) => `p${i + 1}`), ...Array.from({ length: 7 }, (_, i) => `k${i + 1}`)];
     const missingCaptures = expectedCaptures.filter((key) => typeof captured[key] !== "number");
 
-    const reloaded = loadMock(store, { latency: [0, 0], seedNow });
+    // F14 : la dernière proposition échue n'a été tranchée que par une lecture (GET /beers/{id}) : l'état persisté doit déjà
+    // la porter tranchée, avec la valeur appliquée, avant tout rechargement.
+    const persisted = JSON.parse(store.get("mousse-mock-state-v1"));
+    const lastAged = persisted.corrections.find((c) => c.id === captured.p14);
+    const leffe = persisted.beers.find((b) => b.name === "Leffe Blonde");
+    const resolutionPersisted = lastAged?.status === "accepted" && lastAged.resolvedAt !== null && leffe.ibu === 25;
+    const reloaded = loadMock(store, { latency: [0, 0], seedNow, testHooks: true });
     const reloadCompare = makeComparer(backUrl, reloaded.fetch, "rechargement");
     for (const u of [1, 2, 3]) for (const request of rereads(u)) await reloadCompare(request);
+    for (const request of rereadsF14()) await reloadCompare(request);
     const photoIds = [...mock.__mockPhotos.keys()];
     const photoOk = photoIds.length > 0 && photoIds.every((id) => String(mock.__mockPhotos.get(id)).startsWith("data:image/png;base64,"));
 
     mock.__mockReset();
     const resetDex = await send(mock.fetch, MOCK_BASE, { path: "/me/dex", user: 1 });
 
-    console.log(`Requêtes comparées : ${compared} (lectures ${readCount} dont F11-F13 ${readCount - legacyReadCount}, scénarios d'écriture ${writeCount} dont F11-F13 ${writeCount - legacyWriteCount}, après rechargement ${compared - readCount - writeCount})`);
+    const f14Count = readCount - readCountBeforeF14 + writeCount - writeCountBeforeF14;
+    console.log(`Requêtes comparées : ${compared} (lectures ${readCount} dont F11-F13 ${readCountBeforeF14 - legacyReadCount} et F14 ${readCount - readCountBeforeF14}, scénarios d'écriture ${writeCount} dont F11-F13 ${writeCountBeforeF14 - legacyWriteCount} et F14 ${writeCount - writeCountBeforeF14}, après rechargement ${compared - readCount - writeCount})`);
+    const formatStatuses = (map) => [...map.entries()].sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}×${v}`).join(", ");
+    console.log(`F14 : ${f14Count} requêtes hors rechargement, ${agedCount} propositions vieillies ; statuts du back (rechargement compris) : ${formatStatuses(f14Statuses)}`);
     console.log(`Statuts du back : ${[...statuses.entries()].sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}×${v}`).join(", ")}`);
     console.log(`Photos du mock en data URL : ${photoOk ? "oui" : "NON"} (${photoIds.length}) ; __mockReset -> dex Alice ${resetDex.body.discovered}`);
-    console.log(`Ids créés pendant les scénarios F11-F13 : ${missingCaptures.length === 0 ? `tous lus (${expectedCaptures.length})` : `MANQUANTS ${missingCaptures.join(", ")}`}`);
+    console.log(`Résolution par une lecture enregistrée dans localStorage : ${resolutionPersisted ? "oui" : "NON"}`);
+    console.log(`Ids créés pendant les scénarios F11-F14 : ${missingCaptures.length === 0 ? `tous lus (${expectedCaptures.length})` : `MANQUANTS ${missingCaptures.join(", ")}`}`);
     if (differences.length === 0) {
       console.log("Aucune différence.");
     } else {
       console.log(`${differences.length} différence(s) :`);
       differences.slice(0, 40).forEach((d) => console.log(`- [${d.label}] ${d.request}\n    ${d.detail}`));
     }
-    process.exitCode = differences.length === 0 && missingCaptures.length === 0 && photoOk && resetDex.body.discovered === 0 ? 0 : 1;
+    process.exitCode = differences.length === 0 && missingCaptures.length === 0 && photoOk && resetDex.body.discovered === 0 &&
+      resolutionPersisted ? 0 : 1;
   } finally {
     stopBack();
   }

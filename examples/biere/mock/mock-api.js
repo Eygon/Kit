@@ -13,7 +13,7 @@
   var API_PREFIX = "/api/v1";
   var BASE_URL = BASE_ORIGIN + API_PREFIX;
   var STORAGE_KEY = "mousse-mock-state-v1";
-  var STATE_VERSION = 2; // 2 : F11-F13 (venueId, bières communautaires) ; un état d'une autre version est ignoré
+  var STATE_VERSION = 3; // 2 : F11-F13 (venueId, bières communautaires) ; 3 : F14 (fiche technique, propositions de correction)
   var options = root.__MOUSSE_MOCK_OPTIONS__ || {};
   var LATENCY = Array.isArray(options.latency) ? options.latency : [30, 120];
 
@@ -36,7 +36,6 @@
   var BEER_FORMATS = ["bottle", "can", "draft"];
   var BEER_SORTS = ["name", "abv", "brewery", "rating"];
   var BEER_STATUSES = ["drunk", "wishlist", "untasted"];
-  var REVIEW_CRITERIA = ["sweetness", "acidity", "body"];
   var AVATARS = ["hop", "malt", "glass", "mug", "bottle", "can", "barrel", "tap", "cap", "foam", "wheat", "pretzel"];
   var VENUE_TYPES = ["bar", "shop", "brewery"];
   var VOTE_SENSES = ["still", "gone"];
@@ -45,7 +44,6 @@
   var COLOR_LEVEL_EBC_MAX = [8, 16, 33, 60];
   var BEER_PAGE_SIZE_DEFAULT = 20;
   var REVIEW_PAGE_SIZE = 10;
-  var REVIEW_CRITERION_MIN_REVIEWS = 3;
   var CHECKIN_PAGE_SIZE = 20;
   var CHECKIN_FUTURE_TOLERANCE_MS = 5 * 60000;
   var UPLOAD_MAX_SIZE_BYTES = 5 * 1024 * 1024;
@@ -80,6 +78,27 @@
     "MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT " +
     "PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM " +
     "TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW").split(" ");
+  // F14 : fiche technique et propositions de correction (beers.constants.ts, enums/beer-characteristic.enum.ts)
+  var BEER_IBU_MIN = 0;
+  var BEER_IBU_MAX = 120;
+  var BEER_EBC_MIN = 2;
+  var BEER_EBC_MAX = 80;
+  var BEER_SCALE_MIN = 1;
+  var BEER_SCALE_MAX = 5;
+  var BEER_AROMAS_MAX = 5;
+  var BEER_FORMATS_MAX = 3;
+  var BEER_LIST_MIN_ITEMS = 1;
+  var BEER_CHARACTERISTICS = ["abv", "ibu", "ebc", "sweetness", "acidity", "body", "aromas", "formats"];
+  var CORRECTION_VOTE_SENSES = ["agree", "disagree"];
+  var CORRECTION_VOTE_DURATION_MS = 7 * 24 * HOUR_MS;
+  var CORRECTION_REASON_MAX_LENGTH = 200;
+  var CORRECTIONS_PER_WINDOW_MAX = 10;
+  var CORRECTION_WINDOW_HOURS = 24;
+  var CORRECTION_WINDOW_MS = CORRECTION_WINDOW_HOURS * HOUR_MS;
+  var CORRECTION_QUORUM = 2;
+  var CORRECTIONS_RECENTLY_CLOSED_LIMIT = 10;
+  var PROPOSER_AGREE_COUNT = 1;
+  var SEED_CORRECTION_FIRST_VOTE_DELAY_MS = HOUR_MS;
   // F13 : recherche tolérante (common/text/text-search.constants.ts)
   var APPROXIMATE_MIN_WORD_LENGTH = 4;
   var APPROXIMATE_LONG_WORD_LENGTH = 8;
@@ -216,6 +235,34 @@
       .concat(goneDates.map(function (d) { return { venueBeerId: venueBeerId, userId: null, sense: "gone", votedAt: d }; }));
   };
 
+  // correction-seed.ts (F14) : une échéance passée (tranchée) ou à venir (ouverte) ; createdAt = closesAt - 7 j ; chaque vote
+  // une heure après la création. Les valeurs sont gardées sérialisées en JSON, comme les colonnes proposedValue/previousValue.
+  var buildSeedCorrections = function (rows, beerIds, users, now) {
+    var userIds = new Map(users.map(function (u) { return [u.displayName, u.id]; }));
+    var corrections = [];
+    var votes = [];
+    rows.forEach(function (row, index) {
+      var resolvedAt = row.resolvedHoursAgo === undefined ? null : now - row.resolvedHoursAgo * HOUR_MS;
+      var closesAt = resolvedAt !== null ? resolvedAt : now + (row.closesInHours !== undefined ? row.closesInHours : 0) * HOUR_MS;
+      var createdAt = closesAt - CORRECTION_VOTE_DURATION_MS;
+      var id = index + 1;
+      corrections.push({ id: id, beerId: beerIds.get(row.beerName.toLowerCase()), characteristic: row.characteristic,
+        proposedValue: JSON.stringify(row.proposedValue), reason: row.reason, proposedBy: userIds.get(row.proposedBy),
+        createdAt: createdAt, closesAt: closesAt, status: row.status, resolvedAt: resolvedAt,
+        previousValue: row.resolvedHoursAgo === undefined ? null
+          : JSON.stringify(row.previousValue !== undefined ? row.previousValue : null) });
+      row.votes.forEach(function (vote) {
+        votes.push({ id: votes.length + 1, correctionId: id, userId: userIds.get(vote.userName), sense: vote.sense,
+          votedAt: createdAt + SEED_CORRECTION_FIRST_VOTE_DELAY_MS });
+      });
+    });
+    return { corrections: corrections, votes: votes };
+  };
+  // correction.mapper.ts toBeerCharacteristicChange : la valeur validée remplace la caractéristique (copie pour les listes).
+  var applyCharacteristicChange = function (beer, characteristic, value) {
+    beer[characteristic] = Array.isArray(value) ? value.slice() : value;
+  };
+
   var buildInitialState = function () {
     var seed = root.__MOUSSE_SEED__;
     if (!seed) throw new Error("mock-api.js : window.__MOUSSE_SEED__ absent (charger seed-data.js avant).");
@@ -234,7 +281,7 @@
     var beers = seed.beers.map(function (row, i) {
       return { id: i + 1, name: row.name, breweryId: breweryIds.get(row.breweryName.toLowerCase()),
         styleId: styleIds.get(row.styleName.toLowerCase()), abv: row.abv, ibu: row.ibu, ebc: row.ebc,
-        description: row.description, aromas: row.aromas.map(function (s) { return BEER_AROMA_BY_SEED_SLUG[s]; }),
+        sweetness: null, acidity: null, body: null, description: row.description, aromas: row.aromas.map(function (s) { return BEER_AROMA_BY_SEED_SLUG[s]; }),
         formats: BEER_FORMATS.filter(function (f) { return row.formats.indexOf(f) !== -1; }), country: row.country,
         searchText: normalizeSearchText(row.name + " " + row.breweryName), createdBy: null, createdAt: null };
     });
@@ -262,8 +309,7 @@
     var reviews = seed.reviews.map(function (row, i) {
       var at = reviewsNow - row.daysAgo * DAY_MS;
       return { id: i + 1, userId: userIdsByName[row.userName], beerId: beerIds.get(row.beerName.toLowerCase()),
-        rating: row.rating, text: row.text, sweetness: row.sweetness, acidity: row.acidity, body: row.body,
-        createdAt: at, updatedAt: at };
+        rating: row.rating, text: row.text, createdAt: at, updatedAt: at };
     });
     var checkinsNow = seedNowFor("checkins", now);
     var checkins = [];
@@ -279,13 +325,19 @@
     var follows = seed.follows.map(function (f, i) {
       return { id: i + 1, followerId: f.followerId, followedId: f.followedId };
     });
+    var seeded = buildSeedCorrections(seed.demoCorrections || [], beerIds, users, seedNowFor("corrections", now));
+    seeded.corrections.filter(function (c) { return c.status === "accepted"; }).forEach(function (c) {
+      var beer = beers.find(function (b) { return b.id === c.beerId; });
+      applyCharacteristicChange(beer, c.characteristic, JSON.parse(c.proposedValue));
+    });
     return {
       version: STATE_VERSION,
       users: users, styles: styles, breweries: breweries, beers: beers, venues: venues, links: links, votes: votes,
       reviews: reviews, checkins: checkins, follows: follows, wishlist: [], collections: [], collectionItems: [],
-      photos: {},
+      corrections: seeded.corrections, correctionVotes: seeded.votes, photos: {},
       seq: { beers: beers.length, breweries: breweries.length, venues: venues.length, links: links.length, votes: votes.length, reviews: reviews.length,
-        checkins: checkins.length, follows: follows.length, wishlist: 0, collections: 0, collectionItems: 0 },
+        checkins: checkins.length, follows: follows.length, wishlist: 0, collections: 0, collectionItems: 0,
+        corrections: seeded.corrections.length, correctionVotes: seeded.votes.length },
     };
   };
 
@@ -343,6 +395,18 @@
     state = buildInitialState();
     rebuildIndex();
   };
+
+  // Point d'entrée réservé au test différentiel (option testHooks) : il fait sur l'état du mock ce que diff-test.mjs fait
+  // dans le fichier SQLite du back (UPDATE beer_corrections SET createdAt, closesAt), pour vieillir une proposition.
+  if (options.testHooks === true) {
+    root.__mockSetCorrectionDates = function (id, createdAt, closesAt) {
+      var correction = state.corrections.find(function (c) { return c.id === id; });
+      if (!correction) throw new Error("Correction " + id + " absente du mock.");
+      correction.createdAt = createdAt;
+      correction.closesAt = closesAt;
+      saveState();
+    };
+  }
 
   var nextId = function (table) {
     state.seq[table] += 1;
@@ -409,6 +473,8 @@
     function (p, r) { return eachPrefix(r) + p + " must be a positive number"; });
   var IsNotEmpty = rule("isNotEmpty", function (v) { return v !== "" && v !== null && v !== undefined; },
     function (p, r) { return eachPrefix(r) + p + " should not be empty"; });
+  var IsDefined = rule("isDefined", function (v) { return v !== null && v !== undefined; },
+    function (p, r) { return eachPrefix(r) + p + " should not be null or undefined"; });
   var IsISO8601 = rule("isIso8601", function (v) { return typeof v === "string" && ISO8601.test(v) && isValidIsoDate(v); },
     function (p, r) { return eachPrefix(r) + p + " must be a valid ISO 8601 date string"; });
   var IsEnum = function (values, opts) {
@@ -524,9 +590,6 @@
   var UpsertReviewSchema = [
     { name: "rating", rules: [IsNumber(), Min(1), Max(5), IsMultipleOf(0.5)] },
     { name: "text", optional: true, transform: normalizeText, rules: [IsString(), MaxLength(500)] },
-    { name: "sweetness", optional: true, rules: [IsInt(), Min(1), Max(5)] },
-    { name: "acidity", optional: true, rules: [IsInt(), Min(1), Max(5)] },
-    { name: "body", optional: true, rules: [IsInt(), Min(1), Max(5)] },
   ];
   var PositionQuerySchema = [
     { name: "latitude", optional: true, number: true, rules: [IsNumber(), Min(-90), Max(90)] },
@@ -568,7 +631,24 @@
     { name: "styleId", rules: [IsInt(), Min(1)] },
     { name: "abv", rules: [IsNumber({ maxDecimalPlaces: BEER_ABV_MAX_DECIMAL_PLACES }), Min(0), Max(BEER_PROPOSAL_ABV_MAX_PERCENT)] },
     { name: "description", optional: true, transform: normalizeText, rules: [IsString(), MaxLength(BEER_DESCRIPTION_MAX_LENGTH)] },
+    // F14 : fiche technique facultative
+    { name: "ibu", optional: true, rules: [IsInt(), Min(BEER_IBU_MIN), Max(BEER_IBU_MAX)] },
+    { name: "ebc", optional: true, rules: [IsInt(), Min(BEER_EBC_MIN), Max(BEER_EBC_MAX)] },
+    { name: "sweetness", optional: true, rules: [IsInt(), Min(BEER_SCALE_MIN), Max(BEER_SCALE_MAX)] },
+    { name: "acidity", optional: true, rules: [IsInt(), Min(BEER_SCALE_MIN), Max(BEER_SCALE_MAX)] },
+    { name: "body", optional: true, rules: [IsInt(), Min(BEER_SCALE_MIN), Max(BEER_SCALE_MAX)] },
+    { name: "aromas", optional: true,
+      rules: [IsArray(), ArrayMaxSize(BEER_AROMAS_MAX), ArrayUnique(), IsEnum(BEER_AROMAS, { each: true })] },
+    { name: "formats", optional: true,
+      rules: [IsArray(), ArrayMaxSize(BEER_FORMATS_MAX), ArrayUnique(), IsEnum(BEER_FORMATS, { each: true })] },
   ];
+  // F14 : CreateCorrectionDto (la forme de value est contrôlée par le service) et SaveCorrectionVoteDto
+  var CreateCorrectionSchema = [
+    { name: "characteristic", rules: [IsEnum(BEER_CHARACTERISTICS)] },
+    { name: "value", rules: [IsDefined()] },
+    { name: "reason", optional: true, transform: normalizeText, rules: [IsString(), MaxLength(CORRECTION_REASON_MAX_LENGTH)] },
+  ];
+  var SaveCorrectionVoteSchema = [{ name: "sense", rules: [IsEnum(CORRECTION_VOTE_SENSES)] }];
   var CheckinsQuerySchema = [
     { name: "beerId", optional: true, number: true, rules: [IsInt(), Min(1)] },
     { name: "page", optional: true, number: true, rules: [IsInt(), Min(1)] },
@@ -632,7 +712,8 @@
     return {
       id: beer.id, name: beer.name, breweryName: brewery.name, country: beer.country, styleId: style.id,
       styleName: style.name, family: style.family, abv: beer.abv, aromas: beer.aromas.slice(),
-      formats: beer.formats.slice(), description: beer.description,
+      formats: beer.formats.slice(), description: beer.description, ibu: beer.ibu, ebc: beer.ebc,
+      sweetness: beer.sweetness, acidity: beer.acidity, body: beer.body,
       bitternessLevel: beer.ibu === null ? null : toLevel(beer.ibu, BITTERNESS_LEVEL_IBU_MAX),
       colorLevel: beer.ebc === null ? null : toLevel(beer.ebc, COLOR_LEVEL_EBC_MAX),
       styleColorRange: beer.ebc === null
@@ -820,8 +901,11 @@
       breweryId = brewery.id;
     }
     var id = nextId("beers");
-    state.beers.push({ id: id, name: dto.name, breweryId: breweryId, styleId: dto.styleId, abv: dto.abv, ibu: null, ebc: null,
-      description: dto.description !== undefined && dto.description !== null ? dto.description : "", aromas: [], formats: [],
+    var orNull = function (v) { return v !== undefined && v !== null ? v : null; };
+    state.beers.push({ id: id, name: dto.name, breweryId: breweryId, styleId: dto.styleId, abv: dto.abv, ibu: orNull(dto.ibu),
+      ebc: orNull(dto.ebc), sweetness: orNull(dto.sweetness), acidity: orNull(dto.acidity), body: orNull(dto.body),
+      description: dto.description !== undefined && dto.description !== null ? dto.description : "",
+      aromas: dto.aromas ? dto.aromas.slice() : [], formats: dto.formats ? dto.formats.slice() : [],
       country: dto.country, searchText: normalizeSearchText(dto.name + " " + dto.breweryName), createdBy: userId,
       createdAt: Date.now() });
     rebuildIndex();
@@ -833,21 +917,21 @@
     var ratingDistribution = [1, 2, 3, 4, 5].map(function (stars) {
       return { stars: stars, count: reviews.filter(function (r) { return Math.trunc(r.rating + 0.5) === stars; }).length };
     });
-    var criteria = REVIEW_CRITERIA.map(function (criterion) {
-      var values = reviews.map(function (r) { return r[criterion]; }).filter(function (v) { return v !== null && v !== undefined; });
-      var average = values.length === 0 ? null : sqlRound1(values.reduce(function (s, v) { return s + v; }, 0) / values.length);
-      return { criterion: criterion, average: values.length < REVIEW_CRITERION_MIN_REVIEWS ? null : average, count: values.length };
-    });
-    return { ratingDistribution: ratingDistribution, criteria: criteria };
+    return { ratingDistribution: ratingDistribution };
   };
+  // beers.service.ts getBeerForUser : tranche d'abord les propositions échues (F14), pour GET /beers/{id} comme pour la
+  // réponse de POST /beers (createBeer finit par getBeerForUser).
   var getBeerForUser = function (userId, id) {
+    resolveDueCorrections(Date.now());
+    return getBeerDetail(userId, id);
+  };
+  var getBeerDetail = function (userId, id) {
     var beer = getBeer(id);
     var st = getBeerStates(userId, [id])[0];
     var summary = ratingSummaries().get(id);
     var stats = findReviewStats(id);
     var dto = toCatalogBeerDto(beer, st, summary);
     dto.ratingDistribution = stats.ratingDistribution;
-    dto.criteria = stats.criteria;
     return dto;
   };
   var getStyleGroups = function () {
@@ -863,7 +947,7 @@
   var toReviewDto = function (record, author, currentUserId) {
     return { id: record.id, beerId: record.beerId, authorId: record.userId, authorName: author.displayName,
       authorAvatarColor: author.avatarColor, authorAvatar: author.avatar, rating: record.rating, text: record.text,
-      sweetness: record.sweetness, acidity: record.acidity, body: record.body, createdAt: iso(record.createdAt),
+      createdAt: iso(record.createdAt),
       updatedAt: iso(record.updatedAt), isMine: record.userId === currentUserId };
   };
   var getReviewPage = function (userId, beerId, query) {
@@ -886,8 +970,7 @@
     if (!existing && !hasCheckin(userId, beerId)) throw forbidden("You must check in this beer before reviewing it.");
     var now = Date.now();
     var fields = { rating: dto.rating, text: normalizeLineEndings(dto.text !== undefined && dto.text !== null ? dto.text : "").trim(),
-      sweetness: dto.sweetness !== undefined ? dto.sweetness : null, acidity: dto.acidity !== undefined ? dto.acidity : null,
-      body: dto.body !== undefined ? dto.body : null, updatedAt: now };
+      updatedAt: now };
     var record;
     var insertId = nextId("reviews");
     if (existing) {
@@ -903,6 +986,153 @@
     var i = state.reviews.findIndex(function (r) { return r.userId === userId && r.beerId === beerId; });
     if (i === -1) throw notFound("You have not reviewed beer " + beerId + ".");
     state.reviews.splice(i, 1);
+  };
+
+  // ---------------------------------------------------------------- propositions de correction (F14)
+  // beers.service.ts proposeCorrection / voteCorrection / getCorrectionBoard / resolveDueCorrections / getBeerCorrections,
+  // correction.mapper.ts et beers.repository.ts. Les valeurs proposées et figées sont gardées en JSON, comme en base.
+  var LIST_CHARACTERISTICS = { aromas: BEER_AROMAS, formats: BEER_FORMATS };
+  var LIST_MAX_ITEMS = { aromas: BEER_AROMAS_MAX, formats: BEER_FORMATS_MAX };
+  var INTEGER_BOUNDS = { ibu: [BEER_IBU_MIN, BEER_IBU_MAX], ebc: [BEER_EBC_MIN, BEER_EBC_MAX],
+    sweetness: [BEER_SCALE_MIN, BEER_SCALE_MAX], acidity: [BEER_SCALE_MIN, BEER_SCALE_MAX], body: [BEER_SCALE_MIN, BEER_SCALE_MAX] };
+  var DECIMAL_TOLERANCE = 1e-9;
+  var hasAtMostDecimals = function (value, places) {
+    var scaled = value * Math.pow(10, places);
+    return Math.abs(scaled - Math.round(scaled)) < DECIMAL_TOLERANCE;
+  };
+  var isValidCharacteristicValue = function (characteristic, value) {
+    if (characteristic === "abv") {
+      return typeof value === "number" && value >= 0 && value <= BEER_PROPOSAL_ABV_MAX_PERCENT &&
+        hasAtMostDecimals(value, BEER_ABV_MAX_DECIMAL_PLACES);
+    }
+    var allowed = LIST_CHARACTERISTICS[characteristic];
+    if (allowed) {
+      return Array.isArray(value) && value.length >= BEER_LIST_MIN_ITEMS && value.length <= LIST_MAX_ITEMS[characteristic] &&
+        value.every(function (item) { return typeof item === "string" && allowed.indexOf(item) !== -1; }) &&
+        new Set(value).size === value.length;
+    }
+    var bounds = INTEGER_BOUNDS[characteristic];
+    return typeof value === "number" && Number.isInteger(value) && value >= bounds[0] && value <= bounds[1];
+  };
+  var readCharacteristicValue = function (beer, characteristic) {
+    var value = beer[characteristic];
+    if (LIST_CHARACTERISTICS[characteristic]) return value.length === 0 ? null : value.slice();
+    return value;
+  };
+  var isSameValue = function (current, proposed) {
+    if (current === null) return false;
+    if (typeof current === "number" || typeof proposed === "number") return current === proposed;
+    return current.length === proposed.length && proposed.every(function (item) { return current.indexOf(item) !== -1; });
+  };
+  var formatValue = function (value) { return typeof value === "number" ? String(value) : value.join(", "); };
+  var parseStoredValue = function (stored) { return stored === null ? null : JSON.parse(stored); };
+  var byClosingDate = function (a, b) { return a.closesAt - b.closesAt || a.id - b.id; };
+  var countVotes = function (correctionId, sense) {
+    return state.correctionVotes.filter(function (v) { return v.correctionId === correctionId && v.sense === sense; }).length;
+  };
+  var findVoteSense = function (userId, correctionId) {
+    var vote = state.correctionVotes.find(function (v) { return v.correctionId === correctionId && v.userId === userId; });
+    return vote ? vote.sense : null;
+  };
+  var toCorrectionDto = function (record, beerName, currentValue, proposedByName, userId, agreeCount, disagreeCount, myVote) {
+    return { id: record.id, beerId: record.beerId, beerName: beerName, characteristic: record.characteristic,
+      currentValue: record.status === "open" ? currentValue : parseStoredValue(record.previousValue),
+      proposedValue: parseStoredValue(record.proposedValue), reason: record.reason, proposedBy: record.proposedBy,
+      proposedByName: proposedByName, createdAt: iso(record.createdAt), closesAt: iso(record.closesAt), status: record.status,
+      resolvedAt: record.resolvedAt === null ? null : iso(record.resolvedAt), agreeCount: agreeCount, disagreeCount: disagreeCount,
+      myVote: myVote, isMine: record.proposedBy === userId };
+  };
+  var toVotedCorrections = function (userId, records) {
+    return records.map(function (record) {
+      var beer = index.beersById.get(record.beerId);
+      return toCorrectionDto(record, beer.name, readCharacteristicValue(beer, record.characteristic),
+        index.usersById.get(record.proposedBy).displayName, userId, PROPOSER_AGREE_COUNT + countVotes(record.id, "agree"),
+        countVotes(record.id, "disagree"), findVoteSense(userId, record.id));
+    });
+  };
+  // Résolution paresseuse : chaque proposition ouverte échue (closesAt <= maintenant) est validée si agree > disagree et
+  // agree >= 2 (le « pour » du proposeur compté), sinon refusée ; la valeur d'avant est figée (lue avant toute application).
+  var stateDirty = false;
+  var resolveDueCorrections = function (now) {
+    var due = state.corrections.filter(function (c) { return c.status === "open" && c.closesAt <= now; }).sort(byClosingDate);
+    if (due.length === 0) return;
+    var resolutions = due.map(function (record) {
+      var beer = index.beersById.get(record.beerId);
+      var agreeCount = PROPOSER_AGREE_COUNT + countVotes(record.id, "agree");
+      var accepted = agreeCount > countVotes(record.id, "disagree") && agreeCount >= CORRECTION_QUORUM;
+      return { record: record, beer: beer, accepted: accepted,
+        previousValue: JSON.stringify(readCharacteristicValue(beer, record.characteristic)) };
+    });
+    resolutions.forEach(function (r) {
+      if (r.record.status !== "open") return;
+      r.record.status = r.accepted ? "accepted" : "rejected";
+      r.record.resolvedAt = now;
+      r.record.previousValue = r.previousValue;
+      if (r.accepted) applyCharacteristicChange(r.beer, r.record.characteristic, parseStoredValue(r.record.proposedValue));
+    });
+    stateDirty = true;
+  };
+  var proposeCorrection = function (userId, beerId, dto) {
+    var characteristic = dto.characteristic;
+    var value = dto.value;
+    var now = Date.now();
+    resolveDueCorrections(now);
+    if (!isValidCharacteristicValue(characteristic, value)) {
+      throw badRequest("The value of " + characteristic + " is out of its bounds or has the wrong shape.");
+    }
+    var beerDto = getBeer(beerId);
+    if (beerDto.createdBy === userId) throw forbidden("Only other users can correct a beer they added.");
+    var beer = index.beersById.get(beerId);
+    var currentValue = readCharacteristicValue(beer, characteristic);
+    if (isSameValue(currentValue, value)) throw badRequest(characteristic + " is already " + formatValue(value) + ".");
+    var since = now - CORRECTION_WINDOW_MS;
+    if (state.corrections.filter(function (c) { return c.proposedBy === userId && c.createdAt >= since; }).length >=
+      CORRECTIONS_PER_WINDOW_MAX) {
+      throw tooManyRequests("You can propose at most " + CORRECTIONS_PER_WINDOW_MAX + " corrections every " +
+        CORRECTION_WINDOW_HOURS + " hours.");
+    }
+    if (state.corrections.some(function (c) { return c.beerId === beerId && c.characteristic === characteristic && c.status === "open"; })) {
+      throw conflict("A correction of " + characteristic + " is already open for beer " + beerId + ".");
+    }
+    var record = { id: nextId("corrections"), beerId: beerId, characteristic: characteristic, proposedValue: JSON.stringify(value),
+      reason: normalizeLineEndings(dto.reason !== undefined && dto.reason !== null ? dto.reason : "").trim(), proposedBy: userId,
+      createdAt: now, closesAt: now + CORRECTION_VOTE_DURATION_MS, status: "open", resolvedAt: null, previousValue: null };
+    state.corrections.push(record);
+    return toCorrectionDto(record, beer.name, currentValue, getUser(userId).displayName, userId, PROPOSER_AGREE_COUNT, 0, null);
+  };
+  var voteCorrection = function (userId, correctionId, dto) {
+    var now = Date.now();
+    resolveDueCorrections(now);
+    var record = state.corrections.find(function (c) { return c.id === correctionId; });
+    if (!record) throw notFound("Correction " + correctionId + " not found.");
+    if (record.proposedBy === userId) throw forbidden("You cannot vote on your own correction.");
+    if (record.status !== "open") throw conflict("Correction " + correctionId + " is closed.");
+    var vote = state.correctionVotes.find(function (v) { return v.correctionId === correctionId && v.userId === userId; });
+    if (vote) {
+      vote.sense = dto.sense;
+      vote.votedAt = now;
+    } else {
+      state.correctionVotes.push({ id: nextId("correctionVotes"), correctionId: correctionId, userId: userId, sense: dto.sense,
+        votedAt: now });
+    }
+    getBeer(record.beerId);
+    return toVotedCorrections(userId, [record])[0];
+  };
+  var getCorrectionBoard = function (userId) {
+    resolveDueCorrections(Date.now());
+    var open = state.corrections.filter(function (c) { return c.status === "open"; }).sort(byClosingDate);
+    var closed = state.corrections.filter(function (c) { return c.status !== "open"; })
+      .sort(function (a, b) { return b.resolvedAt - a.resolvedAt || b.id - a.id; }).slice(0, CORRECTIONS_RECENTLY_CLOSED_LIMIT);
+    var openDtos = toVotedCorrections(userId, open);
+    return { open: openDtos, recentlyClosed: toVotedCorrections(userId, closed),
+      pendingCount: openDtos.filter(function (c) { return !c.isMine && c.myVote === null; }).length };
+  };
+  var getBeerCorrections = function (userId, beerId) {
+    resolveDueCorrections(Date.now());
+    getBeer(beerId);
+    return toVotedCorrections(userId, state.corrections.filter(function (c) {
+      return c.beerId === beerId && c.status === "open";
+    }).sort(byClosingDate));
   };
 
   // ---------------------------------------------------------------- dégustations, dex, liste d'envies
@@ -1771,6 +2001,13 @@
   route("GET", "/beer-styles", { run: function () { return getStyleGroups(); } });
   route("GET", "/breweries", { run: function () { return getBreweries(); } });
   route("GET", "/beers/:id", { params: [int("id")], run: function (r) { return getBeerForUser(r.userId, r.params.id); } });
+  route("GET", "/beers/:beerId/corrections", { params: [int("beerId")],
+    run: function (r) { return getBeerCorrections(r.userId, r.params.beerId); } });
+  route("POST", "/beers/:beerId/corrections", { status: 201, params: [int("beerId")], body: CreateCorrectionSchema,
+    run: function (r) { return proposeCorrection(r.userId, r.params.beerId, r.body); } });
+  route("GET", "/corrections", { run: function (r) { return getCorrectionBoard(r.userId); } });
+  route("PUT", "/corrections/:id/vote", { params: [int("id")], body: SaveCorrectionVoteSchema,
+    run: function (r) { return voteCorrection(r.userId, r.params.id, r.body); } });
   route("GET", "/beers/:beerId/reviews", { params: [int("beerId")], query: PageQuerySchema,
     run: function (r) { return getReviewPage(r.userId, r.params.beerId, r.query); } });
   route("PUT", "/beers/:beerId/reviews/me", { params: [int("beerId")], body: UpsertReviewSchema,
@@ -1950,11 +2187,14 @@
       rawBody = type.indexOf("multipart/form-data") !== -1 ? await input.formData() : await input.text();
     }
     await delay(signal);
+    stateDirty = false;
     try {
       var out = await dispatch(method, url, headers, rawBody);
-      if (out.mutating) saveState();
+      // Une lecture peut trancher des propositions échues (F14) : l'état est alors enregistré aussi.
+      if (out.mutating || stateDirty) saveState();
       return jsonResponse(out.status, out.body);
     } catch (error) {
+      if (stateDirty) saveState();
       if (error instanceof HttpError) return jsonResponse(error.status, { message: error.message });
       if (typeof console !== "undefined") console.error("[mousse-mock] erreur interne", error);
       return jsonResponse(500, { message: "Internal error" });

@@ -34,6 +34,8 @@ const seed = {
   venueBeers: read("venue-beers.json"),
   reviews: read("reviews.json"),
   demoCheckins,
+  // F14 : propositions de correction de démo (correction-seed.ts), dans l'ordre du JSON (ids 1..n).
+  demoCorrections: read("demo-corrections.json"),
 };
 
 const banner =
