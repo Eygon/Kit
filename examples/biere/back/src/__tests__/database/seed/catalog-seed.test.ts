@@ -102,6 +102,9 @@ describe("buildBeerRows", () => {
         abv: 7,
         ibu: null,
         ebc: null,
+        sweetness: null,
+        acidity: null,
+        body: null,
         description: "Trappiste cuivrée.",
         aromas: ["fruity", "caramel", "spicy", "malty"],
         formats: ["bottle"],
@@ -115,6 +118,12 @@ describe("buildBeerRows", () => {
     const [row] = buildBeerRows([{ ...CHIMAY_ROW, ibu: 25, ebc: 40 }], STYLE_IDS, BREWERY_IDS);
 
     expect([row.ibu, row.ebc]).toEqual([25, 40]);
+  });
+
+  it("leaves sweetness, acidity and body null even when the seed gives ibu and ebc", () => {
+    const [row] = buildBeerRows([{ ...CHIMAY_ROW, ibu: 25, ebc: 40 }], STYLE_IDS, BREWERY_IDS);
+
+    expect([row.sweetness, row.acidity, row.body]).toEqual([null, null, null]);
   });
 
   it("matches style and brewery names whatever their case", () => {

@@ -15,9 +15,6 @@ const REVIEW: Review = {
   authorAvatar: AvatarEnum.HOP,
   rating: 4.5,
   text: "Très bonne",
-  sweetness: 2,
-  acidity: null,
-  body: 5,
   createdAt: "2026-10-01T10:00:00.000Z",
   updatedAt: "2026-10-02T10:00:00.000Z",
   isMine: true,
@@ -48,7 +45,6 @@ const renderForm = (
   );
 
 const ratingSlider = () => screen.getByRole("slider", { name: "Note" });
-const criterionSlider = (name: string) => screen.getByRole("slider", { name });
 const submitButton = () =>
   screen.getByRole("button", { name: "Publier mon avis" });
 const textArea = () =>
@@ -105,7 +101,7 @@ describe("ReviewForm", () => {
       );
     });
 
-    it("shows the rating error under the rating slider, before the criteria", async () => {
+    it("shows the rating error right after the rating slider", async () => {
       const user = userEvent.setup();
       renderForm();
 
@@ -114,10 +110,6 @@ describe("ReviewForm", () => {
       const alert = screen.getByRole("alert");
       expect(
         ratingSlider().compareDocumentPosition(alert) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-      expect(
-        alert.compareDocumentPosition(criterionSlider("Douceur")) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     });
@@ -202,38 +194,18 @@ describe("ReviewForm", () => {
     });
   });
 
-  describe("AC3 the criteria", () => {
-    it("shows every criterion as not rated at first", () => {
+  describe("AC3 no criterion", () => {
+    it("shows neither Douceur, Acidité nor Corps, only the rating slider", () => {
       renderForm();
 
-      expect(screen.getAllByText("Non renseigné")).toHaveLength(3);
-      expect(criterionSlider("Douceur")).toHaveValue("0");
-      expect(criterionSlider("Acidité")).toHaveAttribute("max", "5");
+      expect(screen.queryByRole("slider", { name: "Douceur" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("slider", { name: "Acidité" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("slider", { name: "Corps" })).not.toBeInTheDocument();
+      expect(screen.queryByText("Non renseigné")).not.toBeInTheDocument();
+      expect(screen.getAllByRole("slider")).toHaveLength(1);
     });
 
-    it("sends a criterion left at 0 as absent and a criterion at 4 as 4 with its label shown", async () => {
-      const user = userEvent.setup();
-      renderForm();
-      await chooseRating(user);
-      criterionSlider("Douceur").focus();
-      await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
-
-      expect(screen.getByText("Douce")).toBeInTheDocument();
-      expect(screen.getAllByText("Non renseigné")).toHaveLength(2);
-
-      await user.click(submitButton());
-
-      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
-      expect(onSubmit).toHaveBeenCalledWith({
-        rating: 3.5,
-        text: "",
-        sweetness: 4,
-        acidity: null,
-        body: null,
-      });
-    });
-
-    it("sends the text typed with the rating", async () => {
+    it("sends the rating and the text only", async () => {
       const user = userEvent.setup();
       renderForm();
       await chooseRating(user);
@@ -241,15 +213,8 @@ describe("ReviewForm", () => {
 
       await user.click(submitButton());
 
-      await waitFor(() =>
-        expect(onSubmit).toHaveBeenCalledWith({
-          rating: 3.5,
-          text: "Top",
-          sweetness: null,
-          acidity: null,
-          body: null,
-        }),
-      );
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(onSubmit).toHaveBeenCalledWith({ rating: 3.5, text: "Top" });
     });
   });
 
@@ -278,7 +243,7 @@ describe("ReviewForm", () => {
   });
 
   describe("AC5 an existing review", () => {
-    it("prefills the rating, the text and the criteria of the review", () => {
+    it("prefills the rating and the text of the review", () => {
       const { container } = renderForm({ initialReview: REVIEW });
 
       expect(ratingSlider()).toHaveValue("4.5");
@@ -292,11 +257,6 @@ describe("ReviewForm", () => {
       ]);
       expect(textArea().value).toBe("Très bonne");
       expect(screen.getByText("10 / 500")).toBeInTheDocument();
-      expect(criterionSlider("Douceur")).toHaveValue("2");
-      expect(screen.getByText("Sèche")).toBeInTheDocument();
-      expect(criterionSlider("Acidité")).toHaveValue("0");
-      expect(criterionSlider("Corps")).toHaveValue("5");
-      expect(screen.getByText("Très plein")).toBeInTheDocument();
       expect(screen.queryByText("Aucune note")).not.toBeInTheDocument();
     });
 
@@ -310,9 +270,6 @@ describe("ReviewForm", () => {
         expect(onSubmit).toHaveBeenCalledWith({
           rating: 4.5,
           text: "Très bonne",
-          sweetness: 2,
-          acidity: null,
-          body: 5,
         }),
       );
     });
@@ -449,7 +406,7 @@ describe("ReviewForm", () => {
     renderForm();
 
     const form = submitButton().closest("form") as HTMLFormElement;
-    expect(within(form).getAllByRole("slider")).toHaveLength(4);
+    expect(within(form).getAllByRole("slider")).toHaveLength(1);
     expect(
       within(form).getByRole("textbox", { name: "Votre avis" }),
     ).toBeInTheDocument();

@@ -46,7 +46,7 @@ await R("/users/1/follow", 3, { method: "DELETE" });
 // E. UI : accueil
 const { p, w } = await mk(1); await p.goto(URL0 + "/"); await settle(p); await p.waitForTimeout(800); let txt = await p.locator("body").innerText();
 log("E.accueil-titre-et-fil", /Accueil/.test(txt) && /(a bu|Nouvelle découverte|a découvert|passe niveau|a donné son avis)/.test(txt), (txt.match(/(a bu|Nouvelle découverte|a découvert \d+ bières|passe niveau[^\n]*|a donné son avis)/) || ["?"])[0]);
-const tabs = await p.getByRole("navigation", { name: /Navigation principale/ }).getByRole("link").allInnerTexts(); log("E.cinq-onglets", tabs.length === 5 && /Accueil/.test(tabs[0]) && /Bières/.test(tabs[1]), tabs.map((t2) => t2.trim()).join(" | "));
+const tabs = await p.getByRole("navigation", { name: /Navigation principale/ }).getByRole("link").allInnerTexts(); log("E.six-onglets", tabs.length === 6 && /Accueil/.test(tabs[0]) && /Bières/.test(tabs[1]) && /Votes/.test(tabs[4]), tabs.map((t2) => t2.trim()).join(" | "));
 await p.screenshot({ path: "f5-home-feed.png" });
 log("E.accueil-sans-debordement", (await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0 && (await overflowing(p)).length === 0 && (await unreachable(p)).length === 0, "overflow/unreachable");
 log("E.oracle-recouvrement-accueil", (await covered(p)).length === 0, "controles non recouverts");

@@ -6,6 +6,8 @@ import {
   BEER_PAGE_SIZE_DEFAULT,
   BEER_PROPOSAL_WINDOW_MS,
   BEER_PROPOSALS_PER_WINDOW_MAX,
+  CORRECTION_WINDOW_MS,
+  CORRECTIONS_PER_WINDOW_MAX,
   REVIEW_PAGE_SIZE,
 } from "@/modules/beers/beers.constants";
 import { BeersRepository } from "@/modules/beers/beers.repository";
@@ -14,10 +16,14 @@ import { TastingsService } from "@/modules/tastings/tastings.service";
 import { UsersService } from "@/modules/users/users.service";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import type { BeerFacetsDto } from "@/modules/beers/dtos/beer-facets.dto";
+import { BeerAromaEnum } from "@/modules/beers/enums/beer-aroma.enum";
+import { BeerCharacteristicEnum } from "@/modules/beers/enums/beer-characteristic.enum";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
 import { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
 import { BeerStatusEnum } from "@/modules/beers/enums/beer-status.enum";
+import { CorrectionStatusEnum } from "@/modules/beers/enums/correction-status.enum";
+import { CorrectionVoteSenseEnum } from "@/modules/beers/enums/correction-vote-sense.enum";
 import { AvatarEnum } from "@/modules/users/enums/avatar.enum";
 
 const CHIMAY: BeerDto = {
@@ -32,6 +38,11 @@ const CHIMAY: BeerDto = {
   aromas: [],
   formats: [],
   description: "Trappiste.",
+  ibu: null,
+  ebc: null,
+  sweetness: null,
+  acidity: null,
+  body: null,
   bitternessLevel: null,
   colorLevel: null,
   styleColorRange: null,
@@ -39,8 +50,11 @@ const CHIMAY: BeerDto = {
   createdBy: null,
 };
 
+const OPEN_STATE = { status: CorrectionStatusEnum.OPEN, resolvedAt: null, previousValue: null };
+
 const ALICE = 1;
 const BOB = 2;
+const CAROL = 3;
 const MEMBERS = [
   { id: ALICE, displayName: "Alice", avatarColor: "#F59E0B", avatar: AvatarEnum.HOP },
   { id: BOB, displayName: "Bob", avatarColor: "#10B981", avatar: AvatarEnum.MALT },
@@ -53,11 +67,6 @@ const CHIMAY_SUMMARY = { beerId: 1, averageRating: 4.3, reviewCount: 2 };
 
 const CHIMAY_STATS = {
   ratingDistribution: [1, 2, 3, 4, 5].map((stars) => ({ stars, count: stars === 4 ? 2 : 0 })),
-  criteria: [
-    { criterion: "sweetness", average: 2.7, count: 3 },
-    { criterion: "acidity", average: 5, count: 2 },
-    { criterion: "body", average: null, count: 0 },
-  ],
 };
 
 const FACETS: BeerFacetsDto = {
@@ -98,6 +107,18 @@ describe("BeersService", () => {
     findBeersByBrewery: vi.fn(),
     createBrewery: vi.fn(),
     createBeer: vi.fn(),
+    createCorrection: vi.fn(),
+    existsOpenCorrection: vi.fn(),
+    countCorrectionsSince: vi.fn(),
+    findOpenCorrectionsByBeer: vi.fn(),
+    findCorrectionById: vi.fn(),
+    findOpenCorrections: vi.fn(),
+    upsertCorrectionVote: vi.fn(),
+    findCorrectionTallies: vi.fn(),
+    findCorrectionVotesOfUser: vi.fn(),
+    findDueCorrections: vi.fn(),
+    findRecentlyClosedCorrections: vi.fn(),
+    resolveCorrection: vi.fn(),
   };
   const tastingsService = {
     getBeerStates: vi.fn(),
@@ -115,6 +136,11 @@ describe("BeersService", () => {
     repository.findRatingSummaries.mockResolvedValue([]);
     repository.findReviewStats.mockResolvedValue(CHIMAY_STATS);
     usersService.getUsers.mockResolvedValue(MEMBERS);
+    repository.findCorrectionTallies.mockResolvedValue([]);
+    repository.findCorrectionVotesOfUser.mockResolvedValue([]);
+    repository.findDueCorrections.mockResolvedValue([]);
+    repository.findRecentlyClosedCorrections.mockResolvedValue([]);
+    repository.resolveCorrection.mockResolvedValue(true);
     const moduleRef = await Test.createTestingModule({
       providers: [
         BeersService,
@@ -567,11 +593,6 @@ describe("BeersService", () => {
         averageRating: 4.3,
         reviewCount: 2,
         ratingDistribution: CHIMAY_STATS.ratingDistribution,
-        criteria: [
-          { criterion: "sweetness", average: 2.7, count: 3 },
-          { criterion: "acidity", average: null, count: 2 },
-          { criterion: "body", average: null, count: 0 },
-        ],
       });
       expect(tastingsService.getBeerStates).toHaveBeenCalledExactlyOnceWith(ALICE, [1]);
       expect(repository.findRatingSummaries).toHaveBeenCalledExactlyOnceWith([1]);
@@ -650,9 +671,6 @@ describe("BeersService", () => {
       beerId: 1,
       rating: 4.5,
       text: "Superbe amertume",
-      sweetness: null,
-      acidity: null,
-      body: null,
       createdAt: "2026-03-01T10:00:00.000Z",
       updatedAt: "2026-03-02T10:00:00.000Z",
     };
@@ -673,16 +691,13 @@ describe("BeersService", () => {
 
   describe("saveMyReview", () => {
     const AUTHOR = { id: ALICE, displayName: "Alice", avatarColor: "#F59E0B", avatar: AvatarEnum.HOP };
-    const DTO = { rating: 4.5, text: "Superbe amertume", sweetness: 2 };
+    const DTO = { rating: 4.5, text: "Superbe amertume" };
     const RECORD = {
       id: 7,
       userId: ALICE,
       beerId: 1,
       rating: 4.5,
       text: "Superbe amertume",
-      sweetness: 2,
-      acidity: null,
-      body: null,
       createdAt: "2026-03-01T10:00:00.000Z",
       updatedAt: "2026-03-01T10:00:00.000Z",
     };
@@ -705,9 +720,6 @@ describe("BeersService", () => {
         authorAvatar: "hop",
         rating: 4.5,
         text: "Superbe amertume",
-        sweetness: 2,
-        acidity: null,
-        body: null,
         createdAt: "2026-03-01T10:00:00.000Z",
         updatedAt: "2026-03-01T10:00:00.000Z",
         isMine: true,
@@ -720,7 +732,7 @@ describe("BeersService", () => {
         beerId: 1,
         rating: 4.5,
         text: "Superbe amertume",
-        sweetness: 2,
+        sweetness: null,
         acidity: null,
         body: null,
         createdAt: expect.any(Date),
@@ -809,9 +821,6 @@ describe("BeersService", () => {
       beerId: 1,
       rating: 4,
       text: `avis ${id}`,
-      sweetness: null,
-      acidity: null,
-      body: null,
       createdAt: "2026-03-01T10:00:00.000Z",
       updatedAt: "2026-03-02T10:00:00.000Z",
     });
@@ -1002,6 +1011,9 @@ describe("BeersService", () => {
         abv: 6.5,
         ibu: null,
         ebc: null,
+        sweetness: null,
+        acidity: null,
+        body: null,
         description: "Une brune.",
         aromas: [],
         formats: [],
@@ -1013,6 +1025,825 @@ describe("BeersService", () => {
       expect(repository.findById).toHaveBeenCalledWith(42);
       expect(result).toMatchObject({ id: 42, name: "Brune du Mont", drunk: false, checkinCount: 0, inWishlist: false, reviewCount: 0 });
       expect(result.ratingDistribution).toHaveLength(5);
+    });
+  });
+  describe("proposeCorrection", () => {
+    const NOW = new Date("2026-06-01T10:00:00.000Z");
+    const CLOSES_AT = new Date("2026-06-08T10:00:00.000Z");
+    const IBU_RECORD = {
+      id: 12,
+      beerId: 1,
+      characteristic: BeerCharacteristicEnum.IBU,
+      proposedValue: 35,
+      reason: "Fiche du brasseur",
+      proposedBy: ALICE,
+      createdAt: NOW.toISOString(),
+      closesAt: CLOSES_AT.toISOString(),
+      ...OPEN_STATE,
+    };
+    const propose = (dto: { characteristic: BeerCharacteristicEnum; value: unknown; reason?: string }, userId = ALICE) =>
+      service.proposeCorrection(userId, 1, dto);
+    const failureOf = (dto: { characteristic: BeerCharacteristicEnum; value: unknown; reason?: string }, userId = ALICE) =>
+      propose(dto, userId).catch((error: unknown) => error);
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(NOW);
+      repository.findById.mockResolvedValue(CHIMAY);
+      repository.countCorrectionsSince.mockResolvedValue(0);
+      repository.existsOpenCorrection.mockResolvedValue(false);
+      repository.createCorrection.mockResolvedValue(IBU_RECORD);
+      usersService.getUser.mockResolvedValue(MEMBERS[0]);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("creates the correction and answers it open with one vote for, none against, the current value null and isMine true", async () => {
+      const result = await propose({ characteristic: BeerCharacteristicEnum.IBU, value: 35, reason: "Fiche du brasseur" });
+
+      expect(repository.createCorrection).toHaveBeenCalledExactlyOnceWith({
+        beerId: 1,
+        characteristic: BeerCharacteristicEnum.IBU,
+        proposedValue: "35",
+        reason: "Fiche du brasseur",
+        proposedBy: ALICE,
+        createdAt: NOW,
+        closesAt: CLOSES_AT,
+      });
+      expect(repository.countCorrectionsSince).toHaveBeenCalledExactlyOnceWith(ALICE, new Date(NOW.getTime() - CORRECTION_WINDOW_MS));
+      expect(repository.existsOpenCorrection).toHaveBeenCalledExactlyOnceWith(1, BeerCharacteristicEnum.IBU);
+      expect(result).toStrictEqual({
+        id: 12,
+        beerId: 1,
+        beerName: "Chimay Rouge",
+        characteristic: "ibu",
+        currentValue: null,
+        proposedValue: 35,
+        reason: "Fiche du brasseur",
+        proposedBy: ALICE,
+        proposedByName: "Alice",
+        createdAt: NOW.toISOString(),
+        closesAt: CLOSES_AT.toISOString(),
+        status: "open",
+        resolvedAt: null,
+        agreeCount: 1,
+        disagreeCount: 0,
+        myVote: null,
+        isMine: true,
+      });
+    });
+
+    it("records the calling user as the proposer, names them and marks the correction as theirs", async () => {
+      repository.createCorrection.mockResolvedValue({ ...IBU_RECORD, proposedBy: BOB });
+      usersService.getUser.mockResolvedValue(MEMBERS[1]);
+
+      const result = await propose({ characteristic: BeerCharacteristicEnum.IBU, value: 35, reason: "Fiche du brasseur" }, BOB);
+
+      expect(repository.createCorrection).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ proposedBy: BOB }));
+      expect(repository.countCorrectionsSince).toHaveBeenCalledExactlyOnceWith(BOB, new Date(NOW.getTime() - CORRECTION_WINDOW_MS));
+      expect(usersService.getUser).toHaveBeenCalledExactlyOnceWith(BOB);
+      expect(result).toMatchObject({ proposedBy: BOB, proposedByName: "Bob", isMine: true });
+    });
+
+    it("stores an absent reason as the empty text and reads the current value on the beer", async () => {
+      repository.findById.mockResolvedValue({ ...CHIMAY, ibu: 20 });
+
+      const result = await propose({ characteristic: BeerCharacteristicEnum.IBU, value: 35 });
+
+      expect(repository.createCorrection).toHaveBeenCalledWith(expect.objectContaining({ reason: "" }));
+      expect(result.currentValue).toBe(20);
+    });
+
+    it.each([
+      [BeerCharacteristicEnum.ABV, 0],
+      [BeerCharacteristicEnum.ABV, 0.3],
+      [BeerCharacteristicEnum.ABV, 7.5],
+      [BeerCharacteristicEnum.ABV, 19.9],
+      [BeerCharacteristicEnum.ABV, 20],
+      [BeerCharacteristicEnum.IBU, 0],
+      [BeerCharacteristicEnum.IBU, 120],
+      [BeerCharacteristicEnum.EBC, 2],
+      [BeerCharacteristicEnum.EBC, 80],
+      [BeerCharacteristicEnum.SWEETNESS, 1],
+      [BeerCharacteristicEnum.ACIDITY, 1],
+      [BeerCharacteristicEnum.ACIDITY, 5],
+      [BeerCharacteristicEnum.BODY, 1],
+      [BeerCharacteristicEnum.BODY, 3],
+      [BeerCharacteristicEnum.BODY, 5],
+      [BeerCharacteristicEnum.AROMAS, ["fruity"]],
+      [BeerCharacteristicEnum.AROMAS, ["fruity", "citrus", "hoppy", "floral", "spicy"]],
+      [BeerCharacteristicEnum.FORMATS, ["can"]],
+      [BeerCharacteristicEnum.FORMATS, ["bottle", "can", "draft"]],
+    ])("accepts the value of %s at its bound: %j", async (characteristic, value) => {
+      await propose({ characteristic, value });
+
+      expect(repository.createCorrection).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      [BeerCharacteristicEnum.ABV, 7.25],
+      [BeerCharacteristicEnum.ABV, 20.5],
+      [BeerCharacteristicEnum.ABV, -1],
+      [BeerCharacteristicEnum.ABV, ["7"]],
+      [BeerCharacteristicEnum.ABV, "7"],
+      [BeerCharacteristicEnum.IBU, 35.5],
+      [BeerCharacteristicEnum.IBU, -1],
+      [BeerCharacteristicEnum.IBU, 121],
+      [BeerCharacteristicEnum.IBU, null],
+      [BeerCharacteristicEnum.EBC, 1],
+      [BeerCharacteristicEnum.EBC, 81],
+      [BeerCharacteristicEnum.SWEETNESS, 0],
+      [BeerCharacteristicEnum.SWEETNESS, 6],
+      [BeerCharacteristicEnum.ACIDITY, 0],
+      [BeerCharacteristicEnum.ACIDITY, 6],
+      [BeerCharacteristicEnum.ACIDITY, 2.5],
+      [BeerCharacteristicEnum.BODY, 0],
+      [BeerCharacteristicEnum.BODY, 6],
+      [BeerCharacteristicEnum.BODY, "3"],
+      [BeerCharacteristicEnum.AROMAS, 5],
+      [BeerCharacteristicEnum.AROMAS, []],
+      [BeerCharacteristicEnum.AROMAS, ["fruity", "citrus", "hoppy", "floral", "spicy", "caramel"]],
+      [BeerCharacteristicEnum.AROMAS, ["fruity", "fruity"]],
+      [BeerCharacteristicEnum.AROMAS, ["unknown"]],
+      [BeerCharacteristicEnum.AROMAS, [1]],
+      [BeerCharacteristicEnum.AROMAS, ["can"]],
+      [BeerCharacteristicEnum.FORMATS, []],
+      [BeerCharacteristicEnum.FORMATS, ["bottle", "bottle"]],
+      [BeerCharacteristicEnum.FORMATS, ["bottle", "can", "draft", "keg"]],
+      [BeerCharacteristicEnum.FORMATS, ["fruity"]],
+      [BeerCharacteristicEnum.FORMATS, "bottle"],
+    ])("answers 400 for the value of %s: %j, before reading the beer and without writing", async (characteristic, value) => {
+      const failure = await failureOf({ characteristic, value });
+
+      expect(failure).toBeInstanceOf(BadRequestException);
+      expect((failure as BadRequestException).message).toEqual(expect.stringContaining(characteristic));
+      expect(repository.findById).not.toHaveBeenCalled();
+      expect(repository.createCorrection).not.toHaveBeenCalled();
+    });
+
+    it("answers 404 for an unknown beer, without writing", async () => {
+      repository.findById.mockResolvedValue(null);
+
+      const failure = await failureOf({ characteristic: BeerCharacteristicEnum.IBU, value: 35 });
+
+      expect(failure).toBeInstanceOf(NotFoundException);
+      expect((failure as NotFoundException).message).toBe("Beer 1 not found.");
+      expect(repository.countCorrectionsSince).not.toHaveBeenCalled();
+      expect(repository.createCorrection).not.toHaveBeenCalled();
+    });
+
+    it("answers 403 to the author of a community beer, and lets another user propose", async () => {
+      repository.findById.mockResolvedValue(ALICE_BEER);
+
+      const failure = await failureOf({ characteristic: BeerCharacteristicEnum.IBU, value: 35 });
+
+      expect(failure).toBeInstanceOf(ForbiddenException);
+      expect((failure as ForbiddenException).message).toBe("Only other users can correct a beer they added.");
+      expect(repository.createCorrection).not.toHaveBeenCalled();
+      expect((await propose({ characteristic: BeerCharacteristicEnum.IBU, value: 35 }, BOB)).isMine).toBe(false);
+    });
+
+    it("answers 404 before 403, and 403 before the identical value, the quota and the conflict", async () => {
+      repository.findById.mockResolvedValue({ ...ALICE_BEER, abv: 7 });
+      repository.countCorrectionsSince.mockResolvedValue(CORRECTIONS_PER_WINDOW_MAX);
+      repository.existsOpenCorrection.mockResolvedValue(true);
+
+      const failure = await failureOf({ characteristic: BeerCharacteristicEnum.ABV, value: 7 });
+
+      expect(failure).toBeInstanceOf(ForbiddenException);
+      expect(repository.countCorrectionsSince).not.toHaveBeenCalled();
+      expect(repository.existsOpenCorrection).not.toHaveBeenCalled();
+      expect(repository.createCorrection).not.toHaveBeenCalled();
+    });
+
+    it("answers 400 for the value already carried by the beer, a number or a list compared as a set", async () => {
+      repository.findById.mockResolvedValue({ ...CHIMAY, aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY] });
+
+      const sameNumber = await failureOf({ characteristic: BeerCharacteristicEnum.ABV, value: 7 });
+      const sameSet = await failureOf({ characteristic: BeerCharacteristicEnum.AROMAS, value: ["hoppy", "fruity"] });
+
+      expect(sameNumber).toBeInstanceOf(BadRequestException);
+      expect((sameNumber as BadRequestException).message).toBe("abv is already 7.");
+      expect(sameSet).toBeInstanceOf(BadRequestException);
+      expect((sameSet as BadRequestException).message).toBe("aromas is already hoppy, fruity.");
+      expect(repository.createCorrection).not.toHaveBeenCalled();
+    });
+
+    it("accepts a list that only overlaps the current one, or extends it, and a value on a field not filled yet", async () => {
+      repository.findById.mockResolvedValue({ ...CHIMAY, aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY] });
+
+      await propose({ characteristic: BeerCharacteristicEnum.AROMAS, value: ["fruity"] });
+      await propose({ characteristic: BeerCharacteristicEnum.AROMAS, value: ["fruity", "hoppy", "citrus"] });
+      await propose({ characteristic: BeerCharacteristicEnum.AROMAS, value: ["fruity", "citrus"] });
+      await propose({ characteristic: BeerCharacteristicEnum.IBU, value: 0 });
+
+      expect(repository.createCorrection).toHaveBeenCalledTimes(4);
+    });
+
+    it("answers 400 for the identical value before the quota and the conflict", async () => {
+      repository.countCorrectionsSince.mockResolvedValue(CORRECTIONS_PER_WINDOW_MAX);
+      repository.existsOpenCorrection.mockResolvedValue(true);
+
+      const failure = await failureOf({ characteristic: BeerCharacteristicEnum.ABV, value: 7 });
+
+      expect(failure).toBeInstanceOf(BadRequestException);
+      expect(repository.countCorrectionsSince).not.toHaveBeenCalled();
+      expect(repository.existsOpenCorrection).not.toHaveBeenCalled();
+    });
+
+    it("answers 429 once the user made the maximum in the sliding window, before the conflict, and writes nothing", async () => {
+      repository.countCorrectionsSince.mockResolvedValue(CORRECTIONS_PER_WINDOW_MAX);
+      repository.existsOpenCorrection.mockResolvedValue(true);
+
+      const failure = await failureOf({ characteristic: BeerCharacteristicEnum.IBU, value: 35 });
+
+      expect(failure).toBeInstanceOf(HttpException);
+      expect((failure as HttpException).getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      expect((failure as HttpException).message).toEqual(expect.stringContaining("10"));
+      expect(repository.existsOpenCorrection).not.toHaveBeenCalled();
+      expect(repository.createCorrection).not.toHaveBeenCalled();
+    });
+
+    it("accepts the last proposal of the window", async () => {
+      repository.countCorrectionsSince.mockResolvedValue(CORRECTIONS_PER_WINDOW_MAX - 1);
+
+      await propose({ characteristic: BeerCharacteristicEnum.IBU, value: 35 });
+
+      expect(repository.createCorrection).toHaveBeenCalledTimes(1);
+    });
+
+    it("answers 409 when a proposal is already open for this beer and this characteristic, and writes nothing", async () => {
+      repository.existsOpenCorrection.mockResolvedValue(true);
+
+      const failure = await failureOf({ characteristic: BeerCharacteristicEnum.IBU, value: 35 });
+
+      expect(failure).toBeInstanceOf(ConflictException);
+      expect((failure as ConflictException).message).toBe("A correction of ibu is already open for beer 1.");
+      expect(repository.createCorrection).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getBeerCorrections", () => {
+    const RECORDS = [
+      {
+        id: 12,
+        beerId: 1,
+        characteristic: BeerCharacteristicEnum.IBU,
+        proposedValue: 35,
+        reason: "",
+        proposedBy: ALICE,
+        createdAt: "2026-06-01T10:00:00.000Z",
+        closesAt: "2026-06-08T10:00:00.000Z",
+        ...OPEN_STATE,
+      },
+      {
+        id: 13,
+        beerId: 1,
+        characteristic: BeerCharacteristicEnum.AROMAS,
+        proposedValue: ["fruity"],
+        reason: "Etiquette",
+        proposedBy: BOB,
+        createdAt: "2026-06-02T10:00:00.000Z",
+        closesAt: "2026-06-09T10:00:00.000Z",
+        ...OPEN_STATE,
+      },
+    ];
+
+    it("answers 404 for an unknown beer without reading the corrections", async () => {
+      repository.findById.mockResolvedValue(null);
+
+      const failure = await service.getBeerCorrections(ALICE, 99).catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(NotFoundException);
+      expect((failure as NotFoundException).message).toBe("Beer 99 not found.");
+      expect(repository.findOpenCorrectionsByBeer).not.toHaveBeenCalled();
+    });
+
+    it("answers an empty list for a beer without open correction", async () => {
+      repository.findById.mockResolvedValue(CHIMAY);
+      repository.findOpenCorrectionsByBeer.mockResolvedValue([]);
+
+      expect(await service.getBeerCorrections(ALICE, 1)).toEqual([]);
+      expect(repository.findOpenCorrectionsByBeer).toHaveBeenCalledExactlyOnceWith(1);
+    });
+
+    it("answers the open corrections in repository order with the live current value, the proposer name and isMine", async () => {
+      repository.findById.mockResolvedValue({ ...CHIMAY, aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY] });
+      repository.findOpenCorrectionsByBeer.mockResolvedValue(RECORDS);
+
+      const result = await service.getBeerCorrections(ALICE, 1);
+
+      expect(result.map((correction) => correction.id)).toEqual([12, 13]);
+      expect(result[0]).toMatchObject({ beerName: "Chimay Rouge", currentValue: null, proposedByName: "Alice", agreeCount: 1, disagreeCount: 0, isMine: true });
+      expect(result[1]).toMatchObject({ currentValue: ["fruity", "hoppy"], proposedByName: "Bob", isMine: false });
+    });
+
+    it("fails when the proposer is not a known member", async () => {
+      repository.findById.mockResolvedValue(CHIMAY);
+      repository.findOpenCorrectionsByBeer.mockResolvedValue([{ ...RECORDS[0], proposedBy: 77 }]);
+
+      await expect(service.getBeerCorrections(ALICE, 1)).rejects.toThrow("Proposer 77 of correction 12 not found.");
+    });
+  });
+
+  describe("getBeerCorrections with votes", () => {
+    it("carries the counters of the votes and the vote of the caller, the proposer agreement being implicit", async () => {
+      repository.findById.mockResolvedValue(CHIMAY);
+      repository.findOpenCorrectionsByBeer.mockResolvedValue([
+        { id: 12, beerId: 1, characteristic: BeerCharacteristicEnum.IBU, proposedValue: 35, reason: "", proposedBy: BOB, createdAt: "2026-06-01T10:00:00.000Z", closesAt: "2026-06-08T10:00:00.000Z", ...OPEN_STATE },
+        { id: 13, beerId: 1, characteristic: BeerCharacteristicEnum.EBC, proposedValue: 20, reason: "", proposedBy: BOB, createdAt: "2026-06-01T10:00:00.000Z", closesAt: "2026-06-09T10:00:00.000Z", ...OPEN_STATE },
+      ]);
+      repository.findCorrectionTallies.mockResolvedValue([
+        { correctionId: 12, sense: CorrectionVoteSenseEnum.AGREE, count: 2 },
+        { correctionId: 12, sense: CorrectionVoteSenseEnum.DISAGREE, count: 3 },
+      ]);
+      repository.findCorrectionVotesOfUser.mockResolvedValue([{ correctionId: 12, sense: CorrectionVoteSenseEnum.DISAGREE }]);
+
+      const result = await service.getBeerCorrections(ALICE, 1);
+
+      expect(repository.findCorrectionTallies).toHaveBeenCalledExactlyOnceWith([12, 13]);
+      expect(repository.findCorrectionVotesOfUser).toHaveBeenCalledExactlyOnceWith(ALICE, [12, 13]);
+      expect(result[0]).toMatchObject({ id: 12, agreeCount: 3, disagreeCount: 3, myVote: "disagree" });
+      expect(result[1]).toMatchObject({ id: 13, agreeCount: 1, disagreeCount: 0, myVote: null });
+    });
+  });
+
+  describe("voteCorrection", () => {
+    const NOW = new Date("2026-06-02T09:00:00.000Z");
+    const RECORD = {
+      id: 12,
+      beerId: 1,
+      characteristic: BeerCharacteristicEnum.IBU,
+      proposedValue: 35,
+      reason: "Fiche",
+      proposedBy: ALICE,
+      createdAt: "2026-06-01T10:00:00.000Z",
+      closesAt: "2026-06-08T10:00:00.000Z",
+      ...OPEN_STATE,
+    };
+    const vote = (userId: number, sense: CorrectionVoteSenseEnum, id = 12) => service.voteCorrection(userId, id, { sense });
+    const failureOf = (userId: number, sense: CorrectionVoteSenseEnum, id = 12) => vote(userId, sense, id).catch((error: unknown) => error);
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(NOW);
+      repository.findCorrectionById.mockResolvedValue(RECORD);
+      repository.findById.mockResolvedValue(CHIMAY);
+      repository.upsertCorrectionVote.mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("answers 404 for an unknown correction without saving anything", async () => {
+      repository.findCorrectionById.mockResolvedValue(null);
+
+      const failure = await failureOf(BOB, CorrectionVoteSenseEnum.AGREE, 99);
+
+      expect(failure).toBeInstanceOf(NotFoundException);
+      expect((failure as NotFoundException).message).toBe("Correction 99 not found.");
+      expect(repository.findCorrectionById).toHaveBeenCalledExactlyOnceWith(99);
+      expect(repository.upsertCorrectionVote).not.toHaveBeenCalled();
+    });
+
+    it("answers 403 to the proposer in both senses without saving anything", async () => {
+      const agree = await failureOf(ALICE, CorrectionVoteSenseEnum.AGREE);
+      const disagree = await failureOf(ALICE, CorrectionVoteSenseEnum.DISAGREE);
+
+      expect(agree).toBeInstanceOf(ForbiddenException);
+      expect(disagree).toBeInstanceOf(ForbiddenException);
+      expect((agree as ForbiddenException).message).toBe("You cannot vote on your own correction.");
+      expect(repository.upsertCorrectionVote).not.toHaveBeenCalled();
+    });
+
+    it("saves the vote of another user then answers the correction read back with the counters and the vote", async () => {
+      repository.findCorrectionTallies.mockResolvedValue([{ correctionId: 12, sense: CorrectionVoteSenseEnum.AGREE, count: 1 }]);
+      repository.findCorrectionVotesOfUser.mockResolvedValue([{ correctionId: 12, sense: CorrectionVoteSenseEnum.AGREE }]);
+
+      const result = await vote(BOB, CorrectionVoteSenseEnum.AGREE);
+
+      expect(repository.upsertCorrectionVote).toHaveBeenCalledExactlyOnceWith({ correctionId: 12, userId: BOB, sense: "agree", votedAt: NOW });
+      expect(repository.upsertCorrectionVote.mock.invocationCallOrder[0]).toBeLessThan(repository.findCorrectionTallies.mock.invocationCallOrder[0]);
+      expect(repository.findCorrectionTallies).toHaveBeenCalledExactlyOnceWith([12]);
+      expect(repository.findCorrectionVotesOfUser).toHaveBeenCalledExactlyOnceWith(BOB, [12]);
+      expect(repository.findById).toHaveBeenCalledExactlyOnceWith(1);
+      expect(result).toStrictEqual({
+        id: 12,
+        beerId: 1,
+        beerName: "Chimay Rouge",
+        characteristic: "ibu",
+        currentValue: null,
+        proposedValue: 35,
+        reason: "Fiche",
+        proposedBy: ALICE,
+        proposedByName: "Alice",
+        createdAt: "2026-06-01T10:00:00.000Z",
+        closesAt: "2026-06-08T10:00:00.000Z",
+        status: "open",
+        resolvedAt: null,
+        agreeCount: 2,
+        disagreeCount: 0,
+        myVote: "agree",
+        isMine: false,
+      });
+    });
+
+    it("answers one agreement and one disagreement after a change of vote", async () => {
+      repository.findCorrectionTallies.mockResolvedValue([{ correctionId: 12, sense: CorrectionVoteSenseEnum.DISAGREE, count: 1 }]);
+      repository.findCorrectionVotesOfUser.mockResolvedValue([{ correctionId: 12, sense: CorrectionVoteSenseEnum.DISAGREE }]);
+
+      const result = await vote(BOB, CorrectionVoteSenseEnum.DISAGREE);
+
+      expect(repository.upsertCorrectionVote).toHaveBeenCalledExactlyOnceWith({ correctionId: 12, userId: BOB, sense: "disagree", votedAt: NOW });
+      expect(result).toMatchObject({ agreeCount: 1, disagreeCount: 1, myVote: "disagree" });
+    });
+
+    it("counts the vote of the author of the beer like any other", async () => {
+      repository.findCorrectionById.mockResolvedValue({ ...RECORD, beerId: 5, proposedBy: BOB });
+      repository.findById.mockResolvedValue(ALICE_BEER);
+      repository.findCorrectionVotesOfUser.mockResolvedValue([{ correctionId: 12, sense: CorrectionVoteSenseEnum.AGREE }]);
+
+      const result = await vote(ALICE, CorrectionVoteSenseEnum.AGREE);
+
+      expect(repository.upsertCorrectionVote).toHaveBeenCalledExactlyOnceWith({ correctionId: 12, userId: ALICE, sense: "agree", votedAt: NOW });
+      expect(result).toMatchObject({ beerId: 5, beerName: "Brune du Mont", proposedByName: "Bob", myVote: "agree", isMine: false });
+    });
+
+    it("answers 409 for a closed correction, in either status, without saving anything", async () => {
+      for (const status of [CorrectionStatusEnum.ACCEPTED, CorrectionStatusEnum.REJECTED]) {
+        repository.findCorrectionById.mockResolvedValue({ ...RECORD, status });
+
+        const failure = await failureOf(BOB, CorrectionVoteSenseEnum.AGREE);
+
+        expect(failure).toBeInstanceOf(ConflictException);
+        expect((failure as ConflictException).message).toBe("Correction 12 is closed.");
+      }
+      expect(repository.upsertCorrectionVote).not.toHaveBeenCalled();
+    });
+
+    it("answers 403 before 409 to the proposer of a closed correction", async () => {
+      repository.findCorrectionById.mockResolvedValue({ ...RECORD, status: CorrectionStatusEnum.ACCEPTED });
+
+      const failure = await failureOf(ALICE, CorrectionVoteSenseEnum.AGREE);
+
+      expect(failure).toBeInstanceOf(ForbiddenException);
+      expect(repository.upsertCorrectionVote).not.toHaveBeenCalled();
+    });
+
+    it("resolves the due corrections before reading the correction, then answers 409 when it has just been closed", async () => {
+      repository.findDueCorrections.mockResolvedValue([RECORD]);
+      repository.findCorrectionById.mockResolvedValue({ ...RECORD, status: CorrectionStatusEnum.REJECTED });
+      repository.findById.mockResolvedValue(CHIMAY);
+      repository.findByIds.mockResolvedValue([CHIMAY]);
+
+      const failure = await failureOf(BOB, CorrectionVoteSenseEnum.AGREE);
+
+      expect(failure).toBeInstanceOf(ConflictException);
+      expect(repository.findDueCorrections).toHaveBeenCalledExactlyOnceWith(NOW);
+      expect(repository.resolveCorrection).toHaveBeenCalledExactlyOnceWith(12, "rejected", "null", NOW, 1, null);
+      expect(repository.resolveCorrection.mock.invocationCallOrder[0]).toBeLessThan(repository.findCorrectionById.mock.invocationCallOrder[0]);
+      expect(repository.upsertCorrectionVote).not.toHaveBeenCalled();
+    });
+
+    it("resolves the due corrections before answering 404 for an unknown correction", async () => {
+      repository.findCorrectionById.mockResolvedValue(null);
+
+      await failureOf(BOB, CorrectionVoteSenseEnum.AGREE, 99);
+
+      expect(repository.findDueCorrections.mock.invocationCallOrder[0]).toBeLessThan(repository.findCorrectionById.mock.invocationCallOrder[0]);
+    });
+
+    it("fails when the proposer of the correction is not a known member", async () => {
+      repository.findCorrectionById.mockResolvedValue({ ...RECORD, proposedBy: 77 });
+
+      await expect(vote(CAROL, CorrectionVoteSenseEnum.AGREE)).rejects.toThrow("Proposer 77 of correction 12 not found.");
+    });
+  });
+
+  describe("getCorrectionBoard", () => {
+    const RECORD_BASE = { characteristic: BeerCharacteristicEnum.IBU, proposedValue: 35, reason: "", createdAt: "2026-06-01T10:00:00.000Z", ...OPEN_STATE };
+    const RECORDS = [
+      { ...RECORD_BASE, id: 12, beerId: 1, proposedBy: ALICE, closesAt: "2026-06-05T10:00:00.000Z" },
+      { ...RECORD_BASE, id: 13, beerId: 5, proposedBy: BOB, closesAt: "2026-06-06T10:00:00.000Z" },
+      { ...RECORD_BASE, id: 14, beerId: 1, proposedBy: BOB, closesAt: "2026-06-07T10:00:00.000Z" },
+    ];
+
+    beforeEach(() => {
+      repository.findOpenCorrections.mockResolvedValue(RECORDS);
+      repository.findByIds.mockResolvedValue([CHIMAY, ALICE_BEER]);
+    });
+
+    it("answers an empty board without any open correction", async () => {
+      repository.findOpenCorrections.mockResolvedValue([]);
+      repository.findByIds.mockResolvedValue([]);
+
+      expect(await service.getCorrectionBoard(ALICE)).toStrictEqual({ open: [], recentlyClosed: [], pendingCount: 0 });
+    });
+
+    it("answers the open corrections in repository order, each with its beer, counters and vote of the caller", async () => {
+      repository.findCorrectionTallies.mockResolvedValue([
+        { correctionId: 13, sense: CorrectionVoteSenseEnum.AGREE, count: 2 },
+        { correctionId: 13, sense: CorrectionVoteSenseEnum.DISAGREE, count: 1 },
+      ]);
+      repository.findCorrectionVotesOfUser.mockResolvedValue([{ correctionId: 13, sense: CorrectionVoteSenseEnum.AGREE }]);
+
+      const board = await service.getCorrectionBoard(ALICE);
+
+      expect(repository.findByIds).toHaveBeenCalledExactlyOnceWith([1, 5]);
+      expect(repository.findCorrectionTallies).toHaveBeenCalledExactlyOnceWith([12, 13, 14]);
+      expect(repository.findCorrectionVotesOfUser).toHaveBeenCalledExactlyOnceWith(ALICE, [12, 13, 14]);
+      expect(board.open.map((correction) => correction.id)).toEqual([12, 13, 14]);
+      expect(board.open.map((correction) => correction.beerName)).toEqual(["Chimay Rouge", "Brune du Mont", "Chimay Rouge"]);
+      expect(board.open.map((correction) => [correction.agreeCount, correction.disagreeCount, correction.myVote, correction.isMine])).toEqual([
+        [1, 0, null, true],
+        [3, 1, "agree", false],
+        [1, 0, null, false],
+      ]);
+      expect(board.recentlyClosed).toEqual([]);
+    });
+
+    it("answers the recently closed corrections with their status, resolution date and previous value, the ten latest being asked", async () => {
+      const closedRecord = {
+        ...RECORD_BASE,
+        id: 20,
+        beerId: 1,
+        proposedBy: BOB,
+        closesAt: "2026-06-04T10:00:00.000Z",
+        status: CorrectionStatusEnum.ACCEPTED,
+        resolvedAt: "2026-06-04T11:00:00.000Z",
+        previousValue: 20,
+      };
+      const rejectedRecord = { ...closedRecord, id: 21, beerId: 5, status: CorrectionStatusEnum.REJECTED, previousValue: null };
+      repository.findRecentlyClosedCorrections.mockResolvedValue([closedRecord, rejectedRecord]);
+      repository.findCorrectionTallies.mockResolvedValue([
+        { correctionId: 20, sense: CorrectionVoteSenseEnum.AGREE, count: 1 },
+        { correctionId: 21, sense: CorrectionVoteSenseEnum.DISAGREE, count: 2 },
+      ]);
+      repository.findCorrectionVotesOfUser.mockResolvedValue([{ correctionId: 20, sense: CorrectionVoteSenseEnum.AGREE }]);
+
+      const board = await service.getCorrectionBoard(ALICE);
+
+      expect(repository.findRecentlyClosedCorrections).toHaveBeenCalledExactlyOnceWith(10);
+      expect(repository.findCorrectionTallies).toHaveBeenCalledExactlyOnceWith([12, 13, 14, 20, 21]);
+      expect(board.open.map((correction) => correction.id)).toEqual([12, 13, 14]);
+      expect(board.recentlyClosed).toStrictEqual([
+        {
+          id: 20,
+          beerId: 1,
+          beerName: "Chimay Rouge",
+          characteristic: "ibu",
+          currentValue: 20,
+          proposedValue: 35,
+          reason: "",
+          proposedBy: BOB,
+          proposedByName: "Bob",
+          createdAt: "2026-06-01T10:00:00.000Z",
+          closesAt: "2026-06-04T10:00:00.000Z",
+          status: "accepted",
+          resolvedAt: "2026-06-04T11:00:00.000Z",
+          agreeCount: 2,
+          disagreeCount: 0,
+          myVote: "agree",
+          isMine: false,
+        },
+        expect.objectContaining({ id: 21, beerName: "Brune du Mont", currentValue: null, status: "rejected", agreeCount: 1, disagreeCount: 2, myVote: null }),
+      ]);
+      expect(board.pendingCount).toBe(2);
+    });
+
+    it("does not count the closed corrections as pending", async () => {
+      repository.findOpenCorrections.mockResolvedValue([]);
+      repository.findRecentlyClosedCorrections.mockResolvedValue([
+        { ...RECORD_BASE, id: 20, beerId: 1, proposedBy: BOB, closesAt: "2026-06-04T10:00:00.000Z", status: CorrectionStatusEnum.REJECTED, resolvedAt: "2026-06-04T11:00:00.000Z", previousValue: null },
+      ]);
+
+      expect(await service.getCorrectionBoard(ALICE)).toMatchObject({ open: [], pendingCount: 0 });
+    });
+
+    it("resolves the due corrections before reading the open and the closed ones", async () => {
+      await service.getCorrectionBoard(ALICE);
+
+      const resolution = repository.findDueCorrections.mock.invocationCallOrder[0];
+      expect(resolution).toBeLessThan(repository.findOpenCorrections.mock.invocationCallOrder[0]);
+      expect(resolution).toBeLessThan(repository.findRecentlyClosedCorrections.mock.invocationCallOrder[0]);
+    });
+
+    it("counts as pending the open corrections of others without a vote of the caller", async () => {
+      repository.findCorrectionVotesOfUser.mockResolvedValue([{ correctionId: 13, sense: CorrectionVoteSenseEnum.DISAGREE }]);
+
+      expect((await service.getCorrectionBoard(ALICE)).pendingCount).toBe(1);
+    });
+
+    it("counts none as pending when the caller has voted on every correction of the others or proposed them", async () => {
+      repository.findCorrectionVotesOfUser.mockResolvedValue([{ correctionId: 12, sense: CorrectionVoteSenseEnum.AGREE }]);
+
+      expect((await service.getCorrectionBoard(BOB)).pendingCount).toBe(0);
+    });
+
+    it("counts every correction of others as pending for a caller who voted on none", async () => {
+      expect((await service.getCorrectionBoard(CAROL)).pendingCount).toBe(3);
+    });
+
+    it("fails when the beer or the proposer of a correction is unknown", async () => {
+      repository.findByIds.mockResolvedValue([CHIMAY]);
+      await expect(service.getCorrectionBoard(ALICE)).rejects.toThrow("Beer 5 of correction 13 not found.");
+
+      repository.findByIds.mockResolvedValue([CHIMAY, ALICE_BEER]);
+      repository.findOpenCorrections.mockResolvedValue([{ ...RECORDS[0], proposedBy: 77 }]);
+      await expect(service.getCorrectionBoard(ALICE)).rejects.toThrow("Proposer 77 of correction 12 not found.");
+    });
+  });
+
+  describe("resolveDueCorrections", () => {
+    const NOW = new Date("2026-06-10T12:00:00.000Z");
+    const DUE = {
+      id: 12,
+      beerId: 1,
+      characteristic: BeerCharacteristicEnum.IBU,
+      proposedValue: 35,
+      reason: "",
+      proposedBy: ALICE,
+      createdAt: "2026-06-01T10:00:00.000Z",
+      closesAt: "2026-06-08T10:00:00.000Z",
+      ...OPEN_STATE,
+    };
+    const tally = (correctionId: number, agree: number, disagree: number) => [
+      { correctionId, sense: CorrectionVoteSenseEnum.AGREE, count: agree },
+      { correctionId, sense: CorrectionVoteSenseEnum.DISAGREE, count: disagree },
+    ];
+
+    beforeEach(() => {
+      repository.findDueCorrections.mockResolvedValue([DUE]);
+      repository.findByIds.mockResolvedValue([{ ...CHIMAY, ibu: 20 }]);
+    });
+
+    it("reads nothing more than the due corrections when none is due", async () => {
+      repository.findDueCorrections.mockResolvedValue([]);
+
+      await service.resolveDueCorrections(NOW);
+
+      expect(repository.findDueCorrections).toHaveBeenCalledExactlyOnceWith(NOW);
+      expect(repository.findByIds).not.toHaveBeenCalled();
+      expect(repository.findCorrectionTallies).not.toHaveBeenCalled();
+      expect(repository.resolveCorrection).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["the proposer and one more agreement against one disagreement", 1, 1, "accepted", { ibu: 35 }],
+      ["the proposer and one more agreement against none", 1, 0, "accepted", { ibu: 35 }],
+      ["three agreements against two disagreements", 2, 2, "accepted", { ibu: 35 }],
+      ["the proposer alone", 0, 0, "rejected", null],
+      ["the proposer against one disagreement", 0, 1, "rejected", null],
+      ["two agreements against two disagreements", 1, 2, "rejected", null],
+      ["three agreements against three disagreements", 2, 3, "rejected", null],
+    ])("closes the correction with %s as %s", async (_label, agreeVotes, disagreeVotes, status, change) => {
+      repository.findCorrectionTallies.mockResolvedValue(tally(12, agreeVotes, disagreeVotes));
+
+      await service.resolveDueCorrections(NOW);
+
+      expect(repository.resolveCorrection).toHaveBeenCalledExactlyOnceWith(12, status, "20", NOW, 1, change);
+    });
+
+    it("keeps the value of the beer at the closing as the previous value, null when it is not filled in", async () => {
+      repository.findByIds.mockResolvedValue([CHIMAY]);
+      repository.findCorrectionTallies.mockResolvedValue(tally(12, 1, 0));
+
+      await service.resolveDueCorrections(NOW);
+
+      expect(repository.resolveCorrection).toHaveBeenCalledExactlyOnceWith(12, "accepted", "null", NOW, 1, { ibu: 35 });
+    });
+
+    it("keeps a list as JSON and applies the list change, an empty list being null", async () => {
+      const aromas = { ...DUE, id: 13, characteristic: BeerCharacteristicEnum.AROMAS, proposedValue: ["citrus"] };
+      const formats = { ...DUE, id: 14, characteristic: BeerCharacteristicEnum.FORMATS, proposedValue: ["can"] };
+      repository.findDueCorrections.mockResolvedValue([aromas, formats]);
+      repository.findByIds.mockResolvedValue([{ ...CHIMAY, aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY], formats: [] }]);
+      repository.findCorrectionTallies.mockResolvedValue([...tally(13, 1, 0), ...tally(14, 1, 0)]);
+
+      await service.resolveDueCorrections(NOW);
+
+      expect(repository.resolveCorrection).toHaveBeenNthCalledWith(1, 13, "accepted", '["fruity","hoppy"]', NOW, 1, { aromas: ["citrus"] });
+      expect(repository.resolveCorrection).toHaveBeenNthCalledWith(2, 14, "accepted", "null", NOW, 1, { formats: ["can"] });
+    });
+
+    it("reads the tallies and the beers once for all the due corrections, then closes each one in order", async () => {
+      const second = { ...DUE, id: 13, beerId: 5, characteristic: BeerCharacteristicEnum.EBC, proposedValue: 20, proposedBy: BOB };
+      const third = { ...DUE, id: 14, beerId: 1, characteristic: BeerCharacteristicEnum.BODY, proposedValue: 3 };
+      repository.findDueCorrections.mockResolvedValue([DUE, second, third]);
+      repository.findByIds.mockResolvedValue([CHIMAY, ALICE_BEER]);
+      repository.findCorrectionTallies.mockResolvedValue([...tally(12, 0, 3), ...tally(13, 2, 1)]);
+
+      await service.resolveDueCorrections(NOW);
+
+      expect(repository.findByIds).toHaveBeenCalledExactlyOnceWith([1, 5]);
+      expect(repository.findCorrectionTallies).toHaveBeenCalledExactlyOnceWith([12, 13, 14]);
+      expect(repository.resolveCorrection.mock.calls.map(([id, status]) => [id, status])).toEqual([
+        [12, "rejected"],
+        [13, "accepted"],
+        [14, "rejected"],
+      ]);
+    });
+
+    it("goes on when another reader has already closed the correction", async () => {
+      repository.findCorrectionTallies.mockResolvedValue(tally(12, 1, 0));
+      repository.resolveCorrection.mockResolvedValue(false);
+
+      await expect(service.resolveDueCorrections(NOW)).resolves.toBeUndefined();
+      expect(repository.resolveCorrection).toHaveBeenCalledOnce();
+    });
+
+    it("fails without closing anything when the beer of a due correction is unknown", async () => {
+      repository.findByIds.mockResolvedValue([]);
+
+      await expect(service.resolveDueCorrections(NOW)).rejects.toThrow("Beer 1 of correction 12 not found.");
+      expect(repository.resolveCorrection).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("resolution before reading", () => {
+    const NOW = new Date("2026-06-10T12:00:00.000Z");
+    const DUE = {
+      id: 12,
+      beerId: 1,
+      characteristic: BeerCharacteristicEnum.IBU,
+      proposedValue: 35,
+      reason: "",
+      proposedBy: BOB,
+      createdAt: "2026-06-01T10:00:00.000Z",
+      closesAt: "2026-06-08T10:00:00.000Z",
+      ...OPEN_STATE,
+    };
+    const resolvedFirst = (reader: { mock: { invocationCallOrder: number[] } }): boolean =>
+      repository.resolveCorrection.mock.invocationCallOrder[0] < reader.mock.invocationCallOrder[0];
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(NOW);
+      repository.findDueCorrections.mockResolvedValue([DUE]);
+      repository.findById.mockResolvedValue(CHIMAY);
+      repository.findByIds.mockResolvedValue([CHIMAY]);
+      repository.findOpenCorrectionsByBeer.mockResolvedValue([]);
+      repository.findOpenCorrections.mockResolvedValue([]);
+      repository.countCorrectionsSince.mockResolvedValue(0);
+      repository.existsOpenCorrection.mockResolvedValue(false);
+      repository.createCorrection.mockResolvedValue({ ...DUE, id: 15, proposedBy: ALICE });
+      usersService.getUser.mockResolvedValue(MEMBERS[0]);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("resolves the due corrections before reading a beer", async () => {
+      await service.getBeerForUser(ALICE, 1);
+
+      expect(repository.findDueCorrections).toHaveBeenCalledExactlyOnceWith(NOW);
+      expect(repository.resolveCorrection).toHaveBeenCalledOnce();
+      expect(resolvedFirst(repository.findById)).toBe(true);
+    });
+
+    it("resolves the due corrections before answering 404 for an unknown beer", async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(service.getBeerForUser(ALICE, 99)).rejects.toThrow(NotFoundException);
+      expect(repository.findDueCorrections).toHaveBeenCalledOnce();
+    });
+
+    it("resolves the due corrections before reading the corrections of a beer", async () => {
+      await service.getBeerCorrections(ALICE, 1);
+
+      expect(repository.findDueCorrections).toHaveBeenCalledExactlyOnceWith(NOW);
+      expect(resolvedFirst(repository.findOpenCorrectionsByBeer)).toBe(true);
+    });
+
+    it("resolves the due corrections before validating the value of a proposal and before reading the beer", async () => {
+      const failure = await service
+        .proposeCorrection(ALICE, 1, { characteristic: BeerCharacteristicEnum.IBU, value: 9999 })
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(BadRequestException);
+      expect(repository.findDueCorrections).toHaveBeenCalledExactlyOnceWith(NOW);
+      expect(repository.resolveCorrection).toHaveBeenCalledOnce();
+      expect(repository.findById).not.toHaveBeenCalled();
+    });
+
+    it("resolves the due corrections before checking whether a correction of the characteristic is open", async () => {
+      await service.proposeCorrection(ALICE, 1, { characteristic: BeerCharacteristicEnum.IBU, value: 35 });
+
+      expect(resolvedFirst(repository.existsOpenCorrection)).toBe(true);
+      expect(repository.createCorrection).toHaveBeenCalledOnce();
+    });
+
+    it("does not resolve anything when listing the catalogue", async () => {
+      repository.findPage.mockResolvedValue({ items: [], total: 0 });
+
+      await service.getBeers(ALICE, {});
+
+      expect(repository.findDueCorrections).not.toHaveBeenCalled();
+      expect(repository.resolveCorrection).not.toHaveBeenCalled();
     });
   });
 });

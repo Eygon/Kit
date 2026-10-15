@@ -38,9 +38,49 @@ const MILLISECONDS_PER_HOUR = 3_600_000;
 
 export const BEER_PROPOSAL_WINDOW_MS = BEER_PROPOSAL_WINDOW_HOURS * MILLISECONDS_PER_HOUR;
 
+const HOURS_PER_DAY = 24;
+
+const MILLISECONDS_PER_DAY = HOURS_PER_DAY * MILLISECONDS_PER_HOUR;
+
+export const CORRECTION_VOTE_DURATION_DAYS = 7;
+
+export const CORRECTION_VOTE_DURATION_MS = CORRECTION_VOTE_DURATION_DAYS * MILLISECONDS_PER_DAY;
+
+export const CORRECTION_REASON_MAX_LENGTH = 200;
+
+export const CORRECTION_VALUE_MAX_LENGTH = 200;
+
+export const CORRECTIONS_PER_WINDOW_MAX = 10;
+
+export const CORRECTION_WINDOW_HOURS = HOURS_PER_DAY;
+
+export const CORRECTION_WINDOW_MS = CORRECTION_WINDOW_HOURS * MILLISECONDS_PER_HOUR;
+
+export const CORRECTION_QUORUM = 2;
+
+export const CORRECTIONS_RECENTLY_CLOSED_LIMIT = 10;
+
+export const BEER_LIST_MIN_ITEMS = 1;
+
 export const BITTERNESS_LEVEL_IBU_MAX: readonly number[] = [15, 25, 40, 60];
 
 export const COLOR_LEVEL_EBC_MAX: readonly number[] = [8, 16, 33, 60];
+
+export const BEER_IBU_MIN = 0;
+
+export const BEER_IBU_MAX = 120;
+
+export const BEER_EBC_MIN = 2;
+
+export const BEER_EBC_MAX = 80;
+
+export const BEER_SCALE_MIN = 1;
+
+export const BEER_SCALE_MAX = 5;
+
+export const BEER_AROMAS_MAX = 5;
+
+export const BEER_FORMATS_MAX = 3;
 
 export const REVIEW_RATING_MIN = 1;
 
@@ -52,13 +92,7 @@ export const REVIEW_RATING_BUCKET_ROUNDING_OFFSET = 0.5;
 
 export const REVIEW_TEXT_MAX_LENGTH = 500;
 
-export const REVIEW_CRITERION_MIN = 1;
-
-export const REVIEW_CRITERION_MAX = 5;
-
 export const REVIEW_PAGE_SIZE = 10;
-
-export const REVIEW_CRITERION_MIN_REVIEWS = 3;
 
 export const COUNTRY_CODES: readonly string[] = [
   "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT",

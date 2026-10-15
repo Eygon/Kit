@@ -10,6 +10,8 @@ import { DatabaseModule } from "@/database/database.module";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
+import { BeerCorrection } from "@/modules/beers/entities/beer-correction.entity";
+import { BeerCorrectionVote } from "@/modules/beers/entities/beer-correction-vote.entity";
 import { Review } from "@/modules/beers/entities/review.entity";
 import { Follow } from "@/modules/social/entities/follow.entity";
 import { Checkin } from "@/modules/tastings/entities/checkin.entity";
@@ -103,6 +105,23 @@ describe("DatabaseModule", () => {
     expect(tables).toEqual([{ name: "checkins" }, { name: "follows" }]);
     expect(moduleRef.get<Repository<Checkin>>(getRepositoryToken(Checkin))).toBeDefined();
     expect(moduleRef.get<Repository<Follow>>(getRepositoryToken(Follow))).toBeDefined();
+
+    await moduleRef.close();
+  });
+
+  it("creates the beer_corrections and beer_correction_votes tables and registers their repositories", async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppConfigModule, DatabaseModule] })
+      .overrideProvider(APP_CONFIG)
+      .useValue(TEST_CONFIG)
+      .compile();
+
+    const dataSource = moduleRef.get(DataSource);
+    const tables = await dataSource.query(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('beer_corrections', 'beer_correction_votes') ORDER BY name",
+    );
+    expect(tables).toEqual([{ name: "beer_correction_votes" }, { name: "beer_corrections" }]);
+    expect(moduleRef.get<Repository<BeerCorrection>>(getRepositoryToken(BeerCorrection))).toBeDefined();
+    expect(moduleRef.get<Repository<BeerCorrectionVote>>(getRepositoryToken(BeerCorrectionVote))).toBeDefined();
 
     await moduleRef.close();
   });

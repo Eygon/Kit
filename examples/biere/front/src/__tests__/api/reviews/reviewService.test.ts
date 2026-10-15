@@ -23,9 +23,6 @@ const reviewDto = (id: number, isMine = false) => ({
   authorAvatar: "hop",
   rating: 4,
   text: "Bien",
-  sweetness: 2,
-  acidity: null,
-  body: 5,
   createdAt: "2026-10-10T10:00:00.000Z",
   updatedAt: "2026-10-12T12:00:00.000Z",
   isMine,
@@ -123,9 +120,6 @@ describe("ReviewService.getPage", () => {
 const NEW_REVIEW: NewReview = {
   rating: 4.5,
   text: "Très bonne",
-  sweetness: 2,
-  acidity: null,
-  body: 5,
 };
 
 describe("ReviewService.save", () => {
@@ -156,9 +150,6 @@ describe("ReviewService.save", () => {
     expect(JSON.parse(init.body as string)).toEqual({
       rating: 4.5,
       text: "Très bonne",
-      sweetness: 2,
-      acidity: null,
-      body: 5,
     });
   });
 

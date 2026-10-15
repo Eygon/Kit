@@ -37,6 +37,43 @@
       "limitReached": "20 collections au plus"
     }
   },
+  "corrections": {
+    "change": "{{current}} → {{proposed}}",
+    "proposedBy": "Proposée par {{name}}",
+    "status": {
+      "accepted": "Validée",
+      "rejected": "Refusée"
+    },
+    "resolvedOn": "Tranchée le {{date}}",
+    "tally": "{{agree}} d'accord · {{disagree}} pas d'accord",
+    "propose": {
+      "open": "Proposer une correction",
+      "openLabel": "Proposer une correction : {{name}}",
+      "title": "Corriger : {{name}}",
+      "current": "Valeur actuelle : {{value}}",
+      "reason": "Motif (facultatif)",
+      "reasonCount": "{{count}} / 200",
+      "submit": "Proposer",
+      "close": "Fermer",
+      "saved": "Proposition envoyée au vote",
+      "alreadyOpen": "Une proposition est déjà en cours pour cette caractéristique.",
+      "limitReached": "Limite atteinte : 10 propositions par jour.",
+      "notAllowed": "Vous avez ajouté cette bière : d'autres la corrigent.",
+      "errors": {
+        "sameValue": "C'est déjà la valeur actuelle",
+        "reasonLength": "200 caractères au plus"
+      }
+    },
+    "vote": {
+      "agree": "D'accord",
+      "disagree": "Pas d'accord",
+      "mine": "Votre proposition",
+      "closesIn": "clôture {{time}}",
+      "saved": "Vote enregistré",
+      "closed": "Ce vote est clos.",
+      "own": "Vous ne votez pas sur votre proposition."
+    }
+  },
   "follow": {
     "follow": "Suivre",
     "following": "Suivi",
@@ -73,6 +110,9 @@
     "encyclopedia": "Bières",
     "map": "Carte",
     "journal": "Journal",
+    "votes": "Votes",
+    "pendingVotes_one": "{{count}} vote en attente",
+    "pendingVotes_other": "{{count}} votes en attente",
     "profile": "Profil"
   },
   "mascot": {
@@ -103,6 +143,27 @@
   },
   "beer": {
     "proposedBy": "Proposée par {{name}}",
+    "characteristics": {
+      "abv": "Degré",
+      "ibu": "Amertume",
+      "ebc": "Couleur",
+      "sweetness": "Douceur",
+      "acidity": "Acidité",
+      "body": "Corps",
+      "aromas": "Arômes",
+      "formats": "Formats",
+      "notAvailable": "Non renseignée",
+      "ibuValue": "{{value}} IBU",
+      "ebcValue": "{{value}} EBC",
+      "scaleValue": "{{value}} / 5 · {{label}}",
+      "withLevel": "{{value}} · {{level}}",
+      "errors": {
+        "required": "Valeur obligatoire",
+        "range": "Entre {{min}} et {{max}}",
+        "step": "Un chiffre après la virgule au plus",
+        "listSize": "Choisissez de {{min}} à {{max}} valeurs"
+      }
+    },
     "rating": {
       "summary": "{{rating}} ({{count}})",
       "label_one": "Note moyenne {{rating}} sur 5, {{count}} avis",
@@ -324,6 +385,7 @@
         "duplicate": "Cette bière existe déjà",
         "limitReached": "Limite atteinte : 10 propositions par jour.",
         "openExisting": "L'ouvrir",
+        "specsTitle": "Fiche technique (facultatif)",
         "errors": {
           "nameLength": "Le nom doit faire entre 2 et 80 caractères",
           "breweryLength": "La brasserie doit faire entre 2 et 60 caractères",
@@ -341,20 +403,15 @@
       "brewery": "Brasserie",
       "country": "Pays",
       "style": "Style",
-      "abv": "Degré",
-      "aromas": "Arômes",
-      "formats": "Formats",
+      "technicalSheet": {
+        "title": "Fiche technique"
+      },
       "description": "Description",
       "unknownTitle": "Bière inconnue",
       "unknownDescription": "Cette bière n'est pas dans l'encyclopédie.",
       "backToEncyclopedia": "Retour à l'Encyclopédie",
       "errorTitle": "Impossible de charger cette bière.",
       "levels": {
-        "bitterness": "Amertume",
-        "color": "Couleur",
-        "notAvailable": "Non renseignée",
-        "score": "{{level}} / 5",
-        "bitternessValue": "{{label}} · {{score}}",
         "styleRange": "{{min}} à {{max}} · typique du style",
         "styleSingle": "{{label}} · typique du style"
       },
@@ -370,26 +427,18 @@
           "stars_other": "{{count}} étoiles",
           "bar": "{{stars}} : {{reviews}}"
         },
-        "criteria": {
-          "label": "Moyennes de la communauté",
-          "value": "{{name}} {{average}} / 5 · {{level}}",
-          "hidden_one": "{{name}} : encore {{count}} avis pour afficher ce critère",
-          "hidden_other": "{{name}} : encore {{count}} avis pour afficher ce critère"
-        },
         "list": {
           "mine": "Mon avis",
           "errorTitle": "Impossible de charger les avis.",
           "emptyTitle": "Aucun avis pour l'instant",
           "emptyDescription": "Soyez le premier à donner votre avis.",
-          "loadMore": "Voir plus",
-          "criterion": "{{name}} : {{level}}"
+          "loadMore": "Voir plus"
         },
         "form": {
           "rating": "Note",
           "ratingValue": "{{rating}} sur 5",
           "noRating": "Aucune note",
           "ratingRequired": "La note est obligatoire",
-          "notRated": "Non renseigné",
           "text": "Votre avis",
           "textCount": "{{count}} / 500",
           "submit": "Publier mon avis"
@@ -608,6 +657,14 @@
         "reset": "Réinitialiser",
         "apply": "Appliquer"
       }
+    },
+    "votes": {
+      "title": "Votes",
+      "intro": "Les corrections proposées sur les fiches techniques, en attente de vote.",
+      "emptyTitle": "Aucun vote en cours",
+      "emptyDescription": "Proposez une correction depuis la fiche d'une bière.",
+      "errorTitle": "Impossible de charger les votes.",
+      "recentlyClosed": "Récemment tranchées ({{count}})"
     },
     "journal": {
       "title": "Journal",

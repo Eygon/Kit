@@ -4,6 +4,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { IsNull, Repository } from "typeorm";
 import type { AppConfig } from "@/config/app-config";
 import { APP_CONFIG } from "@/config/app-config.constants";
+import demoCorrectionsSeed from "@/database/seed/data/demo-corrections.json";
 import demoCheckinsSeed from "@/database/seed/data/demo-checkins.json";
 import breweriesSeed from "@/database/seed/data/breweries.json";
 import beersSeed from "@/database/seed/data/beers.json";
@@ -12,11 +13,17 @@ import reviewsSeed from "@/database/seed/data/reviews.json";
 import venueBeersSeed from "@/database/seed/data/venue-beers.json";
 import venuesSeed from "@/database/seed/data/venues.json";
 import { buildBeerRows, buildBreweryRows, buildStyleRows } from "@/database/seed/catalog-seed";
+import { buildDemoCorrectionRows } from "@/database/seed/correction-seed";
 import { buildReviewRows } from "@/database/seed/review-seed";
 import { buildDemoCheckinRows, buildDemoFollowRows } from "@/database/seed/social-seed";
 import { buildSeedVotes, buildVenueBeerRows, buildVenueRows } from "@/database/seed/venue-seed";
 import { ALICE_USER_ID, DEMO_CHECKIN_USER_IDS, SEED_USERS, SEED_VOTE_BATCH_SIZE } from "@/database/seed.constants";
 import { Beer } from "@/modules/beers/entities/beer.entity";
+import { BeerCorrection } from "@/modules/beers/entities/beer-correction.entity";
+import { BeerCorrectionVote } from "@/modules/beers/entities/beer-correction-vote.entity";
+import { CorrectionStatusEnum } from "@/modules/beers/enums/correction-status.enum";
+import type { CharacteristicValue } from "@/modules/beers/dtos/correction-record.dto";
+import { toBeerCharacteristicChange } from "@/modules/beers/mappers/correction.mapper";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
 import { Review } from "@/modules/beers/entities/review.entity";
@@ -30,6 +37,9 @@ import { toVenueSearchKeys } from "@/modules/venues/mappers/venue.mapper";
 
 const toIdsByLowerName = (rows: readonly { id: number; name: string }[]): Map<string, number> =>
   new Map(rows.map(({ id, name }) => [name.toLowerCase(), id]));
+
+const toIdsByName = (rows: readonly { id: number; displayName: string }[]): Map<string, number> =>
+  new Map(rows.map(({ id, displayName }) => [displayName, id]));
 
 const toLinkKey = (venueId: number, beerId: number): string => `${venueId}-${beerId}`;
 
@@ -49,6 +59,8 @@ export class DataSeeder implements OnApplicationBootstrap {
     @InjectRepository(Review) private readonly reviews: Repository<Review>,
     @InjectRepository(Checkin) private readonly checkins: Repository<Checkin>,
     @InjectRepository(Follow) private readonly follows: Repository<Follow>,
+    @InjectRepository(BeerCorrection) private readonly corrections: Repository<BeerCorrection>,
+    @InjectRepository(BeerCorrectionVote) private readonly correctionVotes: Repository<BeerCorrectionVote>,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -155,6 +167,24 @@ export class DataSeeder implements OnApplicationBootstrap {
     }
     if ((await this.follows.countBy({ followerId: ALICE_USER_ID })) === 0) {
       await this.follows.insert(buildDemoFollowRows());
+    }
+    await this.seedDemoCorrections(beerIdsByName);
+  }
+
+  private async seedDemoCorrections(beerIdsByName: ReadonlyMap<string, number>): Promise<void> {
+    if ((await this.corrections.count()) > 0) {
+      return;
+    }
+    const userIdsByName = toIdsByName(await this.users.find());
+    const { corrections, votes } = buildDemoCorrectionRows(demoCorrectionsSeed, beerIdsByName, userIdsByName, new Date());
+    await this.corrections.insert(corrections);
+    const correctionIds = (await this.corrections.find({ order: { id: "ASC" } })).map(({ id }) => id);
+    await this.correctionVotes.insert(
+      votes.map(({ correctionIndex, ...vote }) => ({ ...vote, correctionId: correctionIds[correctionIndex] })),
+    );
+    for (const correction of corrections.filter(({ status }) => status === CorrectionStatusEnum.ACCEPTED)) {
+      const value = JSON.parse(correction.proposedValue) as CharacteristicValue;
+      await this.beers.update({ id: correction.beerId }, toBeerCharacteristicChange(correction.characteristic, value));
     }
   }
 }

@@ -33,6 +33,15 @@ export class Beer {
   @Column({ type: "integer", nullable: true })
   ebc!: number | null;
 
+  @Column({ type: "integer", nullable: true })
+  sweetness!: number | null;
+
+  @Column({ type: "integer", nullable: true })
+  acidity!: number | null;
+
+  @Column({ type: "integer", nullable: true })
+  body!: number | null;
+
   @Column({ type: "varchar", length: BEER_DESCRIPTION_MAX_LENGTH })
   description!: string;
 

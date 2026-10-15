@@ -1,7 +1,25 @@
 import { describe, expect, it } from "vitest";
+import * as beersConstants from "@/modules/beers/beers.constants";
 import {
   BEER_ABV_MAX_DECIMAL_PLACES,
   BEER_ABV_MAX_PERCENT,
+  BEER_LIST_MIN_ITEMS,
+  CORRECTION_QUORUM,
+  CORRECTION_REASON_MAX_LENGTH,
+  CORRECTIONS_RECENTLY_CLOSED_LIMIT,
+  CORRECTION_VALUE_MAX_LENGTH,
+  CORRECTION_VOTE_DURATION_DAYS,
+  CORRECTION_VOTE_DURATION_MS,
+  CORRECTION_WINDOW_MS,
+  CORRECTIONS_PER_WINDOW_MAX,
+  BEER_AROMAS_MAX,
+  BEER_EBC_MAX,
+  BEER_EBC_MIN,
+  BEER_FORMATS_MAX,
+  BEER_IBU_MAX,
+  BEER_IBU_MIN,
+  BEER_SCALE_MAX,
+  BEER_SCALE_MIN,
   BEER_DESCRIPTION_MAX_LENGTH,
   BEER_NAME_MAX_LENGTH,
   BEER_NAME_MIN_LENGTH,
@@ -61,6 +79,23 @@ describe("beers constants", () => {
     });
   });
 
+  it("bounds the characteristics of a beer", () => {
+    expect({
+      ibuMin: BEER_IBU_MIN,
+      ibuMax: BEER_IBU_MAX,
+      ebcMin: BEER_EBC_MIN,
+      ebcMax: BEER_EBC_MAX,
+      scaleMin: BEER_SCALE_MIN,
+      scaleMax: BEER_SCALE_MAX,
+      aromasMax: BEER_AROMAS_MAX,
+      formatsMax: BEER_FORMATS_MAX,
+    }).toEqual({ ibuMin: 0, ibuMax: 120, ebcMin: 2, ebcMax: 80, scaleMin: 1, scaleMax: 5, aromasMax: 5, formatsMax: 3 });
+  });
+
+  it("no longer exposes the review criterion constants", () => {
+    expect(Object.keys(beersConstants).filter((name) => name.startsWith("REVIEW_CRITERION"))).toEqual([]);
+  });
+
   it("lists the 249 ISO 3166-1 alpha-2 country codes in alphabetical order without duplicate", () => {
     expect(COUNTRY_CODES).toHaveLength(249);
     expect(new Set(COUNTRY_CODES).size).toBe(249);
@@ -72,5 +107,21 @@ describe("beers constants", () => {
     expect(COUNTRY_CODES).toEqual(expect.arrayContaining(["FR", "BE", "DE", "GB", "US", "ZW", "AD", "AX"]));
     expect(COUNTRY_CODES).not.toContain("XX");
     expect(COUNTRY_CODES).not.toContain("UK");
+  });
+
+  it("sets the correction rules: seven days to vote, bounded texts, ten proposals per 24 hours", () => {
+    expect({
+      voteDays: CORRECTION_VOTE_DURATION_DAYS,
+      voteMs: CORRECTION_VOTE_DURATION_MS,
+      reasonMax: CORRECTION_REASON_MAX_LENGTH,
+      valueMax: CORRECTION_VALUE_MAX_LENGTH,
+      perWindow: CORRECTIONS_PER_WINDOW_MAX,
+      windowMs: CORRECTION_WINDOW_MS,
+      listMin: BEER_LIST_MIN_ITEMS,
+    }).toEqual({ voteDays: 7, voteMs: 604_800_000, reasonMax: 200, valueMax: 200, perWindow: 10, windowMs: 86_400_000, listMin: 1 });
+  });
+
+  it("sets the resolution rules: a quorum of two agreements and the ten latest closed corrections", () => {
+    expect({ quorum: CORRECTION_QUORUM, recentlyClosed: CORRECTIONS_RECENTLY_CLOSED_LIMIT }).toEqual({ quorum: 2, recentlyClosed: 10 });
   });
 });

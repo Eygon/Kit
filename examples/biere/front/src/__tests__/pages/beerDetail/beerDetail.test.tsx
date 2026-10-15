@@ -85,9 +85,14 @@ const CHIMAY: Beer = {
   averageRating: null,
   reviewCount: 0,
   ratingDistribution: [],
-  criteria: [],
   source: BeerSourceEnum.OFFICIAL,
   createdByName: null,
+  ibu: null,
+  ebc: null,
+  sweetness: null,
+  acidity: null,
+  body: null,
+  createdBy: null,
 };
 
 const refetch = vi.fn();
@@ -230,8 +235,11 @@ describe("BeerDetailPage", () => {
           stars,
           count: stars,
         })),
-        criteria: [{ criterion: "sweetness", average: 2.7, count: 3 }],
-      },
+        criteria: [
+          { criterion: "sweetness", average: 2.7, count: 3 },
+          { criterion: "body", average: null, count: 3 },
+        ],
+      } as unknown as Beer,
     });
     renderDetail();
 
@@ -239,7 +247,8 @@ describe("BeerDetailPage", () => {
     const reviews = screen.getByRole("heading", { level: 2, name: "Avis" });
     const history = screen.getByRole("heading", { name: "Mon historique" });
     expect(screen.getByText("3,5")).toBeInTheDocument();
-    expect(screen.getByText("Douceur 2,7 / 5 · Sèche")).toBeInTheDocument();
+    expect(screen.queryByText(/Douceur 2,7/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/encore \d+ avis/)).not.toBeInTheDocument();
     expect(
       description.compareDocumentPosition(reviews) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -269,15 +278,16 @@ describe("BeerDetailPage", () => {
     expect(screen.getByText("Style")).toBeInTheDocument();
     expect(screen.getByText("Dubbel trappiste")).toBeInTheDocument();
     expect(screen.getByText("Trappiste")).toBeInTheDocument();
-    expect(screen.getByText("Degré")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Fiche technique" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Degré", { selector: "dt" })).toBeInTheDocument();
     expect(screen.getByText(/^7\s%$/)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Arômes" })).toBeInTheDocument();
+    expect(screen.getByText("Arômes", { selector: "dt" })).toBeInTheDocument();
     ["Fruité", "Caramel", "Épicé", "Malté"].forEach((aroma) =>
       expect(screen.getByText(aroma)).toBeInTheDocument(),
     );
-    expect(
-      screen.getByRole("heading", { name: "Formats" }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Formats", { selector: "dt" })).toBeInTheDocument();
     expect(screen.getByText("Bouteille")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Description" }),
@@ -285,13 +295,17 @@ describe("BeerDetailPage", () => {
     expect(screen.getByText(CHIMAY.description)).toBeInTheDocument();
   });
 
-  it("omits the family, the aromas and the formats when the beer has none", () => {
+  it("omits the family and says Non renseignée on the aroma and format rows when the beer has none", () => {
     stubQuery({ data: { ...CHIMAY, family: null, aromas: [], formats: [] } });
 
     renderDetail();
 
     expect(screen.getByText("Dubbel trappiste")).toBeInTheDocument();
     expect(screen.queryByText("Trappiste")).not.toBeInTheDocument();
+    ["Arômes", "Formats"].forEach((name) => {
+      const row = screen.getByText(name, { selector: "dt" }).parentElement as HTMLElement;
+      expect(within(row).getByText("Non renseignée")).toBeInTheDocument();
+    });
     expect(
       screen.queryByRole("heading", { name: "Arômes" }),
     ).not.toBeInTheDocument();
@@ -308,10 +322,15 @@ describe("BeerDetailPage", () => {
     renderDetail();
 
     expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
-    ["Brewery", "Country", "Style", "Strength", "Description"].forEach(
-      (label) => expect(screen.getByText(label)).toBeInTheDocument(),
+    ["Brewery", "Country", "Style", "Description"].forEach((label) =>
+      expect(screen.getByText(label)).toBeInTheDocument(),
     );
-    expect(screen.getByRole("heading", { name: "Aromas" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Technical sheet" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("ABV", { selector: "dt" })).toBeInTheDocument();
+    expect(screen.queryByText("Strength")).not.toBeInTheDocument();
+    expect(screen.getByText("Aromas", { selector: "dt" })).toBeInTheDocument();
     expect(screen.getByText("Belgium")).toBeInTheDocument();
     expect(screen.getByText("Trappist")).toBeInTheDocument();
     ["Fruity", "Caramel", "Spicy", "Malty", "Bottle"].forEach((label) =>
@@ -853,106 +872,122 @@ describe("BeerDetailPage", () => {
     });
   });
 
-  describe("levels", () => {
-    it("shows the bitterness and the colour right after the facts", () => {
+  describe("technical sheet", () => {
+    const TECHNICAL_BEER = {
+      ...CHIMAY,
+      ibu: 35,
+      ebc: 20,
+      sweetness: 3,
+      acidity: null,
+      body: 4,
+    };
+
+    it("US7 AC1 mounts the sheet right after the identity block and before the description", () => {
+      stubQuery({ data: TECHNICAL_BEER });
       renderDetail();
 
       const facts = screen.getByText("Brasserie").closest("dl") as HTMLElement;
-      const levels = screen.getByText("Amertume").closest("dl") as HTMLElement;
-      expect(levels).not.toBe(facts);
+      const sheet = screen.getByRole("heading", { level: 2, name: "Fiche technique" })
+        .parentElement as HTMLElement;
+      const description = screen.getByRole("heading", { name: "Description" });
+      expect(facts.nextElementSibling).toBe(sheet);
       expect(
-        facts.compareDocumentPosition(levels) &
+        sheet.compareDocumentPosition(description) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
-      expect(facts.nextElementSibling).toBe(levels);
-      expect(screen.getByText("Marquée · 4 / 5")).toBeInTheDocument();
-      expect(within(levels).getByText("Ambrée")).toBeInTheDocument();
+      expect(within(sheet).getByText("35 IBU · Marquée")).toBeInTheDocument();
+      expect(within(sheet).getByText("20 EBC · Ambrée")).toBeInTheDocument();
+      expect(within(sheet).getByText("3 / 5 · Équilibrée")).toBeInTheDocument();
+      expect(within(sheet).getByText("4 / 5 · Rond")).toBeInTheDocument();
+      expect(within(sheet).getByText("Non renseignée")).toBeInTheDocument();
     });
 
-    it("says Non renseignée for a beer without bitterness", () => {
-      stubQuery({ data: { ...CHIMAY, bitternessLevel: null } });
+    it("moves the degree out of the identity block into the sheet", () => {
       renderDetail();
 
-      const levels = screen.getByText("Amertume").closest("dl") as HTMLElement;
-      expect(within(levels).getByText("Non renseignée")).toBeInTheDocument();
-      expect(within(levels).queryByText(/ \/ 5/)).not.toBeInTheDocument();
+      const facts = screen.getByText("Brasserie").closest("dl") as HTMLElement;
+      const sheet = screen.getByRole("heading", { level: 2, name: "Fiche technique" })
+        .parentElement as HTMLElement;
+      expect(within(facts).queryByText("Degré")).not.toBeInTheDocument();
+      expect(within(facts).queryByText(/^7\s%$/)).not.toBeInTheDocument();
+      expect(within(sheet).getByText(/^7\s%$/)).toBeInTheDocument();
     });
 
-    it("shows two swatches and the typical range of the style when the beer has no colour", () => {
+    it("no longer draws the levels block nor the aroma and format sections", () => {
+      stubQuery({ data: TECHNICAL_BEER });
+      renderDetail();
+
+      expect(screen.getAllByText("Amertume")).toHaveLength(1);
+      expect(screen.getAllByText("Couleur")).toHaveLength(1);
+      expect(screen.queryByText("Marquée · 4 / 5")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Arômes" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Formats" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("US7 AC2 says Non renseignée then the typical range of the style when the beer has no colour", () => {
       stubQuery({
         data: {
-          ...CHIMAY,
+          ...TECHNICAL_BEER,
+          ebc: null,
           colorLevel: null,
           styleColorRange: { min: 3, max: 4 },
         },
       });
       renderDetail();
 
-      const levels = screen.getByText("Couleur").closest("dl") as HTMLElement;
-      expect(levels.querySelectorAll('[aria-hidden="true"]')).toHaveLength(2);
+      const row = screen.getByText("Couleur", { selector: "dt" })
+        .parentElement as HTMLElement;
+      expect(within(row).getByText("Non renseignée")).toBeInTheDocument();
       expect(
-        within(levels).getByText("Ambrée à brune · typique du style"),
+        within(row).getByText("Ambrée à brune · typique du style"),
       ).toBeInTheDocument();
+      expect(row.querySelectorAll('[aria-hidden="true"]')).toHaveLength(2);
     });
 
-    it("shows one swatch and Pâle · typique du style for a range of one level", () => {
-      stubQuery({
-        data: {
-          ...CHIMAY,
-          colorLevel: null,
-          styleColorRange: { min: 1, max: 1 },
-        },
-      });
+    it("US7 AC3 says Non renseignée on the aroma row of a beer without aroma", () => {
+      stubQuery({ data: { ...TECHNICAL_BEER, aromas: [] } });
       renderDetail();
 
-      const levels = screen.getByText("Couleur").closest("dl") as HTMLElement;
-      expect(levels.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1);
-      expect(
-        within(levels).getByText("Pâle · typique du style"),
-      ).toBeInTheDocument();
-    });
-
-    it("says Non renseignée twice when neither level nor range is known", () => {
-      stubQuery({
-        data: {
-          ...CHIMAY,
-          bitternessLevel: null,
-          colorLevel: null,
-          styleColorRange: null,
-        },
-      });
-      renderDetail();
-
-      const levels = screen.getByText("Amertume").closest("dl") as HTMLElement;
-      expect(within(levels).getAllByText("Non renseignée")).toHaveLength(2);
+      const row = screen.getByText("Arômes", { selector: "dt" })
+        .parentElement as HTMLElement;
+      expect(within(row).getByText("Non renseignée")).toBeInTheDocument();
     });
 
     it("keeps the words in English", async () => {
       await i18n.changeLanguage("en");
       stubQuery({
         data: {
-          ...CHIMAY,
+          ...TECHNICAL_BEER,
+          ebc: null,
           colorLevel: null,
           styleColorRange: { min: 3, max: 4 },
         },
       });
       renderDetail();
 
-      expect(screen.getByText("Pronounced · 4 / 5")).toBeInTheDocument();
+      expect(screen.getByText("35 IBU · Pronounced")).toBeInTheDocument();
       expect(
         screen.getByText("Amber to brown · typical of the style"),
       ).toBeInTheDocument();
     });
 
-    it("does not show the levels while the beer is loading or unknown", () => {
+    it("does not show the sheet while the beer is loading or unknown", () => {
       stubQuery({ data: undefined, isPending: true });
       const { unmount } = renderDetail();
-      expect(screen.queryByText("Amertume")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Fiche technique" }),
+      ).not.toBeInTheDocument();
       unmount();
 
       stubQuery({ data: null, isPending: false });
       renderDetail();
-      expect(screen.queryByText("Amertume")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Fiche technique" }),
+      ).not.toBeInTheDocument();
     });
   });
 

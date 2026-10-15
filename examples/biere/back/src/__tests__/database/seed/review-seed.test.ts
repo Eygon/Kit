@@ -4,7 +4,6 @@ import reviewsSeed from "@/database/seed/data/reviews.json";
 import { buildReviewRows } from "@/database/seed/review-seed";
 import { BOB_USER_ID, CAROL_USER_ID } from "@/database/seed.constants";
 import {
-  REVIEW_CRITERION_MIN_REVIEWS,
   REVIEW_RATING_MAX, REVIEW_RATING_MIN, REVIEW_RATING_STEP,
 } from "@/modules/beers/beers.constants";
 
@@ -102,15 +101,6 @@ describe("reviews.json", () => {
       expect(row.daysAgo).toBeGreaterThanOrEqual(1);
       expect(row.daysAgo).toBeLessThanOrEqual(60);
     }
-  });
-
-  it("gives no beer more than 2 reviews, so no criterion reaches the threshold before Alice reviews", () => {
-    const countByBeer = new Map<string, number>();
-    for (const row of reviewsSeed) {
-      countByBeer.set(row.beerName, (countByBeer.get(row.beerName) ?? 0) + 1);
-    }
-
-    expect(Math.max(...countByBeer.values())).toBeLessThan(REVIEW_CRITERION_MIN_REVIEWS);
   });
 
   it("builds a row for every review of the real file", () => {

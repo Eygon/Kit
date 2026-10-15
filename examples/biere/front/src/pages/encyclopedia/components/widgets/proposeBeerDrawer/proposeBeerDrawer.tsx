@@ -21,7 +21,9 @@ import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { HttpError } from "@/api/httpError";
+import { CharacteristicField } from "@/components/elements/characteristicField/characteristicField";
 import { SubmitButton } from "@/components/elements/submitButton/submitButton";
+import { BEER_CHARACTERISTIC_BOUNDS } from "@/constants/beerSpecsConstants";
 import { useFocusFirstInvalidField } from "@/hooks/form/useFocusFirstInvalidField";
 import { useBreweriesQuery } from "@/pages/encyclopedia/hooks/useBreweriesQuery";
 import { useBeerStyleGroupsQuery } from "@/pages/encyclopedia/hooks/useBeerStyleGroupsQuery";
@@ -31,7 +33,13 @@ import type { BeerFormValues } from "@/pages/encyclopedia/types/beerFormValues";
 import type { ProposeBeerDrawerProps } from "@/pages/encyclopedia/types/proposeBeerDrawer";
 import { EMPTY_BEER_FORM, formValuesToNewBeer, getBeerFormErrorKeys } from "@/pages/encyclopedia/utils/beerFormValues";
 import { normalizeSearchText } from "@/pages/encyclopedia/utils/normalizeSearchText";
-import { COUNTRY_CODES, PROPOSE_BEER_FORM_ID } from "@/pages/encyclopedia/utils/proposeBeerConstants";
+import {
+  COUNTRY_CODES,
+  PROPOSE_BEER_FORM_ID,
+  PROPOSE_BEER_SPEC_CHARACTERISTICS,
+} from "@/pages/encyclopedia/utils/proposeBeerConstants";
+import type { CharacteristicFormValue } from "@/types/components/characteristicFormValue";
+import type { BeerCharacteristicEnum } from "@/types/enums/beer/beerCharacteristicEnum";
 import { BEER_FAMILY_LABEL_KEYS } from "@/types/enums/beer/beerFamilyEnum";
 import { HttpStatusCodeEnum } from "@/types/enums/http/httpStatusCodeEnum";
 import { buildBeerDetailPath } from "@/types/enums/routing/routePathEnum";
@@ -146,6 +154,11 @@ export const ProposeBeerDrawer = ({ isOpen, onOpenChange, initialName, onCreated
 
   const shownError = (errorKey: string | undefined): string | null =>
     hasAttemptedSubmit && errorKey !== undefined ? t(errorKey) : null;
+
+  const shownSpecError = (characteristic: BeerCharacteristicEnum): string | null => {
+    const errorKey = errorKeys[characteristic];
+    return hasAttemptedSubmit && errorKey !== undefined ? t(errorKey, BEER_CHARACTERISTIC_BOUNDS[characteristic]) : null;
+  };
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     if (!nextIsOpen) resetForm();
@@ -318,6 +331,17 @@ export const ProposeBeerDrawer = ({ isOpen, onOpenChange, initialName, onCreated
                   </NumberField.Group>
                   <FieldError />
                 </NumberField>
+                <h3 className="font-display text-xl">{t("pages.encyclopedia.propose.specsTitle")}</h3>
+                {PROPOSE_BEER_SPEC_CHARACTERISTICS.map((characteristic) => (
+                  <CharacteristicField
+                    key={characteristic}
+                    characteristic={characteristic}
+                    value={values[characteristic]}
+                    onChange={(value: CharacteristicFormValue) => updateValue(characteristic, value)}
+                    isRequired={false}
+                    errorMessage={shownSpecError(characteristic)}
+                  />
+                ))}
                 <TextField
                   name="description"
                   value={values.description}

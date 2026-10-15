@@ -2,7 +2,6 @@ import { Alert, Button, Skeleton } from "@heroui/react";
 import { useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStatePanel";
-import { CommunityCriteria } from "@/pages/beerDetail/components/elements/communityCriteria/communityCriteria";
 import { RatingHistogram } from "@/pages/beerDetail/components/elements/ratingHistogram/ratingHistogram";
 import { ReviewEntry } from "@/pages/beerDetail/components/elements/reviewEntry/reviewEntry";
 import { StarRating } from "@/pages/beerDetail/components/elements/starRating/starRating";
@@ -17,7 +16,7 @@ const SKELETON_ROW_KEYS = ["first", "second", "third"];
 export const ReviewsSection = ({ beer }: ReviewsSectionProps) => {
   const { t, i18n } = useTranslation();
   const titleId = useId();
-  const { averageRating, reviewCount, ratingDistribution, criteria } = beer;
+  const { averageRating, reviewCount, ratingDistribution } = beer;
   const { mine, reviews, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useBeerReviewsQuery(beer.id);
   const isLoadingMore = useRef(false);
@@ -112,7 +111,6 @@ export const ReviewsSection = ({ beer }: ReviewsSectionProps) => {
       <div className="flex flex-col gap-4 rounded-mousse border-mousse bg-surface p-4 shadow-mousse">
         {renderSummary()}
         <RatingHistogram distribution={ratingDistribution} reviewCount={reviewCount} />
-        <CommunityCriteria criteria={criteria} />
       </div>
       {renderList()}
     </section>

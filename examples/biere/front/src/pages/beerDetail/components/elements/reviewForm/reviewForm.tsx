@@ -12,18 +12,11 @@ import {
   REVIEW_DEFAULT_RATING,
   REVIEW_MAX_RATING,
   REVIEW_MIN_RATING,
-  REVIEW_NO_CRITERION,
   REVIEW_RATING_STEP,
   REVIEW_TEXT_MAX_LENGTH,
   formValuesToNewReview,
   reviewToFormValues,
 } from "@/pages/beerDetail/utils/reviewFormValues";
-import {
-  REVIEW_CRITERIA,
-  REVIEW_CRITERION_LABEL_KEYS,
-  REVIEW_CRITERION_LEVEL_LABEL_KEYS,
-} from "@/types/enums/review/reviewCriterionEnum";
-import type { ReviewCriterionEnum } from "@/types/enums/review/reviewCriterionEnum";
 
 export const ReviewForm = ({ initialReview, isSaving, onSubmit }: ReviewFormProps) => {
   const { t, i18n } = useTranslation();
@@ -42,10 +35,6 @@ export const ReviewForm = ({ initialReview, isSaving, onSubmit }: ReviewFormProp
 
   const handleRatingChange = (value: number | number[]) => {
     if (!Array.isArray(value)) updateValue("rating", value);
-  };
-
-  const handleCriterionChange = (criterion: ReviewCriterionEnum, level: number | number[]) => {
-    if (!Array.isArray(level)) updateValue(criterion, level);
   };
 
   const send = async (rating: number) => {
@@ -82,11 +71,6 @@ export const ReviewForm = ({ initialReview, isSaving, onSubmit }: ReviewFormProp
     else ratingInputRef.current?.removeAttribute("aria-invalid");
   }, [isRatingMissing]);
 
-  const getCriterionText = (criterion: ReviewCriterionEnum, level: number): string =>
-    level === REVIEW_NO_CRITERION
-      ? t("pages.beerDetail.reviews.form.notRated")
-      : t(REVIEW_CRITERION_LEVEL_LABEL_KEYS[criterion][level - 1]);
-
   return (
     <Form ref={formRef} validationBehavior="aria" onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-col gap-2">
@@ -112,23 +96,6 @@ export const ReviewForm = ({ initialReview, isSaving, onSubmit }: ReviewFormProp
           </p>
         )}
       </div>
-      {REVIEW_CRITERIA.map((criterion) => (
-        <Slider
-          key={criterion}
-          minValue={REVIEW_NO_CRITERION}
-          maxValue={REVIEW_MAX_RATING}
-          step={1}
-          value={values[criterion]}
-          onChange={(level) => handleCriterionChange(criterion, level)}
-        >
-          <Label>{t(REVIEW_CRITERION_LABEL_KEYS[criterion])}</Label>
-          <Slider.Output>{getCriterionText(criterion, values[criterion])}</Slider.Output>
-          <Slider.Track>
-            <Slider.Fill />
-            <Slider.Thumb />
-          </Slider.Track>
-        </Slider>
-      ))}
       <TextField maxLength={REVIEW_TEXT_MAX_LENGTH} value={values.text} onChange={(text) => updateValue("text", text)}>
         <Label>{t("pages.beerDetail.reviews.form.text")}</Label>
         <TextArea />

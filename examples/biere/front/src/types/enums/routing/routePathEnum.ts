@@ -9,6 +9,7 @@ export enum RoutePathEnum {
   BEER_DETAIL = "/bieres/:beerId",
   USER_COLLECTION = "/profils/:userId/collections/:collectionId",
   USER_WISHLIST = "/profils/:userId/wishlist",
+  VOTES = "/votes",
 }
 
 const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/;

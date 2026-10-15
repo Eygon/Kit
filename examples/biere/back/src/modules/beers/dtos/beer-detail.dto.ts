@@ -2,7 +2,6 @@ import type { BeerAromaEnum } from "@/modules/beers/enums/beer-aroma.enum";
 import type { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import type { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import type { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
-import type { CriterionAverageDto } from "@/modules/beers/dtos/criterion-average.dto";
 import type { LevelRangeDto } from "@/modules/beers/dtos/level-range.dto";
 import type { RatingBucketDto } from "@/modules/beers/dtos/rating-bucket.dto";
 
@@ -15,6 +14,11 @@ export interface BeerDetailDto {
   readonly styleName: string;
   readonly family: BeerFamilyEnum;
   readonly abv: number;
+  readonly ibu: number | null;
+  readonly ebc: number | null;
+  readonly sweetness: number | null;
+  readonly acidity: number | null;
+  readonly body: number | null;
   readonly aromas: readonly BeerAromaEnum[];
   readonly formats: readonly BeerFormatEnum[];
   readonly description: string;
@@ -30,5 +34,4 @@ export interface BeerDetailDto {
   readonly averageRating: number | null;
   readonly reviewCount: number;
   readonly ratingDistribution: readonly RatingBucketDto[];
-  readonly criteria: readonly CriterionAverageDto[];
 }

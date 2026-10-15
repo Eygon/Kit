@@ -14,6 +14,7 @@ const loadBeerDetailPage = () => import("@/pages/beerDetail/beerDetail").then((m
 const loadCollectionPage = () => import("@/pages/collection/collection").then((module) => ({ default: module.CollectionPage }));
 const loadUserProfilePage = () => import("@/pages/userProfile/userProfile").then((module) => ({ default: module.UserProfilePage }));
 const loadPeoplePage = () => import("@/pages/people/people").then((module) => ({ default: module.PeoplePage }));
+const loadVotesPage = () => import("@/pages/votes/votes").then((module) => ({ default: module.VotesPage }));
 
 export const App = () => (
   <div className="flex min-h-dvh flex-col bg-background text-foreground">
@@ -24,6 +25,7 @@ export const App = () => (
         <Route path={RoutePathEnum.MAP} element={<LazyPage loader={loadMapPage} />} />
         <Route path={RoutePathEnum.JOURNAL} element={<JournalPage />} />
         <Route path={RoutePathEnum.PROFILE} element={<ProfilePage />} />
+        <Route path={RoutePathEnum.VOTES} element={<LazyPage loader={loadVotesPage} />} />
         <Route path={RoutePathEnum.PEOPLE} element={<LazyPage loader={loadPeoplePage} />} />
         <Route path={RoutePathEnum.USER_PROFILE} element={<LazyPage loader={loadUserProfilePage} />} />
         <Route path={RoutePathEnum.USER_COLLECTION} element={<LazyPage loader={loadCollectionPage} />} />

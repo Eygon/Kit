@@ -15,9 +15,6 @@ const BARE_REVIEW: Review = {
   authorAvatar: AvatarEnum.HOP,
   rating: 3.5,
   text: "",
-  sweetness: null,
-  acidity: null,
-  body: null,
   createdAt: "2026-10-10T12:00:00.000Z",
   updatedAt: "2026-10-12T12:00:00.000Z",
   isMine: false,
@@ -112,26 +109,15 @@ describe("ReviewEntry", () => {
     expect(text).toHaveClass("break-words");
   });
 
-  it("reads each filled criterion with the label of its level, in the sweetness, acidity, body order", async () => {
-    renderEntry({ ...BARE_REVIEW, sweetness: 2, acidity: null, body: 5 });
+  it("shows no criterion on a card even when the review still carries some", async () => {
+    renderEntry({ ...BARE_REVIEW, text: "Bonne", sweetness: 2, acidity: 5, body: 3 } as Review);
 
-    const criteria = within(getEntry()).getByRole("list");
-    expect(
-      within(criteria)
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
-    ).toEqual(["Douceur : Sèche", "Corps : Très plein"]);
-  });
-
-  it("reads a criterion at its first and last level", async () => {
-    renderEntry({ ...BARE_REVIEW, sweetness: 1, acidity: 5, body: 3 });
-
-    const criteria = within(getEntry()).getByRole("list");
-    expect(
-      within(criteria)
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
-    ).toEqual(["Douceur : Très sèche", "Acidité : Très vive", "Corps : Moyen"]);
+    const item = getEntry();
+    expect(within(item).queryByRole("list")).not.toBeInTheDocument();
+    expect(within(item).queryByText(/Douceur/)).not.toBeInTheDocument();
+    expect(within(item).queryByText(/Acidité/)).not.toBeInTheDocument();
+    expect(within(item).queryByText(/Corps/)).not.toBeInTheDocument();
+    expect(item.textContent).toBe("bob3,5 sur 512/10/2026Bonne");
   });
 
   it("keeps a long unbroken author name inside a shrinkable flex child", async () => {
@@ -146,10 +132,10 @@ describe("ReviewEntry", () => {
 
   it("renders the rating and the chip in English", async () => {
     await i18n.changeLanguage("en");
-    renderEntry({ ...BARE_REVIEW, isMine: true, rating: 4.5, sweetness: 2 });
+    renderEntry({ ...BARE_REVIEW, isMine: true, rating: 4.5, sweetness: 2 } as Review);
 
     expect(screen.getByText("My review")).toBeInTheDocument();
     expect(screen.getByText("4.5 out of 5")).toBeInTheDocument();
-    expect(screen.getByText("Sweetness: Dry")).toBeInTheDocument();
+    expect(screen.queryByText(/Sweetness/)).not.toBeInTheDocument();
   });
 });

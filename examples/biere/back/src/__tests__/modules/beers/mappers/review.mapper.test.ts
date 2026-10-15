@@ -25,27 +25,24 @@ const RECORD = {
   beerId: 4,
   rating: 4.5,
   text: "Superbe",
-  sweetness: 2,
-  acidity: null,
-  body: 5,
   createdAt: "2026-03-01T10:00:00.000Z",
   updatedAt: "2026-03-05T12:30:00.000Z",
 };
 
 describe("review mapper", () => {
-  it("maps an entity to a record with ISO dates and every field", async () => {
-    expect(toReviewRecordDto(ENTITY)).toEqual(RECORD);
+  it("maps an entity carrying old criteria to a record with ISO dates and no criterion", async () => {
+    expect(toReviewRecordDto(ENTITY)).toStrictEqual(RECORD);
   });
 
-  it("builds a new row from a full body with the pair, the moment as both dates and the criteria", async () => {
-    expect(toNewReview({ rating: 4.5, text: "Superbe", sweetness: 2, acidity: 3, body: 4 }, 1, 4, NOW)).toEqual({
+  it("builds a new row from a body with the pair, the moment as both dates and null criteria", async () => {
+    expect(toNewReview({ rating: 4.5, text: "Superbe" }, 1, 4, NOW)).toEqual({
       userId: 1,
       beerId: 4,
       rating: 4.5,
       text: "Superbe",
-      sweetness: 2,
-      acidity: 3,
-      body: 4,
+      sweetness: null,
+      acidity: null,
+      body: null,
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -65,8 +62,8 @@ describe("review mapper", () => {
     });
   });
 
-  it("turns null criteria into null and normalizes then trims the text", async () => {
-    expect(toNewReview({ rating: 3, text: "  a\r\nb\rc  ", sweetness: null, acidity: null, body: null }, 1, 4, NOW)).toMatchObject({
+  it("normalizes then trims the text and keeps the criteria null", async () => {
+    expect(toNewReview({ rating: 3, text: "  a\r\nb\rc  " }, 1, 4, NOW)).toMatchObject({
       text: "a\nb\nc",
       sweetness: null,
       acidity: null,
@@ -77,7 +74,7 @@ describe("review mapper", () => {
   it("builds the read DTO with the author fields and isMine true for the author", async () => {
     const author = { id: 1, displayName: "Alice", avatarColor: "#F59E0B", avatar: AvatarEnum.HOP };
 
-    expect(toReviewDto(RECORD, author, 1)).toEqual({
+    expect(toReviewDto(RECORD, author, 1)).toStrictEqual({
       id: 7,
       beerId: 4,
       authorId: 1,
@@ -86,9 +83,6 @@ describe("review mapper", () => {
       authorAvatar: "hop",
       rating: 4.5,
       text: "Superbe",
-      sweetness: 2,
-      acidity: null,
-      body: 5,
       createdAt: "2026-03-01T10:00:00.000Z",
       updatedAt: "2026-03-05T12:30:00.000Z",
       isMine: true,

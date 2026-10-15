@@ -41,6 +41,13 @@ const VALID = {
   country: "BE",
   styleId: 12,
   abv: 6.2,
+  ibu: Number.NaN,
+  ebc: Number.NaN,
+  sweetness: 0,
+  acidity: 0,
+  body: 0,
+  aromas: [] as string[],
+  formats: [] as string[],
   description: "Une trappiste.",
 };
 
@@ -51,9 +58,6 @@ describe("proposeBeerConstants", () => {
     expect(constants.BREWERY_NAME_MIN_LENGTH).toBe(2);
     expect(constants.BREWERY_NAME_MAX_LENGTH).toBe(60);
     expect(constants.BEER_DESCRIPTION_MAX_LENGTH).toBe(500);
-    expect(constants.BEER_ABV_MIN).toBe(0);
-    expect(constants.BEER_ABV_MAX).toBe(20);
-    expect(constants.BEER_ABV_STEP).toBe(0.1);
     expect(constants.PROPOSE_BEER_FORM_ID).toBe("propose-beer-form");
   });
 
@@ -81,8 +85,20 @@ describe("EMPTY_BEER_FORM", () => {
       country: null,
       styleId: null,
       abv: Number.NaN,
+      ibu: Number.NaN,
+      ebc: Number.NaN,
+      sweetness: 0,
+      acidity: 0,
+      body: 0,
+      aromas: [],
+      formats: [],
       description: "",
     });
+  });
+
+  it("gives every form its own empty lists", () => {
+    expect(EMPTY_BEER_FORM.aromas).toEqual([]);
+    expect(EMPTY_BEER_FORM.formats).toEqual([]);
   });
 });
 
@@ -101,8 +117,44 @@ describe("formValuesToNewBeer", () => {
       country: "BE",
       styleId: 12,
       abv: 6.2,
+      ibu: null,
+      ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
+      aromas: [],
+      formats: [],
       description: "Une trappiste.",
     });
+  });
+
+  it("AC2 sends the filled characteristics and null or an empty list for the others", () => {
+    expect(
+      formValuesToNewBeer({ ...VALID, ibu: 35, sweetness: 2, aromas: ["fruity", "hoppy"], formats: ["can"] }),
+    ).toEqual({
+      name: "Orval",
+      breweryName: "Brasserie d'Orval",
+      country: "BE",
+      styleId: 12,
+      abv: 6.2,
+      ibu: 35,
+      ebc: null,
+      sweetness: 2,
+      acidity: null,
+      body: null,
+      aromas: ["fruity", "hoppy"],
+      formats: ["can"],
+      description: "Une trappiste.",
+    });
+  });
+
+  it("sends an IBU of 0 as 0, not as empty, and an EBC and a body when filled", () => {
+    const result = formValuesToNewBeer({ ...VALID, ibu: 0, ebc: 12, acidity: 5, body: 1 });
+
+    expect(result?.ibu).toBe(0);
+    expect(result?.ebc).toBe(12);
+    expect(result?.acidity).toBe(5);
+    expect(result?.body).toBe(1);
   });
 
   it("keeps a name with markup as plain text", () => {
@@ -128,6 +180,26 @@ describe("getBeerFormErrorKeys", () => {
       styleId: "pages.encyclopedia.propose.errors.styleRequired",
       abv: "pages.encyclopedia.propose.errors.abvRequired",
     });
+  });
+
+  it("AC3 adds a key under the characteristic that is out of its bounds, and only that one", () => {
+    expect(getBeerFormErrorKeys({ ...VALID, ibu: 130 })).toEqual({ ibu: "beer.characteristics.errors.range" });
+    expect(getBeerFormErrorKeys({ ...VALID, ebc: 1 })).toEqual({ ebc: "beer.characteristics.errors.range" });
+    expect(getBeerFormErrorKeys({ ...VALID, ibu: 120, ebc: 2 })).toEqual({});
+    expect(getBeerFormErrorKeys({ ...VALID, ibu: 35.5 })).toEqual({ ibu: "beer.characteristics.errors.step" });
+    expect(getBeerFormErrorKeys({ ...VALID, sweetness: 6 })).toEqual({ sweetness: "beer.characteristics.errors.range" });
+    expect(getBeerFormErrorKeys({ ...VALID, acidity: 5, body: 1 })).toEqual({});
+  });
+
+  it("AC3 reports 6 aromas and 4 formats under their own field, accepts 5 and 3", () => {
+    const six = ["fruity", "citrus", "hoppy", "floral", "spicy", "caramel"];
+
+    expect(getBeerFormErrorKeys({ ...VALID, aromas: six })).toEqual({ aromas: "beer.characteristics.errors.listSize" });
+    expect(getBeerFormErrorKeys({ ...VALID, aromas: six.slice(0, 5) })).toEqual({});
+    expect(getBeerFormErrorKeys({ ...VALID, formats: ["can", "bottle", "draft", "x"] })).toEqual({
+      formats: "beer.characteristics.errors.listSize",
+    });
+    expect(getBeerFormErrorKeys({ ...VALID, formats: ["can", "bottle", "draft"] })).toEqual({});
   });
 
   it("accepts a name of 2 letters and of 80 letters, refuses 1 and 81", () => {

@@ -2,7 +2,6 @@ import type { BeerAromaEnum } from "@/types/enums/beer/beerAromaEnum";
 import type { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
 import type { BeerFormatEnum } from "@/types/enums/beer/beerFormatEnum";
 import type { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
-import type { CriterionAverage } from "@/types/models/beer/criterionAverage";
 import type { LevelRange } from "@/types/models/beer/levelRange";
 import type { RatingBucket } from "@/types/models/beer/ratingBucket";
 
@@ -27,7 +26,12 @@ export interface Beer {
   averageRating: number | null;
   reviewCount: number;
   ratingDistribution: RatingBucket[];
-  criteria: CriterionAverage[];
   source: BeerSourceEnum;
   createdByName: string | null;
+  ibu: number | null;
+  ebc: number | null;
+  sweetness: number | null;
+  acidity: number | null;
+  body: number | null;
+  createdBy: number | null;
 }

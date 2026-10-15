@@ -49,7 +49,5 @@ describe("Review entity", () => {
     expect(constants.REVIEW_RATING_MAX).toBe(5);
     expect(constants.REVIEW_RATING_STEP).toBe(0.5);
     expect(constants.REVIEW_TEXT_MAX_LENGTH).toBe(500);
-    expect(constants.REVIEW_CRITERION_MIN).toBe(1);
-    expect(constants.REVIEW_CRITERION_MAX).toBe(5);
   });
 });

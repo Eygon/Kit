@@ -9,7 +9,6 @@ import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 import ReviewService from "@/api/reviews/reviewService";
 import i18n from "@/i18n/i18n";
 import { BeerFamilyEnum } from "@/types/enums/beer/beerFamilyEnum";
-import { ReviewCriterionEnum } from "@/types/enums/review/reviewCriterionEnum";
 import { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
 import type { Beer } from "@/types/models/beer/beer";
 import type { Review } from "@/types/models/review/review";
@@ -29,9 +28,6 @@ const reviewOf = (id: number, overrides: Partial<Review> = {}): Review => ({
   authorAvatar: AvatarEnum.HOP,
   rating: 4,
   text: "",
-  sweetness: null,
-  acidity: null,
-  body: null,
   createdAt: "2026-10-10T12:00:00.000Z",
   updatedAt: "2026-10-12T12:00:00.000Z",
   isMine: false,
@@ -91,9 +87,14 @@ const BASE_BEER: Beer = {
   averageRating: null,
   reviewCount: 0,
   ratingDistribution: [],
-  criteria: [],
   source: BeerSourceEnum.OFFICIAL,
   createdByName: null,
+  ibu: null,
+  ebc: null,
+  sweetness: null,
+  acidity: null,
+  body: null,
+  createdBy: null,
 };
 
 const REVIEWED_BEER: Beer = {
@@ -107,21 +108,11 @@ const REVIEWED_BEER: Beer = {
     { stars: 4, count: 7 },
     { stars: 5, count: 2 },
   ],
-  criteria: [
-    { criterion: ReviewCriterionEnum.SWEETNESS, average: 2.7, count: 3 },
-    { criterion: ReviewCriterionEnum.ACIDITY, average: null, count: 1 },
-    { criterion: ReviewCriterionEnum.BODY, average: null, count: 0 },
-  ],
 };
 
 const UNREVIEWED_BEER: Beer = {
   ...BASE_BEER,
   ratingDistribution: [1, 2, 3, 4, 5].map((stars) => ({ stars, count: 0 })),
-  criteria: [
-    { criterion: ReviewCriterionEnum.SWEETNESS, average: null, count: 0 },
-    { criterion: ReviewCriterionEnum.ACIDITY, average: null, count: 0 },
-    { criterion: ReviewCriterionEnum.BODY, average: null, count: 0 },
-  ],
 };
 
 const CHECKED_IN_BEER: Beer = { ...REVIEWED_BEER, checkinCount: 2 };
@@ -178,13 +169,45 @@ describe("ReviewsSection", () => {
     );
   });
 
-  it("reads the sweetness with its level and hides the acidity with the missing reviews", () => {
+  it("AC1 shows the average, the count and the histogram without any criterion average", () => {
     renderSection(REVIEWED_BEER);
 
-    expect(screen.getByText("Douceur 2,7 / 5 · Sèche")).toBeInTheDocument();
-    expect(
-      screen.getByText("Acidité : encore 2 avis pour afficher ce critère"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("3,5")).toBeInTheDocument();
+    expect(screen.getByText("12 avis")).toBeInTheDocument();
+    expect(screen.getAllByRole("meter", { name: /étoile/ })).toHaveLength(5);
+    expect(screen.queryByText(/Douceur/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Acidité/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Corps/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/encore \d+ avis/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Moyennes de la communauté" })).not.toBeInTheDocument();
+  });
+
+  it("AC1 draws no criterion even when a legacy beer still carries some", () => {
+    const legacyBeer = {
+      ...REVIEWED_BEER,
+      criteria: [
+        { criterion: "sweetness", average: 2.7, count: 3 },
+        { criterion: "acidity", average: null, count: 1 },
+      ],
+    } as unknown as Beer;
+    renderSection(legacyBeer);
+
+    expect(screen.getByText("12 avis")).toBeInTheDocument();
+    expect(screen.queryByText(/Douceur/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/encore \d+ avis/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Moyennes de la communauté" })).not.toBeInTheDocument();
+  });
+
+  it("AC1 never says a criterion needs more reviews even when an unreviewed beer still carries one", () => {
+    const legacyBeer = {
+      ...UNREVIEWED_BEER,
+      criteria: [{ criterion: "body", average: null, count: 3 }],
+    } as unknown as Beer;
+    renderSection(legacyBeer);
+
+    expect(screen.getByText("Pas encore de note")).toBeInTheDocument();
+    expect(screen.queryByText(/encore \d+ avis/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Corps/)).not.toBeInTheDocument();
   });
 
   it("says there is no rating yet and shows empty bars when nobody reviewed the beer", () => {
@@ -196,9 +219,7 @@ describe("ReviewsSection", () => {
     const bars = screen.getAllByRole("meter", { name: /étoile/ });
     expect(bars).toHaveLength(5);
     bars.forEach((bar) => expect(bar).toHaveAttribute("aria-valuenow", "0"));
-    expect(
-      screen.getByText("Corps : encore 3 avis pour afficher ce critère"),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/encore \d+ avis/)).not.toBeInTheDocument();
   });
 
   it("renders the summary in English", async () => {
@@ -609,9 +630,6 @@ describe("ReviewsSection review sheet", () => {
     expect(ReviewService.save).toHaveBeenCalledWith(CHECKED_IN_BEER.id, {
       rating: 4,
       text: "",
-      sweetness: null,
-      acidity: null,
-      body: null,
     });
     expect(toast.success).toHaveBeenCalledWith("Avis enregistré");
     await waitFor(() =>

@@ -3,20 +3,11 @@ import { useTranslation } from "react-i18next";
 import { UserAvatar } from "@/components/elements/userAvatar/userAvatar";
 import { StarRating } from "@/pages/beerDetail/components/elements/starRating/starRating";
 import type { ReviewEntryProps } from "@/pages/beerDetail/types/reviewEntry";
-import {
-  REVIEW_CRITERIA,
-  REVIEW_CRITERION_LABEL_KEYS,
-  REVIEW_CRITERION_LEVEL_LABEL_KEYS,
-} from "@/types/enums/review/reviewCriterionEnum";
 import { formatCheckinDate } from "@/utils/date/formatCheckinDate";
 import { formatRating } from "@/utils/beer/formatRating";
 
 export const ReviewEntry = ({ review }: ReviewEntryProps) => {
   const { t, i18n } = useTranslation();
-  const filledCriteria = REVIEW_CRITERIA.flatMap((criterion) => {
-    const level = review[criterion];
-    return level === null ? [] : [{ criterion, level }];
-  });
 
   return (
     <li className="flex min-w-0 flex-col gap-2 rounded-mousse border-mousse bg-surface p-3 shadow-mousse">
@@ -42,20 +33,6 @@ export const ReviewEntry = ({ review }: ReviewEntryProps) => {
       </div>
       {review.text !== "" && (
         <p className="whitespace-pre-line break-words">{review.text}</p>
-      )}
-      {filledCriteria.length > 0 && (
-        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-          {filledCriteria.map(({ criterion, level }) => (
-            <li key={criterion}>
-              {t("pages.beerDetail.reviews.list.criterion", {
-                name: t(REVIEW_CRITERION_LABEL_KEYS[criterion]),
-                level: t(
-                  REVIEW_CRITERION_LEVEL_LABEL_KEYS[criterion][level - 1],
-                ),
-              })}
-            </li>
-          ))}
-        </ul>
       )}
     </li>
   );

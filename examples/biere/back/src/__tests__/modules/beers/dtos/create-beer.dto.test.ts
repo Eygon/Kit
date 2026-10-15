@@ -125,6 +125,56 @@ describe("CreateBeerDto", () => {
     expect(await rejected({ description: 12 })).toBe(true);
   });
 
+  it("accepts every characteristic, aromas and formats together", async () => {
+    const body = {
+      ibu: 35,
+      ebc: 20,
+      sweetness: 2,
+      acidity: 1,
+      body: 4,
+      aromas: ["fruity", "hoppy"],
+      formats: ["can"],
+    };
+
+    expect((await validateBody({ ...VALID_BODY, ...body })).messages).toEqual([]);
+  });
+
+  it.each([
+    ["ibu", 0, 120, -1, 121],
+    ["ebc", 2, 80, 1, 81],
+    ["sweetness", 1, 5, 0, 6],
+    ["acidity", 1, 5, 0, 6],
+    ["body", 1, 5, 0, 6],
+  ])("accepts %s at %s and %s and rejects %s and %s", async (field, min, max, below, above) => {
+    expect(await rejected({ [field]: min })).toBe(false);
+    expect(await rejected({ [field]: max })).toBe(false);
+    expect(await rejected({ [field]: below })).toBe(true);
+    expect(await rejected({ [field]: above })).toBe(true);
+  });
+
+  it.each(["ibu", "ebc", "sweetness", "acidity", "body"])("rejects a %s that is not an integer", async (field) => {
+    expect(await rejected({ [field]: 3.5 })).toBe(true);
+    expect(await rejected({ [field]: "3" })).toBe(true);
+  });
+
+  it("accepts five aromas and rejects six, a repeated one and an unknown one", async () => {
+    expect(await rejected({ aromas: ["fruity", "hoppy", "malty", "spicy", "honey"] })).toBe(false);
+    expect(await rejected({ aromas: [] })).toBe(false);
+    expect(await rejected({ aromas: ["fruity", "hoppy", "malty", "spicy", "honey", "caramel"] })).toBe(true);
+    expect(await rejected({ aromas: ["fruity", "fruity"] })).toBe(true);
+    expect(await rejected({ aromas: ["unknown"] })).toBe(true);
+    expect(await rejected({ aromas: "fruity" })).toBe(true);
+  });
+
+  it("accepts three formats and rejects four, a repeated one and an unknown one", async () => {
+    expect(await rejected({ formats: ["bottle", "can", "draft"] })).toBe(false);
+    expect(await rejected({ formats: [] })).toBe(false);
+    expect(await rejected({ formats: ["bottle", "can", "draft", "bottle"] })).toBe(true);
+    expect(await rejected({ formats: ["can", "can"] })).toBe(true);
+    expect(await rejected({ formats: ["keg"] })).toBe(true);
+    expect(await rejected({ formats: "can" })).toBe(true);
+  });
+
   it("rejects an unknown field", async () => {
     expect(await rejected({ createdBy: 2 })).toBe(true);
     expect(await rejected({ source: "official" })).toBe(true);

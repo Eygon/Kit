@@ -4,21 +4,18 @@ import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { EmptyStatePanel } from "@/components/elements/emptyStatePanel/emptyStatePanel";
 import { PageHeader } from "@/components/elements/pageHeader/pageHeader";
 import { ProposedByChip } from "@/components/elements/proposedByChip/proposedByChip";
-import { BeerLevels } from "@/pages/beerDetail/components/elements/beerLevels/beerLevels";
 import { AddToCollectionSheet } from "@/pages/beerDetail/components/widgets/addToCollectionSheet/addToCollectionSheet";
 import { CheckinHistory } from "@/pages/beerDetail/components/widgets/checkinHistory/checkinHistory";
 import { CheckinSheet } from "@/components/modules/checkinSheet/checkinSheet";
+import { TechnicalSheet } from "@/pages/beerDetail/components/widgets/technicalSheet/technicalSheet";
 import { ReviewsSection } from "@/pages/beerDetail/components/widgets/reviewsSection/reviewsSection";
 import { WhereToDrinkSection } from "@/pages/beerDetail/components/widgets/whereToDrinkSection/whereToDrinkSection";
 import { useBeerQuery } from "@/pages/beerDetail/hooks/useBeerQuery";
 import { useWishlistToggle } from "@/pages/beerDetail/hooks/useWishlistToggle";
-import { BEER_AROMA_LABEL_KEYS } from "@/types/enums/beer/beerAromaEnum";
 import { BEER_FAMILY_LABEL_KEYS } from "@/types/enums/beer/beerFamilyEnum";
-import { BEER_FORMAT_LABEL_KEYS } from "@/types/enums/beer/beerFormatEnum";
 import { BeerSourceEnum } from "@/types/enums/beer/beerSourceEnum";
 import { MascotMoodEnum } from "@/types/enums/mascot/mascotMoodEnum";
 import { RoutePathEnum, parseBeerIdParam } from "@/types/enums/routing/routePathEnum";
-import { formatAbv } from "@/utils/beer/formatAbv";
 import { getCountryName } from "@/utils/country/getCountryName";
 
 const DEFAULT_LOCATION_KEY = "default";
@@ -84,12 +81,7 @@ export const BeerDetailPage = () => {
     const facts = [
       { key: "brewery", label: t("pages.beerDetail.brewery"), value: beer.breweryName },
       { key: "country", label: t("pages.beerDetail.country"), value: getCountryName(beer.country, i18n.language) },
-      { key: "abv", label: t("pages.beerDetail.abv"), value: formatAbv(beer.abv, i18n.language) },
     ];
-    const chipSections = [
-      { key: "aromas", title: t("pages.beerDetail.aromas"), labels: beer.aromas.map((aroma) => t(BEER_AROMA_LABEL_KEYS[aroma])) },
-      { key: "formats", title: t("pages.beerDetail.formats"), labels: beer.formats.map((format) => t(BEER_FORMAT_LABEL_KEYS[format])) },
-    ].filter((section) => section.labels.length > 0);
 
     return (
       <>
@@ -129,25 +121,7 @@ export const BeerDetailPage = () => {
             </dd>
           </div>
         </dl>
-        <BeerLevels
-          bitternessLevel={beer.bitternessLevel}
-          colorLevel={beer.colorLevel}
-          styleColorRange={beer.styleColorRange}
-        />
-        {chipSections.map(({ key, title, labels }) => (
-          <section key={key} className="flex flex-col gap-2">
-            <h2 className="font-display text-xl text-foreground">{title}</h2>
-            <ul className="flex flex-wrap gap-2">
-              {labels.map((label) => (
-                <li key={label}>
-                  <Chip color="accent" variant="primary">
-                    {label}
-                  </Chip>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        <TechnicalSheet beer={beer} />
         <section className="flex flex-col gap-2">
           <h2 className="font-display text-xl text-foreground">{t("pages.beerDetail.description")}</h2>
           <p className="break-words">{beer.description}</p>

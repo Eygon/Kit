@@ -17,6 +17,28 @@ const mapChunk = vi.hoisted(() => {
   return chunk;
 });
 
+vi.mock("@/hooks/corrections/useCorrectionBoardQuery", () => ({
+  useCorrectionBoardQuery: () => ({
+    board: { open: [], recentlyClosed: [], pendingCount: 0 },
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}));
+
+vi.mock("@/pages/journal/hooks/useJournalQuery", () => ({
+  useJournalQuery: () => ({
+    checkins: [],
+    total: 0,
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+    fetchNextPage: vi.fn(),
+    hasNextPage: false,
+    isFetchingNextPage: false,
+  }),
+}));
+
 vi.mock("@/pages/map/map", async () => {
   mapChunk.downloads += 1;
   await mapChunk.gate;

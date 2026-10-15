@@ -1,13 +1,10 @@
 import { normalizeSearchText } from "@/common/text/normalize-search-text";
-import { REVIEW_CRITERION_MIN_REVIEWS } from "@/modules/beers/beers.constants";
 import type { BeerDetailDto } from "@/modules/beers/dtos/beer-detail.dto";
 import type { CatalogBeerDto } from "@/modules/beers/dtos/catalog-beer.dto";
 import type { CreateBeerDto } from "@/modules/beers/dtos/create-beer.dto";
-import type { CriterionAverageDto } from "@/modules/beers/dtos/criterion-average.dto";
 import type { RatingSummaryDto } from "@/modules/beers/dtos/rating-summary.dto";
 import type { ReviewStatsDto } from "@/modules/beers/dtos/review-stats.dto";
 import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
-import { ReviewCriterionEnum } from "@/modules/beers/enums/review-criterion.enum";
 import type { BeerUserStateDto } from "@/modules/tastings/dtos/beer-user-state.dto";
 import { toBitternessLevel, toColorLevel, toLevelRange } from "@/modules/beers/beer-levels";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
@@ -27,6 +24,11 @@ export const toBeerDto = (entity: Beer & { brewery: Brewery; style: BeerStyle })
   styleName: entity.style.name,
   family: entity.style.family,
   abv: entity.abv,
+  ibu: entity.ibu,
+  ebc: entity.ebc,
+  sweetness: entity.sweetness,
+  acidity: entity.acidity,
+  body: entity.body,
   aromas: entity.aromas,
   formats: entity.formats,
   description: entity.description,
@@ -40,17 +42,6 @@ export const toBeerDto = (entity: Beer & { brewery: Brewery; style: BeerStyle })
 export const toBeerSearchCandidateDto = (entity: Pick<Beer, "id" | "searchText">): BeerSearchCandidateDto => ({
   id: entity.id,
   searchText: entity.searchText,
-});
-
-const CRITERION_ORDER: readonly ReviewCriterionEnum[] = Object.values(ReviewCriterionEnum);
-
-const byCriterionOrder = (left: CriterionAverageDto, right: CriterionAverageDto): number =>
-  CRITERION_ORDER.indexOf(left.criterion) - CRITERION_ORDER.indexOf(right.criterion);
-
-const toDisplayedCriterion = (criterion: CriterionAverageDto): CriterionAverageDto => ({
-  criterion: criterion.criterion,
-  average: criterion.count < REVIEW_CRITERION_MIN_REVIEWS ? null : criterion.average,
-  count: criterion.count,
 });
 
 export const toCatalogBeerDto = (
@@ -67,6 +58,11 @@ export const toCatalogBeerDto = (
   styleName: beer.styleName,
   family: beer.family,
   abv: beer.abv,
+  ibu: beer.ibu,
+  ebc: beer.ebc,
+  sweetness: beer.sweetness,
+  acidity: beer.acidity,
+  body: beer.body,
   aromas: beer.aromas,
   formats: beer.formats,
   description: beer.description,
@@ -92,6 +88,11 @@ export const toBeerDetailDto = (catalog: CatalogBeerDto, stats: ReviewStatsDto):
   styleName: catalog.styleName,
   family: catalog.family,
   abv: catalog.abv,
+  ibu: catalog.ibu,
+  ebc: catalog.ebc,
+  sweetness: catalog.sweetness,
+  acidity: catalog.acidity,
+  body: catalog.body,
   aromas: catalog.aromas,
   formats: catalog.formats,
   description: catalog.description,
@@ -107,7 +108,6 @@ export const toBeerDetailDto = (catalog: CatalogBeerDto, stats: ReviewStatsDto):
   averageRating: catalog.averageRating,
   reviewCount: catalog.reviewCount,
   ratingDistribution: stats.ratingDistribution,
-  criteria: [...stats.criteria].sort(byCriterionOrder).map(toDisplayedCriterion),
 });
 
 export const toNewBeer = (dto: CreateBeerDto, breweryId: number, userId: number, now: Date): BeerInsertRow => ({
@@ -115,11 +115,14 @@ export const toNewBeer = (dto: CreateBeerDto, breweryId: number, userId: number,
   breweryId,
   styleId: dto.styleId,
   abv: dto.abv,
-  ibu: null,
-  ebc: null,
+  ibu: dto.ibu ?? null,
+  ebc: dto.ebc ?? null,
+  sweetness: dto.sweetness ?? null,
+  acidity: dto.acidity ?? null,
+  body: dto.body ?? null,
   description: dto.description ?? "",
-  aromas: [],
-  formats: [],
+  aromas: dto.aromas ?? [],
+  formats: dto.formats ?? [],
   country: dto.country,
   searchText: normalizeSearchText(`${dto.name} ${dto.breweryName}`),
   createdBy: userId,

@@ -1,4 +1,3 @@
-import type { CriterionAverageDto } from "@/types/dtos/beer/criterionAverageDto";
 import type { LevelRangeDto } from "@/types/dtos/beer/levelRangeDto";
 import type { RatingBucketDto } from "@/types/dtos/beer/ratingBucketDto";
 
@@ -23,7 +22,12 @@ export interface BeerDto {
   averageRating?: number | null;
   reviewCount?: number;
   ratingDistribution?: RatingBucketDto[];
-  criteria?: CriterionAverageDto[];
   source?: string;
   createdByName?: string | null;
+  ibu?: number | null;
+  ebc?: number | null;
+  sweetness?: number | null;
+  acidity?: number | null;
+  body?: number | null;
+  createdBy?: number | null;
 }

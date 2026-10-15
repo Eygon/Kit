@@ -2,7 +2,7 @@ import { RoutePathEnum, buildBeerDetailPath, buildMapPathForBeer, buildMapPathFo
 
 describe("RoutePathEnum", () => {
   it("keeps the public url segments", () => {
-    expect(Object.values(RoutePathEnum)).toEqual(["/", "/bieres", "/carte", "/journal", "/profil", "/profils", "/profils/:userId", "/bieres/:beerId", "/profils/:userId/collections/:collectionId", "/profils/:userId/wishlist"]);
+    expect(Object.values(RoutePathEnum)).toEqual(["/", "/bieres", "/carte", "/journal", "/profil", "/profils", "/profils/:userId", "/bieres/:beerId", "/profils/:userId/collections/:collectionId", "/profils/:userId/wishlist", "/votes"]);
   });
 
   it("exposes the beer detail pattern", () => {
@@ -65,6 +65,6 @@ describe("parseVenueIdParam", () => {
   });
 
   it("adds no route and no tab: the member list is unchanged", () => {
-    expect(Object.values(RoutePathEnum)).toHaveLength(10);
+    expect(Object.values(RoutePathEnum)).toHaveLength(11);
   });
 });

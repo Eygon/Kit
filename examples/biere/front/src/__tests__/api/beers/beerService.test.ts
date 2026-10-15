@@ -102,7 +102,7 @@ describe("BeerService.getPage", () => {
 
     expect(page.total).toBe(45);
     expect(page.items).toHaveLength(2);
-    expect(page.items[0]).toEqual({ ...beerDto, aromas: ["fruity"], formats: ["bottle"], bitternessLevel: null, colorLevel: null, styleColorRange: null, averageRating: null, reviewCount: 0, ratingDistribution: [], criteria: [], source: "official", createdByName: null });
+    expect(page.items[0]).toEqual({ ...beerDto, aromas: ["fruity"], formats: ["bottle"], bitternessLevel: null, colorLevel: null, styleColorRange: null, averageRating: null, reviewCount: 0, ratingDistribution: [], source: "official", createdByName: null, ibu: null, ebc: null, sweetness: null, acidity: null, body: null, createdBy: null });
     expect(page.items[1].family).toBeNull();
     expect(page.facets.families).toEqual([{ value: "trappist", count: 2 }]);
     expect(page.facets.countries).toEqual([{ value: "BE", count: 3 }]);
@@ -172,7 +172,7 @@ describe("BeerService.getById", () => {
     expect(url).toBe(BEER_BY_ID(7));
     expect(url).toBe(`${BEERS()}/7`);
     expect(init.method).toBe("GET");
-    expect(beer).toEqual({ ...beerDto, aromas: ["fruity"], formats: ["bottle"], bitternessLevel: null, colorLevel: null, styleColorRange: null, averageRating: null, reviewCount: 0, ratingDistribution: [], criteria: [], source: "official", createdByName: null });
+    expect(beer).toEqual({ ...beerDto, aromas: ["fruity"], formats: ["bottle"], bitternessLevel: null, colorLevel: null, styleColorRange: null, averageRating: null, reviewCount: 0, ratingDistribution: [], source: "official", createdByName: null, ibu: null, ebc: null, sweetness: null, acidity: null, body: null, createdBy: null });
   });
 
   it("returns null on a 404 and shows no toast", async () => {
@@ -212,6 +212,13 @@ const NEW_BEER = {
   country: "BE",
   styleId: 12,
   abv: 6.2,
+  ibu: 35,
+  ebc: null,
+  sweetness: 2,
+  acidity: null,
+  body: null,
+  aromas: ["fruity", "hoppy"],
+  formats: ["can"],
   description: "Une trappiste.",
 };
 
@@ -256,9 +263,14 @@ describe("BeerService.create", () => {
       averageRating: null,
       reviewCount: 0,
       ratingDistribution: [],
-      criteria: [],
       source: "official",
       createdByName: null,
+      ibu: null,
+      ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
+      createdBy: null,
     });
     expect(toast.danger).not.toHaveBeenCalled();
   });

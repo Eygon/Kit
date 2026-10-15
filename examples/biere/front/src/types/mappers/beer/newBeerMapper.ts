@@ -7,5 +7,12 @@ export const newBeerToDto = (newBeer: NewBeer): CreateBeerDto => ({
   country: newBeer.country,
   styleId: newBeer.styleId,
   abv: newBeer.abv,
+  ibu: newBeer.ibu,
+  ebc: newBeer.ebc,
+  sweetness: newBeer.sweetness,
+  acidity: newBeer.acidity,
+  body: newBeer.body,
+  aromas: newBeer.aromas,
+  formats: newBeer.formats,
   description: newBeer.description,
 });

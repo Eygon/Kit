@@ -9,9 +9,6 @@ const reviewDto = (id: number, isMine = false) => ({
   authorAvatar: "hop",
   rating: 3.5,
   text: "",
-  sweetness: null,
-  acidity: null,
-  body: null,
   createdAt: "2026-10-10T10:00:00.000Z",
   updatedAt: "2026-10-12T12:00:00.000Z",
   isMine,
@@ -33,6 +30,24 @@ describe("reviewPageDtoToModel", () => {
     expect(page.total).toBe(12);
     expect(page.page).toBe(2);
     expect(page.size).toBe(10);
+  });
+
+  it("maps mine and every item without any criterion, even when the dto still sends some", async () => {
+    const legacy = { sweetness: 2, acidity: 3, body: 4 };
+    const page = reviewPageDtoToModel({
+      mine: { ...reviewDto(1, true), ...legacy },
+      items: [{ ...reviewDto(2), ...legacy }],
+      total: 2,
+      page: 1,
+      size: 10,
+    } as unknown as ReviewPageDto);
+
+    expect(page.items).toHaveLength(1);
+    for (const review of [page.mine, ...page.items]) {
+      expect(review).not.toHaveProperty("sweetness");
+      expect(review).not.toHaveProperty("acidity");
+      expect(review).not.toHaveProperty("body");
+    }
   });
 
   it("defaults mine to null when the dto has none", async () => {

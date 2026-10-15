@@ -8,7 +8,6 @@ import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
 import type { BeerDto } from "@/modules/beers/dtos/beer.dto";
 import type { CatalogBeerDto } from "@/modules/beers/dtos/catalog-beer.dto";
 import type { ReviewStatsDto } from "@/modules/beers/dtos/review-stats.dto";
-import { ReviewCriterionEnum } from "@/modules/beers/enums/review-criterion.enum";
 import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import type { CreateBeerDto } from "@/modules/beers/dtos/create-beer.dto";
 import { toBeerDetailDto, toBeerDto, toCatalogBeerDto, toNewBeer } from "@/modules/beers/mappers/beer.mapper";
@@ -35,6 +34,9 @@ const buildEntity = (): Beer & { brewery: Brewery; style: BeerStyle } => {
     abv: 7,
     ibu: 20,
     ebc: 30,
+    sweetness: 2,
+    acidity: 1,
+    body: 4,
     description: "Trappiste cuivrée.",
     aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.CARAMEL],
     formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.DRAFT],
@@ -58,6 +60,11 @@ describe("toBeerDto", () => {
       styleName: "Dubbel trappiste",
       family: BeerFamilyEnum.TRAPPIST,
       abv: 7,
+      ibu: 20,
+      ebc: 30,
+      sweetness: 2,
+      acidity: 1,
+      body: 4,
       aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.CARAMEL],
       formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.DRAFT],
       description: "Trappiste cuivrée.",
@@ -75,21 +82,26 @@ describe("toBeerDto", () => {
     expect(keys).toEqual(
       [
         "abv",
+        "acidity",
         "aromas",
         "bitternessLevel",
+        "body",
         "breweryName",
         "colorLevel",
         "country",
         "createdBy",
         "description",
+        "ebc",
         "family",
         "formats",
+        "ibu",
         "id",
         "name",
         "source",
         "styleColorRange",
         "styleId",
         "styleName",
+        "sweetness",
       ].sort(),
     );
   });
@@ -154,6 +166,21 @@ describe("toBeerDto", () => {
     });
   });
 
+  it("serves null raw characteristics and unchanged derived levels for a beer without any", () => {
+    const entity = Object.assign(buildEntity(), { ibu: null, ebc: null, sweetness: null, acidity: null, body: null });
+
+    expect(toBeerDto(entity)).toMatchObject({
+      ibu: null,
+      ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
+      bitternessLevel: null,
+      colorLevel: null,
+      styleColorRange: { min: 1, max: 1 },
+    });
+  });
+
   it("keeps empty collections as empty arrays", () => {
     const entity = Object.assign(buildEntity(), { aromas: [], formats: [] });
 
@@ -171,6 +198,11 @@ describe("toCatalogBeerDto", () => {
     styleName: "Dubbel trappiste",
     family: BeerFamilyEnum.TRAPPIST,
     abv: 7,
+    ibu: 35,
+    ebc: 20,
+    sweetness: 2,
+    acidity: null,
+    body: 4,
     aromas: [BeerAromaEnum.FRUITY],
     formats: [BeerFormatEnum.BOTTLE],
     description: "Trappiste cuivrée.",
@@ -192,6 +224,11 @@ describe("toCatalogBeerDto", () => {
       styleName: "Dubbel trappiste",
       family: BeerFamilyEnum.TRAPPIST,
       abv: 7,
+      ibu: 35,
+      ebc: 20,
+      sweetness: 2,
+      acidity: null,
+      body: 4,
       aromas: [BeerAromaEnum.FRUITY],
       formats: [BeerFormatEnum.BOTTLE],
       description: "Trappiste cuivrée.",
@@ -250,6 +287,11 @@ describe("toCatalogBeerDto author", () => {
     styleName: "Pale ale trappiste",
     family: BeerFamilyEnum.TRAPPIST,
     abv: 6.2,
+    ibu: null,
+    ebc: null,
+    sweetness: null,
+    acidity: null,
+    body: null,
     aromas: [],
     formats: [BeerFormatEnum.BOTTLE],
     description: "Officielle.",
@@ -294,6 +336,11 @@ describe("toBeerDetailDto", () => {
     styleName: "Dubbel trappiste",
     family: BeerFamilyEnum.TRAPPIST,
     abv: 7,
+    ibu: 35,
+    ebc: 20,
+    sweetness: 2,
+    acidity: null,
+    body: 4,
     aromas: [BeerAromaEnum.FRUITY],
     formats: [BeerFormatEnum.BOTTLE],
     description: "Trappiste cuivrée.",
@@ -310,48 +357,19 @@ describe("toBeerDetailDto", () => {
     reviewCount: 2,
   };
   const DISTRIBUTION = [1, 2, 3, 4, 5].map((stars) => ({ stars, count: stars % 2 }));
-  const stats = (sweetness: number, acidity: number, body: number): ReviewStatsDto => ({
-    ratingDistribution: DISTRIBUTION,
-    criteria: [
-      { criterion: ReviewCriterionEnum.SWEETNESS, average: 2.7, count: sweetness },
-      { criterion: ReviewCriterionEnum.ACIDITY, average: 5, count: acidity },
-      { criterion: ReviewCriterionEnum.BODY, average: 1.5, count: body },
-    ],
-  });
+  const STATS: ReviewStatsDto = { ratingDistribution: DISTRIBUTION };
 
-  it("lists every field of the catalog beer then the distribution and the criteria", () => {
-    expect(toBeerDetailDto(CATALOG, stats(3, 3, 3))).toStrictEqual({
-      ...CATALOG,
-      ratingDistribution: DISTRIBUTION,
-      criteria: [
-        { criterion: "sweetness", average: 2.7, count: 3 },
-        { criterion: "acidity", average: 5, count: 3 },
-        { criterion: "body", average: 1.5, count: 3 },
-      ],
-    });
+  it("lists every field of the catalog beer then the distribution, without any criteria", () => {
+    expect(toBeerDetailDto(CATALOG, STATS)).toStrictEqual({ ...CATALOG, ratingDistribution: DISTRIBUTION });
   });
 
   it("copies the author name of the catalog beer, null included", () => {
-    expect(toBeerDetailDto(CATALOG, stats(3, 3, 3)).createdByName).toBe("Bob");
-    expect(toBeerDetailDto({ ...CATALOG, createdByName: null }, stats(3, 3, 3)).createdByName).toBeNull();
+    expect(toBeerDetailDto(CATALOG, STATS).createdByName).toBe("Bob");
+    expect(toBeerDetailDto({ ...CATALOG, createdByName: null }, STATS).createdByName).toBeNull();
   });
 
-  it("hides the average of a criterion filled by fewer than 3 reviews and keeps its count", () => {
-    expect(toBeerDetailDto(CATALOG, stats(2, 0, 3)).criteria).toStrictEqual([
-      { criterion: "sweetness", average: null, count: 2 },
-      { criterion: "acidity", average: null, count: 0 },
-      { criterion: "body", average: 1.5, count: 3 },
-    ]);
-  });
-
-  it("keeps the order sweetness, acidity, body whatever the order of the statistics", () => {
-    const reversed: ReviewStatsDto = { ratingDistribution: DISTRIBUTION, criteria: [...stats(3, 3, 3).criteria].reverse() };
-
-    expect(toBeerDetailDto(CATALOG, reversed).criteria.map((criterion) => criterion.criterion)).toEqual([
-      "sweetness",
-      "acidity",
-      "body",
-    ]);
+  it("keeps the characteristics of the beer sheet", () => {
+    expect(toBeerDetailDto(CATALOG, STATS)).toMatchObject({ ibu: 35, ebc: 20, sweetness: 2, acidity: null, body: 4 });
   });
 });
 
@@ -366,7 +384,7 @@ describe("toNewBeer", () => {
     description: "Une brune.",
   };
 
-  it("builds the insert row of a community beer with no ibu, ebc, aroma nor format", () => {
+  it("builds the insert row of a community beer with no characteristic, aroma nor format", () => {
     expect(toNewBeer(dto, 4, 1, NOW)).toStrictEqual({
       name: "Brune du Mont",
       breweryId: 4,
@@ -374,6 +392,9 @@ describe("toNewBeer", () => {
       abv: 6.5,
       ibu: null,
       ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
       description: "Une brune.",
       aromas: [],
       formats: [],
@@ -382,6 +403,38 @@ describe("toNewBeer", () => {
       createdBy: 1,
       createdAt: NOW,
     });
+  });
+
+  it("takes the characteristics, aromas and formats sent", () => {
+    const row = toNewBeer(
+      {
+        ...dto,
+        ibu: 35,
+        ebc: 20,
+        sweetness: 2,
+        acidity: 1,
+        body: 4,
+        aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
+        formats: [BeerFormatEnum.CAN],
+      },
+      4,
+      1,
+      NOW,
+    );
+
+    expect(row).toMatchObject({
+      ibu: 35,
+      ebc: 20,
+      sweetness: 2,
+      acidity: 1,
+      body: 4,
+      aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.HOPPY],
+      formats: [BeerFormatEnum.CAN],
+    });
+  });
+
+  it("keeps a characteristic of 0 instead of replacing it with null", () => {
+    expect(toNewBeer({ ...dto, ibu: 0 }, 4, 1, NOW).ibu).toBe(0);
   });
 
   it("uses an empty description when none is sent", () => {

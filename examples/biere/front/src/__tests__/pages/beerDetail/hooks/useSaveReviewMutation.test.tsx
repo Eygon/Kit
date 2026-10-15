@@ -20,7 +20,7 @@ vi.mock("@/utils/queryFunctions/reviewQueryFunctions", () => ({
   saveReview: vi.fn(),
 }));
 
-const REVIEW: NewReview = { rating: 4, text: "", sweetness: null, acidity: null, body: null };
+const REVIEW: NewReview = { rating: 4, text: "" };
 
 const wrapperFor = (client: QueryClient) => {
   const Wrapper = ({ children }: Readonly<{ children: ReactNode }>) => (

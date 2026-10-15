@@ -140,6 +140,10 @@ const fillValidForm = async (user: User) => {
 
 const submit = (user: User) => user.click(within(dialog()).getByRole("button", { name: "Ajouter" }));
 
+// La feuille rend une liste de 249 pays et deux listes de choix : chaque test coûte plusieurs secondes en jsdom et
+// dépasse les 15 s par défaut dès que la machine est chargée (vu en suite complète avec d'autres agents actifs).
+vi.setConfig({ testTimeout: 60_000 });
+
 describe("ProposeBeerDrawer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -434,6 +438,13 @@ describe("ProposeBeerDrawer", () => {
       country: "BE",
       styleId: 12,
       abv: 6.2,
+      ibu: null,
+      ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
+      aromas: [],
+      formats: [],
       description: "Une trappiste.",
     });
     expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: 90, name: "Orval", styleId: 12 }));
@@ -996,5 +1007,261 @@ describe("ProposeBeerDrawer", () => {
     expect(nameField()).toBeValid();
     expect(nameField()).toHaveValue("");
     expect(breweryField()).toHaveValue("");
+  });
+});
+
+describe("ProposeBeerDrawer technical sheet", () => {
+  const SPECS_TITLE = "Fiche technique (facultatif)";
+  const ibuField = () => within(dialog()).getByRole("textbox", { name: "Amertume" });
+  const ebcField = () => within(dialog()).getByRole("textbox", { name: "Couleur" });
+  const sweetnessSlider = () => within(dialog()).getByRole("slider", { name: "Douceur" });
+  const aroma = (name: string) => within(dialog()).getByRole("row", { name });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, writable: true, value: vi.fn() });
+    mockFetch.mockReset();
+    mockFetch.mockImplementation(async () => json(createdDto, 201));
+    vi.stubGlobal("fetch", mockFetch);
+    stubStyles();
+    stubBreweries();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("AC1 shows the optional technical sheet title and the 7 fields between the degree and the description", () => {
+    renderDrawer();
+
+    const form = within(dialog());
+    const title = form.getByRole("heading", { name: SPECS_TITLE });
+    const fields = [
+      ibuField(),
+      ebcField(),
+      sweetnessSlider(),
+      form.getByRole("slider", { name: "Acidité" }),
+      form.getByRole("slider", { name: "Corps" }),
+      form.getByRole("grid", { name: "Arômes" }),
+      form.getByRole("group", { name: "Formats" }),
+    ];
+    const follows = (first: HTMLElement, second: HTMLElement) =>
+      Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(abvField(), title)).toBe(true);
+    fields.forEach((field) => {
+      expect(follows(title, field)).toBe(true);
+      expect(follows(field, descriptionField())).toBe(true);
+    });
+    expect(form.getByText("Entre 0 et 120")).toBeInTheDocument();
+    expect(form.getByText("Entre 2 et 80")).toBeInTheDocument();
+    expect(form.getByText("Choisissez de 1 à 5 valeurs")).toBeInTheDocument();
+    expect(form.getByText("Choisissez de 1 à 3 valeurs")).toBeInTheDocument();
+  });
+
+  it("AC5 gives every technical sheet control a 44px target", () => {
+    renderDrawer();
+
+    expect(ibuField().closest(".number-field__group")).toHaveClass("min-h-11");
+    expect(ebcField().closest(".number-field__group")).toHaveClass("min-h-11");
+    expect(aroma("Fruité")).toHaveClass("min-h-11");
+    expect(within(dialog()).getByRole("checkbox", { name: "Canette" }).closest("label")).toHaveClass("min-h-11");
+    expect(sweetnessSlider().closest(".slider__track")).toHaveClass("min-h-11");
+  });
+
+  it("AC1 shows every field empty at the start", () => {
+    renderDrawer();
+
+    expect(ibuField()).toHaveValue("");
+    expect(ebcField()).toHaveValue("");
+    expect(sweetnessSlider()).toHaveValue("0");
+    expect(within(dialog()).getAllByText("Non renseignée")).toHaveLength(3);
+    expect(within(dialog()).queryAllByRole("row", { selected: true })).toHaveLength(0);
+    expect(within(dialog()).queryAllByRole("checkbox", { checked: true })).toHaveLength(0);
+  });
+
+  it("AC2 posts IBU 35, sweetness 2, two aromas and one format, and null or an empty list for the rest", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    await fillValidForm(user);
+    await pasteInto(user, ibuField(), "35");
+    fireEvent.change(sweetnessSlider(), { target: { value: "2" } });
+    await user.click(aroma("Fruité"));
+    await user.click(aroma("Houblonné"));
+    await user.click(within(dialog()).getByRole("checkbox", { name: "Canette" }));
+
+    await submit(user);
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
+    expect(postedBodies()[0]).toEqual({
+      name: "Orval",
+      breweryName: "Brasserie d'Orval",
+      country: "BE",
+      styleId: 12,
+      abv: 6.2,
+      ibu: 35,
+      ebc: null,
+      sweetness: 2,
+      acidity: null,
+      body: null,
+      aromas: ["fruity", "hoppy"],
+      formats: ["can"],
+      description: "Une trappiste.",
+    });
+  });
+
+  it("AC2 posts null and empty lists for every characteristic left alone", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    await fillValidForm(user);
+
+    await submit(user);
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
+    expect(postedBodies()[0]).toMatchObject({
+      ibu: null,
+      ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
+      aromas: [],
+      formats: [],
+    });
+  });
+
+  it("AC3 shows the IBU error under the field after the first submit and sends nothing", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    await fillValidForm(user);
+    await pasteInto(user, ibuField(), "130");
+
+    expect(within(dialog()).queryByRole("alert")).not.toBeInTheDocument();
+    await submit(user);
+
+    expect(await within(dialog()).findAllByText("Entre 0 et 120")).toHaveLength(1);
+    expect(ibuField()).toBeInvalid();
+    expect(ebcField()).toBeValid();
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(onCreated).not.toHaveBeenCalled();
+  });
+
+  it("AC3 shows the EBC error under the field for an EBC of 1 and sends nothing", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    await fillValidForm(user);
+    await pasteInto(user, ebcField(), "1");
+
+    await submit(user);
+
+    await waitFor(() => expect(ebcField()).toBeInvalid());
+    expect(within(dialog()).getAllByText("Entre 2 et 80")).toHaveLength(1);
+    expect(ibuField()).toBeValid();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("AC3 scrolls to the IBU and focuses it when it is the only invalid field", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    await fillValidForm(user);
+    await pasteInto(user, ibuField(), "130");
+
+    await submit(user);
+
+    await waitFor(() => expect(ibuField()).toHaveFocus());
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(ibuField());
+  });
+
+  it("AC3 focuses the first invalid characteristic when the IBU and the EBC are both wrong", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    await fillValidForm(user);
+    await pasteInto(user, ibuField(), "130");
+    await pasteInto(user, ebcField(), "1");
+
+    await submit(user);
+
+    await waitFor(() => expect(ibuField()).toHaveFocus());
+    expect(ebcField()).toBeInvalid();
+    expect(ebcField()).not.toHaveFocus();
+  });
+
+  it("AC3 shows the step error for an IBU with a decimal", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    await fillValidForm(user);
+    await pasteInto(user, ibuField(), "35,5");
+
+    await submit(user);
+
+    expect(await within(dialog()).findByText("Un chiffre après la virgule au plus")).toBeInTheDocument();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("AC3 sends once the wrong IBU is corrected", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    await fillValidForm(user);
+    await pasteInto(user, ibuField(), "130");
+    await submit(user);
+    await within(dialog()).findAllByText("Entre 0 et 120");
+
+    await user.clear(ibuField());
+    await pasteInto(user, ibuField(), "120");
+    await submit(user);
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
+    expect(postedBodies()[0]).toMatchObject({ ibu: 120 });
+  });
+
+  it("AC3 stops the aromas at 5: the others are disabled, and a chosen one can still be removed", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    for (const name of ["Fruité", "Agrumes", "Houblonné", "Floral", "Épicé"]) await user.click(aroma(name));
+
+    expect(aroma("Caramel")).toHaveAttribute("aria-disabled", "true");
+    await user.click(aroma("Caramel"));
+    expect(aroma("Caramel")).not.toHaveAttribute("aria-selected", "true");
+    await user.click(aroma("Épicé"));
+    expect(aroma("Caramel")).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("AC4 shows every field empty again once the sheet is closed and reopened", async () => {
+    const user = userEvent.setup();
+    const { rerenderWith } = renderDrawer();
+    await fillValidForm(user);
+    await pasteInto(user, ibuField(), "130");
+    fireEvent.change(sweetnessSlider(), { target: { value: "4" } });
+    await user.click(aroma("Fruité"));
+    await user.click(within(dialog()).getByRole("checkbox", { name: "Canette" }));
+    await submit(user);
+    await within(dialog()).findAllByText("Entre 0 et 120");
+
+    await user.click(within(dialog()).getByRole("button", { name: "Fermer" }));
+    rerenderWith({ isOpen: false });
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    rerenderWith({ isOpen: true });
+
+    expect(await screen.findByRole("textbox", { name: "Amertume" })).toHaveValue("");
+    expect(ibuField()).toBeValid();
+    expect(within(dialog()).queryByRole("alert")).not.toBeInTheDocument();
+    expect(sweetnessSlider()).toHaveValue("0");
+    expect(within(dialog()).queryAllByRole("row", { selected: true })).toHaveLength(0);
+    expect(within(dialog()).getByRole("checkbox", { name: "Canette" })).not.toBeChecked();
+  });
+
+  it("AC4 shows every field empty after a successful send and reopening", async () => {
+    const user = userEvent.setup();
+    const { rerenderWith } = renderDrawer();
+    await fillValidForm(user);
+    await pasteInto(user, ibuField(), "35");
+    await user.click(aroma("Fruité"));
+    await submit(user);
+    await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
+
+    rerenderWith({ isOpen: false });
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    rerenderWith({ isOpen: true });
+
+    expect(await screen.findByRole("textbox", { name: "Amertume" })).toHaveValue("");
+    expect(within(dialog()).queryAllByRole("row", { selected: true })).toHaveLength(0);
   });
 });

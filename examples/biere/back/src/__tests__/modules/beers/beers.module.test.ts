@@ -4,8 +4,12 @@ import { getRepositoryToken } from "@nestjs/typeorm";
 import { describe, expect, it } from "vitest";
 import { BeerStylesController } from "@/modules/beers/beer-styles.controller";
 import { BreweriesController } from "@/modules/beers/breweries.controller";
+import { BeerCorrectionsController } from "@/modules/beers/beer-corrections.controller";
+import { CorrectionsController } from "@/modules/beers/corrections.controller";
 import { BeerReviewsController } from "@/modules/beers/beer-reviews.controller";
 import { BeersController } from "@/modules/beers/beers.controller";
+import { BeerCorrection } from "@/modules/beers/entities/beer-correction.entity";
+import { BeerCorrectionVote } from "@/modules/beers/entities/beer-correction-vote.entity";
 import { Review } from "@/modules/beers/entities/review.entity";
 import { UsersModule } from "@/modules/users/users.module";
 import { UsersService } from "@/modules/users/users.service";
@@ -47,8 +51,12 @@ describe("BeersModule", () => {
       BeersController,
       BeerStylesController,
       BeerReviewsController,
+      BeerCorrectionsController,
+      CorrectionsController,
       BreweriesController,
     ]);
+    expect(moduleRef.get(CorrectionsController)).toBeInstanceOf(CorrectionsController);
+    expect(moduleRef.get(BeerCorrectionsController)).toBeInstanceOf(BeerCorrectionsController);
     expect(moduleRef.get(BreweriesController)).toBeInstanceOf(BreweriesController);
     expect(moduleRef.get(BeerStylesController)).toBeInstanceOf(BeerStylesController);
     expect(moduleRef.get(BeerReviewsController)).toBeInstanceOf(BeerReviewsController);
@@ -69,6 +77,22 @@ describe("BeersModule", () => {
     const moduleRef = await Test.createTestingModule({ imports: [inMemoryDatabase(), BeersModule] }).compile();
 
     expect(moduleRef.get(getRepositoryToken(Review), { strict: false })).toBeDefined();
+
+    await moduleRef.close();
+  });
+
+  it("registers the correction entity with the beers module", async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [inMemoryDatabase(), BeersModule] }).compile();
+
+    expect(moduleRef.get(getRepositoryToken(BeerCorrection), { strict: false })).toBeDefined();
+
+    await moduleRef.close();
+  });
+
+  it("registers the correction vote entity with the beers module", async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [inMemoryDatabase(), BeersModule] }).compile();
+
+    expect(moduleRef.get(getRepositoryToken(BeerCorrectionVote), { strict: false })).toBeDefined();
 
     await moduleRef.close();
   });

@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "@/app";
 import CollectionService from "@/api/collections/collectionService";
@@ -6,12 +6,21 @@ import ProfileService from "@/api/profiles/profileService";
 import { renderWithProviders } from "@/__tests__/utils/renderWithProviders";
 
 const mockBeer = vi.hoisted(() => ({ useBeerQuery: vi.fn() }));
+const mockBoard = vi.hoisted(() => ({
+  useCorrectionBoardQuery: vi.fn(() => ({
+    board: { open: [], recentlyClosed: [], pendingCount: 0 },
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  })),
+}));
 const mockVenues = vi.hoisted(() => ({
   useVenuesQuery: vi.fn(() => ({ venues: [], isPending: false, isError: false, refetch: vi.fn() })),
 }));
 
 vi.mock("@/pages/beerDetail/hooks/useBeerQuery", () => mockBeer);
 vi.mock("@/pages/map/hooks/useVenuesQuery", () => mockVenues);
+vi.mock("@/hooks/corrections/useCorrectionBoardQuery", () => mockBoard);
 
 describe("App", () => {
   it.each([
@@ -24,6 +33,34 @@ describe("App", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: title })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: tab })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("lists the six tabs in order and opens the Votes page with its tab current", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<App />);
+
+    const nav = screen.getByRole("navigation", { name: "Navigation principale" });
+    expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual(["Accueil", "Bières", "Carte", "Journal", "Votes", "Profil"]);
+
+    await user.click(within(nav).getByRole("link", { name: "Votes" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Votes" }, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Votes" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Journal" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("renders the Votes page of /votes with the pending badge on its tab", async () => {
+    mockBoard.useCorrectionBoardQuery.mockReturnValue({
+      board: { open: [], recentlyClosed: [], pendingCount: 3 },
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithProviders(<App />, { initialPath: "/votes" });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Votes" }, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Votes, 3 votes en attente" })).toHaveAttribute("aria-current", "page");
   });
 
   it("shows the page loading status with the Map tab current on /carte until the page arrives", async () => {
@@ -129,9 +166,17 @@ describe("App", () => {
         averageRating: null,
         reviewCount: 0,
         ratingDistribution: [],
-        criteria: [],
+        bitternessLevel: null,
+        colorLevel: null,
+        styleColorRange: null,
         source: "official",
         createdByName: null,
+        ibu: null,
+        ebc: null,
+        sweetness: null,
+        acidity: null,
+        body: null,
+        createdBy: null,
       },
       isPending: false,
       isError: false,

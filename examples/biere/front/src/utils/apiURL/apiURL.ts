@@ -69,3 +69,9 @@ export const ME_COLLECTION_BEER = (collectionId: number, beerId: number) => `${M
 export const USER_COLLECTION = (userId: number, collectionId: number) => `${USER_COLLECTIONS(userId)}/${collectionId}`;
 
 export const USER_WISHLIST = (userId: number) => `${USERS()}/${userId}/wishlist`;
+
+export const BEER_CORRECTIONS = (beerId: number) => `${BEER_BY_ID(beerId)}/corrections`;
+
+export const CORRECTIONS = () => `${API_V1()}/corrections`;
+
+export const CORRECTION_VOTE = (correctionId: number) => `${CORRECTIONS()}/${correctionId}/vote`;

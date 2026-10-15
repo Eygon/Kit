@@ -1,12 +1,21 @@
+import { BeerCharacteristicEnum } from "@/types/enums/beer/beerCharacteristicEnum";
+
 export const BEER_NAME_MIN_LENGTH = 2;
 export const BEER_NAME_MAX_LENGTH = 80;
 export const BREWERY_NAME_MIN_LENGTH = 2;
 export const BREWERY_NAME_MAX_LENGTH = 60;
 export const BEER_DESCRIPTION_MAX_LENGTH = 500;
-export const BEER_ABV_MIN = 0;
-export const BEER_ABV_MAX = 20;
-export const BEER_ABV_STEP = 0.1;
 export const PROPOSE_BEER_FORM_ID = "propose-beer-form";
+
+export const PROPOSE_BEER_SPEC_CHARACTERISTICS: readonly BeerCharacteristicEnum[] = [
+  BeerCharacteristicEnum.IBU,
+  BeerCharacteristicEnum.EBC,
+  BeerCharacteristicEnum.SWEETNESS,
+  BeerCharacteristicEnum.ACIDITY,
+  BeerCharacteristicEnum.BODY,
+  BeerCharacteristicEnum.AROMAS,
+  BeerCharacteristicEnum.FORMATS,
+];
 
 export const COUNTRY_CODES: readonly string[] = [
   "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR",

@@ -1,14 +1,15 @@
+import { BEER_ABV_MAX, BEER_ABV_MIN, BEER_SCALE_NONE } from "@/constants/beerSpecsConstants";
 import type { BeerFormErrorKeys, BeerFormValues } from "@/pages/encyclopedia/types/beerFormValues";
 import {
-  BEER_ABV_MAX,
-  BEER_ABV_MIN,
   BEER_DESCRIPTION_MAX_LENGTH,
   BEER_NAME_MAX_LENGTH,
   BEER_NAME_MIN_LENGTH,
   BREWERY_NAME_MAX_LENGTH,
   BREWERY_NAME_MIN_LENGTH,
+  PROPOSE_BEER_SPEC_CHARACTERISTICS,
 } from "@/pages/encyclopedia/utils/proposeBeerConstants";
 import type { NewBeer } from "@/types/models/beer/newBeer";
+import { getCharacteristicErrorKey } from "@/utils/beer/getCharacteristicErrorKey";
 
 const ABV_DECIMAL_FACTOR = 10;
 const ERROR_KEY_PREFIX = "pages.encyclopedia.propose.errors";
@@ -19,6 +20,13 @@ export const EMPTY_BEER_FORM: BeerFormValues = {
   country: null,
   styleId: null,
   abv: Number.NaN,
+  ibu: Number.NaN,
+  ebc: Number.NaN,
+  sweetness: BEER_SCALE_NONE,
+  acidity: BEER_SCALE_NONE,
+  body: BEER_SCALE_NONE,
+  aromas: [],
+  formats: [],
   description: "",
 };
 
@@ -36,6 +44,10 @@ const getAbvErrorKey = (abv: number): string | undefined => {
   return undefined;
 };
 
+const numberOrNull = (value: number): number | null => (Number.isNaN(value) ? null : value);
+
+const scaleOrNull = (value: number): number | null => (value === BEER_SCALE_NONE ? null : value);
+
 export const formValuesToNewBeer = (values: BeerFormValues): NewBeer | null => {
   if (values.country === null || values.styleId === null) return null;
   return {
@@ -44,9 +56,24 @@ export const formValuesToNewBeer = (values: BeerFormValues): NewBeer | null => {
     country: values.country,
     styleId: values.styleId,
     abv: values.abv,
+    ibu: numberOrNull(values.ibu),
+    ebc: numberOrNull(values.ebc),
+    sweetness: scaleOrNull(values.sweetness),
+    acidity: scaleOrNull(values.acidity),
+    body: scaleOrNull(values.body),
+    aromas: values.aromas,
+    formats: values.formats,
     description: values.description.trim(),
   };
 };
+
+const getSpecErrorKeys = (values: BeerFormValues): BeerFormErrorKeys =>
+  Object.fromEntries(
+    PROPOSE_BEER_SPEC_CHARACTERISTICS.flatMap((characteristic) => {
+      const errorKey = getCharacteristicErrorKey(characteristic, values[characteristic], false);
+      return errorKey === undefined ? [] : [[characteristic, errorKey]];
+    }),
+  );
 
 export const getBeerFormErrorKeys = (values: BeerFormValues): BeerFormErrorKeys => {
   const abvErrorKey = getAbvErrorKey(values.abv);
@@ -63,5 +90,6 @@ export const getBeerFormErrorKeys = (values: BeerFormValues): BeerFormErrorKeys 
     ...(values.description.trim().length > BEER_DESCRIPTION_MAX_LENGTH
       ? { description: `${ERROR_KEY_PREFIX}.descriptionLength` }
       : {}),
+    ...getSpecErrorKeys(values),
   };
 };

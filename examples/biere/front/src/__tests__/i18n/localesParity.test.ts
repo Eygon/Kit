@@ -65,13 +65,14 @@ describe("locales parity", () => {
     });
   });
 
-  it("translates the five tab labels in every locale", () => {
-    const keys = ["nav.home", "nav.encyclopedia", "nav.map", "nav.journal", "nav.profile"];
+  it("translates the six tab labels in every locale", () => {
+    const keys = ["nav.home", "nav.encyclopedia", "nav.map", "nav.journal", "nav.votes", "nav.profile"];
     expect(keys.map((key) => readKey(fr, key))).toEqual([
       "Accueil",
       "Bières",
       "Carte",
       "Journal",
+      "Votes",
       "Profil",
     ]);
     expect(keys.map((key) => readKey(en, key))).toEqual([
@@ -79,8 +80,21 @@ describe("locales parity", () => {
       "Beers",
       "Map",
       "Journal",
+      "Votes",
       "Profile",
     ]);
+  });
+});
+
+describe("pending votes badge copy", () => {
+  it("pluralises the pending votes label exactly in French", () => {
+    expect(String(readKey(fr, "nav.pendingVotes_one")).replace("{{count}}", "1")).toBe("1 vote en attente");
+    expect(String(readKey(fr, "nav.pendingVotes_other")).replace("{{count}}", "3")).toBe("3 votes en attente");
+  });
+
+  it("pluralises the pending votes label exactly in English", () => {
+    expect(String(readKey(en, "nav.pendingVotes_one")).replace("{{count}}", "1")).toBe("1 pending vote");
+    expect(String(readKey(en, "nav.pendingVotes_other")).replace("{{count}}", "3")).toBe("3 pending votes");
   });
 });
 
@@ -312,9 +326,6 @@ describe("beer detail copy", () => {
     "pages.beerDetail.brewery",
     "pages.beerDetail.country",
     "pages.beerDetail.style",
-    "pages.beerDetail.abv",
-    "pages.beerDetail.aromas",
-    "pages.beerDetail.formats",
     "pages.beerDetail.description",
     "pages.beerDetail.unknownTitle",
     "pages.beerDetail.unknownDescription",
@@ -328,9 +339,6 @@ describe("beer detail copy", () => {
       "Brasserie",
       "Pays",
       "Style",
-      "Degré",
-      "Arômes",
-      "Formats",
       "Description",
       "Bière inconnue",
       "Cette bière n'est pas dans l'encyclopédie.",
@@ -345,9 +353,6 @@ describe("beer detail copy", () => {
       "Brewery",
       "Country",
       "Style",
-      "Strength",
-      "Aromas",
-      "Formats",
       "Description",
       "Unknown beer",
       "This beer is not in the encyclopedia.",
@@ -1103,13 +1108,111 @@ describe("profile share copy", () => {
   });
 });
 
+describe("characteristic form copy", () => {
+  const keys = [
+    "pages.encyclopedia.propose.specsTitle",
+    "beer.characteristics.errors.required",
+    "beer.characteristics.errors.range",
+    "beer.characteristics.errors.step",
+    "beer.characteristics.errors.listSize",
+  ];
+
+  it("translates the characteristic form keys exactly in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Fiche technique (facultatif)",
+      "Valeur obligatoire",
+      "Entre {{min}} et {{max}}",
+      "Un chiffre après la virgule au plus",
+      "Choisissez de {{min}} à {{max}} valeurs",
+    ]);
+  });
+
+  it("translates the characteristic form keys exactly in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Technical sheet (optional)",
+      "A value is required",
+      "Between {{min}} and {{max}}",
+      "One decimal at most",
+      "Pick {{min}} to {{max}} values",
+    ]);
+  });
+});
+
+describe("technical sheet copy", () => {
+  const keys = [
+    "pages.beerDetail.technicalSheet.title",
+    "beer.characteristics.abv",
+    "beer.characteristics.ibu",
+    "beer.characteristics.ebc",
+    "beer.characteristics.sweetness",
+    "beer.characteristics.acidity",
+    "beer.characteristics.body",
+    "beer.characteristics.aromas",
+    "beer.characteristics.formats",
+    "beer.characteristics.notAvailable",
+    "beer.characteristics.ibuValue",
+    "beer.characteristics.ebcValue",
+    "beer.characteristics.scaleValue",
+    "beer.characteristics.withLevel",
+  ];
+
+  it("translates the technical sheet keys in French", () => {
+    expect(keys.map((key) => readKey(fr, key))).toEqual([
+      "Fiche technique",
+      "Degré",
+      "Amertume",
+      "Couleur",
+      "Douceur",
+      "Acidité",
+      "Corps",
+      "Arômes",
+      "Formats",
+      "Non renseignée",
+      "{{value}} IBU",
+      "{{value}} EBC",
+      "{{value}} / 5 · {{label}}",
+      "{{value}} · {{level}}",
+    ]);
+  });
+
+  it("translates the technical sheet keys in English", () => {
+    expect(keys.map((key) => readKey(en, key))).toEqual([
+      "Technical sheet",
+      "ABV",
+      "Bitterness",
+      "Colour",
+      "Sweetness",
+      "Acidity",
+      "Body",
+      "Aromas",
+      "Formats",
+      "Not provided",
+      "{{value}} IBU",
+      "{{value}} EBC",
+      "{{value}} / 5 · {{label}}",
+      "{{value}} · {{level}}",
+    ]);
+  });
+
+  it("drops the keys that only the removed levels block and chip sections read", () => {
+    const removed = [
+      "pages.beerDetail.aromas",
+      "pages.beerDetail.formats",
+      "pages.beerDetail.abv",
+      "pages.beerDetail.levels.bitterness",
+      "pages.beerDetail.levels.color",
+      "pages.beerDetail.levels.score",
+      "pages.beerDetail.levels.bitternessValue",
+      "pages.beerDetail.levels.notAvailable",
+    ];
+
+    expect(removed.map((key) => readKey(fr, key))).toEqual(removed.map(() => undefined));
+    expect(removed.map((key) => readKey(en, key))).toEqual(removed.map(() => undefined));
+  });
+});
+
 describe("beer levels keys", () => {
   const keys = [
-    "pages.beerDetail.levels.bitterness",
-    "pages.beerDetail.levels.color",
-    "pages.beerDetail.levels.notAvailable",
-    "pages.beerDetail.levels.score",
-    "pages.beerDetail.levels.bitternessValue",
     "pages.beerDetail.levels.styleRange",
     "pages.beerDetail.levels.styleSingle",
     "beer.bitterness.levels.1",
@@ -1126,11 +1229,6 @@ describe("beer levels keys", () => {
 
   it("translates the beer levels keys in French", () => {
     expect(keys.map((key) => readKey(fr, key))).toEqual([
-      "Amertume",
-      "Couleur",
-      "Non renseignée",
-      "{{level}} / 5",
-      "{{label}} · {{score}}",
       "{{min}} à {{max}} · typique du style",
       "{{label}} · typique du style",
       "Très légère",
@@ -1148,11 +1246,6 @@ describe("beer levels keys", () => {
 
   it("translates the beer levels keys in English", () => {
     expect(keys.map((key) => readKey(en, key))).toEqual([
-      "Bitterness",
-      "Colour",
-      "Not available",
-      "{{level}} / 5",
-      "{{label}} · {{score}}",
       "{{min}} to {{max}} · typical of the style",
       "{{label}} · typical of the style",
       "Very light",
@@ -1331,10 +1424,6 @@ describe("beer reviews summary copy", () => {
     "pages.beerDetail.reviews.histogram.stars_one",
     "pages.beerDetail.reviews.histogram.stars_other",
     "pages.beerDetail.reviews.histogram.bar",
-    "pages.beerDetail.reviews.criteria.label",
-    "pages.beerDetail.reviews.criteria.value",
-    "pages.beerDetail.reviews.criteria.hidden_one",
-    "pages.beerDetail.reviews.criteria.hidden_other",
   ];
 
   it("translates the reviews summary keys in French", () => {
@@ -1348,10 +1437,6 @@ describe("beer reviews summary copy", () => {
       "{{count}} étoile",
       "{{count}} étoiles",
       "{{stars}} : {{reviews}}",
-      "Moyennes de la communauté",
-      "{{name}} {{average}} / 5 · {{level}}",
-      "{{name}} : encore {{count}} avis pour afficher ce critère",
-      "{{name}} : encore {{count}} avis pour afficher ce critère",
     ]);
   });
 
@@ -1366,10 +1451,6 @@ describe("beer reviews summary copy", () => {
       "{{count}} star",
       "{{count}} stars",
       "{{stars}}: {{reviews}}",
-      "Community averages",
-      "{{name}} {{average}} / 5 · {{level}}",
-      "{{name}}: {{count}} more review to show this criterion",
-      "{{name}}: {{count}} more reviews to show this criterion",
     ]);
   });
 
@@ -1388,6 +1469,34 @@ describe("beer reviews summary copy", () => {
   });
 });
 
+describe("retired review criterion copy", () => {
+  const retiredKeys = [
+    "pages.beerDetail.reviews.criteria",
+    "pages.beerDetail.reviews.criteria.label",
+    "pages.beerDetail.reviews.criteria.value",
+    "pages.beerDetail.reviews.criteria.hidden_one",
+    "pages.beerDetail.reviews.criteria.hidden_other",
+    "pages.beerDetail.reviews.list.criterion",
+    "pages.beerDetail.reviews.form.notRated",
+  ];
+
+  it("removes the criteria summary, list and form keys from both languages", () => {
+    [fr, en].forEach((locale) => {
+      const keys = getDeepKeys(locale);
+      expect(keys.length).toBeGreaterThan(0);
+      retiredKeys.forEach((key) => {
+        expect(keys).not.toContain(key);
+        expect(keys.some((existing) => existing.startsWith(`${key}.`))).toBe(false);
+      });
+    });
+  });
+
+  it("keeps the technical sheet criteria names that the characteristic rows read", () => {
+    expect(readKey(fr, "beer.criteria.sweetness.name")).toEqual(expect.any(String));
+    expect(readKey(en, "beer.criteria.body.levels.5")).toBe("Very full");
+  });
+});
+
 describe("beer reviews list copy", () => {
   const keys = [
     "pages.beerDetail.reviews.list.mine",
@@ -1395,7 +1504,6 @@ describe("beer reviews list copy", () => {
     "pages.beerDetail.reviews.list.emptyTitle",
     "pages.beerDetail.reviews.list.emptyDescription",
     "pages.beerDetail.reviews.list.loadMore",
-    "pages.beerDetail.reviews.list.criterion",
   ];
 
   it("translates the reviews list keys in French", () => {
@@ -1405,7 +1513,6 @@ describe("beer reviews list copy", () => {
       "Aucun avis pour l'instant",
       "Soyez le premier à donner votre avis.",
       "Voir plus",
-      "{{name}} : {{level}}",
     ]);
   });
 
@@ -1416,7 +1523,6 @@ describe("beer reviews list copy", () => {
       "No reviews yet",
       "Be the first to review it.",
       "Show more",
-      "{{name}}: {{level}}",
     ]);
   });
 });
@@ -1427,7 +1533,6 @@ describe("beer review form copy", () => {
     "pages.beerDetail.reviews.form.ratingValue",
     "pages.beerDetail.reviews.form.noRating",
     "pages.beerDetail.reviews.form.ratingRequired",
-    "pages.beerDetail.reviews.form.notRated",
     "pages.beerDetail.reviews.form.text",
     "pages.beerDetail.reviews.form.textCount",
     "pages.beerDetail.reviews.form.submit",
@@ -1439,7 +1544,6 @@ describe("beer review form copy", () => {
       "{{rating}} sur 5",
       "Aucune note",
       "La note est obligatoire",
-      "Non renseigné",
       "Votre avis",
       "{{count}} / 500",
       "Publier mon avis",
@@ -1452,7 +1556,6 @@ describe("beer review form copy", () => {
       "{{rating}} out of 5",
       "No rating",
       "Please choose a rating",
-      "Not rated",
       "Your review",
       "{{count}} / 500",
       "Publish my review",
@@ -1961,6 +2064,7 @@ describe("propose beer copy", () => {
     duplicate: "Cette bière existe déjà",
     limitReached: "Limite atteinte : 10 propositions par jour.",
     openExisting: "L'ouvrir",
+    specsTitle: "Fiche technique (facultatif)",
     errors: {
       nameLength: "Le nom doit faire entre 2 et 80 caractères",
       breweryLength: "La brasserie doit faire entre 2 et 60 caractères",
@@ -1988,6 +2092,7 @@ describe("propose beer copy", () => {
     duplicate: "This beer already exists",
     limitReached: "Limit reached: 10 proposals per day.",
     openExisting: "Open it",
+    specsTitle: "Technical sheet (optional)",
     errors: {
       nameLength: "The name must be 2 to 80 characters long",
       breweryLength: "The brewery must be 2 to 60 characters long",
@@ -2059,5 +2164,119 @@ describe("proposed by copy", () => {
     expect(readKey(en, "pages.notFound.emptyDescription")).toBe("The address may be mistyped or the page has moved.");
     expect(readKey(fr, "pages.notFound.backHome")).toBe("Retour à l'accueil");
     expect(readKey(en, "pages.notFound.backHome")).toBe("Back to home");
+  });
+});
+
+describe("correction card keys", () => {
+  it("translates the change, the author and the tally of a correction in French", () => {
+    expect(readKey(fr, "corrections.change")).toBe("{{current}} → {{proposed}}");
+    expect(readKey(fr, "corrections.proposedBy")).toBe("Proposée par {{name}}");
+    expect(readKey(fr, "corrections.tally")).toBe("{{agree}} d'accord · {{disagree}} pas d'accord");
+  });
+
+  it("translates the change, the author and the tally of a correction in English", () => {
+    expect(readKey(en, "corrections.change")).toBe("{{current}} → {{proposed}}");
+    expect(readKey(en, "corrections.proposedBy")).toBe("Suggested by {{name}}");
+    expect(readKey(en, "corrections.tally")).toBe("{{agree}} agree · {{disagree}} disagree");
+  });
+});
+
+describe("correction vote keys", () => {
+  it("translates the vote buttons, the own suggestion, the deadline and the answers in French", () => {
+    expect(readKey(fr, "corrections.vote.agree")).toBe("D'accord");
+    expect(readKey(fr, "corrections.vote.disagree")).toBe("Pas d'accord");
+    expect(readKey(fr, "corrections.vote.mine")).toBe("Votre proposition");
+    expect(readKey(fr, "corrections.vote.closesIn")).toBe("clôture {{time}}");
+    expect(readKey(fr, "corrections.vote.saved")).toBe("Vote enregistré");
+    expect(readKey(fr, "corrections.vote.closed")).toBe("Ce vote est clos.");
+    expect(readKey(fr, "corrections.vote.own")).toBe("Vous ne votez pas sur votre proposition.");
+  });
+
+  it("translates the vote buttons, the own suggestion, the deadline and the answers in English", () => {
+    expect(readKey(en, "corrections.vote.agree")).toBe("Agree");
+    expect(readKey(en, "corrections.vote.disagree")).toBe("Disagree");
+    expect(readKey(en, "corrections.vote.mine")).toBe("Your suggestion");
+    expect(readKey(en, "corrections.vote.closesIn")).toBe("closes {{time}}");
+    expect(readKey(en, "corrections.vote.saved")).toBe("Vote saved");
+    expect(readKey(en, "corrections.vote.closed")).toBe("This vote is closed.");
+    expect(readKey(en, "corrections.vote.own")).toBe("You cannot vote on your own suggestion.");
+  });
+});
+
+describe("correction proposal keys", () => {
+  it("translates the proposal sheet in French", () => {
+    expect(readKey(fr, "corrections.propose.open")).toBe("Proposer une correction");
+    expect(readKey(fr, "corrections.propose.openLabel")).toBe("Proposer une correction : {{name}}");
+    expect(readKey(fr, "corrections.propose.title")).toBe("Corriger : {{name}}");
+    expect(readKey(fr, "corrections.propose.current")).toBe("Valeur actuelle : {{value}}");
+    expect(readKey(fr, "corrections.propose.reason")).toBe("Motif (facultatif)");
+    expect(readKey(fr, "corrections.propose.reasonCount")).toBe("{{count}} / 200");
+    expect(readKey(fr, "corrections.propose.submit")).toBe("Proposer");
+    expect(readKey(fr, "corrections.propose.close")).toBe("Fermer");
+    expect(readKey(fr, "corrections.propose.saved")).toBe("Proposition envoyée au vote");
+  });
+
+  it("translates the proposal sheet in English", () => {
+    expect(readKey(en, "corrections.propose.open")).toBe("Suggest a correction");
+    expect(readKey(en, "corrections.propose.openLabel")).toBe("Suggest a correction: {{name}}");
+    expect(readKey(en, "corrections.propose.title")).toBe("Correct: {{name}}");
+    expect(readKey(en, "corrections.propose.current")).toBe("Current value: {{value}}");
+    expect(readKey(en, "corrections.propose.reason")).toBe("Reason (optional)");
+    expect(readKey(en, "corrections.propose.reasonCount")).toBe("{{count}} / 200");
+    expect(readKey(en, "corrections.propose.submit")).toBe("Suggest");
+    expect(readKey(en, "corrections.propose.close")).toBe("Close");
+    expect(readKey(en, "corrections.propose.saved")).toBe("Suggestion sent to the vote");
+  });
+
+  it("translates the refusals and the field errors in French", () => {
+    expect(readKey(fr, "corrections.propose.alreadyOpen")).toBe("Une proposition est déjà en cours pour cette caractéristique.");
+    expect(readKey(fr, "corrections.propose.limitReached")).toBe("Limite atteinte : 10 propositions par jour.");
+    expect(readKey(fr, "corrections.propose.notAllowed")).toBe("Vous avez ajouté cette bière : d'autres la corrigent.");
+    expect(readKey(fr, "corrections.propose.errors.sameValue")).toBe("C'est déjà la valeur actuelle");
+    expect(readKey(fr, "corrections.propose.errors.reasonLength")).toBe("200 caractères au plus");
+  });
+
+  it("translates the refusals and the field errors in English", () => {
+    expect(readKey(en, "corrections.propose.alreadyOpen")).toBe("A suggestion is already open for this characteristic.");
+    expect(readKey(en, "corrections.propose.limitReached")).toBe("Limit reached: 10 suggestions per day.");
+    expect(readKey(en, "corrections.propose.notAllowed")).toBe("You added this beer: others correct it.");
+    expect(readKey(en, "corrections.propose.errors.sameValue")).toBe("This is already the current value");
+    expect(readKey(en, "corrections.propose.errors.reasonLength")).toBe("200 characters at most");
+  });
+
+  it("keeps the same proposal keys in both languages", () => {
+    const keysOf = (locale: unknown) => getDeepKeys(locale).filter((key) => key.startsWith("corrections.propose.")).sort();
+
+    expect(keysOf(fr)).toHaveLength(14);
+    expect(keysOf(fr)).toEqual(keysOf(en));
+  });
+});
+
+describe("votes page keys", () => {
+  it("translates the votes page in French", () => {
+    expect(readKey(fr, "pages.votes.title")).toBe("Votes");
+    expect(readKey(fr, "pages.votes.intro")).toBe("Les corrections proposées sur les fiches techniques, en attente de vote.");
+    expect(readKey(fr, "pages.votes.emptyTitle")).toBe("Aucun vote en cours");
+    expect(readKey(fr, "pages.votes.emptyDescription")).toBe("Proposez une correction depuis la fiche d'une bière.");
+    expect(readKey(fr, "pages.votes.errorTitle")).toBe("Impossible de charger les votes.");
+    expect(readKey(fr, "pages.votes.recentlyClosed")).toBe("Récemment tranchées ({{count}})");
+  });
+
+  it("translates the votes page in English", () => {
+    expect(readKey(en, "pages.votes.title")).toBe("Votes");
+    expect(readKey(en, "pages.votes.intro")).toBe("Corrections suggested on technical sheets, waiting for votes.");
+    expect(readKey(en, "pages.votes.emptyTitle")).toBe("No vote in progress");
+    expect(readKey(en, "pages.votes.emptyDescription")).toBe("Suggest a correction from a beer's page.");
+    expect(readKey(en, "pages.votes.errorTitle")).toBe("Could not load the votes.");
+    expect(readKey(en, "pages.votes.recentlyClosed")).toBe("Recently decided ({{count}})");
+  });
+
+  it("translates the decided status and the resolution date in both languages", () => {
+    expect(readKey(fr, "corrections.status.accepted")).toBe("Validée");
+    expect(readKey(fr, "corrections.status.rejected")).toBe("Refusée");
+    expect(readKey(fr, "corrections.resolvedOn")).toBe("Tranchée le {{date}}");
+    expect(readKey(en, "corrections.status.accepted")).toBe("Accepted");
+    expect(readKey(en, "corrections.status.rejected")).toBe("Rejected");
+    expect(readKey(en, "corrections.resolvedOn")).toBe("Decided on {{date}}");
   });
 });

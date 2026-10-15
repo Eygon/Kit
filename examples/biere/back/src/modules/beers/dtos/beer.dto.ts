@@ -13,6 +13,11 @@ export interface BeerDto {
   readonly styleName: string;
   readonly family: BeerFamilyEnum;
   readonly abv: number;
+  readonly ibu: number | null;
+  readonly ebc: number | null;
+  readonly sweetness: number | null;
+  readonly acidity: number | null;
+  readonly body: number | null;
   readonly aromas: readonly BeerAromaEnum[];
   readonly formats: readonly BeerFormatEnum[];
   readonly description: string;

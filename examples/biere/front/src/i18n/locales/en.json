@@ -37,6 +37,43 @@
       "limitReached": "20 collections at most"
     }
   },
+  "corrections": {
+    "change": "{{current}} → {{proposed}}",
+    "proposedBy": "Suggested by {{name}}",
+    "status": {
+      "accepted": "Accepted",
+      "rejected": "Rejected"
+    },
+    "resolvedOn": "Decided on {{date}}",
+    "tally": "{{agree}} agree · {{disagree}} disagree",
+    "propose": {
+      "open": "Suggest a correction",
+      "openLabel": "Suggest a correction: {{name}}",
+      "title": "Correct: {{name}}",
+      "current": "Current value: {{value}}",
+      "reason": "Reason (optional)",
+      "reasonCount": "{{count}} / 200",
+      "submit": "Suggest",
+      "close": "Close",
+      "saved": "Suggestion sent to the vote",
+      "alreadyOpen": "A suggestion is already open for this characteristic.",
+      "limitReached": "Limit reached: 10 suggestions per day.",
+      "notAllowed": "You added this beer: others correct it.",
+      "errors": {
+        "sameValue": "This is already the current value",
+        "reasonLength": "200 characters at most"
+      }
+    },
+    "vote": {
+      "agree": "Agree",
+      "disagree": "Disagree",
+      "mine": "Your suggestion",
+      "closesIn": "closes {{time}}",
+      "saved": "Vote saved",
+      "closed": "This vote is closed.",
+      "own": "You cannot vote on your own suggestion."
+    }
+  },
   "follow": {
     "follow": "Follow",
     "following": "Following",
@@ -73,6 +110,9 @@
     "encyclopedia": "Beers",
     "map": "Map",
     "journal": "Journal",
+    "votes": "Votes",
+    "pendingVotes_one": "{{count}} pending vote",
+    "pendingVotes_other": "{{count}} pending votes",
     "profile": "Profile"
   },
   "mascot": {
@@ -103,6 +143,27 @@
   },
   "beer": {
     "proposedBy": "Suggested by {{name}}",
+    "characteristics": {
+      "abv": "ABV",
+      "ibu": "Bitterness",
+      "ebc": "Colour",
+      "sweetness": "Sweetness",
+      "acidity": "Acidity",
+      "body": "Body",
+      "aromas": "Aromas",
+      "formats": "Formats",
+      "notAvailable": "Not provided",
+      "ibuValue": "{{value}} IBU",
+      "ebcValue": "{{value}} EBC",
+      "scaleValue": "{{value}} / 5 · {{label}}",
+      "withLevel": "{{value}} · {{level}}",
+      "errors": {
+        "required": "A value is required",
+        "range": "Between {{min}} and {{max}}",
+        "step": "One decimal at most",
+        "listSize": "Pick {{min}} to {{max}} values"
+      }
+    },
     "rating": {
       "summary": "{{rating}} ({{count}})",
       "label_one": "Average rating {{rating}} out of 5, {{count}} review",
@@ -324,6 +385,7 @@
         "duplicate": "This beer already exists",
         "limitReached": "Limit reached: 10 proposals per day.",
         "openExisting": "Open it",
+        "specsTitle": "Technical sheet (optional)",
         "errors": {
           "nameLength": "The name must be 2 to 80 characters long",
           "breweryLength": "The brewery must be 2 to 60 characters long",
@@ -341,20 +403,15 @@
       "brewery": "Brewery",
       "country": "Country",
       "style": "Style",
-      "abv": "Strength",
-      "aromas": "Aromas",
-      "formats": "Formats",
+      "technicalSheet": {
+        "title": "Technical sheet"
+      },
       "description": "Description",
       "unknownTitle": "Unknown beer",
       "unknownDescription": "This beer is not in the encyclopedia.",
       "backToEncyclopedia": "Back to the encyclopedia",
       "errorTitle": "Could not load this beer.",
       "levels": {
-        "bitterness": "Bitterness",
-        "color": "Colour",
-        "notAvailable": "Not available",
-        "score": "{{level}} / 5",
-        "bitternessValue": "{{label}} · {{score}}",
         "styleRange": "{{min}} to {{max}} · typical of the style",
         "styleSingle": "{{label}} · typical of the style"
       },
@@ -370,26 +427,18 @@
           "stars_other": "{{count}} stars",
           "bar": "{{stars}}: {{reviews}}"
         },
-        "criteria": {
-          "label": "Community averages",
-          "value": "{{name}} {{average}} / 5 · {{level}}",
-          "hidden_one": "{{name}}: {{count}} more review to show this criterion",
-          "hidden_other": "{{name}}: {{count}} more reviews to show this criterion"
-        },
         "list": {
           "mine": "My review",
           "errorTitle": "Couldn't load the reviews.",
           "emptyTitle": "No reviews yet",
           "emptyDescription": "Be the first to review it.",
-          "loadMore": "Show more",
-          "criterion": "{{name}}: {{level}}"
+          "loadMore": "Show more"
         },
         "form": {
           "rating": "Rating",
           "ratingValue": "{{rating}} out of 5",
           "noRating": "No rating",
           "ratingRequired": "Please choose a rating",
-          "notRated": "Not rated",
           "text": "Your review",
           "textCount": "{{count}} / 500",
           "submit": "Publish my review"
@@ -608,6 +657,14 @@
         "reset": "Reset",
         "apply": "Apply"
       }
+    },
+    "votes": {
+      "title": "Votes",
+      "intro": "Corrections suggested on technical sheets, waiting for votes.",
+      "emptyTitle": "No vote in progress",
+      "emptyDescription": "Suggest a correction from a beer's page.",
+      "errorTitle": "Could not load the votes.",
+      "recentlyClosed": "Recently decided ({{count}})"
     },
     "journal": {
       "title": "Journal",

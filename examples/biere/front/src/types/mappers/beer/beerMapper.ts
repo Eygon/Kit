@@ -2,7 +2,6 @@ import { isBeerAroma } from "@/types/enums/beer/beerAromaEnum";
 import { isBeerFamily } from "@/types/enums/beer/beerFamilyEnum";
 import { isBeerFormat } from "@/types/enums/beer/beerFormatEnum";
 import { BeerSourceEnum, isBeerSource } from "@/types/enums/beer/beerSourceEnum";
-import { criterionAverageDtoToModel } from "@/types/mappers/beer/criterionAverageMapper";
 import { levelRangeDtoToModel } from "@/types/mappers/beer/levelRangeMapper";
 import { ratingBucketDtoToModel } from "@/types/mappers/beer/ratingBucketMapper";
 import type { BeerDto } from "@/types/dtos/beer/beerDto";
@@ -29,7 +28,12 @@ export const beerDtoToModel = (dto: BeerDto): Beer => ({
   averageRating: dto.averageRating ?? null,
   reviewCount: dto.reviewCount ?? 0,
   ratingDistribution: (dto.ratingDistribution ?? []).map(ratingBucketDtoToModel),
-  criteria: (dto.criteria ?? []).flatMap((criterion) => criterionAverageDtoToModel(criterion) ?? []),
   source: isBeerSource(dto.source) ? dto.source : BeerSourceEnum.OFFICIAL,
   createdByName: dto.createdByName ?? null,
+  ibu: dto.ibu ?? null,
+  ebc: dto.ebc ?? null,
+  sweetness: dto.sweetness ?? null,
+  acidity: dto.acidity ?? null,
+  body: dto.body ?? null,
+  createdBy: dto.createdBy ?? null,
 });

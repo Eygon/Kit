@@ -41,6 +41,14 @@ describe("beer reviews API", () => {
     return rows[0].total;
   };
 
+  const readStoredReviews = (userId: number, beerId: number) =>
+    app
+      .get(DataSource)
+      .query<{ rating: number; text: string; sweetness: number | null; acidity: number | null; body: number | null; createdAt: string; updatedAt: string }[]>(
+        "SELECT rating, text, sweetness, acidity, body, createdAt, updatedAt FROM reviews WHERE userId = ? AND beerId = ?",
+        [userId, beerId],
+      );
+
   const put = (userId: number, beerId: number | string, body: unknown) =>
     request(app.getHttpServer()).put(reviewPath(beerId)).set(USER_ID_HEADER_NAME, String(userId)).send(body as object);
 
@@ -78,10 +86,10 @@ describe("beer reviews API", () => {
   });
 
   it("AC1 creates the review of Alice, who tasted Orval, and answers it in full", async () => {
-    const response = await put(ALICE_USER_ID, orvalId, { rating: 4.5, text: "Superbe amertume", sweetness: 2 });
+    const response = await put(ALICE_USER_ID, orvalId, { rating: 4.5, text: "Superbe amertume" });
 
     expect(response.status).toBe(HttpStatus.OK);
-    expect(response.body).toEqual({
+    expect(response.body).toStrictEqual({
       id: expect.any(Number),
       beerId: orvalId,
       authorId: ALICE_USER_ID,
@@ -90,9 +98,6 @@ describe("beer reviews API", () => {
       authorAvatar: "hop",
       rating: 4.5,
       text: "Superbe amertume",
-      sweetness: 2,
-      acidity: null,
-      body: null,
       createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/),
       updatedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/),
       isMine: true,
@@ -101,7 +106,7 @@ describe("beer reviews API", () => {
   });
 
   it("AC2 replaces the review: same id and creation date, new content, newer modification date, one row", async () => {
-    const created = (await put(ALICE_USER_ID, orvalId, { rating: 4.5, text: "Superbe amertume", sweetness: 2 })).body;
+    const created = (await put(ALICE_USER_ID, orvalId, { rating: 4.5, text: "Superbe amertume" })).body;
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     const response = await put(ALICE_USER_ID, orvalId, { rating: 3 });
@@ -111,9 +116,6 @@ describe("beer reviews API", () => {
       ...created,
       rating: 3,
       text: "",
-      sweetness: null,
-      acidity: null,
-      body: null,
       updatedAt: expect.any(String),
     });
     expect(new Date(response.body.updatedAt).getTime()).toBeGreaterThan(new Date(created.updatedAt).getTime());
@@ -137,10 +139,10 @@ describe("beer reviews API", () => {
         [BOB_USER_ID, westmalleId, now, now],
       );
 
-    const response = await put(BOB_USER_ID, westmalleId, { rating: 5, text: "Finalement top", acidity: 4 });
+    const response = await put(BOB_USER_ID, westmalleId, { rating: 5, text: "Finalement top" });
 
     expect(response.status).toBe(HttpStatus.OK);
-    expect(response.body).toMatchObject({ authorId: BOB_USER_ID, authorName: "Bob", authorAvatar: "malt", rating: 5, text: "Finalement top", acidity: 4, isMine: true });
+    expect(response.body).toMatchObject({ authorId: BOB_USER_ID, authorName: "Bob", authorAvatar: "malt", rating: 5, text: "Finalement top", isMine: true });
     expect(await countReviews(BOB_USER_ID, westmalleId)).toBe(1);
   });
 
@@ -151,19 +153,48 @@ describe("beer reviews API", () => {
     ["a rating of 3.3", { rating: 3.3 }, "rating must be divisible by 0.5"],
     ["a text of 501 characters", { rating: 3, text: "a".repeat(REVIEW_TEXT_LENGTH + 1) }, "text must be shorter than or equal to 500 characters"],
     ["a text of 501 characters written with CRLF", { rating: 3, text: `${"a".repeat(HALF_TEXT_LENGTH)}\r\n${"b".repeat(HALF_TEXT_LENGTH)}` }, "text must be shorter than or equal to 500 characters"],
-    ["a sweetness of 0", { rating: 3, sweetness: 0 }, "sweetness must not be less than 1"],
-    ["an acidity of 6", { rating: 3, acidity: 6 }, "acidity must not be greater than 5"],
-    ["a body of 2.5", { rating: 3, body: 2.5 }, "body must be an integer number"],
+    ["a sweetness of 2", { rating: 3, text: "Avec critere", sweetness: 2 }, "property sweetness should not exist"],
+    ["a sweetness of 0", { rating: 3, sweetness: 0 }, "property sweetness should not exist"],
+    ["an acidity of 3", { rating: 3, text: "Avec critere", acidity: 3 }, "property acidity should not exist"],
+    ["a null acidity", { rating: 3, acidity: null }, "property acidity should not exist"],
+    ["a body of 4", { rating: 3, text: "Avec critere", body: 4 }, "property body should not exist"],
+    ["a body of 2.5", { rating: 3, body: 2.5 }, "property body should not exist"],
     ["an unknown field", { rating: 3, authorId: 2 }, "property authorId should not exist"],
   ])("AC5 answers 400 for %s and keeps the stored review untouched", async (_label, body, fragment) => {
-    const before = (await put(ALICE_USER_ID, orvalId, { rating: 4, text: "Avant" })).body;
+    await put(ALICE_USER_ID, orvalId, { rating: 4, text: "Avant" });
+    const before = await readStoredReviews(ALICE_USER_ID, orvalId);
 
     const response = await put(ALICE_USER_ID, orvalId, body);
 
     expect(response.status).toBe(HttpStatus.BAD_REQUEST);
     expect(response.body.message).toContain(fragment);
-    const after = await put(ALICE_USER_ID, orvalId, { rating: 4, text: "Avant" });
-    expect(after.body).toEqual({ ...before, updatedAt: expect.any(String) });
+    expect(before).toHaveLength(1);
+    expect(before[0]).toMatchObject({ rating: 4, text: "Avant", sweetness: null, acidity: null, body: null });
+    expect(await readStoredReviews(ALICE_USER_ID, orvalId)).toEqual(before);
+  });
+
+  it("AC4 changes the rating and the text of an old review and leaves its stored criteria untouched", async () => {
+    const now = new Date().toISOString();
+    await app
+      .get(DataSource)
+      .query(
+        "INSERT INTO reviews (userId, beerId, rating, text, sweetness, acidity, body, createdAt, updatedAt) VALUES (?, ?, 2, 'Ancien', 2, 3, 4, ?, ?)",
+        [BOB_USER_ID, orvalId, now, now],
+      );
+
+    const response = await put(BOB_USER_ID, orvalId, { rating: 4, text: "Nouveau" });
+
+    expect(response.status).toBe(HttpStatus.OK);
+    expect(response.body).toMatchObject({ authorId: BOB_USER_ID, rating: 4, text: "Nouveau" });
+    expect(response.body).not.toHaveProperty("sweetness");
+    const rows = await app
+      .get(DataSource)
+      .query<{ rating: number; text: string; sweetness: number; acidity: number; body: number }[]>(
+        "SELECT rating, text, sweetness, acidity, body FROM reviews WHERE userId = ? AND beerId = ?",
+        [BOB_USER_ID, orvalId],
+      );
+    expect(rows).toEqual([{ rating: 4, text: "Nouveau", sweetness: 2, acidity: 3, body: 4 }]);
+    await app.get(DataSource).query("DELETE FROM reviews WHERE userId = ? AND beerId = ?", [BOB_USER_ID, orvalId]);
   });
 
   it("AC5 accepts a text of 500 characters containing CRLF and stores it with LF", async () => {
@@ -331,9 +362,6 @@ describe("beer reviews API", () => {
         authorAvatar: "glass",
         rating: 3.5,
         text: "Carol aujourd'hui",
-        sweetness: 2,
-        acidity: null,
-        body: 4,
         createdAt: new Date(now).toISOString(),
         updatedAt: new Date(now).toISOString(),
         isMine: true,
@@ -348,9 +376,6 @@ describe("beer reviews API", () => {
         authorAvatar: "malt",
         rating: 3.5,
         text: "Bob hier",
-        sweetness: 2,
-        acidity: null,
-        body: 4,
         createdAt: new Date(now - DAY_MS).toISOString(),
         updatedAt: new Date(now - DAY_MS).toISOString(),
         isMine: false,
@@ -364,9 +389,6 @@ describe("beer reviews API", () => {
         authorAvatar: "hop",
         rating: 3.5,
         text: "Alice il y a 3 jours",
-        sweetness: 2,
-        acidity: null,
-        body: 4,
         createdAt: new Date(now - 3 * DAY_MS).toISOString(),
         updatedAt: new Date(now - 3 * DAY_MS).toISOString(),
         isMine: false,

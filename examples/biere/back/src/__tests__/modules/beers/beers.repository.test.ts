@@ -6,6 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BeerSourceEnum } from "@/modules/beers/enums/beer-source.enum";
 import { BeersRepository } from "@/modules/beers/beers.repository";
 import { Beer } from "@/modules/beers/entities/beer.entity";
+import { BeerCorrection } from "@/modules/beers/entities/beer-correction.entity";
+import { BeerCorrectionVote } from "@/modules/beers/entities/beer-correction-vote.entity";
+import { CorrectionVoteSenseEnum } from "@/modules/beers/enums/correction-vote-sense.enum";
+import { BeerCharacteristicEnum } from "@/modules/beers/enums/beer-characteristic.enum";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Review } from "@/modules/beers/entities/review.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
@@ -14,6 +18,7 @@ import type { BeerFilters } from "@/modules/beers/dtos/beer-filters.dto";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
 import { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
+import { CorrectionStatusEnum } from "@/modules/beers/enums/correction-status.enum";
 import { normalizeSearchText } from "@/common/text/normalize-search-text";
 import { inMemoryDatabase } from "@/__tests__/support/test-database";
 
@@ -50,7 +55,7 @@ describe("BeersRepository", () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review, BeerCorrection, BeerCorrectionVote])],
       providers: [BeersRepository],
     }).compile();
     repository = moduleRef.get(BeersRepository);
@@ -67,6 +72,9 @@ describe("BeersRepository", () => {
           abv,
           ibu: null,
           ebc: null,
+          sweetness: null,
+          acidity: null,
+          body: null,
           description: `Description ${id}`,
           aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.SOUR],
           formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.CAN],
@@ -171,6 +179,11 @@ describe("BeersRepository", () => {
         aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.SOUR],
         formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.CAN],
         description: "Description 1",
+        ibu: null,
+        ebc: null,
+        sweetness: null,
+        acidity: null,
+        body: null,
         bitternessLevel: null,
         colorLevel: null,
         styleColorRange: { min: 1, max: 1 },
@@ -193,6 +206,11 @@ describe("BeersRepository", () => {
       aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.SOUR],
       formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.CAN],
       description: "Description 3",
+      ibu: null,
+      ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
       bitternessLevel: null,
       colorLevel: null,
       styleColorRange: { min: 1, max: 1 },
@@ -243,6 +261,11 @@ describe("BeersRepository", () => {
         aromas: [BeerAromaEnum.FRUITY, BeerAromaEnum.SOUR],
         formats: [BeerFormatEnum.BOTTLE, BeerFormatEnum.CAN],
         description: "Description 3",
+        ibu: null,
+        ebc: null,
+        sweetness: null,
+        acidity: null,
+        body: null,
         bitternessLevel: null,
         colorLevel: null,
         styleColorRange: { min: 1, max: 1 },
@@ -282,7 +305,7 @@ describe("BeersRepository filters and facets", () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review, BeerCorrection, BeerCorrectionVote])],
       providers: [BeersRepository],
     }).compile();
     repository = moduleRef.get(BeersRepository);
@@ -300,6 +323,9 @@ describe("BeersRepository filters and facets", () => {
           abv,
           ibu: null,
           ebc: null,
+          sweetness: null,
+          acidity: null,
+          body: null,
           description: `Description ${id}`,
           aromas: [BeerAromaEnum.FRUITY],
           formats,
@@ -600,7 +626,7 @@ describe("BeersRepository style groups", () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review, BeerCorrection, BeerCorrectionVote])],
       providers: [BeersRepository],
     }).compile();
     repository = moduleRef.get(BeersRepository);
@@ -649,7 +675,7 @@ describe("BeersRepository reviews", () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review, BeerCorrection, BeerCorrectionVote])],
       providers: [BeersRepository],
     }).compile();
     repository = moduleRef.get(BeersRepository);
@@ -703,9 +729,6 @@ describe("BeersRepository reviews", () => {
           beerId: 5,
           rating: 2,
           text: "Carol",
-          sweetness: 2,
-          acidity: null,
-          body: null,
           createdAt: FIRST_MOMENT.toISOString(),
           updatedAt: SECOND_MOMENT.toISOString(),
         },
@@ -715,9 +738,6 @@ describe("BeersRepository reviews", () => {
           beerId: ORVAL,
           rating: 3,
           text: "Bob",
-          sweetness: 2,
-          acidity: null,
-          body: null,
           createdAt: FIRST_MOMENT.toISOString(),
           updatedAt: FIRST_MOMENT.toISOString(),
         },
@@ -752,9 +772,6 @@ describe("BeersRepository reviews", () => {
       beerId: ORVAL,
       rating: 4.5,
       text: "Superbe amertume",
-      sweetness: 2,
-      acidity: null,
-      body: null,
       createdAt: FIRST_MOMENT.toISOString(),
       updatedAt: FIRST_MOMENT.toISOString(),
     });
@@ -769,9 +786,6 @@ describe("BeersRepository reviews", () => {
       beerId: ORVAL,
       rating: 4.5,
       text: "Superbe amertume",
-      sweetness: 2,
-      acidity: null,
-      body: null,
       createdAt: FIRST_MOMENT.toISOString(),
       updatedAt: FIRST_MOMENT.toISOString(),
     });
@@ -780,10 +794,10 @@ describe("BeersRepository reviews", () => {
 
   it("replaces the review of the pair: same id, creation date kept, new content, a single row", async () => {
     await reviews().insert(row({ userId: BOB, rating: 1, text: "Bob" }));
-    const created = await repository.upsertReview(row());
+    const created = await repository.upsertReview(row({ sweetness: 2, acidity: 3, body: 4 }));
 
     const replaced = await repository.upsertReview(
-      row({ rating: 3, text: "", sweetness: null, acidity: 4, body: 5, createdAt: SECOND_MOMENT, updatedAt: SECOND_MOMENT }),
+      row({ rating: 3, text: "", sweetness: null, acidity: null, body: null, createdAt: SECOND_MOMENT, updatedAt: SECOND_MOMENT }),
     );
 
     expect(replaced).toEqual({
@@ -792,15 +806,22 @@ describe("BeersRepository reviews", () => {
       beerId: ORVAL,
       rating: 3,
       text: "",
-      sweetness: null,
-      acidity: 4,
-      body: 5,
       createdAt: FIRST_MOMENT.toISOString(),
       updatedAt: SECOND_MOMENT.toISOString(),
     });
     expect(await reviews().count({ where: { userId: ALICE, beerId: ORVAL } })).toBe(1);
     expect(await reviews().count()).toBe(2);
     expect((await repository.findReview(BOB, ORVAL))?.text).toBe("Bob");
+  });
+
+  it("keeps the old criteria values untouched in the stored row when the review is replaced", async () => {
+    await repository.upsertReview(row({ sweetness: 2, acidity: 3, body: 4 }));
+
+    await repository.upsertReview(row({ rating: 2, text: "Revu", sweetness: null, acidity: null, body: null, updatedAt: SECOND_MOMENT }));
+
+    const stored = await reviews().findOneByOrFail({ userId: ALICE, beerId: ORVAL });
+    expect({ rating: stored.rating, text: stored.text }).toEqual({ rating: 2, text: "Revu" });
+    expect({ sweetness: stored.sweetness, acidity: stored.acidity, body: stored.body }).toEqual({ sweetness: 2, acidity: 3, body: 4 });
   });
 
   it("deletes the review of the pair, answers true and leaves the reviews of other pairs", async () => {
@@ -894,29 +915,30 @@ describe("BeersRepository reviews", () => {
       ]);
     });
 
-    it("averages each criterion to the tenth over the reviews that filled it, with its count", async () => {
+    it("answers only the distribution of the ratings for a beer whose reviews carry old criteria", async () => {
       await reviews().insert([
-        row({ userId: 1, sweetness: 2, acidity: 5, body: null }),
-        row({ userId: 2, sweetness: 3, acidity: null, body: null }),
-        row({ userId: 3, sweetness: 3, acidity: null, body: 1 }),
-        row({ userId: 4, beerId: 5, sweetness: 5, acidity: 5, body: 5 }),
+        row({ userId: 1, rating: 2, sweetness: 2, acidity: 5, body: null }),
+        row({ userId: 2, rating: 2, sweetness: 3, acidity: null, body: null }),
+        row({ userId: 3, rating: 5, sweetness: 3, acidity: null, body: 1 }),
+        row({ userId: 4, beerId: 5, rating: 1, sweetness: 5, acidity: 5, body: 5 }),
       ]);
 
-      const stats = await repository.findReviewStats(ORVAL);
-
-      expect(stats.criteria).toEqual([
-        { criterion: "sweetness", average: 2.7, count: 3 },
-        { criterion: "acidity", average: 5, count: 1 },
-        { criterion: "body", average: 1, count: 1 },
-      ]);
+      expect(await repository.findReviewStats(ORVAL)).toStrictEqual({
+        ratingDistribution: [
+          { stars: 1, count: 0 },
+          { stars: 2, count: 2 },
+          { stars: 3, count: 0 },
+          { stars: 4, count: 0 },
+          { stars: 5, count: 1 },
+        ],
+      });
     });
 
-    it("answers five empty bars and three empty criteria for a beer without review", async () => {
+    it("answers five empty bars for a beer without review", async () => {
       await reviews().insert(row({ beerId: 5 }));
 
-      expect(await repository.findReviewStats(ORVAL)).toEqual({
+      expect(await repository.findReviewStats(ORVAL)).toStrictEqual({
         ratingDistribution: [1, 2, 3, 4, 5].map((stars) => ({ stars, count: 0 })),
-        criteria: ["sweetness", "acidity", "body"].map((criterion) => ({ criterion, average: null, count: 0 })),
       });
     });
   });
@@ -953,9 +975,6 @@ describe("BeersRepository reviews", () => {
         beerId: ORVAL,
         rating: 4.5,
         text: "Carol",
-        sweetness: 2,
-        acidity: null,
-        body: null,
         createdAt: FIRST_MOMENT.toISOString(),
         updatedAt: SECOND_MOMENT.toISOString(),
       });
@@ -993,7 +1012,7 @@ describe("BeersRepository breweries", () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review, BeerCorrection, BeerCorrectionVote])],
       providers: [BeersRepository],
     }).compile();
     repository = moduleRef.get(BeersRepository);
@@ -1045,6 +1064,9 @@ describe("BeersRepository proposals", () => {
     abv: 5,
     ibu: null,
     ebc: null,
+    sweetness: null,
+    acidity: null,
+    body: null,
     description: "",
     aromas: [],
     formats: [],
@@ -1056,7 +1078,7 @@ describe("BeersRepository proposals", () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review, BeerCorrection, BeerCorrectionVote])],
       providers: [BeersRepository],
     }).compile();
     repository = moduleRef.get(BeersRepository);
@@ -1267,5 +1289,455 @@ describe("BeersRepository proposals", () => {
 
     expect(second).not.toBe(first);
     expect(await beers.countBy({ name: "Blonde" })).toBe(2);
+  });
+});
+
+describe("BeersRepository corrections", () => {
+  const ALICE = 1;
+  const BOB = 2;
+  const ORVAL = 4;
+  const WESTMALLE = 5;
+  const SINCE = new Date("2026-06-01T10:00:00.000Z");
+  let moduleRef: TestingModule;
+  let repository: BeersRepository;
+
+  const row = (
+    overrides: Partial<Omit<BeerCorrection, "id" | "status" | "resolvedAt" | "previousValue">> = {},
+  ): Omit<BeerCorrection, "id" | "status" | "resolvedAt" | "previousValue"> => ({
+    beerId: ORVAL,
+    characteristic: BeerCharacteristicEnum.IBU,
+    proposedValue: "35",
+    reason: "Fiche du brasseur",
+    proposedBy: ALICE,
+    createdAt: SINCE,
+    closesAt: new Date("2026-06-08T10:00:00.000Z"),
+    ...overrides,
+  });
+  const corrections = () => moduleRef.get<Repository<BeerCorrection>>(getRepositoryToken(BeerCorrection));
+
+  beforeEach(async () => {
+    moduleRef = await Test.createTestingModule({
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([Beer, BeerStyle, Brewery, Review, BeerCorrection, BeerCorrectionVote])],
+      providers: [BeersRepository],
+    }).compile();
+    repository = moduleRef.get(BeersRepository);
+  });
+
+  afterEach(async () => {
+    await moduleRef.close();
+  });
+
+  describe("createCorrection", () => {
+    it("stores the row and answers the record with ISO dates and the value read back from JSON", async () => {
+      const record = await repository.createCorrection(row());
+
+      expect(record).toStrictEqual({
+        id: expect.any(Number),
+        beerId: ORVAL,
+        characteristic: "ibu",
+        proposedValue: 35,
+        reason: "Fiche du brasseur",
+        proposedBy: ALICE,
+        createdAt: "2026-06-01T10:00:00.000Z",
+        closesAt: "2026-06-08T10:00:00.000Z",
+        status: "open",
+        resolvedAt: null,
+        previousValue: null,
+      });
+      expect(await corrections().count()).toBe(1);
+    });
+
+    it("keeps a list value and the HTML of the reason as they are", async () => {
+      const record = await repository.createCorrection(
+        row({ characteristic: BeerCharacteristicEnum.AROMAS, proposedValue: JSON.stringify(["fruity", "citrus"]), reason: "<b>gras</b>" }),
+      );
+
+      expect(record.proposedValue).toEqual(["fruity", "citrus"]);
+      expect(record.reason).toBe("<b>gras</b>");
+    });
+  });
+
+  describe("existsOpenCorrection", () => {
+    it("is true for the beer and the characteristic that carry a correction, false for another beer or another characteristic", async () => {
+      await corrections().insert(row());
+
+      expect(await repository.existsOpenCorrection(ORVAL, BeerCharacteristicEnum.IBU)).toBe(true);
+      expect(await repository.existsOpenCorrection(WESTMALLE, BeerCharacteristicEnum.IBU)).toBe(false);
+      expect(await repository.existsOpenCorrection(ORVAL, BeerCharacteristicEnum.EBC)).toBe(false);
+    });
+
+    it("is false when no correction exists", async () => {
+      expect(await repository.existsOpenCorrection(ORVAL, BeerCharacteristicEnum.IBU)).toBe(false);
+    });
+  });
+
+  describe("countCorrectionsSince", () => {
+    it("counts the corrections of the user created at or after the instant, not the earlier ones", async () => {
+      await corrections().insert([
+        row({ createdAt: new Date("2026-06-01T09:59:59.999Z"), characteristic: BeerCharacteristicEnum.ABV }),
+        row({ createdAt: SINCE, characteristic: BeerCharacteristicEnum.EBC }),
+        row({ createdAt: new Date("2026-06-01T10:00:00.001Z"), characteristic: BeerCharacteristicEnum.BODY }),
+      ]);
+
+      expect(await repository.countCorrectionsSince(ALICE, SINCE)).toBe(2);
+    });
+
+    it("ignores the corrections of other users, even when more recent", async () => {
+      await corrections().insert([
+        row({ proposedBy: BOB, createdAt: new Date("2026-06-03T10:00:00.000Z") }),
+        row({ proposedBy: ALICE, characteristic: BeerCharacteristicEnum.EBC }),
+      ]);
+
+      expect(await repository.countCorrectionsSince(ALICE, SINCE)).toBe(1);
+      expect(await repository.countCorrectionsSince(BOB, SINCE)).toBe(1);
+      expect(await repository.countCorrectionsSince(3, SINCE)).toBe(0);
+    });
+  });
+
+  describe("findOpenCorrectionsByBeer", () => {
+    it("answers an empty list for a beer without correction, even when other beers have one", async () => {
+      await corrections().insert(row({ beerId: WESTMALLE }));
+
+      expect(await repository.findOpenCorrectionsByBeer(ORVAL)).toEqual([]);
+    });
+
+    it("lists the corrections of the beer by closing date then id, ties included", async () => {
+      const EARLY = new Date("2026-06-05T10:00:00.000Z");
+      const LATE = new Date("2026-06-09T10:00:00.000Z");
+      await corrections().insert([
+        row({ characteristic: BeerCharacteristicEnum.ABV, proposedValue: "6", closesAt: LATE }),
+        row({ characteristic: BeerCharacteristicEnum.IBU, closesAt: EARLY }),
+        row({ characteristic: BeerCharacteristicEnum.EBC, proposedValue: "20", closesAt: EARLY }),
+        row({ beerId: WESTMALLE, characteristic: BeerCharacteristicEnum.BODY, proposedValue: "3", closesAt: EARLY }),
+      ]);
+
+      const found = await repository.findOpenCorrectionsByBeer(ORVAL);
+
+      expect(found.map((record) => record.characteristic)).toEqual(["ibu", "ebc", "abv"]);
+      expect(found.map((record) => record.proposedValue)).toEqual([35, 20, 6]);
+    });
+  });
+
+  describe("findCorrectionById", () => {
+    it("answers the record of the correction, with ISO dates and the parsed value", async () => {
+      const created = await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.AROMAS, proposedValue: '["fruity"]' }));
+      await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.EBC, proposedValue: "20" }));
+
+      expect(await repository.findCorrectionById(created.id)).toStrictEqual(created);
+    });
+
+    it("answers null for an unknown correction", async () => {
+      await repository.createCorrection(row());
+
+      expect(await repository.findCorrectionById(999)).toBeNull();
+    });
+  });
+
+  describe("findOpenCorrections", () => {
+    it("answers an empty list without correction", async () => {
+      expect(await repository.findOpenCorrections()).toEqual([]);
+    });
+
+    it("lists the corrections of every beer by closing date then id, ties included", async () => {
+      const EARLY = new Date("2026-06-05T10:00:00.000Z");
+      const LATE = new Date("2026-06-09T10:00:00.000Z");
+      const late = await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.ABV, proposedValue: "6", closesAt: LATE }));
+      const early = await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.IBU, closesAt: EARLY }));
+      const tie = await repository.createCorrection(row({ beerId: WESTMALLE, characteristic: BeerCharacteristicEnum.BODY, proposedValue: "3", closesAt: EARLY }));
+      const first = await repository.createCorrection(row({ beerId: WESTMALLE, characteristic: BeerCharacteristicEnum.ACIDITY, proposedValue: "2", closesAt: new Date("2026-06-02T10:00:00.000Z") }));
+
+      const found = await repository.findOpenCorrections();
+
+      expect(found.map((record) => record.id)).toEqual([first.id, early.id, tie.id, late.id]);
+      expect(found.map((record) => record.beerId)).toEqual([WESTMALLE, ORVAL, WESTMALLE, ORVAL]);
+    });
+  });
+
+  describe("open and closed corrections", () => {
+    const NOW = new Date("2026-06-10T12:00:00.000Z");
+    const closedRow = (overrides: Partial<BeerCorrection> = {}): Omit<BeerCorrection, "id"> => ({
+      ...row(),
+      status: CorrectionStatusEnum.REJECTED,
+      resolvedAt: NOW,
+      previousValue: "null",
+      ...overrides,
+    });
+    const beerOf = async (id: number) => moduleRef.get<Repository<Beer>>(getRepositoryToken(Beer)).findOneByOrFail({ id });
+
+    beforeEach(async () => {
+      await moduleRef.get<Repository<Brewery>>(getRepositoryToken(Brewery)).insert(BREWERIES);
+      await moduleRef.get<Repository<BeerStyle>>(getRepositoryToken(BeerStyle)).insert(STYLES);
+      await moduleRef.get<Repository<Beer>>(getRepositoryToken(Beer)).insert([
+        { id: ORVAL, name: "Orval", breweryId: 1, styleId: 1, abv: 6.2, ibu: 20, ebc: 30, sweetness: 2, acidity: 3, body: 4, description: "", aromas: [BeerAromaEnum.FRUITY], formats: [BeerFormatEnum.BOTTLE], country: "BE", searchText: "orval", createdBy: null, createdAt: null },
+        { id: WESTMALLE, name: "Westmalle", breweryId: 2, styleId: 2, abv: 9, ibu: 25, ebc: 12, sweetness: 1, acidity: 1, body: 5, description: "", aromas: [], formats: [], country: "BE", searchText: "westmalle", createdBy: null, createdAt: null },
+      ]);
+    });
+
+    describe("findDueCorrections", () => {
+      it("answers an empty list without correction", async () => {
+        expect(await repository.findDueCorrections(NOW)).toEqual([]);
+      });
+
+      it("lists the open corrections closing at or before the instant, the boundary included and the next millisecond excluded", async () => {
+        const before = await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.IBU, closesAt: new Date(NOW.getTime() - 1) }));
+        const equal = await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.EBC, proposedValue: "20", closesAt: NOW }));
+        await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.BODY, proposedValue: "3", closesAt: new Date(NOW.getTime() + 1) }));
+
+        const due = await repository.findDueCorrections(NOW);
+
+        expect(due.map((record) => record.id)).toEqual([before.id, equal.id]);
+        expect(due.map((record) => record.status)).toEqual(["open", "open"]);
+      });
+
+      it("skips the closed corrections even when their closing date is past", async () => {
+        const open = await repository.createCorrection(row({ closesAt: new Date("2026-06-02T10:00:00.000Z") }));
+        await corrections().insert(closedRow({ characteristic: BeerCharacteristicEnum.EBC, closesAt: new Date("2026-06-01T10:00:00.000Z"), status: CorrectionStatusEnum.ACCEPTED }));
+        await corrections().insert(closedRow({ characteristic: BeerCharacteristicEnum.BODY, closesAt: new Date("2026-06-01T10:00:00.000Z") }));
+
+        expect((await repository.findDueCorrections(NOW)).map((record) => record.id)).toEqual([open.id]);
+      });
+
+      it("sorts by closing date then id, ties included", async () => {
+        const EARLY = new Date("2026-06-03T10:00:00.000Z");
+        const LATE = new Date("2026-06-05T10:00:00.000Z");
+        const late = await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.ABV, proposedValue: "6", closesAt: LATE }));
+        const early = await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.IBU, closesAt: EARLY }));
+        const tie = await repository.createCorrection(row({ beerId: WESTMALLE, characteristic: BeerCharacteristicEnum.BODY, proposedValue: "3", closesAt: EARLY }));
+
+        expect((await repository.findDueCorrections(NOW)).map((record) => record.id)).toEqual([early.id, tie.id, late.id]);
+      });
+    });
+
+    describe("resolveCorrection", () => {
+      const resolve = (id: number, status: CorrectionStatusEnum, change: Parameters<BeersRepository["resolveCorrection"]>[5], beerId = ORVAL) =>
+        repository.resolveCorrection(id, status, "20", NOW, beerId, change);
+
+      it("closes the correction as accepted with the previous value and the instant, and applies the change to the beer", async () => {
+        const created = await repository.createCorrection(row());
+
+        expect(await resolve(created.id, CorrectionStatusEnum.ACCEPTED, { ibu: 35 })).toBe(true);
+
+        expect(await corrections().findOneByOrFail({ id: created.id })).toMatchObject({ status: "accepted", resolvedAt: NOW, previousValue: "20" });
+        expect(await repository.findCorrectionById(created.id)).toMatchObject({ status: "accepted", resolvedAt: NOW.toISOString(), previousValue: 20 });
+        expect(await beerOf(ORVAL)).toMatchObject({ ibu: 35, ebc: 30, abv: 6.2, aromas: ["fruity"] });
+      });
+
+      it("closes the correction as rejected without touching the beer when there is no change", async () => {
+        const created = await repository.createCorrection(row());
+        const before = await beerOf(ORVAL);
+
+        expect(await resolve(created.id, CorrectionStatusEnum.REJECTED, null)).toBe(true);
+
+        expect(await corrections().findOneByOrFail({ id: created.id })).toMatchObject({ status: "rejected", resolvedAt: NOW, previousValue: "20" });
+        expect(await beerOf(ORVAL)).toEqual(before);
+      });
+
+      it("applies a list change to the beer and leaves the other beers alone", async () => {
+        const created = await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.AROMAS, proposedValue: '["citrus","hoppy"]' }));
+        const westmalleBefore = await beerOf(WESTMALLE);
+
+        await resolve(created.id, CorrectionStatusEnum.ACCEPTED, { aromas: [BeerAromaEnum.CITRUS, BeerAromaEnum.HOPPY] });
+
+        expect((await beerOf(ORVAL)).aromas).toEqual(["citrus", "hoppy"]);
+        expect(await beerOf(WESTMALLE)).toEqual(westmalleBefore);
+      });
+
+      it("answers false for the second resolution, keeps the first status and the beer as the first one left it", async () => {
+        const created = await repository.createCorrection(row());
+        expect(await resolve(created.id, CorrectionStatusEnum.ACCEPTED, { ibu: 35 })).toBe(true);
+        const closed = await corrections().findOneByOrFail({ id: created.id });
+
+        expect(await repository.resolveCorrection(created.id, CorrectionStatusEnum.REJECTED, "35", new Date("2026-06-11T00:00:00.000Z"), ORVAL, null)).toBe(false);
+        expect(await resolve(created.id, CorrectionStatusEnum.ACCEPTED, { ibu: 99 })).toBe(false);
+
+        expect(await corrections().findOneByOrFail({ id: created.id })).toEqual(closed);
+        expect((await beerOf(ORVAL)).ibu).toBe(35);
+      });
+
+      it("answers false for an unknown correction and leaves the beer unchanged", async () => {
+        const before = await beerOf(ORVAL);
+
+        expect(await resolve(999, CorrectionStatusEnum.ACCEPTED, { ibu: 99 })).toBe(false);
+
+        expect(await beerOf(ORVAL)).toEqual(before);
+      });
+
+      it("rolls the whole resolution back when the beer update fails, then resolves the next one normally", async () => {
+        const created = await repository.createCorrection(row());
+        const before = await corrections().findOneByOrFail({ id: created.id });
+
+        await expect(resolve(created.id, CorrectionStatusEnum.ACCEPTED, { bogus: 1 } as never)).rejects.toThrow();
+
+        expect(await corrections().findOneByOrFail({ id: created.id })).toEqual(before);
+        expect(await resolve(created.id, CorrectionStatusEnum.ACCEPTED, { ibu: 35 })).toBe(true);
+        expect((await beerOf(ORVAL)).ibu).toBe(35);
+      });
+
+      it("applies the change once when two resolutions run at the same time", async () => {
+        const created = await repository.createCorrection(row());
+
+        const outcomes = await Promise.all([
+          resolve(created.id, CorrectionStatusEnum.ACCEPTED, { ibu: 35 }),
+          resolve(created.id, CorrectionStatusEnum.ACCEPTED, { ibu: 35 }),
+        ]);
+
+        expect([...outcomes].sort()).toEqual([false, true]);
+        expect((await beerOf(ORVAL)).ibu).toBe(35);
+      });
+    });
+
+    describe("findRecentlyClosedCorrections", () => {
+      it("answers an empty list when nothing is closed, the open corrections being left out", async () => {
+        await repository.createCorrection(row());
+
+        expect(await repository.findRecentlyClosedCorrections(10)).toEqual([]);
+      });
+
+      it("lists the accepted and the rejected corrections, the latest resolution first, ties by id descending", async () => {
+        const EARLIER = new Date("2026-06-09T12:00:00.000Z");
+        const LATEST = new Date(NOW.getTime() + 2000);
+        const resolvedAtOf = [LATEST, EARLIER, NOW, NOW];
+        const characteristics = [BeerCharacteristicEnum.IBU, BeerCharacteristicEnum.EBC, BeerCharacteristicEnum.BODY, BeerCharacteristicEnum.ACIDITY];
+        await repository.createCorrection(row({ characteristic: BeerCharacteristicEnum.ABV, proposedValue: "6" }));
+        const ids: number[] = [];
+        for (const [index, characteristic] of characteristics.entries()) {
+          const saved = await corrections().save(
+            corrections().create(
+              closedRow({
+                characteristic,
+                proposedValue: "3",
+                resolvedAt: resolvedAtOf[index],
+                status: index % 2 === 0 ? CorrectionStatusEnum.ACCEPTED : CorrectionStatusEnum.REJECTED,
+              }),
+            ),
+          );
+          ids.push(saved.id);
+        }
+
+        const closed = await repository.findRecentlyClosedCorrections(10);
+
+        expect(closed.map((record) => record.id)).toEqual([ids[0], ids[3], ids[2], ids[1]]);
+        expect(closed.map((record) => record.status)).toEqual(["accepted", "rejected", "accepted", "rejected"]);
+        expect(closed.map((record) => record.resolvedAt)).toEqual([LATEST, NOW, NOW, EARLIER].map((date) => date.toISOString()));
+      });
+
+      it("keeps only the requested number of corrections, the most recent ones", async () => {
+        const characteristics = Object.values(BeerCharacteristicEnum);
+        for (const [index, characteristic] of characteristics.entries()) {
+          await corrections().insert(closedRow({ characteristic, proposedValue: "3", resolvedAt: new Date(NOW.getTime() + index * 1000) }));
+        }
+
+        const closed = await repository.findRecentlyClosedCorrections(3);
+
+        expect(closed.map((record) => record.characteristic)).toEqual(["formats", "aromas", "body"]);
+        expect(await repository.findRecentlyClosedCorrections(characteristics.length + 5)).toHaveLength(characteristics.length);
+      });
+    });
+
+    describe("open filters", () => {
+      it("leaves the closed corrections out of existsOpenCorrection, findOpenCorrections and findOpenCorrectionsByBeer", async () => {
+        await corrections().insert(closedRow({ status: CorrectionStatusEnum.ACCEPTED }));
+        await corrections().insert(closedRow({ characteristic: BeerCharacteristicEnum.EBC, proposedValue: "20", beerId: WESTMALLE }));
+
+        expect(await repository.existsOpenCorrection(ORVAL, BeerCharacteristicEnum.IBU)).toBe(false);
+        expect(await repository.findOpenCorrections()).toEqual([]);
+        expect(await repository.findOpenCorrectionsByBeer(ORVAL)).toEqual([]);
+      });
+
+      it("keeps the open correction of a characteristic whose earlier correction is closed", async () => {
+        await corrections().insert(closedRow({ status: CorrectionStatusEnum.ACCEPTED }));
+        const open = await repository.createCorrection(row());
+
+        expect(await repository.existsOpenCorrection(ORVAL, BeerCharacteristicEnum.IBU)).toBe(true);
+        expect((await repository.findOpenCorrections()).map((record) => record.id)).toEqual([open.id]);
+        expect((await repository.findOpenCorrectionsByBeer(ORVAL)).map((record) => record.id)).toEqual([open.id]);
+      });
+    });
+  });
+
+  describe("upsertCorrectionVote", () => {
+    const votes = () => moduleRef.get<Repository<BeerCorrectionVote>>(getRepositoryToken(BeerCorrectionVote));
+    const FIRST_VOTE = new Date("2026-06-02T10:00:00.000Z");
+    const SECOND_VOTE = new Date("2026-06-03T11:30:00.000Z");
+
+    it("inserts the vote of a user", async () => {
+      await repository.upsertCorrectionVote({ correctionId: 1, userId: BOB, sense: CorrectionVoteSenseEnum.AGREE, votedAt: FIRST_VOTE });
+
+      expect(await votes().find()).toEqual([
+        { id: expect.any(Number), correctionId: 1, userId: BOB, sense: "agree", votedAt: FIRST_VOTE },
+      ]);
+    });
+
+    it("replaces the sense and the instant of the same user on the same correction, without a second row", async () => {
+      await repository.upsertCorrectionVote({ correctionId: 1, userId: BOB, sense: CorrectionVoteSenseEnum.AGREE, votedAt: FIRST_VOTE });
+      await repository.upsertCorrectionVote({ correctionId: 1, userId: BOB, sense: CorrectionVoteSenseEnum.DISAGREE, votedAt: SECOND_VOTE });
+
+      expect(await votes().find()).toEqual([
+        { id: expect.any(Number), correctionId: 1, userId: BOB, sense: "disagree", votedAt: SECOND_VOTE },
+      ]);
+    });
+
+    it("keeps one vote per user and per correction", async () => {
+      await repository.upsertCorrectionVote({ correctionId: 1, userId: BOB, sense: CorrectionVoteSenseEnum.AGREE, votedAt: FIRST_VOTE });
+      await repository.upsertCorrectionVote({ correctionId: 1, userId: 3, sense: CorrectionVoteSenseEnum.DISAGREE, votedAt: FIRST_VOTE });
+      await repository.upsertCorrectionVote({ correctionId: 2, userId: BOB, sense: CorrectionVoteSenseEnum.DISAGREE, votedAt: FIRST_VOTE });
+
+      expect(await votes().count()).toBe(3);
+    });
+  });
+
+  describe("findCorrectionTallies", () => {
+    const vote = (correctionId: number, userId: number, sense: CorrectionVoteSenseEnum) =>
+      repository.upsertCorrectionVote({ correctionId, userId, sense, votedAt: SINCE });
+
+    it("answers an empty list without any correction id", async () => {
+      await vote(1, BOB, CorrectionVoteSenseEnum.AGREE);
+
+      expect(await repository.findCorrectionTallies([])).toEqual([]);
+    });
+
+    it("counts the votes of each sense for each requested correction, as numbers, ordered by correction then sense", async () => {
+      await vote(1, BOB, CorrectionVoteSenseEnum.AGREE);
+      await vote(1, 3, CorrectionVoteSenseEnum.AGREE);
+      await vote(1, 4, CorrectionVoteSenseEnum.DISAGREE);
+      await vote(2, BOB, CorrectionVoteSenseEnum.DISAGREE);
+      await vote(3, BOB, CorrectionVoteSenseEnum.AGREE);
+
+      expect(await repository.findCorrectionTallies([2, 1])).toStrictEqual([
+        { correctionId: 1, sense: "agree", count: 2 },
+        { correctionId: 1, sense: "disagree", count: 1 },
+        { correctionId: 2, sense: "disagree", count: 1 },
+      ]);
+    });
+
+    it("leaves out a correction without any vote", async () => {
+      await vote(1, BOB, CorrectionVoteSenseEnum.AGREE);
+
+      expect(await repository.findCorrectionTallies([5])).toEqual([]);
+    });
+  });
+
+  describe("findCorrectionVotesOfUser", () => {
+    const vote = (correctionId: number, userId: number, sense: CorrectionVoteSenseEnum) =>
+      repository.upsertCorrectionVote({ correctionId, userId, sense, votedAt: SINCE });
+
+    it("answers an empty list without any correction id", async () => {
+      await vote(1, BOB, CorrectionVoteSenseEnum.AGREE);
+
+      expect(await repository.findCorrectionVotesOfUser(BOB, [])).toEqual([]);
+    });
+
+    it("answers the votes of the user on the requested corrections only, ordered by correction", async () => {
+      await vote(2, BOB, CorrectionVoteSenseEnum.DISAGREE);
+      await vote(1, BOB, CorrectionVoteSenseEnum.AGREE);
+      await vote(3, BOB, CorrectionVoteSenseEnum.AGREE);
+      await vote(1, 3, CorrectionVoteSenseEnum.DISAGREE);
+
+      expect(await repository.findCorrectionVotesOfUser(BOB, [2, 1])).toStrictEqual([
+        { correctionId: 1, sense: "agree" },
+        { correctionId: 2, sense: "disagree" },
+      ]);
+      expect(await repository.findCorrectionVotesOfUser(4, [1, 2, 3])).toEqual([]);
+    });
   });
 });

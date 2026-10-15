@@ -10,9 +10,6 @@ const reviewDto: ReviewDto = {
   authorAvatar: "hop",
   rating: 4.5,
   text: "Très bonne",
-  sweetness: 2,
-  acidity: 3,
-  body: 4,
   createdAt: "2026-10-10T10:00:00.000Z",
   updatedAt: "2026-10-12T12:00:00.000Z",
   isMine: true,
@@ -45,28 +42,12 @@ describe("reviewDtoToModel", () => {
     expect(reviewDtoToModel(reviewDto)).not.toHaveProperty("authorAvatarColor");
   });
 
-  it("defaults the three criteria to null when the dto leaves them out", async () => {
-    const { sweetness, acidity, body, ...withoutCriteria } = reviewDto;
+  it("carries no criterion, even when the dto still sends some", async () => {
+    const review = reviewDtoToModel({ ...reviewDto, sweetness: 2, acidity: 3, body: 4 } as unknown as ReviewDto);
 
-    const review = reviewDtoToModel(withoutCriteria as ReviewDto);
-
-    expect([sweetness, acidity, body]).toEqual([2, 3, 4]);
-    expect(review.sweetness).toBeNull();
-    expect(review.acidity).toBeNull();
-    expect(review.body).toBeNull();
-  });
-
-  it("keeps null criteria null and maps the present ones next to the missing ones", async () => {
-    const review = reviewDtoToModel({
-      ...reviewDto,
-      sweetness: null,
-      acidity: 1,
-      body: undefined,
-    } as unknown as ReviewDto);
-
-    expect(review.sweetness).toBeNull();
-    expect(review.acidity).toBe(1);
-    expect(review.body).toBeNull();
+    expect(Object.keys(review).sort()).toEqual(
+      ["authorAvatar", "authorId", "authorName", "beerId", "createdAt", "id", "isMine", "rating", "text", "updatedAt"],
+    );
   });
 
   it("defaults a missing text to the empty string and keeps an empty one", async () => {
@@ -81,10 +62,8 @@ describe("reviewDtoToModel", () => {
     const review = reviewDtoToModel({
       ...reviewDto,
       isMine: false,
-      sweetness: 0,
     });
 
     expect(review.isMine).toBe(false);
-    expect(review.sweetness).toBe(0);
   });
 });

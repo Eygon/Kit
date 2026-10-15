@@ -15,8 +15,8 @@ describe("UpsertReviewDto", () => {
     expect((await validateBody({ rating: 3 })).messages).toEqual([]);
   });
 
-  it("accepts a complete body", async () => {
-    expect((await validateBody({ rating: 4.5, text: "Superbe amertume", sweetness: 2, acidity: 3, body: 5 })).messages).toEqual([]);
+  it("accepts a rating and a text", async () => {
+    expect((await validateBody({ rating: 4.5, text: "Superbe amertume" })).messages).toEqual([]);
   });
 
   it.each([1, 1.5, 4.5, 5])("accepts the rating %s", async (rating) => {
@@ -30,10 +30,12 @@ describe("UpsertReviewDto", () => {
     ["a rating of 5.5", { rating: 5.5 }],
     ["a rating of 3.3", { rating: 3.3 }],
     ["a rating sent as a string", { rating: "4" }],
-    ["a sweetness of 0", { rating: 3, sweetness: 0 }],
-    ["an acidity of 6", { rating: 3, acidity: 6 }],
-    ["a body of 2.5", { rating: 3, body: 2.5 }],
-    ["a criterion sent as a string", { rating: 3, body: "2" }],
+    ["a sweetness of 2", { rating: 3, sweetness: 2 }],
+    ["an acidity of 3", { rating: 3, acidity: 3 }],
+    ["a body of 4", { rating: 3, body: 4 }],
+    ["a null sweetness", { rating: 3, sweetness: null }],
+    ["a null acidity", { rating: 3, acidity: null }],
+    ["a null body", { rating: 3, body: null }],
     ["a text of 501 characters", { rating: 3, text: "a".repeat(501) }],
     ["a text that is not a string", { rating: 3, text: 12 }],
     ["an unknown field", { rating: 3, authorId: 2 }],
@@ -41,12 +43,8 @@ describe("UpsertReviewDto", () => {
     expect((await validateBody(body)).messages.length).toBeGreaterThan(0);
   });
 
-  it.each([1, 5])("accepts the criterion bound %s", async (value) => {
-    expect((await validateBody({ rating: 3, sweetness: value, acidity: value, body: value })).messages).toEqual([]);
-  });
-
-  it("accepts null criteria", async () => {
-    expect((await validateBody({ rating: 3, sweetness: null, acidity: null, body: null })).messages).toEqual([]);
+  it.each(["sweetness", "acidity", "body"])("names the criterion %s as a property that should not exist", async (criterion) => {
+    expect((await validateBody({ rating: 3, [criterion]: 2 })).messages).toEqual([`property ${criterion} should not exist`]);
   });
 
   it("accepts 500 characters written with CRLF after normalization and rejects 501", async () => {

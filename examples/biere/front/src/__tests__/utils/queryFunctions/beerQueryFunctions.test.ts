@@ -60,7 +60,7 @@ describe("fetchBeer", () => {
   });
 });
 
-const NEW_BEER_STUB = { name: "Orval", breweryName: "Brasserie", country: "BE", styleId: 12, abv: 6.2, description: "" };
+const NEW_BEER_STUB = { name: "Orval", breweryName: "Brasserie", country: "BE", styleId: 12, abv: 6.2, ibu: null, ebc: null, sweetness: null, acidity: null, body: null, aromas: [], formats: [], description: "" };
 
 describe("createBeer", () => {
   beforeEach(() => {
@@ -68,7 +68,7 @@ describe("createBeer", () => {
   });
 
   it("delegates to BeerService.create with the new beer and returns the created beer", async () => {
-    const newBeer = { name: "Orval", breweryName: "Brasserie d'Orval", country: "BE", styleId: 12, abv: 6.2, description: "" };
+    const newBeer = { name: "Orval", breweryName: "Brasserie d'Orval", country: "BE", styleId: 12, abv: 6.2, ibu: null, ebc: null, sweetness: null, acidity: null, body: null, aromas: [], formats: [], description: "" };
     const created = { id: 90, name: "Orval" };
     (BeerService.create as Mock).mockResolvedValue(created);
 

@@ -24,6 +24,13 @@ const NEW_BEER = {
   country: "BE",
   styleId: 12,
   abv: 6.2,
+  ibu: null,
+  ebc: null,
+  sweetness: null,
+  acidity: null,
+  body: null,
+  aromas: [],
+  formats: [],
   description: "",
 };
 

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Brackets, In, MoreThanOrEqual, Not, Repository } from "typeorm";
+import { Brackets, In, LessThanOrEqual, MoreThanOrEqual, Not, Repository } from "typeorm";
 import type { SelectQueryBuilder } from "typeorm";
 import { escapeLikePattern } from "@/common/text/escape-like-pattern";
 import { normalizeSearchText } from "@/common/text/normalize-search-text";
@@ -12,28 +12,36 @@ import type { BeerSearchCandidateDto } from "@/modules/beers/dtos/beer-search-ca
 import type { BeerSliceDto } from "@/modules/beers/dtos/beer-slice.dto";
 import type { RatingSummaryDto } from "@/modules/beers/dtos/rating-summary.dto";
 import type { ReviewStatsDto } from "@/modules/beers/dtos/review-stats.dto";
+import type { CorrectionTallyDto, CorrectionUserVoteDto } from "@/modules/beers/dtos/correction-board.dto";
 import type { ReviewRecordDto } from "@/modules/beers/dtos/review-record.dto";
 import type { ReviewRecordSliceDto } from "@/modules/beers/dtos/review-record-slice.dto";
 import type { BreweryDto } from "@/modules/beers/dtos/brewery.dto";
 import type { BeerStyleGroupDto } from "@/modules/beers/dtos/beer-style-group.dto";
 import { REVIEW_RATING_BUCKET_ROUNDING_OFFSET } from "@/modules/beers/beers.constants";
 import { Beer } from "@/modules/beers/entities/beer.entity";
+import { BeerCorrection } from "@/modules/beers/entities/beer-correction.entity";
+import { BeerCorrectionVote } from "@/modules/beers/entities/beer-correction-vote.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
 import { Review } from "@/modules/beers/entities/review.entity";
+import { BeerCharacteristicEnum } from "@/modules/beers/enums/beer-characteristic.enum";
+import type { CorrectionVoteSenseEnum } from "@/modules/beers/enums/correction-vote-sense.enum";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
-import { ReviewCriterionEnum } from "@/modules/beers/enums/review-criterion.enum";
+import { CorrectionStatusEnum } from "@/modules/beers/enums/correction-status.enum";
 import { BEER_SORT_ORDERS } from "@/modules/beers/enums/beer-sort.enum";
 import type { BeerSortEnum } from "@/modules/beers/enums/beer-sort.enum";
 import { toBeerDto, toBeerSearchCandidateDto } from "@/modules/beers/mappers/beer.mapper";
 import type { BeerInsertRow } from "@/modules/beers/mappers/beer.mapper";
+import { toCorrectionRecordDto } from "@/modules/beers/mappers/correction.mapper";
+import type { CorrectionRecordDto } from "@/modules/beers/dtos/correction-record.dto";
+import type { BeerCharacteristicChange, NewCorrectionRow } from "@/modules/beers/mappers/correction.mapper";
 import { toBreweryDto } from "@/modules/beers/mappers/brewery.mapper";
 import { toBeerStyleGroupDtos } from "@/modules/beers/mappers/beer-style.mapper";
 import { toFacetCountDto } from "@/modules/beers/mappers/facet-count.mapper";
 import { toReviewRecordDto } from "@/modules/beers/mappers/review.mapper";
 import { toRatingSummaryDto, toReviewStatsDto } from "@/modules/beers/mappers/review-stats.mapper";
-import type { RawCriteriaRow, RawRatingBucketRow, RawRatingSummaryRow } from "@/modules/beers/mappers/review-stats.mapper";
+import type { RawRatingBucketRow, RawRatingSummaryRow } from "@/modules/beers/mappers/review-stats.mapper";
 
 const NO_BEER_CONDITION = "1 = 0";
 
@@ -51,6 +59,12 @@ const withoutCountries = (filters: BeerFilters): BeerFilters => ({ ...filters, c
 
 const withoutFormats = (filters: BeerFilters): BeerFilters => ({ ...filters, formats: undefined });
 
+interface RawTallyRow {
+  readonly correctionId: number;
+  readonly sense: CorrectionVoteSenseEnum;
+  readonly count: number | string;
+}
+
 interface RawFacetRow {
   readonly value: string;
   readonly count: number | string;
@@ -58,11 +72,15 @@ interface RawFacetRow {
 
 @Injectable()
 export class BeersRepository {
+  private resolutionQueue: Promise<unknown> = Promise.resolve();
+
   constructor(
     @InjectRepository(Beer) private readonly beers: Repository<Beer>,
     @InjectRepository(BeerStyle) private readonly styles: Repository<BeerStyle>,
     @InjectRepository(Review) private readonly reviews: Repository<Review>,
     @InjectRepository(Brewery) private readonly breweries: Repository<Brewery>,
+    @InjectRepository(BeerCorrection) private readonly corrections: Repository<BeerCorrection>,
+    @InjectRepository(BeerCorrectionVote) private readonly correctionVotes: Repository<BeerCorrectionVote>,
   ) {}
 
   async findStyleGroups(): Promise<BeerStyleGroupDto[]> {
@@ -211,13 +229,7 @@ export class BeersRepository {
       .where("review.beerId = :beerId", { beerId })
       .groupBy(RATING_BUCKET_EXPRESSION)
       .getRawMany<RawRatingBucketRow>();
-    const criteriaQuery = this.reviews.createQueryBuilder("review").where("review.beerId = :beerId", { beerId });
-    Object.values(ReviewCriterionEnum).forEach((criterion) => {
-      criteriaQuery.addSelect(`ROUND(AVG(review.${criterion}), 1)`, `${criterion}Average`);
-      criteriaQuery.addSelect(`COUNT(review.${criterion})`, `${criterion}Count`);
-    });
-    const [criteriaRow] = await criteriaQuery.getRawMany<RawCriteriaRow>();
-    return toReviewStatsDto(bucketRows, criteriaRow);
+    return toReviewStatsDto(bucketRows);
   }
 
   async upsertReview(row: Omit<Review, "id">): Promise<ReviewRecordDto> {
@@ -225,7 +237,7 @@ export class BeersRepository {
       .createQueryBuilder()
       .insert()
       .values(row)
-      .orUpdate(["rating", "text", "sweetness", "acidity", "body", "updatedAt"], ["userId", "beerId"])
+      .orUpdate(["rating", "text", "updatedAt"], ["userId", "beerId"])
       .execute();
     const entity = await this.reviews.findOneByOrFail({ userId: row.userId, beerId: row.beerId });
     return toReviewRecordDto(entity);
@@ -234,6 +246,119 @@ export class BeersRepository {
   async deleteReview(userId: number, beerId: number): Promise<boolean> {
     const result = await this.reviews.delete({ userId, beerId });
     return result.affected === 1;
+  }
+
+  async createCorrection(row: NewCorrectionRow): Promise<CorrectionRecordDto> {
+    const saved = await this.corrections.save(this.corrections.create(row));
+    return toCorrectionRecordDto(await this.corrections.findOneByOrFail({ id: saved.id }));
+  }
+
+  async existsOpenCorrection(beerId: number, characteristic: BeerCharacteristicEnum): Promise<boolean> {
+    return this.corrections.existsBy({ beerId, characteristic, status: CorrectionStatusEnum.OPEN });
+  }
+
+  async countCorrectionsSince(userId: number, since: Date): Promise<number> {
+    return this.corrections.countBy({ proposedBy: userId, createdAt: MoreThanOrEqual(since) });
+  }
+
+  async findOpenCorrectionsByBeer(beerId: number): Promise<CorrectionRecordDto[]> {
+    const entities = await this.corrections.find({
+      where: { beerId, status: CorrectionStatusEnum.OPEN },
+      order: { closesAt: "ASC", id: "ASC" },
+    });
+    return entities.map(toCorrectionRecordDto);
+  }
+
+  async findCorrectionById(id: number): Promise<CorrectionRecordDto | null> {
+    const entity = await this.corrections.findOneBy({ id });
+    return entity === null ? null : toCorrectionRecordDto(entity);
+  }
+
+  async findOpenCorrections(): Promise<CorrectionRecordDto[]> {
+    const entities = await this.corrections.find({
+      where: { status: CorrectionStatusEnum.OPEN },
+      order: { closesAt: "ASC", id: "ASC" },
+    });
+    return entities.map(toCorrectionRecordDto);
+  }
+
+  async findDueCorrections(now: Date): Promise<CorrectionRecordDto[]> {
+    const entities = await this.corrections.find({
+      where: { status: CorrectionStatusEnum.OPEN, closesAt: LessThanOrEqual(now) },
+      order: { closesAt: "ASC", id: "ASC" },
+    });
+    return entities.map(toCorrectionRecordDto);
+  }
+
+  async findRecentlyClosedCorrections(limit: number): Promise<CorrectionRecordDto[]> {
+    const entities = await this.corrections.find({
+      where: { status: Not(CorrectionStatusEnum.OPEN) },
+      order: { resolvedAt: "DESC", id: "DESC" },
+      take: limit,
+    });
+    return entities.map(toCorrectionRecordDto);
+  }
+
+  async resolveCorrection(
+    id: number,
+    status: CorrectionStatusEnum,
+    previousValue: string | null,
+    resolvedAt: Date,
+    beerId: number,
+    beerChange: BeerCharacteristicChange | null,
+  ): Promise<boolean> {
+    const resolution = this.resolutionQueue.then(() =>
+      this.corrections.manager.transaction(async (manager) => {
+        const result = await manager.update(BeerCorrection, { id, status: CorrectionStatusEnum.OPEN }, { status, resolvedAt, previousValue });
+        if (result.affected === 0) {
+          return false;
+        }
+        if (beerChange !== null) {
+          await manager.update(Beer, { id: beerId }, beerChange);
+        }
+        return true;
+      }),
+    );
+    this.resolutionQueue = resolution.catch(() => undefined);
+    return resolution;
+  }
+
+  async upsertCorrectionVote(row: Omit<BeerCorrectionVote, "id">): Promise<void> {
+    await this.correctionVotes
+      .createQueryBuilder()
+      .insert()
+      .values(row)
+      .orUpdate(["sense", "votedAt"], ["correctionId", "userId"])
+      .execute();
+  }
+
+  async findCorrectionTallies(correctionIds: readonly number[]): Promise<CorrectionTallyDto[]> {
+    if (correctionIds.length === 0) {
+      return [];
+    }
+    const rows = await this.correctionVotes
+      .createQueryBuilder("vote")
+      .select("vote.correctionId", "correctionId")
+      .addSelect("vote.sense", "sense")
+      .addSelect("COUNT(*)", "count")
+      .where("vote.correctionId IN (:...correctionIds)", { correctionIds })
+      .groupBy("vote.correctionId")
+      .addGroupBy("vote.sense")
+      .orderBy("vote.correctionId", "ASC")
+      .addOrderBy("vote.sense", "ASC")
+      .getRawMany<RawTallyRow>();
+    return rows.map((row) => ({ correctionId: row.correctionId, sense: row.sense, count: Number(row.count) }));
+  }
+
+  async findCorrectionVotesOfUser(userId: number, correctionIds: readonly number[]): Promise<CorrectionUserVoteDto[]> {
+    if (correctionIds.length === 0) {
+      return [];
+    }
+    const entities = await this.correctionVotes.find({
+      where: { userId, correctionId: In([...correctionIds]) },
+      order: { correctionId: "ASC" },
+    });
+    return entities.map((entity) => ({ correctionId: entity.correctionId, sense: entity.sense }));
   }
 
   private async findFamilyFacet(search: string, filters: BeerFilters): Promise<FacetCountDto[]> {

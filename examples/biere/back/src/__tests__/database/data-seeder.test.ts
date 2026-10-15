@@ -17,11 +17,16 @@ import reviewsSeed from "@/database/seed/data/reviews.json";
 import venueBeersSeed from "@/database/seed/data/venue-beers.json";
 import venuesSeed from "@/database/seed/data/venues.json";
 import stylesSeed from "@/database/seed/data/styles.json";
+import { BeerCharacteristicEnum } from "@/modules/beers/enums/beer-characteristic.enum";
 import { BeerFamilyEnum } from "@/modules/beers/enums/beer-family.enum";
 import { Beer } from "@/modules/beers/entities/beer.entity";
 import { BeerStyle } from "@/modules/beers/entities/beer-style.entity";
 import { Brewery } from "@/modules/beers/entities/brewery.entity";
 import { BeerFormatEnum } from "@/modules/beers/enums/beer-format.enum";
+import { BeerCorrection } from "@/modules/beers/entities/beer-correction.entity";
+import { BeerCorrectionVote } from "@/modules/beers/entities/beer-correction-vote.entity";
+import { CorrectionStatusEnum } from "@/modules/beers/enums/correction-status.enum";
+import { CorrectionVoteSenseEnum } from "@/modules/beers/enums/correction-vote-sense.enum";
 import { Review } from "@/modules/beers/entities/review.entity";
 import { Follow } from "@/modules/social/entities/follow.entity";
 import { Checkin } from "@/modules/tastings/entities/checkin.entity";
@@ -88,11 +93,13 @@ describe("DataSeeder", () => {
   let reviews: Repository<Review>;
   let checkins: Repository<Checkin>;
   let follows: Repository<Follow>;
+  let corrections: Repository<BeerCorrection>;
+  let correctionVotes: Repository<BeerCorrectionVote>;
 
   beforeEach(async () => {
     Object.assign(appConfig, TEST_CONFIG);
     moduleRef = await Test.createTestingModule({
-      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer, Venue, VenueBeer, AvailabilityVote, Review, Checkin, Follow])],
+      imports: [inMemoryDatabase(), TypeOrmModule.forFeature([User, BeerStyle, Brewery, Beer, Venue, VenueBeer, AvailabilityVote, Review, Checkin, Follow, BeerCorrection, BeerCorrectionVote])],
       providers: [DataSeeder, { provide: APP_CONFIG, useValue: appConfig }],
     }).compile();
     users = moduleRef.get<Repository<User>>(getRepositoryToken(User));
@@ -105,6 +112,8 @@ describe("DataSeeder", () => {
     reviews = moduleRef.get<Repository<Review>>(getRepositoryToken(Review));
     checkins = moduleRef.get<Repository<Checkin>>(getRepositoryToken(Checkin));
     follows = moduleRef.get<Repository<Follow>>(getRepositoryToken(Follow));
+    corrections = moduleRef.get<Repository<BeerCorrection>>(getRepositoryToken(BeerCorrection));
+    correctionVotes = moduleRef.get<Repository<BeerCorrectionVote>>(getRepositoryToken(BeerCorrectionVote));
   });
 
   afterEach(async () => {
@@ -791,6 +800,151 @@ describe("DataSeeder", () => {
       expect(orvalCheckins).toHaveLength(demoCheckinsSeed.filter((row) => row.beerName === "Orval").length);
       expect(orvalCheckins.length).toBeGreaterThan(0);
       expect(await checkins.countBy({ beerId: communityOrvalId })).toBe(0);
+    });
+  });
+
+
+  describe("demo corrections", () => {
+    const HOUR_MS = 3_600_000;
+    const SOON_HOURS = 24;
+
+    const enableDemo = (): void => {
+      Object.assign(appConfig, { seedDemoActivity: true });
+    };
+
+    const beerIdOf = async (name: string): Promise<number> => (await beers.findOneByOrFail({ name, createdBy: IsNull() })).id;
+
+    it("creates no correction and no vote when the demo is off", async () => {
+      await moduleRef.get(DataSeeder).seed();
+
+      expect(await corrections.count()).toBe(0);
+      expect(await correctionVotes.count()).toBe(0);
+    });
+
+    it("seeds 4 open proposals by Bob or Carol on official beers, one of them closing in less than 24 hours", async () => {
+      enableDemo();
+      const before = Date.now();
+
+      await moduleRef.get(DataSeeder).seed();
+
+      const open = await corrections.findBy({ status: CorrectionStatusEnum.OPEN });
+      const officialIds = (await beers.find({ where: { createdBy: IsNull() } })).map((beer) => beer.id);
+      expect(open).toHaveLength(4);
+      expect(open.every((row) => row.proposedBy === BOB_USER_ID || row.proposedBy === CAROL_USER_ID)).toBe(true);
+      expect(open.every((row) => officialIds.includes(row.beerId))).toBe(true);
+      expect(open.every((row) => row.closesAt.getTime() > before && row.resolvedAt === null)).toBe(true);
+      expect(open.filter((row) => row.closesAt.getTime() - before < SOON_HOURS * HOUR_MS)).toHaveLength(1);
+      expect(new Set(open.map((row) => row.createdAt.getTime())).size).toBe(4);
+    });
+
+    it("seeds one validated and one rejected proposal, resolved in the past", async () => {
+      enableDemo();
+      const before = Date.now();
+
+      await moduleRef.get(DataSeeder).seed();
+
+      const accepted = await corrections.findBy({ status: CorrectionStatusEnum.ACCEPTED });
+      const rejected = await corrections.findBy({ status: CorrectionStatusEnum.REJECTED });
+      expect(accepted).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect(accepted[0]).toMatchObject({ characteristic: "body", proposedValue: "4", previousValue: "null", proposedBy: BOB_USER_ID });
+      expect(rejected[0]).toMatchObject({ characteristic: "abv", proposedValue: "7.5", previousValue: "6.6", proposedBy: CAROL_USER_ID });
+      expect(accepted[0].resolvedAt?.getTime()).toBeLessThan(before);
+      expect(rejected[0].resolvedAt?.getTime()).toBeLessThan(before);
+    });
+
+    it("applies the validated value to its beer and leaves the beer of the rejected proposal alone", async () => {
+      enableDemo();
+
+      await moduleRef.get(DataSeeder).seed();
+
+      expect((await beers.findOneByOrFail({ id: await beerIdOf("Westmalle Tripel") })).body).toBe(4);
+      expect((await beers.findOneByOrFail({ id: await beerIdOf("Leffe Blonde") })).abv).toBe(6.6);
+      expect((await beers.findOneByOrFail({ id: await beerIdOf("Chimay Bleue") })).ibu).toBeNull();
+    });
+
+    it("stores the votes of Bob, Carol and Alice on the right proposals and none by Alice on an open one", async () => {
+      enableDemo();
+
+      await moduleRef.get(DataSeeder).seed();
+
+      const stored = await correctionVotes.find();
+      const open = await corrections.findBy({ status: CorrectionStatusEnum.OPEN });
+      const openIds = open.map((row) => row.id);
+      expect(stored).toHaveLength(7);
+      expect(stored.filter((vote) => openIds.includes(vote.correctionId))).toHaveLength(3);
+      expect(stored.filter((vote) => vote.userId === ALICE_USER_ID && openIds.includes(vote.correctionId))).toHaveLength(0);
+      expect(stored.filter((vote) => vote.sense === CorrectionVoteSenseEnum.AGREE)).toHaveLength(4);
+      expect(stored.filter((vote) => vote.sense === CorrectionVoteSenseEnum.DISAGREE)).toHaveLength(3);
+      expect(stored.every((vote) => vote.votedAt.getTime() <= Date.now())).toBe(true);
+      const accepted = await corrections.findOneByOrFail({ status: CorrectionStatusEnum.ACCEPTED });
+      expect(stored.filter((vote) => vote.correctionId === accepted.id).map((vote) => vote.userId).sort()).toEqual([ALICE_USER_ID, CAROL_USER_ID]);
+    });
+
+    it("attaches each vote to the proposal of the right beer, with the right voter and sense", async () => {
+      enableDemo();
+      const userNames = new Map([
+        [ALICE_USER_ID, "Alice"],
+        [BOB_USER_ID, "Bob"],
+        [CAROL_USER_ID, "Carol"],
+      ]);
+
+      await moduleRef.get(DataSeeder).seed();
+
+      const stored = await correctionVotes.find();
+      const proposals = await corrections.find();
+      const labels: string[] = [];
+      for (const vote of stored) {
+        const proposal = proposals.find((candidate) => candidate.id === vote.correctionId);
+        if (proposal === undefined) {
+          throw new Error(`Vote ${vote.id} points to no proposal.`);
+        }
+        const beer = await beers.findOneByOrFail({ id: proposal.beerId });
+        labels.push(`${beer.name} | ${proposal.characteristic} | ${userNames.get(vote.userId)} | ${vote.sense}`);
+      }
+      expect(labels.sort()).toEqual([
+        "Chimay Bleue | ibu | Carol | agree",
+        "La Chouffe | formats | Bob | agree",
+        "Leffe Blonde | abv | Alice | disagree",
+        "Leffe Blonde | abv | Bob | disagree",
+        "Orval | ebc | Bob | disagree",
+        "Westmalle Tripel | body | Alice | agree",
+        "Westmalle Tripel | body | Carol | agree",
+      ]);
+    });
+
+    it("adds nothing when the API restarts on an already seeded base", async () => {
+      enableDemo();
+      const seeder = moduleRef.get(DataSeeder);
+      await seeder.seed();
+      const storedCorrections = await corrections.find({ order: { id: "ASC" } });
+      const storedVotes = await correctionVotes.find({ order: { id: "ASC" } });
+
+      await seeder.seed();
+
+      expect(await corrections.find({ order: { id: "ASC" } })).toEqual(storedCorrections);
+      expect(await correctionVotes.find({ order: { id: "ASC" } })).toEqual(storedVotes);
+    });
+
+    it("does not seed again once a correction exists", async () => {
+      enableDemo();
+      await moduleRef.get(DataSeeder).seed();
+      await correctionVotes.clear();
+      await corrections.clear();
+      await corrections.insert({
+        beerId: await beerIdOf("Duvel"),
+        characteristic: BeerCharacteristicEnum.ABV,
+        proposedValue: "8",
+        reason: "",
+        proposedBy: BOB_USER_ID,
+        createdAt: new Date(),
+        closesAt: new Date(Date.now() + HOUR_MS),
+      });
+
+      await moduleRef.get(DataSeeder).seed();
+
+      expect(await corrections.count()).toBe(1);
+      expect(await correctionVotes.count()).toBe(0);
     });
   });
 

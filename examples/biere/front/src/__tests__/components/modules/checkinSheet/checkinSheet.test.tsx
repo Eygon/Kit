@@ -67,9 +67,14 @@ const CHIMAY: Beer = {
   averageRating: null,
   reviewCount: 0,
   ratingDistribution: [],
-  criteria: [],
   source: BeerSourceEnum.OFFICIAL,
   createdByName: null,
+  ibu: null,
+  ebc: null,
+  sweetness: null,
+  acidity: null,
+  body: null,
+  createdBy: null,
 };
 
 const checkinDto = {

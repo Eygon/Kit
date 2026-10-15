@@ -34,7 +34,10 @@ const mockCreateCollection = vi.hoisted(() => ({
   useCreateCollectionMutation: vi.fn(),
 }));
 
+const mockBoard = vi.hoisted(() => ({ useCorrectionBoardQuery: vi.fn() }));
+
 vi.mock("@/hooks/dex/useDexQuery", () => mockDex);
+vi.mock("@/hooks/corrections/useCorrectionBoardQuery", () => mockBoard);
 vi.mock("@/hooks/profile/useProfileQuery", () => mockProfile);
 vi.mock("@/pages/profile/hooks/useBadgesQuery", () => mockBadges);
 vi.mock("@/pages/profile/hooks/useStatsQuery", () => mockStats);
@@ -225,6 +228,12 @@ describe("ProfilePage", () => {
       kind: "custom",
       name: "Trappistes",
       beerCount: 0,
+    });
+    mockBoard.useCorrectionBoardQuery.mockReturnValue({
+      board: { open: [], recentlyClosed: [], pendingCount: 3 },
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
     });
     stubCreateCollection();
     stubCollections();
@@ -514,6 +523,7 @@ describe("ProfilePage", () => {
     );
     expect(screen.getByRole("link", { name: "Profil" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Carte" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Votes, 3 votes en attente" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: "English" }));
 
@@ -524,6 +534,7 @@ describe("ProfilePage", () => {
       "href",
       "/carte",
     );
+    expect(screen.getByRole("link", { name: "Votes, 3 pending votes" })).toHaveAttribute("href", "/votes");
     expect(
       screen.queryByRole("link", { name: "Profil" }),
     ).not.toBeInTheDocument();

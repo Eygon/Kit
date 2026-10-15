@@ -24,6 +24,9 @@ import type { CreatedCheckinDto } from "@/modules/pokedex/dtos/created-checkin.d
 import type { CatalogBeerDto } from "@/modules/beers/dtos/catalog-beer.dto";
 import { ALICE_USER_ID, BOB_USER_ID, CAROL_USER_ID } from "@/database/seed.constants";
 import { Beer } from "@/modules/beers/entities/beer.entity";
+import { BeersRepository } from "@/modules/beers/beers.repository";
+import { BeerCharacteristicEnum } from "@/modules/beers/enums/beer-characteristic.enum";
+import { CorrectionVoteSenseEnum } from "@/modules/beers/enums/correction-vote-sense.enum";
 import type { BeerDetailDto } from "@/modules/beers/dtos/beer-detail.dto";
 import type { BreweryDto } from "@/modules/beers/dtos/brewery.dto";
 
@@ -31,9 +34,11 @@ const BEERS_PATH = "/api/v1/beers";
 const SEEDED_BEER_COUNT = 120;
 const BEER_FIELDS = [
   "abv",
+  "acidity",
   "aromas",
   "averageRating",
   "bitternessLevel",
+  "body",
   "breweryName",
   "checkinCount",
   "colorLevel",
@@ -42,8 +47,10 @@ const BEER_FIELDS = [
   "createdByName",
   "description",
   "drunk",
+  "ebc",
   "family",
   "formats",
+  "ibu",
   "id",
   "inWishlist",
   "name",
@@ -52,6 +59,7 @@ const BEER_FIELDS = [
   "styleColorRange",
   "styleId",
   "styleName",
+  "sweetness",
 ];
 
 const BITTERNESS_LEVEL_BY_BEER: Readonly<Record<string, number>> = {
@@ -66,7 +74,6 @@ const STATE_FIELDS: readonly string[] = ["drunk", "checkinCount", "inWishlist"];
 
 const NO_REVIEW_STATS = {
   ratingDistribution: [1, 2, 3, 4, 5].map((stars) => ({ stars, count: 0 })),
-  criteria: ["sweetness", "acidity", "body"].map((criterion) => ({ criterion, average: null, count: 0 })),
 };
 
 const asciiLower = (value: string): string => value.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
@@ -138,6 +145,11 @@ describe("beers API", () => {
       styleName: "Bière de garde",
       family: "amber",
       abv: 8.5,
+      ibu: null,
+      ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
       aromas: ["malty", "honey", "fruity", "herbal", "spicy"],
       formats: ["bottle"],
       description: "Bière de garde blonde de Flandre française, forte, sèche et légèrement herbacée.",
@@ -302,6 +314,11 @@ describe("beers API", () => {
       styleName: "Dubbel trappiste",
       family: "trappist",
       abv: 7,
+      ibu: null,
+      ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
       aromas: ["fruity", "caramel", "spicy", "malty"],
       formats: ["bottle"],
       description: "Trappiste cuivrée, douce et fruitée, la plus ancienne recette de l'abbaye de Scourmont.",
@@ -748,7 +765,7 @@ describe("beers API rating statistics", () => {
     expect([sheet.averageRating, sheet.reviewCount]).toEqual([4.3, 2]);
   });
 
-  it("US5 AC2 gives a beer without review a null average, 0 reviews, five empty bars and three hidden criteria", async () => {
+  it("US5 AC2 gives a beer without review a null average, 0 reviews, five empty bars and no criteria", async () => {
     const trippelId = await findBeerId("Rochefort 8");
 
     const item = await getListItem("Rochefort 8");
@@ -756,6 +773,7 @@ describe("beers API rating statistics", () => {
 
     expect([item.averageRating, item.reviewCount]).toEqual([null, 0]);
     expect(sheet).toMatchObject({ averageRating: null, reviewCount: 0, ...NO_REVIEW_STATS });
+    expect(sheet).not.toHaveProperty("criteria");
   });
 
   it("US5 AC3 counts the ratings 1, 1.5, 3.5, 4.5 and 5 in the bar of their nearest star, half rounded up", async () => {
@@ -789,25 +807,23 @@ describe("beers API rating statistics", () => {
     ]);
   });
 
-  it("US5 AC4 hides the average of a criterion filled by 2 reviews and shows it to the tenth with a 3rd", async () => {
+  it("US2 AC3 serves no criteria for a beer whose seeded reviews carry them, with the average and the distribution unchanged", async () => {
     const westmalleId = await findBeerId("Westmalle Tripel");
     await insertReview(FIRST_REVIEWER_ID, westmalleId, 4, 2);
-    await insertReview(FIRST_REVIEWER_ID + 1, westmalleId, 4, 3);
-    await insertReview(FIRST_REVIEWER_ID + 2, westmalleId, 4);
+    await insertReview(FIRST_REVIEWER_ID + 1, westmalleId, 5, 3);
+    await insertReview(FIRST_REVIEWER_ID + 2, westmalleId, 4, 3);
+    await insertReview(FIRST_REVIEWER_ID + 3, westmalleId, 3, 3);
 
-    const before = await getSheet(westmalleId);
-    await insertReview(FIRST_REVIEWER_ID + 3, westmalleId, 4, 3);
-    const after = await getSheet(westmalleId);
+    const sheet = await getSheet(westmalleId);
 
-    expect(before.criteria).toEqual([
-      { criterion: "sweetness", average: null, count: 2 },
-      { criterion: "acidity", average: null, count: 0 },
-      { criterion: "body", average: null, count: 0 },
-    ]);
-    expect(after.criteria).toEqual([
-      { criterion: "sweetness", average: 2.7, count: 3 },
-      { criterion: "acidity", average: null, count: 0 },
-      { criterion: "body", average: null, count: 0 },
+    expect(sheet).not.toHaveProperty("criteria");
+    expect([sheet.averageRating, sheet.reviewCount]).toEqual([4, 4]);
+    expect(sheet.ratingDistribution).toEqual([
+      { stars: 1, count: 0 },
+      { stars: 2, count: 0 },
+      { stars: 3, count: 1 },
+      { stars: 4, count: 2 },
+      { stars: 5, count: 1 },
     ]);
   });
 
@@ -1034,6 +1050,11 @@ describe("community beers API", () => {
       styleName: style.styleName,
       family: style.family,
       abv: 6.5,
+      ibu: null,
+      ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
       aromas: [],
       formats: [],
       description: "",
@@ -1061,6 +1082,92 @@ describe("community beers API", () => {
     expect(created.description).toBe("Une brune \n douce.");
     expect(stored.createdBy).toBe(ALICE_USER_ID);
     expect(stored.createdAt?.getTime()).toBeGreaterThanOrEqual(before - 1000);
+  });
+
+  it("AC2 creates a beer with its characteristics, aromas and formats, and the sheet reads them back", async () => {
+    const response = await propose(ALICE_USER_ID, {
+      ...uniqueBody(),
+      ibu: 35,
+      ebc: 20,
+      sweetness: 2,
+      acidity: 1,
+      body: 4,
+      aromas: ["fruity", "hoppy"],
+      formats: ["can"],
+    });
+
+    expect(response.status).toBe(HttpStatus.CREATED);
+    const expected = {
+      ibu: 35,
+      ebc: 20,
+      sweetness: 2,
+      acidity: 1,
+      body: 4,
+      aromas: ["fruity", "hoppy"],
+      formats: ["can"],
+      bitternessLevel: 3,
+      colorLevel: 3,
+      styleColorRange: null,
+    };
+    expect(response.body).toMatchObject(expected);
+    const sheet = await as(BOB_USER_ID, request(app.getHttpServer()).get(`${BEERS_PATH}/${(response.body as BeerDetailDto).id}`));
+    expect(sheet.status).toBe(HttpStatus.OK);
+    expect(sheet.body).toMatchObject(expected);
+    const listed = await getBeersPage(BOB_USER_ID, { q: (response.body as BeerDetailDto).name });
+    expect(listed.items).toHaveLength(1);
+    expect(listed.items[0]).toMatchObject(expected);
+  });
+
+  it("AC3 creates a beer without any characteristic with null values and empty lists", async () => {
+    const created = await create(ALICE_USER_ID, uniqueBody());
+
+    const stored = await beers.findOneByOrFail({ id: created.id });
+    expect(created).toMatchObject({ ibu: null, ebc: null, sweetness: null, acidity: null, body: null, aromas: [], formats: [] });
+    expect([stored.ibu, stored.ebc, stored.sweetness, stored.acidity, stored.body]).toEqual([null, null, null, null, null]);
+  });
+
+  it("accepts the bounds of the characteristics", async () => {
+    const low = await create(ALICE_USER_ID, { ...uniqueBody(), ibu: 0, ebc: 2, sweetness: 1, acidity: 1, body: 1 });
+    const high = await create(ALICE_USER_ID, {
+      ...uniqueBody(),
+      ibu: 120,
+      ebc: 80,
+      sweetness: 5,
+      acidity: 5,
+      body: 5,
+      aromas: ["fruity", "hoppy", "malty", "spicy", "honey"],
+      formats: ["bottle", "can", "draft"],
+    });
+
+    expect(low).toMatchObject({ ibu: 0, ebc: 2, sweetness: 1, acidity: 1, body: 1, bitternessLevel: 1, colorLevel: 1 });
+    expect(high).toMatchObject({ ibu: 120, ebc: 80, sweetness: 5, acidity: 5, body: 5, bitternessLevel: 5, colorLevel: 5 });
+    expect(high.aromas).toHaveLength(5);
+    expect(high.formats).toHaveLength(3);
+  });
+
+  it.each([
+    ["an ibu of 121", { ibu: 121 }, "ibu must not be greater than 120"],
+    ["an ibu of -1", { ibu: -1 }, "ibu must not be less than 0"],
+    ["an ebc of 1", { ebc: 1 }, "ebc must not be less than 2"],
+    ["an ebc of 81", { ebc: 81 }, "ebc must not be greater than 80"],
+    ["a sweetness of 6", { sweetness: 6 }, "sweetness must not be greater than 5"],
+    ["an acidity of 0", { acidity: 0 }, "acidity must not be less than 1"],
+    ["a body of 6", { body: 6 }, "body must not be greater than 5"],
+    ["an ibu of 35.5", { ibu: 35.5 }, "ibu must be an integer number"],
+    ["six aromas", { aromas: ["fruity", "hoppy", "malty", "spicy", "honey", "caramel"] }, "aromas must contain no more than 5 elements"],
+    ["a repeated aroma", { aromas: ["fruity", "fruity"] }, "All aromas's elements must be unique"],
+    ["an unknown aroma", { aromas: ["unknown"] }, "each value in aromas must be one of the following values: fruity, citrus, hoppy, floral, spicy, caramel, malty, roasted, coffee, chocolate, honey, banana, clove, sour, woody, herbal, smoky, biscuit"],
+    ["four formats", { formats: ["bottle", "can", "draft", "bottle"] }, "All formats's elements must be unique; formats must contain no more than 3 elements"],
+    ["an unknown format", { formats: ["keg"] }, "each value in formats must be one of the following values: bottle, can, draft"],
+    ["a repeated format", { formats: ["can", "can"] }, "All formats's elements must be unique"],
+  ])("AC4 answers 400 with a message for %s and creates nothing", async (_label, overrides, message) => {
+    const before = await countBeers();
+
+    const response = await propose(ALICE_USER_ID, { ...uniqueBody(), ...overrides });
+
+    expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(response.body).toEqual({ message });
+    expect(await countBeers()).toBe(before);
   });
 
   it("AC2 lists, finds, filters and counts the created beer, and opens its sheet", async () => {
@@ -1484,5 +1591,58 @@ describe("beers API approximate search", () => {
     expect(page.total).toBe(0);
     expect(page.items).toEqual([]);
     expect(page.facets).toEqual({ families: [], countries: [], formats: [] });
+  });
+});
+
+describe("beers API corrections resolution", () => {
+  const PAST_DAYS = 8;
+  const MILLISECONDS_PER_DAY = 86_400_000;
+  const VALIDATED_IBU = 35;
+  const VALIDATED_BITTERNESS_LEVEL = 3;
+  const CREATED_AT = new Date(Date.now() - PAST_DAYS * MILLISECONDS_PER_DAY);
+  const CLOSES_AT = new Date(Date.now() - MILLISECONDS_PER_DAY);
+
+  let app: INestApplication;
+  let beerId: number;
+
+  const readBeer = async (userId: number, id: number): Promise<BeerDetailDto> => {
+    const response = await request(app.getHttpServer()).get(`${BEERS_PATH}/${id}`).set(USER_ID_HEADER_NAME, String(userId));
+    expect(response.status).toBe(HttpStatus.OK);
+    return response.body as BeerDetailDto;
+  };
+
+  beforeAll(async () => {
+    app = await createTestApp();
+    const page = await request(app.getHttpServer()).get(BEERS_PATH).query({ q: "Orval" }).set(USER_ID_HEADER_NAME, String(ALICE_USER_ID));
+    beerId = (page.body as BeerPageDto).items.filter((item) => item.name === "Orval")[0].id;
+    await app.get(DataSource).query("UPDATE beers SET ibu = 20 WHERE id = ?", [beerId]);
+    const repository = app.get(BeersRepository);
+    const record = await repository.createCorrection({
+      beerId,
+      characteristic: BeerCharacteristicEnum.IBU,
+      proposedValue: String(VALIDATED_IBU),
+      reason: "",
+      proposedBy: ALICE_USER_ID,
+      createdAt: CREATED_AT,
+      closesAt: CLOSES_AT,
+    });
+    await repository.upsertCorrectionVote({ correctionId: record.id, userId: BOB_USER_ID, sense: CorrectionVoteSenseEnum.AGREE, votedAt: CREATED_AT });
+    await repository.upsertCorrectionVote({ correctionId: record.id, userId: CAROL_USER_ID, sense: CorrectionVoteSenseEnum.DISAGREE, votedAt: CREATED_AT });
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("AC1 rereads the beer after the due date with the validated ibu and the bitterness level that follows", async () => {
+    const beer = await readBeer(BOB_USER_ID, beerId);
+
+    expect(beer.ibu).toBe(VALIDATED_IBU);
+    expect(beer.bitternessLevel).toBe(VALIDATED_BITTERNESS_LEVEL);
+  });
+
+  it("AC1 keeps the validated value on the next reads, for every user", async () => {
+    expect((await readBeer(ALICE_USER_ID, beerId)).ibu).toBe(VALIDATED_IBU);
+    expect((await readBeer(CAROL_USER_ID, beerId)).ibu).toBe(VALIDATED_IBU);
   });
 });

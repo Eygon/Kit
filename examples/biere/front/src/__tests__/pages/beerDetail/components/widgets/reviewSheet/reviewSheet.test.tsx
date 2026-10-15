@@ -35,9 +35,14 @@ const CHIMAY: Beer = {
   averageRating: null,
   reviewCount: 0,
   ratingDistribution: [],
-  criteria: [],
   source: BeerSourceEnum.OFFICIAL,
   createdByName: null,
+  ibu: null,
+  ebc: null,
+  sweetness: null,
+  acidity: null,
+  body: null,
+  createdBy: null,
 };
 
 const MINE: Review = {
@@ -48,9 +53,6 @@ const MINE: Review = {
   authorAvatar: AvatarEnum.HOP,
   rating: 3.5,
   text: "Mon avis perso",
-  sweetness: 2,
-  acidity: null,
-  body: 5,
   createdAt: "2026-10-10T12:00:00.000Z",
   updatedAt: "2026-10-12T12:00:00.000Z",
   isMine: true,
@@ -227,9 +229,10 @@ describe("ReviewSheet", () => {
       expect(
         within(dialog).getByRole("textbox", { name: "Votre avis" }),
       ).toHaveValue("Mon avis perso");
-      expect(screen.getByRole("slider", { name: "Douceur" })).toHaveValue("2");
-      expect(screen.getByRole("slider", { name: "Acidité" })).toHaveValue("0");
-      expect(screen.getByRole("slider", { name: "Corps" })).toHaveValue("5");
+      expect(within(dialog).getAllByRole("slider")).toHaveLength(1);
+      expect(screen.queryByRole("slider", { name: "Douceur" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("slider", { name: "Acidité" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("slider", { name: "Corps" })).not.toBeInTheDocument();
 
       await user.type(
         within(dialog).getByRole("textbox", { name: "Votre avis" }),
@@ -267,9 +270,6 @@ describe("ReviewSheet", () => {
       expect(JSON.parse(init.body as string)).toEqual({
         rating: 4,
         text: "",
-        sweetness: null,
-        acidity: null,
-        body: null,
       });
       expect(toast.success).toHaveBeenCalledTimes(1);
       expect(toast.success).toHaveBeenCalledWith("Avis enregistré");
@@ -291,7 +291,7 @@ describe("ReviewSheet", () => {
       expect(invalidate).toHaveBeenCalledWith({ queryKey: reviewKeys.list(1) });
     });
 
-    it("sends my edited review when I modify it, criteria untouched kept", async () => {
+    it("sends my edited review when I modify it, text kept", async () => {
       const user = userEvent.setup();
       renderSheet({ mine: MINE });
       await openSheet(user, "Modifier mon avis");
@@ -305,9 +305,6 @@ describe("ReviewSheet", () => {
       expect(JSON.parse(init.body as string)).toEqual({
         rating: 4,
         text: "Mon avis perso",
-        sweetness: 2,
-        acidity: null,
-        body: 5,
       });
     });
 

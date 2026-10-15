@@ -1,0 +1,70 @@
+[
+  {
+    "beerName": "Chimay Bleue",
+    "characteristic": "ibu",
+    "proposedValue": 35,
+    "reason": "L'étiquette de la brasserie annonce 35 IBU.",
+    "proposedBy": "Bob",
+    "closesInHours": 144,
+    "status": "open",
+    "votes": [{ "userName": "Carol", "sense": "agree" }]
+  },
+  {
+    "beerName": "Orval",
+    "characteristic": "ebc",
+    "proposedValue": 20,
+    "reason": "Une robe cuivrée, autour de 20 EBC.",
+    "proposedBy": "Carol",
+    "closesInHours": 96,
+    "status": "open",
+    "votes": [{ "userName": "Bob", "sense": "disagree" }]
+  },
+  {
+    "beerName": "Duvel",
+    "characteristic": "sweetness",
+    "proposedValue": 2,
+    "reason": "Une blonde sèche, peu sucrée en bouche.",
+    "proposedBy": "Bob",
+    "closesInHours": 48,
+    "status": "open",
+    "votes": []
+  },
+  {
+    "beerName": "La Chouffe",
+    "characteristic": "formats",
+    "proposedValue": ["bottle", "draft", "can"],
+    "reason": "Elle se trouve aussi en canette et à la pression.",
+    "proposedBy": "Carol",
+    "closesInHours": 10,
+    "status": "open",
+    "votes": [{ "userName": "Bob", "sense": "agree" }]
+  },
+  {
+    "beerName": "Westmalle Tripel",
+    "characteristic": "body",
+    "proposedValue": 4,
+    "reason": "Un corps ample et rond.",
+    "proposedBy": "Bob",
+    "resolvedHoursAgo": 48,
+    "status": "accepted",
+    "previousValue": null,
+    "votes": [
+      { "userName": "Carol", "sense": "agree" },
+      { "userName": "Alice", "sense": "agree" }
+    ]
+  },
+  {
+    "beerName": "Leffe Blonde",
+    "characteristic": "abv",
+    "proposedValue": 7.5,
+    "reason": "Je crois qu'elle titre 7,5 %.",
+    "proposedBy": "Carol",
+    "resolvedHoursAgo": 24,
+    "status": "rejected",
+    "previousValue": 6.6,
+    "votes": [
+      { "userName": "Bob", "sense": "disagree" },
+      { "userName": "Alice", "sense": "disagree" }
+    ]
+  }
+]

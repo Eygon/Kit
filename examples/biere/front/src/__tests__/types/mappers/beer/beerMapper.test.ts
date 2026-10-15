@@ -39,9 +39,14 @@ describe("beerDtoToModel", () => {
       averageRating: null,
       reviewCount: 0,
       ratingDistribution: [],
-      criteria: [],
       source: "official",
       createdByName: null,
+      ibu: null,
+      ebc: null,
+      sweetness: null,
+      acidity: null,
+      body: null,
+      createdBy: null,
     });
   });
 
@@ -142,68 +147,38 @@ describe("beerDtoToModel", () => {
     expect(model.reviewCount).toBe(0);
   });
 
-  it("defaults the distribution and the criteria to empty lists when the dto omits them", () => {
+  it("defaults the distribution to an empty list when the dto omits it", () => {
+    expect(beerDtoToModel(dto).ratingDistribution).toEqual([]);
+  });
+
+  it("maps the rating distribution of a beer detail", () => {
+    const ratingDistribution = [
+      { stars: 1, count: 1 },
+      { stars: 2, count: 0 },
+      { stars: 3, count: 2 },
+      { stars: 4, count: 7 },
+      { stars: 5, count: 2 },
+    ];
+
+    expect(beerDtoToModel({ ...dto, ratingDistribution })).toEqual({ ...beerDtoToModel(dto), ratingDistribution });
+  });
+
+  it("maps a response without criteria and carries no criteria on the model", () => {
     const model = beerDtoToModel(dto);
 
-    expect(model.ratingDistribution).toEqual([]);
-    expect(model.criteria).toEqual([]);
+    expect(model).not.toHaveProperty("criteria");
   });
 
-  it("maps the rating distribution and the criteria of a beer detail", () => {
-    const model = beerDtoToModel({
-      ...dto,
-      ratingDistribution: [
-        { stars: 1, count: 1 },
-        { stars: 2, count: 0 },
-        { stars: 3, count: 2 },
-        { stars: 4, count: 7 },
-        { stars: 5, count: 2 },
-      ],
-      criteria: [
-        { criterion: "sweetness", average: 2.7, count: 3 },
-        { criterion: "acidity", average: null, count: 1 },
-        { criterion: "body", average: null, count: 0 },
-      ],
-    });
+  it("ignores the criteria a legacy response still sends", () => {
+    const legacyDto = { ...dto, criteria: [{ criterion: "sweetness", average: 2.7, count: 3 }] } as unknown as typeof dto;
+    const model = beerDtoToModel(legacyDto);
 
-    expect(model).toEqual({
-      ...beerDtoToModel(dto),
-      ratingDistribution: [
-        { stars: 1, count: 1 },
-        { stars: 2, count: 0 },
-        { stars: 3, count: 2 },
-        { stars: 4, count: 7 },
-        { stars: 5, count: 2 },
-      ],
-      criteria: [
-        { criterion: "sweetness", average: 2.7, count: 3 },
-        { criterion: "acidity", average: null, count: 1 },
-        { criterion: "body", average: null, count: 0 },
-      ],
-    });
+    expect(model).not.toHaveProperty("criteria");
+    expect(model).toEqual(beerDtoToModel(dto));
   });
 
-  it("drops an unknown criterion and keeps the order of the known ones", () => {
-    const model = beerDtoToModel({
-      ...dto,
-      criteria: [
-        { criterion: "body", average: 4, count: 3 },
-        { criterion: "bitterness", average: 2, count: 9 },
-        { criterion: "sweetness", average: null, count: 2 },
-      ],
-    });
-
-    expect(model.criteria).toEqual([
-      { criterion: "body", average: 4, count: 3 },
-      { criterion: "sweetness", average: null, count: 2 },
-    ]);
-  });
-
-  it("keeps empty distribution and criteria lists empty", () => {
-    const model = beerDtoToModel({ ...dto, ratingDistribution: [], criteria: [] });
-
-    expect(model.ratingDistribution).toEqual([]);
-    expect(model.criteria).toEqual([]);
+  it("keeps an empty distribution list empty", () => {
+    expect(beerDtoToModel({ ...dto, ratingDistribution: [] }).ratingDistribution).toEqual([]);
   });
 
   it("maps a community beer with its source and the name of its author", () => {
@@ -234,5 +209,22 @@ describe("beerDtoToModel", () => {
 
     expect(model.source).toBe("official");
     expect(model.createdByName).toBe("Alice");
+  });
+
+  it("keeps the technical fields and the author id as given", () => {
+    const model = beerDtoToModel({ ...dto, ibu: 35, ebc: 20, sweetness: 3, acidity: 1, body: 5, createdBy: 2 });
+
+    expect(model).toEqual({ ...beerDtoToModel(dto), ibu: 35, ebc: 20, sweetness: 3, acidity: 1, body: 5, createdBy: 2 });
+  });
+
+  it("defaults every technical field and the author id to null when absent or null", () => {
+    const expected = { ibu: null, ebc: null, sweetness: null, acidity: null, body: null, createdBy: null };
+
+    expect(beerDtoToModel(baseDto)).toMatchObject(expected);
+    expect(beerDtoToModel({ ...dto, ibu: null, ebc: null, sweetness: null, acidity: null, body: null, createdBy: null })).toMatchObject(expected);
+  });
+
+  it("keeps a zero technical value instead of defaulting it", () => {
+    expect(beerDtoToModel({ ...dto, ibu: 0, acidity: 0 })).toMatchObject({ ibu: 0, acidity: 0 });
   });
 });
