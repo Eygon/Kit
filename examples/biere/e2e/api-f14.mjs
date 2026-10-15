@@ -7,7 +7,7 @@ const log = (id, ok, d) => { results.push({ id, ok: !!ok }); console.log(`${ok ?
 const H = (u) => ({ "X-User-Id": String(u), "Content-Type": "application/json" }); const J = async (r) => { const x = await r.text(); try { return x ? JSON.parse(x) : null; } catch { return x; } };
 const call = async (method, p, u, body) => { const r = await fetch(API + p, { method, headers: H(u), body: body === undefined ? undefined : JSON.stringify(body) }); return { status: r.status, body: await J(r) }; };
 const get = async (p, u = 1) => (await call("GET", p, u)).body;
-const styleId = (await get("/beers?limit=1")).items[0].styleId;
+const styleId = (await get("/beers")).items[0].styleId;
 const valid = (over = {}) => ({ name: "F14 Brune d'essai", breweryName: "Brasserie F14", country: "FR", styleId, abv: 6.5, description: "Test.", ...over });
 // A. fiche technique a la creation
 let r = await call("POST", "/beers", 1, valid({ ibu: 40, ebc: 60, sweetness: 2, acidity: 1, body: 4, aromas: ["fruity", "spicy"], formats: ["bottle"] })); const mine = r.body;
@@ -17,11 +17,11 @@ r = await call("POST", "/beers", 1, valid({ name: "F14 Sans fiche", breweryName:
 for (const [id, over] of [["ibu-121", { ibu: 121 }], ["ibu-negatif", { ibu: -1 }], ["ebc-1", { ebc: 1 }], ["ebc-81", { ebc: 81 }], ["douceur-0", { sweetness: 0 }], ["acidite-6", { acidity: 6 }], ["corps-2.5", { body: 2.5 }], ["aromes-6", { aromas: ["fruity", "spicy", "hoppy", "floral", "caramel", "malty"] }], ["aromes-doublon", { aromas: ["fruity", "fruity"] }], ["formats-4", { formats: ["bottle", "can", "draft", "bottle"] }], ["aroma-inconnu", { aromas: ["chocolatey"] }]]) { r = await call("POST", "/beers", 1, valid({ name: "F14 invalide " + id, breweryName: "B " + id, ...over })); log(`A.400-${id}`, r.status === 400, r.status); }
 // B. avis sans criteres
 const orval = (await get("/beers?q=Orval")).items.find((x) => /Orval/.test(x.name)); const fd = new FormData(); for (const [k, v] of Object.entries({ beerId: orval.id, drankAt: new Date(Date.now() - 3600e3).toISOString(), place: "Maison", format: "bottle" })) fd.append(k, String(v)); await fetch(API + "/checkins", { method: "POST", headers: { "X-User-Id": "1" }, body: fd });
-r = await call("PUT", `/beers/${orval.id}/reviews/me`, 1, { rating: 4, comment: "Très bien" }); log("B.avis-sans-criteres-ok", r.status === 200 || r.status === 201, `${r.status} ${JSON.stringify(r.body)?.slice(0, 100)}`);
-r = await call("PUT", `/beers/${orval.id}/reviews/me`, 1, { rating: 4, comment: "x", sweetness: 3 }); log("B.avis-avec-critere-400", r.status === 400, `${r.status} ${JSON.stringify(r.body)}`);
+r = await call("PUT", `/beers/${orval.id}/reviews/me`, 1, { rating: 4, text: "Très bien" }); log("B.avis-sans-criteres-ok", r.status === 200 || r.status === 201, `${r.status} ${JSON.stringify(r.body)?.slice(0, 100)}`);
+r = await call("PUT", `/beers/${orval.id}/reviews/me`, 1, { rating: 4, text: "x", sweetness: 3 }); log("B.avis-avec-critere-400", r.status === 400, `${r.status} ${JSON.stringify(r.body)}`);
 const oDet = await get(`/beers/${orval.id}`); log("B.fiche-sans-moyennes-de-criteres", !("criteria" in oDet), `cles: ${Object.keys(oDet).filter((k) => /crit/i.test(k)).join(",") || "aucune"}`);
 // C. propositions
-const official = (await get("/beers?q=Chimay")).items.find((x) => /Chimay/.test(x.name)); const offId = official.id;
+const official = (await get("/beers?q=Duvel")).items.find((x) => /Duvel/.test(x.name)); const offId = official.id;
 r = await call("POST", `/beers/${mine.id}/corrections`, 1, { characteristic: "ibu", value: 30 }); log("C.auteur-ne-corrige-pas-403", r.status === 403, `${r.status} ${JSON.stringify(r.body)}`);
 r = await call("POST", `/beers/${mine.id}/corrections`, 2, { characteristic: "ibu", value: 40 }); log("C.valeur-identique-400", r.status === 400, `${r.status} ${JSON.stringify(r.body)}`);
 r = await call("POST", `/beers/${mine.id}/corrections`, 2, { characteristic: "ibu", value: 150 }); log("C.hors-bornes-400", r.status === 400, r.status);
