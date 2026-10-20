@@ -540,6 +540,14 @@ Elle nomme donc :
   de la US, ou le champ declare facultatif/omis du type derive. Omission vue sur
   Mousse F12 US2 : `catalog-seed.ts` ne compilait plus, le worker s'est arrete
   (STOP preuve) et la feature a perdu un run ;
+- pour toute tache qui AJOUTE un champ a la sortie d'un mapper ou d'un repository : les fichiers
+  des DTO de lecture concernes (`dtos/<nom>.dto.ts`) dans les chemins de la tache, jamais un type
+  declare dans le mapper (Mousse F14 US5 : 3 DTO hors chemins, le worker a declare deux types dans
+  le mapper, la revue a escalade) ;
+- pour tout module partage cree par DEPLACEMENT (composant, formulaire, hook) : les constantes et
+  utilitaires qu'il importait depuis un dossier de page suivent dans le module, dans les chemins de la
+  tache ; « ne jamais descendre dans le dossier d'une page » (Mousse F13 US4 : constantes de photo
+  restees dans la page, ESCALATE) ;
 - pour un changement de surface publique (hook, type partage, export) :
   chaque consommateur (`grep -rl "<nom du module>" src`) dans CETTE US, ou
   un alias transitoire NOMME qui couvre tout membre retire ; un
