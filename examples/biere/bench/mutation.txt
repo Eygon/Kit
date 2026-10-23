@@ -1,0 +1,6 @@
+mut t1fm score=9/9 (M2 N/A; M8 tuee seulement par tests du chemin create, a confirmer)
+mut t1om score=10/10 (M10 tuee par 1 seul test)
+mut t1sm score=10/10
+mut t1sl score=9/9 (M2 equivalent, M10 tuee par 1 seul test)
+mut t1sh score=9/9 (M2 equivalent)
+mut t1hm score=8/9 (M10 SURVIVANTE: update sans filtre id; le grader a ecrit 7/9 mais M1,M3-M9 = 8 tuees; M2 equivalent)
